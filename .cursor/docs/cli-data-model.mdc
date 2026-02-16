@@ -1,64 +1,184 @@
 ---
-description: CLI core ideas — storage adapter (SQLite), investigation case, hierarchy, RCA and pattern, RCA→Jira extension
+description: Two-tier data model — investigation-scoped execution tree + global cross-version knowledge (symptoms, RCAs) with temporal context
 ---
 
-# CLI Data Model and Core Ideas
+# CLI Data Model
 
-## Local file-based store: SQLite
+## Overview
 
-- **Choice (for now):** SQLite as the CLI’s data store. Single file (e.g. `asterisk.db` or per-workspace), no server, local and in-reach. Fine for PoC and current scope.
-- **Use for:** Investigation cases, pipeline/job/failure hierarchy, RCA outcomes, artifact paths, optional step state for resume.
-- **Placement:** Next to CLI binary or in a well-known dir (e.g. `~/.config/asterisk/`). **Per-workspace DB** = one DB per investigation workspace so each regression run is self-contained.
-- **Adapter for future-proofing:** Access persistence through a **storage adapter** (repository/interface), not raw SQLite in domain code. The CLI talks to the adapter; the adapter implementation uses SQLite today. Later we can add another implementation (e.g. different DB, or remote store) without changing case/RCA/pipeline logic.
+### The three pillars
 
-## Investigation case = one failure, one envelope
+A failed **Test Case** is like a witness reporting a crime. The **Symptom** is the story — the observable pattern. The **Root Cause (RCA)** is the criminal — the actual bug or issue.
 
-- **Case** — One failed test case. The unit of agent work (one case = one scoped context window).
-- **Investigation envelope** — Context for that failure: job ID, run ID, clock type, paths to logs/artifacts; may align with or derive from Execution Envelope. One case per failure, keyed by envelope; no duplicate cases for the same failure.
-- The CLI **opens one investigation case per failure**, per investigation envelope. Agent runs are scoped to a single case.
+```
+Test Case ──reports──▶ Symptom ──caused by──▶ Root Cause (RCA)
+ (witness)              (story)    (via SymptomRCA)   (criminal)
+```
 
-## Hierarchy: failure ⊂ job ⊂ pipeline
+The canonical path is **always through the Symptom**. Same story can point to different criminals (same symptom, different RCA in different versions). Different stories can point to the same criminal (different symptoms, one RCA). The data model has **two tiers** built around this chain:
 
-Containment model for PTP CI (and similar flows):
+1. **Investigation-scoped entities** — form the execution tree that the analyst navigates. Bound to specific CI runs and failures. Cases (witnesses) live here.
+2. **Global knowledge entities** — cross-version, cross-suite institutional memory. Symptoms (stories) and RCAs (criminals) live here, linked by the SymptomRCA junction (the knowledge graph).
 
-| Level | What it is | Example |
-|-------|------------|---------|
-| **Failure** | One failed test case | Single Ginkgo failure in T-TSC |
-| **Job** | One test execution run (one clock type) | T-TSC run @ `12_feb_26_special_regression/t-tsc` |
-| **Pipeline** | Serial run of several jobs | BC-OC → OC2PORT → T-TSC → T-BC |
+The key invariant: **global entities never carry investigation-scoped foreign keys**. Symptoms and RCAs exist independently; investigation-scoped Cases link *into* them via nullable FKs.
 
-- **Pipeline** contains **jobs**; **job** contains **failures**. Cases live at the failure level and reference their job and pipeline.
-- **Pipeline is per version.** Each pipeline run is tied to a version (e.g. 4.20, 4.22); different pipelines = different versions.
-- Enables: list all failures in a pipeline/job; scoped prompts (“failure X of job T-TSC in pipeline …”); aggregation by job, clock type, or pipeline.
+## Persistence
 
-## RCA: separate from pipeline envelope
+- **Choice:** SQLite. Single file, no server, local. Per-workspace DB (e.g. `.asterisk/asterisk.db`).
+- **Access:** Through a **storage adapter** interface only. Domain and CLI code use the adapter; implementation is SQLite today, swappable later.
+- **Schema versioning:** `schema_version` table. Current: v2 (two-tier model). Migration from v1 (flat) preserves existing data.
 
-- **RCA** is a **first-class entity independent of pipeline and envelope.** It is not owned by a single pipeline or version. Stored in DB: title, description, defect type, evidence; optional **Jira ticket ID** and **Jira link** (URL). RCAs in the end become Jira bugs; the model allows extension for Jira without integration today.
-- **Why:** The same root cause (e.g. a backport bug) can cause the same or similar failures in **multiple pipelines** (multiple versions). One RCA can be linked from cases that belong to **different pipelines** — e.g. regression in 4.20, 4.21, and 4.22 all pointing to the same RCA. RCAs live outside the pipeline envelope so they can span versions.
+---
 
-## Many cases → one RCA (pattern / dedup)
+## Tier 1 — Investigation-scoped entities (the execution tree)
 
-- **Case → RCA** — Many cases (within one pipeline or **across pipelines**) can reference **one** RCA (same root cause). Serial killer pattern: several victims (failures, possibly across versions), one cause (RCA). “Serial killer” pattern: several victims (failures), one cause (RCA).
-- **Use:** Deduplicate (e.g. five failures across two version runs → one Jira ticket, one RCA). Reporting: This RCA affects pipelines 4.20, 4.21, 4.22. Human review: “Case 3 same RCA as Case 1 — Approve / Reassess / Overturn?” Later: suggest “this failure may match RCA #2” from symptom/job/component; user confirms link.
-- **Schema (conceptual):** e.g. `rca(id, title, description, defect_type, jira_ticket_id nullable, jira_link nullable, ...)` with no pipeline_id; `case(rca_id nullable, pipeline_id, ...)`. Cases reference pipeline; RCA does not. When user/agent says same as case X, set `case.rca_id = case_x.rca_id` even if case X is from another pipeline/version.
+```
+InvestigationSuite
+├── Pipeline (for Version)
+│   └── Launch (from RP)
+│       └── Job (RP TEST-level)
+│           └── Case (RP STEP-level, one per failure)
+│               └── Triage (F1 output)
+```
 
-## RCA → Jira (extension point)
+### InvestigationSuite
 
-- **Intent:** RCA outcomes become Jira bugs. There is **no Jira API integration yet**; the model is designed so it can be extended.
-- **Store now:** Per RCA: **Jira ticket ID** (e.g. `PROJ-123`) and **Jira link** (URL to the ticket). User or agent fills these when a ticket is created (e.g. from the Jira report step); they are persisted in the DB.
-- **Extension:** When Jira integration is added, the CLI can **track ticket status** (e.g. `asterisk ticket status PROJ-123` or show status in list/show RCA). Schema already has ticket ID and link; status can be fetched via Jira API and cached or displayed on demand.
+Top-level grouping. An analyst opens a suite when starting a regression analysis (e.g. "PTP Feb 2026 regression"). Spans versions. Has a lifecycle: `open` → `closed`.
 
-## Open design choices
+- `id`, `name`, `description`, `status` (open/closed), `created_at`, `closed_at`
 
-- **Storage adapter interface** — Exact shape deferred to implementation (e.g. per-entity repositories vs single Store facade). Domain and CLI must depend only on the adapter; implementation can be swapped.
-- **Envelope identity** — Investigation envelope = Execution Envelope or a slimmer key (job ID + run path + failed test name)? Fixes how “one case per failure” is keyed and deduplicated.
-- **When to create cases** — On “open investigation” (user points CLI at pipeline/job): create one case per failure up front, or create cases lazily as user/agent starts each?
-- **RCA creation** — Create RCA row only after agent/human produces an RCA, or create placeholder at case creation and fill/merge later?
-- **Pattern suggestion** — PoC: “same RCA” is manual (user links to existing RCA). Later: suggest links (error snippet, job, component); user confirms.
+### Version
 
-## Fit with current flow
+Product/OCP version. Global reference table shared across suites. First-class entity so we can query "all symptoms affecting version X."
 
-- **Assessment** — CLI creates one case per failure; writes assessment table to artifact; store artifact path on case (or in DB).
-- **RCA** — One case → one agent run; output is new RCA or “same as case X”; store in DB and link case to RCA.
-- **Human review** — Per case (or per RCA when grouping “same RCA” cases). Approve/Reassess/Overturn updates case and optionally RCA.
-- **Jira / report** — Group cases by RCA (within or across pipelines); one Jira per distinct RCA; regression table = product defects (RCA + Jira ticket ID + link). User creates tickets (no integration yet); store ticket ID and link on RCA. Later: track ticket status via CLI when Jira integration exists.
+- `id`, `label` (e.g. `4.21`, unique), `ocp_build` (e.g. `4.21.2`)
+
+### Pipeline
+
+One CI pipeline run for one version. Bound to a suite + version.
+
+- `id`, `suite_id` (FK), `version_id` (FK), `name`, `rp_launch_id`, `status`, `started_at`, `ended_at`
+
+### Launch
+
+One RP launch. Evolves from the former `envelopes` blob into a proper entity. 1:1 with Pipeline for now; schema allows N:1 for future multi-launch pipelines. Stores structured fields extracted from the envelope plus the full payload for raw access.
+
+- `id`, `pipeline_id` (FK), `rp_launch_id`, `rp_launch_uuid`, `name`, `status`, `started_at`, `ended_at`, `env_attributes` (JSON), `git_branch`, `git_commit`, `envelope_payload` (BLOB)
+
+### Job
+
+One test execution group within a launch. Maps to RP TEST-level items (e.g. `[T-TSC] RAN PTP tests`). Contains execution stats.
+
+- `id`, `launch_id` (FK), `rp_item_id`, `name`, `clock_type`, `status`, `stats_total`, `stats_failed`, `stats_passed`, `stats_skipped`, `started_at`, `ended_at`
+
+### Case (the witness)
+
+One failure. Leaf of the execution tree. The unit of agent work (one case = one scoped context window). A Case **reports** a Symptom (the story it observed). The canonical path to Root Cause is always through the Symptom: `Case → Symptom → SymptomRCA → RCA`.
+
+- `id`, `job_id` (FK), `launch_id` (FK, denormalized), `rp_item_id`, `name`, `polarion_id`
+- `status`: `open` → `triaged` → `investigated` → `reviewed` → `closed` (with reassess loops)
+- `symptom_id` (nullable FK → Symptom): **"reports" link** — which symptom (story) this case observed. Set after F0 Recall match or F1 Triage.
+- `rca_id` (nullable FK → RCA): **verdict** (denormalized) — which specific RCA was determined for this case. The canonical path is Case → Symptom → SymptomRCA → RCA; this FK caches the verdict. Set after F3 Investigate or F4 Correlate.
+- `error_message`, `log_snippet`, `log_truncated` (bool)
+- `started_at`, `ended_at`, `created_at`, `updated_at`
+
+### Triage
+
+F1 output per case. One per case. Investigation-scoped but informs global Symptom matching.
+
+- `id`, `case_id` (FK, unique), `symptom_category`, `severity`, `defect_type_hypothesis`
+- `skip_investigation` (bool), `clock_skew_suspected` (bool), `cascade_suspected` (bool)
+- `candidate_repos` (JSON array), `data_quality_notes`, `created_at`
+
+---
+
+## Tier 2 — Global knowledge entities (institutional memory)
+
+Cross-version, cross-suite. Accumulate over time.
+
+### Symptom (the story)
+
+A recognized failure pattern — the observable "story" that test cases report. Identified by a **fingerprint** (deterministic hash of normalized test_name_pattern + error_pattern + component). Cross-version: the same symptom appears in 4.20, 4.21, 4.22. Multiple cases (witnesses) can tell the same story.
+
+- `id`, `fingerprint` (unique), `name`, `description`
+- `error_pattern`, `test_name_pattern`, `component`
+- `severity`, `first_seen_at`, `last_seen_at`, `occurrence_count`
+- `status`: `active` / `dormant` / `resolved`
+
+**Staleness rule:** If `last_seen_at` > 90 days ago and status = `active`, auto-transition to `dormant`. Dormant symptoms get lower recall confidence in F0. If a dormant symptom reappears, transition back to `active` — strong regression signal.
+
+### RCA (the criminal)
+
+Root cause analysis — the actual bug, misconfiguration, or infra issue. **Independent of pipeline and envelope** — does not carry suite_id or pipeline_id. One criminal can cause many stories (RCA explains multiple symptoms); the "serial killer" pattern spans versions.
+
+- `id`, `title`, `description`, `defect_type`, `category`, `component`
+- `affected_versions` (JSON array), `evidence_refs` (JSON array), `convergence_score`
+- `jira_ticket_id`, `jira_link`
+- `status`: `open` → `resolved` → `verified` → `archived`
+- `created_at`, `resolved_at`, `verified_at`, `archived_at`
+
+**Temporal context:**
+- `open` — Under investigation or fix not yet identified.
+- `resolved` — Fix identified/merged. `resolved_at` set.
+- `verified` — Fix confirmed passing in CI. `verified_at` set.
+- `archived` — No longer relevant. `archived_at` set.
+
+A `resolved`+`verified` RCA whose symptom reappears in a new version = **backport regression**.
+
+### SymptomRCA (story ↔ criminal junction)
+
+Many-to-many "caused by" link between Symptom and RCA. Same story can point to different criminals in different contexts (same symptom, different RCA in different versions); same criminal can produce different stories (one RCA explains multiple symptoms). This is the **global knowledge graph**.
+
+- `id`, `symptom_id` (FK), `rca_id` (FK), `confidence`, `notes`, `linked_at`
+- UNIQUE on `(symptom_id, rca_id)`
+
+---
+
+## Relationships
+
+### The canonical chain
+
+```
+Case ──reports──▶ Symptom ──caused by──▶ RCA
+ (witness)         (story)    (via SymptomRCA)   (criminal)
+```
+
+`Case.rca_id` is a denormalized verdict shortcut; the source of truth is `Case → Symptom → SymptomRCA → RCA`.
+
+```
+InvestigationSuite  1──*  Pipeline  *──1  Version
+Pipeline            1──*  Launch
+Launch              1──*  Job
+Job                 1──*  Case (witness)
+Case                1──0..1  Triage
+Case                *──reports──0..1  Symptom (story)      [canonical link into global knowledge]
+Case                *--.verdict.--0..1  RCA (criminal)     [denormalized; derived from symptom chain]
+Symptom             *──caused by──*     RCA                [via SymptomRCA — the knowledge graph]
+```
+
+## Case lifecycle
+
+```
+open → triaged → investigated → reviewed → closed
+         ↑           ↑             |
+         └───────────└─────────────┘ (reassess loops from F5 Review)
+```
+
+## Prompt injection
+
+The data model feeds the template parameter groups in `docs/prompts.mdc`:
+
+- **`History.SymptomInfo`** — symptom name, occurrence count, first/last seen, status, affected versions, linked RCAs, dormant reactivation flag.
+- **`History.PriorRCAs`** — prior RCAs with temporal context (status, resolved_at, verified_at, days since resolved, affected versions).
+- **`History.FailureCount`** — count of cases matching the same symptom within a time window.
+- **`Siblings`** — cases in the same job (for cascade detection, pattern matching).
+
+See `contracts/investigation-context.md` for full entity definitions, DDL, temporal rules, and query examples.
+
+## Cross-references
+
+- **Contract:** `contracts/investigation-context.md` — full entity definitions, DDL, migration, temporal rules.
+- **Prompt families:** `contracts/prompt-families.md` — how F0/F1/F4/F6 use this model.
+- **Envelope hierarchy:** `docs/envelope-mental-model.mdc` — pure model and domain naming.
+- **Glossary:** `glossary/glossary.mdc` — term definitions.
+- **Storage adapter:** `internal/store/store.go` — Go interface (to be expanded for v2).

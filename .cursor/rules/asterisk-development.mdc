@@ -20,6 +20,14 @@ alwaysApply: true
 ## Scope alignment
 - Focus on the current PoC goal; defer future phases unless re-scoped.
 
+## Calibration ordering
+- **Mock calibration** (synthetic ground truth) runs throughout development and guides refactoring.
+- **Real calibration** (actual Jira bugs, RP launches, production repos) is the **absolute last step** — a final tuning pass. It must not be attempted until:
+  1. All implementation contracts are complete (storage-adapter-v2, prompt-orchestrator, etc.).
+  2. The codebase has been refactored and decoupled to a clean, testable state.
+  3. Mock calibration consistently passes its acceptance thresholds.
+- Rationale: real data calibration validates the finished system; running it on messy, mid-refactor code produces misleading metrics and wastes real-data setup effort.
+
 ## Persistence
 - Use the **storage adapter** interface only for cases, RCAs, and pipeline hierarchy; no raw SQLite in domain or CLI code. See `docs/cli-data-model.mdc`.
 

@@ -36,21 +36,221 @@ Then repeat for the next step or scenario. File-based prompts make this loop fas
 
 ## Template parameters
 
-All parameters the CLI (or cursor-handoff) can inject. Use **Go text/template** syntax: `{{.ParamName}}`. Struct field names below match placeholder names.
+All parameters the CLI (or cursor-handoff) can inject. Use **Go text/template** syntax: `{{.ParamName}}`. The top-level struct is `PromptParams`; nested structs are accessed via dot notation (e.g. `{{.Envelope.Name}}`). Ranges iterate slices (e.g. `{{range .Workspace.Repos}}`).
 
-| Parameter | Description | Example |
-|-----------|-------------|---------|
-| `LaunchID` | Launch/run ID (e.g. from RP). | `33195` |
-| `RunID` | Same as LaunchID (alias). | `33195` |
-| `CaseID` | Investigation case ID (failure/test item). | `1697136` |
-| `FailureID` | Same as CaseID (failure/test item id). | `1697136` |
-| `WorkspacePath` | Path to context workspace file or workspace root. | `./.asterisk/workspace.yaml` |
-| `FailedTestName` | Name of the failed test (from envelope). | `[T-TSC] RAN PTP tests` |
-| `ArtifactPath` | Path where artifact (RCA, defect type) is written. | `./artifact.json` |
-| `JobID` | Job identifier (optional). | `t-tsc` |
-| `PipelineID` | Pipeline identifier (optional). | `telco-ft-ran-ptp-4.21` |
+Parameters are organized by **data source**. Not every family uses every field — templates pull what they need; the orchestrator populates everything available and templates ignore what they don't reference.
 
-**Output format:** Instruct the model to produce RCA summary, convergence score (0–1), suggested defect type, and evidence refs in the **artifact** format (see `docs/artifact-schema.mdc`). Output can be written to `ArtifactPath` or returned for the CLI to save.
+### Identity (case and pipeline)
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `LaunchID` | string | Launch/run ID from RP. | `33195` |
+| `CaseID` | int | Investigation case / test item ID. | `1697136` |
+| `JobID` | string | Job / test execution identifier (e.g. clock type). | `T-TSC` |
+| `PipelineID` | string | Pipeline identifier (name + version). | `telco-ft-ran-ptp-4.21` |
+| `ArtifactPath` | string | Path where output artifact should be written. | `.asterisk/cases/33195/1697136/artifact.json` |
+
+### Envelope context (from RP launch)
+
+Injected as a struct `Envelope` with sub-fields. Gives the model the full execution context without it having to fetch anything.
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `Envelope.Name` | string | Launch name. | `telco-ft-ran-ptp-4.21` |
+| `Envelope.Status` | string | Overall launch status. | `FAILED` |
+| `Envelope.StartTime` | string | ISO 8601 start time. | `2026-02-14T21:21:09Z` |
+| `Envelope.EndTime` | string | ISO 8601 end time. | `2026-02-15T05:29:12Z` |
+| `Envelope.Duration` | string | Human-readable duration. | `8h 8m` |
+| `Envelope.Stats` | string | Execution stats summary. | `172 total, 8 failed, 85 passed, 79 skipped` |
+| `Envelope.DefectStats` | string | Defect stats summary. | `12 to_investigate, 75 no_defect` |
+
+### Environment attributes (from envelope)
+
+Injected as a struct `Env` with named fields. These are the operator and cluster versions — critical for RCA because a version mismatch or known regression in a specific build is often the root cause.
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `Env.OCPVersion` | string | Spoke OCP version. | `4.21` |
+| `Env.OCPBuild` | string | Spoke OCP build. | `4.21.2` |
+| `Env.HubOCPVersion` | string | Hub OCP version. | `4.22` |
+| `Env.HubOCPBuild` | string | Hub OCP build. | `4.22.0-ec.2` |
+| `Env.PTPOperator` | string | PTP operator version. | `4.21.0-202602070620` |
+| `Env.SRIOVOperator` | string | SR-IOV operator version. | `4.21.0-202602070620` |
+| `Env.KernelVersion` | string | Kernel version. | `5.14.0-570.88.1.el9_6.x86_64+rt` |
+| `Env.CPUType` | string | CPU model. | `Intel(R) Xeon(R) Gold 6433N` |
+| `Env.ClusterName` | string | Spoke cluster name. | `spoke-cluster` |
+| `Env.HubClusterName` | string | Hub cluster name. | `hub-cluster` |
+| `Env.AllAttributes` | string | Full attributes block (rendered key=value, for prompts that need everything). | multiline block |
+
+**Design note:** Named fields for commonly-used attributes (versions, cluster); `AllAttributes` as a catch-all so templates for unfamiliar operators can render everything. The CLI extracts known keys into named fields at injection time; unknown keys go into `AllAttributes`.
+
+### Git context (from envelope)
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `Git.Branch` | string | Branch used for the run (may be empty). | `main` |
+| `Git.Commit` | string | Commit SHA (may be empty). | `abc123def` |
+| `Git.Remote` | string | Repo URL (may be empty). | `https://github.com/org/repo` |
+
+### Failure context (current case)
+
+Injected as a struct `Failure` — the specific test item under investigation.
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `Failure.ID` | int | RP test item ID. | `1697244` |
+| `Failure.Name` | string | Full test name. | `[It] PTP Recovery ... verifies t-bc t-tsc transition from holdover-in-spec to locked when upstream clock recovers` |
+| `Failure.ShortName` | string | Abbreviated name (extracted or truncated). | `t-bc t-tsc holdover→locked recovery` |
+| `Failure.Type` | string | Item type (TEST or STEP). | `STEP` |
+| `Failure.Status` | string | Item status. | `FAILED` |
+| `Failure.ParentPath` | string | Hierarchy path (parent.child). | `1697136.1697244` |
+| `Failure.ParentName` | string | Parent job name. | `[T-TSC] RAN PTP tests` |
+| `Failure.StartTime` | string | ISO 8601. | `2026-02-15T00:32:22Z` |
+| `Failure.EndTime` | string | ISO 8601. | `2026-02-15T00:41:39Z` |
+| `Failure.Duration` | string | Human-readable. | `9m 17s` |
+| `Failure.PolarionID` | string | Polarion test case ID (from attributes). | `OCP-83297` |
+| `Failure.ErrorMessage` | string | Error message / last log lines (from RP item logs). | `Expected clock state LOCKED but got HOLDOVER after 300s` |
+| `Failure.LogSnippet` | string | Relevant log excerpt (truncated to ~2000 chars). | multiline |
+| `Failure.Stats` | string | Item execution stats. | `1 total, 1 failed` |
+| `Failure.LogTruncated` | bool | True if the log snippet was truncated (actual log exceeds snippet size limit). | `true` |
+
+**`ErrorMessage` and `LogSnippet`:** Fetched from RP Log API (`GET /item/{id}/log`) at envelope-build time or on-demand. If unavailable, empty string — templates should use `{{if .Failure.ErrorMessage}}` guards. These are the most valuable fields for F1 Triage; without them, the model can only classify by test name. If the log exceeds the snippet size limit, `LogTruncated` is set to `true` so the template can warn the model (see guard G1 in `contracts/prompt-families.md`).
+
+### Timestamps and clock skew awareness
+
+Timestamps in CI pipelines originate from **multiple independent clocks** that are frequently misaligned — sometimes by hours. Every prompt that reasons about time must account for this.
+
+#### Clock planes
+
+| Plane | What has this clock | Timestamp sources |
+|-------|--------------------|--------------------|
+| **Executor plane** | Jenkins controller, CI orchestrator | Job scheduled/started/completed times; CI notification emails; build timestamps |
+| **Testing plane** | Node running the test framework (Ginkgo) | RP item `startTime`/`endTime` (reported by RP agent); Ginkgo log timestamps; assertion timeout calculations |
+| **SUT plane** | Cluster under test (pods, nodes) | System logs, pod logs, kernel timestamps, PTP clock states, event timestamps |
+
+**Common misalignment:** The executor plane (Jenkins) often runs in a different timezone or has NTP drift relative to the testing plane (Ginkgo node) and the SUT plane (cluster nodes). A 1–3 hour offset in the hours field is common when one system uses UTC and another uses localtime, or when NTP is not configured.
+
+#### Injected timestamp parameters
+
+| Parameter | Type | Description | Clock plane | Example |
+|-----------|------|-------------|-------------|---------|
+| `Timestamps.LaunchStart` | string | Launch start (ISO 8601 UTC). | Testing | `2026-02-14T21:21:09Z` |
+| `Timestamps.LaunchEnd` | string | Launch end (ISO 8601 UTC). | Testing | `2026-02-15T05:29:12Z` |
+| `Timestamps.LaunchDuration` | string | Launch wall-clock duration. | Testing | `8h 8m` |
+| `Timestamps.FailureStart` | string | Current failure start (ISO 8601 UTC). | Testing | `2026-02-15T00:32:22Z` |
+| `Timestamps.FailureEnd` | string | Current failure end (ISO 8601 UTC). | Testing | `2026-02-15T00:41:39Z` |
+| `Timestamps.FailureDuration` | string | Failure wall-clock duration. | Testing | `9m 17s` |
+| `Timestamps.CIJobStart` | string | CI job start time (if available). | Executor | `2026-02-14T21:20:00Z` |
+| `Timestamps.CIJobEnd` | string | CI job end time (if available). | Executor | `2026-02-15T05:30:00Z` |
+| `Timestamps.ClockSkewWarning` | string | Warning text if skew is detected (empty if clocks look aligned). | Computed | see below |
+| `Timestamps.ClockPlaneNote` | string | Always-present note about clock planes. | Static | see below |
+
+#### Clock skew detection (CLI-side)
+
+The CLI computes `ClockSkewWarning` at injection time by comparing available timestamps across planes:
+
+1. **RP launch start vs CI job start** — if both are available and differ by more than 5 minutes, flag it.
+2. **Failure duration sanity** — if a STEP-level failure has a duration exceeding a configurable threshold (default: 2 hours for a single test step), flag potential clock issue.
+3. **Launch duration vs sum of job durations** — if the launch wall-clock duration is much larger than the sum of its child job durations, timestamps may be from different clocks.
+
+When skew is detected, `ClockSkewWarning` is populated with a specific warning. When not detected (or data is insufficient), it is empty.
+
+#### ClockPlaneNote (always injected)
+
+`Timestamps.ClockPlaneNote` is a **static warning** injected into every prompt that includes timestamps. It reads:
+
+> **Timestamp warning — multiple clock planes.** Timestamps in this data originate from different systems: the CI executor (e.g. Jenkins), the test framework (Ginkgo on the test node), and the system under test (cluster nodes/pods). These clocks are frequently misaligned by minutes or hours (timezone offsets, NTP drift, UTC vs localtime). When correlating events across sources (e.g. "test failed at T1" vs "pod restarted at T2" vs "Jenkins started at T0"), do NOT assume timestamps from different planes are directly comparable. Look for event ordering and causal chains rather than exact time matching. If timestamps from different sources appear offset by a round number of hours (1h, 2h, 3h...), suspect a timezone misconfiguration rather than an actual delay.
+
+Templates include this via: `{{.Timestamps.ClockPlaneNote}}`
+
+And the conditional computed warning via: `{{if .Timestamps.ClockSkewWarning}}**CLOCK SKEW DETECTED:** {{.Timestamps.ClockSkewWarning}}{{end}}`
+
+### Sibling failures (same launch)
+
+Injected as `Siblings` — a slice of failure summaries for other failures in the same launch. Critical for F4 Correlate but also useful in F1 Triage (pattern detection: "4 of 8 failures are PTP Recovery tests").
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `Siblings` | []struct | Other failures in the same launch. | — |
+| `Siblings[].ID` | int | Item ID. | `1697248` |
+| `Siblings[].Name` | string | Test name. | `[It] PTP Recovery ... holdover-in-spec to freeun ...` |
+| `Siblings[].ParentName` | string | Parent job name. | `[T-TSC] RAN PTP tests` |
+| `Siblings[].PolarionID` | string | Polarion ID. | `OCP-83298` |
+| `Siblings[].Status` | string | Status. | `FAILED` |
+
+Rendered in templates as: `{{range .Siblings}}  - {{.Name}} ({{.PolarionID}}){{end}}`
+
+### Workspace repos (with purpose metadata)
+
+Injected as `Workspace.Repos` — the full repo list with agentic meta. This is what F2 Resolve uses to decide where to look.
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `Workspace.Repos` | []struct | All repos in context workspace. | — |
+| `Workspace.Repos[].Name` | string | Logical name. | `ptp-operator` |
+| `Workspace.Repos[].Path` | string | Local FS path. | `../../ptp-operator` |
+| `Workspace.Repos[].URL` | string | Remote git URL. | `https://github.com/openshift/ptp-operator` |
+| `Workspace.Repos[].Purpose` | string | Role in RCA (agentic meta). | `SUT: lifecycle and meta-configurations` |
+| `Workspace.Repos[].Branch` | string | Override branch (or empty = use envelope git). | `main` |
+
+### URLs (navigable references)
+
+Injected as `URLs` — pre-built links so the model can reference them in evidence and the human can click through.
+
+| Parameter | Type | Description | Example |
+|-----------|------|-------------|---------|
+| `URLs.RPLaunch` | string | RP launch page URL. | `https://rp.example.com/ui/#ecosystem-qe/launches/all/33195` |
+| `URLs.RPItem` | string | RP test item URL (current case). | `https://rp.example.com/ui/#ecosystem-qe/launches/all/33195/1697136/1697244` |
+| `URLs.RPItemLog` | string | RP log view for item. | `https://rp.example.com/ui/#ecosystem-qe/launches/all/33195/1697136/1697244/log` |
+| `URLs.CIJob` | string | CI job URL (Jenkins/Prow/etc.) if available. | `https://jenkins.example.com/job/telco-ft-ran-ptp/13/` |
+| `URLs.Polarion` | string | Polarion test case URL (if PolarionID available). | `https://polarion.example.com/.../#/workitem?id=OCP-83297` |
+| `URLs.ReposBrowse` | map | Per-repo browse URLs (name → URL). | `{"ptp-operator": "https://github.com/openshift/ptp-operator/tree/release-4.21"}` |
+
+**Construction:** The CLI builds URLs from config (RP base URL, Polarion base URL, repo URLs from workspace) + envelope/item IDs. Templates reference them as `{{.URLs.RPLaunch}}`, `{{.URLs.RPItem}}`, etc. If a URL cannot be constructed (missing config), the field is empty and the template guards with `{{if ...}}`.
+
+### Pipeline stage context (from previous families)
+
+Injected when a prompt family runs after a prior stage. The orchestrator reads the previous artifact and injects relevant fields.
+
+| Parameter | Type | Description | Used by |
+|-----------|------|-------------|---------|
+| `Prior.TriageResult` | string | JSON or rendered text of triage output. | F2, F3 |
+| `Prior.SymptomCategory` | string | Symptom classification from F1. | F2, F3 |
+| `Prior.DefectTypeHypothesis` | string | Triage's initial guess. | F3, F5 |
+| `Prior.ResolveResult` | string | JSON or rendered text of resolve output. | F3 |
+| `Prior.SelectedRepo` | string | Repo name chosen by F2. | F3 |
+| `Prior.FocusPaths` | string | Specific paths within repo. | F3 |
+| `Prior.CrossRefStrategy` | string | Multi-repo strategy from F2. | F3 |
+| `Prior.InvestigateArtifact` | string | Previous F3 artifact (on loop or for F4). | F2 (loop), F4 |
+| `Prior.ConvergenceScore` | string | Score from previous attempt. | F2 (loop) |
+| `Prior.LoopIteration` | int | Which retry this is (0 = first attempt). | F2, F3 |
+| `Prior.RecallMatch` | string | Prior RCA summary if recall found a match. | F5 |
+
+### Historical context (from local DB)
+
+| Parameter | Type | Description | Used by |
+|-----------|------|-------------|---------|
+| `History.PriorRCAs` | []struct | Previous RCAs for the same test name. | F0, F5 |
+| `History.PriorRCAs[].ID` | int | RCA ID. | F0 |
+| `History.PriorRCAs[].Title` | string | RCA title. | F0 |
+| `History.PriorRCAs[].DefectType` | string | Defect type. | F0 |
+| `History.PriorRCAs[].JiraLink` | string | Jira ticket URL if filed. | F0, F5 |
+| `History.FailureCount` | int | How many times this test has failed recently. | F1 |
+| `History.LastSeen` | string | When this test last failed. | F1 |
+
+### Taxonomy reference (static, always available)
+
+| Parameter | Type | Description |
+|-----------|------|-------------|
+| `Taxonomy.DefectTypes` | string | Rendered table of defect type codes and meanings. |
+| `Taxonomy.SymptomCategories` | string | Rendered table of symptom categories (for F1). |
+| `Taxonomy.ArtifactSchema` | string | Expected JSON output schema (for F3). |
+
+These are static strings baked into the CLI (not from RP or envelope). They ensure every prompt includes the vocabulary the model should use, so it doesn't hallucinate defect type codes or invent categories.
+
+### Output format
+
+Instruct the model to produce output in the **artifact** format (see `docs/artifact-schema.mdc`). Include `{{.Taxonomy.ArtifactSchema}}` in F3 templates so the model has the exact JSON shape. For other families (F0, F1, F2, F4), include the expected output schema inline in the template.
 
 ## Placeholder format
 

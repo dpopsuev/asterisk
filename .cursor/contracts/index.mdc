@@ -31,11 +31,35 @@ Contracts created from the PoC assessment. Dependencies: complete **rp-api-compl
 | `asterisk-cli.md` | `asterisk` binary with `analyze` and `push -f`; envelope, workspace, storage, artifact. | storage-adapter, context-workspace, artifact-schema |
 | `cursor-handoff.md` | Minimal `asterisk --cursor`: prompt output, save/ingest, document flow. | asterisk-cli, prompts |
 
+## Prompt system (design)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `prompt-families.md` | Design prompt family taxonomy, pipelines (with loops), and routing heuristics for layered investigation. | prompts, storage-adapter, context-workspace |
+
+## Data model (design)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `investigation-context.md` | Two-tier data model: investigation-scoped execution tree + global cross-version knowledge (symptoms, RCAs) with temporal context. | storage-adapter, prompt-families |
+
+## PoC v2 implementation (from design contracts)
+
+Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orchestrator depends on v2 Store). Design contracts (prompt-families, investigation-context) must be finalized before starting these. **Real calibration (Scenario B)** is the absolute last step — only after all contracts are complete, the code is refactored/decoupled, and mock calibration (Scenario A) passes. See `rules/asterisk-development.mdc` § Calibration ordering.
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `storage-adapter-v2.md` | Migrate Store interface and SQLite schema from v1 (flat) to v2 (two-tier: execution tree + symptoms + RCAs). **Complete.** | storage-adapter (v1 complete), investigation-context (design) |
+| `prompt-orchestrator.md` | Implement F0–F6 pipeline engine: heuristic engine, artifact I/O, per-case state, template filler, pipeline runner, CLI integration. **Complete.** | storage-adapter-v2, prompt-families (design), prompts, cursor-handoff |
+| `e2e-calibration.md` | Closed-world E2E test: synthetic ground truth (known RCAs/symptoms/failures), fake RP API, synthetic workspace (5 repos incl. red herring), blindfolded investigation, 20 instrumented metrics with pass/fail thresholds. | storage-adapter-v2, prompt-orchestrator |
+
 ## Directories
 
 ## Files
 - `index.mdc` — index for this directory.
 - `_TEMPLATE.md` — contract template; copy to create new contracts (do not edit template).
+- `prompt-families.md` — **Prompt families:** taxonomy (F0–F6), pipelines, loops, routing heuristics; replaces single-shot rca.md with layered system.
+- `investigation-context.md` — **Investigation context data model:** two-tier (investigation-scoped tree + global knowledge); symptoms, RCAs, temporal context; schema v2; prompt injection mapping.
 - `artifact-schema.md` — **Artifact schema:** add rca_message; document in FSC; align with pre-dev.
 - `asterisk-cli.md` — **asterisk CLI:** analyze and push -f subcommands; envelope, workspace, storage.
 - `context-workspace.md` — **Context workspace:** load from FS (YAML/JSON/TOML); use in analyze.
@@ -52,3 +76,6 @@ Contracts created from the PoC assessment. Dependencies: complete **rp-api-compl
 - `rp-fetch.md` — **Real fetch from RP:** launch by ID; produce envelope; persist.
 - `rp-push.md` — **Real push to RP:** defect-type update from artifact.
 - `storage-adapter.md` — **Storage adapter:** SQLite + Store facade; per-workspace DB.
+- `storage-adapter-v2.md` — **Storage adapter v2:** Migrate Store to two-tier schema (investigation tree + symptoms + RCAs); v1→v2 migration; expanded CRUD.
+- `prompt-orchestrator.md` — **Prompt orchestrator:** F0–F6 pipeline engine; heuristic engine, artifact I/O, per-case state, template filler, CLI integration.
+- `e2e-calibration.md` — **E2E calibration test:** closed-world scenario with synthetic ground truth, fake RP API, synthetic workspace (5 repos + red herring), blindfolded investigation, 20 metrics (structured, workspace, evidence, semantic, pipeline, aggregate), stub + cursor adapters.

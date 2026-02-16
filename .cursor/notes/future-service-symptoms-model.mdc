@@ -1,38 +1,44 @@
 ---
-description: Future design idea — symptoms layer and concurrency when Asterik is a service with multiple agents
+description: Symptoms layer — in PoC as local intermediate table; concurrency and service coordination are future
 ---
 
-# Future design: Issue → Symptom(s) → Root Cause (symptoms table)
+# Symptoms model: PoC scope vs. future service scope
 
-**Pure idea to look at later.** Not in PoC/MVP scope. For when Asterik is a **service** handling **concurrency of several agents**.
+## PoC scope (in scope now)
 
-## Current model (PoC)
+The symptoms layer is an **intermediate table** between Case and RCA that allows faster work and querying. Included in the PoC as a local, single-agent concept.
 
-- **Failure** (investigation case) ↔ **RCA** (root cause). We link failure to RCA; many failures can reference one RCA (serial-killer pattern). See `docs/cli-data-model.mdc`.
+```
+Case ──reports──▶ Symptom ──caused by──▶ RCA
+ (witness)         (story)    (via SymptomRCA)   (criminal)
+```
 
-## Proposed extension: middle layer (symptoms)
+- **Symptoms table** — recognized failure patterns identified by fingerprint. Cross-version institutional memory. Enables F0 Recall (have we seen this before?), F1 Triage (is this recurring?), F4 Correlate (serial killer detection).
+- **SymptomRCA junction** — many-to-many knowledge graph linking symptoms to root causes.
+- **Fingerprint matching** — deterministic hash for fast symptom lookup.
+- **Staleness rules** — dormant/active/resolved temporal status for symptoms.
+- All local, single-agent, SQLite-backed. No concurrency concerns in PoC.
 
-- **Issue** (e.g. failure / case) → **Symptom(s)** → **Root Cause** (RCA).
-- Introduce a **symptoms table**: shallow investigation of **symptoms** only (not root cause yet). Then investigate symptoms to get to root cause.
-- Several connections can reference the symptoms table:
-  - Multiple issues (failures) may map to the same symptom.
-  - Symptoms map to RCA(s).
-- This gives a place to extend for the next problem domain and keeps “symptom” as a first-class concept when scaling to a service and multiple agents.
+See `contracts/investigation-context.md` and `docs/cli-data-model.mdc` for full entity definitions.
 
-## Concurrency (open)
+## Future scope (not in PoC)
 
-- When multiple agents run in parallel: should we **wait** for others to finish so we don’t create duplicate symptom entries? Or allow duplicates and merge/dedup later?
-- Other edge cases: locking, visibility of in-progress symptoms, conflict resolution when two agents assign the same symptom to different RCAs, etc.
-- Leave these as open questions; revisit when designing the service and multi-agent concurrency.
+When Asterik becomes a **service** handling **concurrency of several agents**:
 
-## Coordination via pub-sub and message queue (idea)
+### Concurrency (open questions)
 
-- One way to address coordination: introduce a **pub-sub bus** and a **message queue**.
-- **Investigator service** (or each investigator agent) **reads from the queue after completing symptom assessments** so it does **not miss results from other investigators**.
-- Flow: agents publish symptom-assessment results (or “symptom created/updated”) to the bus; the investigator service subscribes and consumes from the queue, then continues with root-cause investigation using the full set of symptom data (its own + others’). That way no agent proceeds to RCA in isolation without having seen others’ symptom outcomes.
-- Still to clarify: queue semantics (at-least-once, ordering), dedup of symptom entries, who writes to the symptoms table (publisher vs consumer), and how “after completing symptom assessments” is signaled (e.g. barrier, or “drain queue before next phase”). Pure idea to explore when designing the service.
+- When multiple agents run in parallel: should we **wait** for others to finish so we don't create duplicate symptom entries? Or allow duplicates and merge/dedup later?
+- Other edge cases: locking, visibility of in-progress symptoms, conflict resolution when two agents assign the same symptom to different RCAs.
+- Revisit when designing the service and multi-agent concurrency.
+
+### Coordination via pub-sub and message queue (idea)
+
+- Introduce a **pub-sub bus** and a **message queue**.
+- **Investigator service** (or each agent) **reads from the queue after completing symptom assessments** so it does **not miss results from other investigators**.
+- Flow: agents publish symptom-assessment results to the bus; the investigator service subscribes and consumes from the queue, then continues with root-cause investigation using the full set of symptom data (its own + others').
+- Open: queue semantics (at-least-once, ordering), dedup, who writes to the symptoms table (publisher vs consumer), barrier signaling.
 
 ## References
 
-- Current data model: `docs/cli-data-model.mdc` (failure ⊂ job ⊂ pipeline; case → RCA).
-- Service/MVP: `goals/poc.mdc` (next: standalone service); `notes/poc-constraints.mdc`.
+- Data model: `docs/cli-data-model.mdc`, `contracts/investigation-context.md`.
+- Service/MVP: `goals/poc.mdc`; `notes/poc-constraints.mdc`.

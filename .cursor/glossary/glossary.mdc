@@ -24,6 +24,36 @@ description: Shared domain definitions for Asterik
 - **Sensitive data** — In Asterik context: Execution Envelope / launch data, artifact contents (RCA message, defect type, evidence refs), context workspace config (including repo URLs and tokens), RP API tokens, AI provider keys, and any PII. Handling must cover encryption in transit and at rest, minimal logging/retention, and no unnecessary persistence of secrets or PII.
 - **Access control** — For a standalone Asterik service: authentication (who is calling) and authorization (which operations — e.g. analyze, push, fetch — are allowed for that caller). Required if building a long-running service (see constraints).
 
+## Two-tier data model
+
+The data model has two tiers: **investigation-scoped** entities (the execution tree) and **global knowledge** entities (institutional memory). See `docs/cli-data-model.mdc` and `contracts/investigation-context.md`.
+
+### The three pillars — witness, story, criminal
+
+The canonical chain: `Test Case ──reports──▶ Symptom ──caused by──▶ Root Cause (RCA)`.
+
+A failed **Test Case** is a witness reporting a crime. The **Symptom** is the story (observable pattern). The **Root Cause** is the criminal (actual bug). Same story can point to different criminals in different contexts; different stories can point to the same criminal.
+
+- **Case (the witness)** — One failed test instance. Leaf of the execution tree. Reports a symptom. The canonical path to root cause is always through the symptom: `Case → Symptom → SymptomRCA → RCA`. `case.rca_id` is a denormalized verdict shortcut.
+- **Symptom (the story)** — A recognized failure pattern in the **global knowledge** tier. The observable "story" that test cases report. Identified by a **fingerprint** (deterministic hash of normalized test_name_pattern + error_pattern + component). Cross-version: the same symptom can appear in 4.20, 4.21, 4.22. Multiple cases can tell the same story. Tracks `first_seen_at`, `last_seen_at`, `occurrence_count`, and a temporal `status` (active / dormant / resolved). See **Symptom staleness** below.
+- **RCA (the criminal)** — Root cause analysis — the actual bug, misconfiguration, or infra issue. Cross-version, cross-suite. One criminal can cause many stories; the "serial killer" pattern spans versions.
+- **SymptomRCA (story ↔ criminal junction)** — Many-to-many "caused by" link. Same story can point to different criminals in different contexts (same symptom, different RCA in different versions); same criminal can produce different stories (one RCA explains multiple symptoms). This is the **global knowledge graph**. Carries a `confidence` score and `notes`.
+
+### Investigation-scoped entities
+
+- **Investigation Suite** — Top-level grouping for a regression analysis. Spans versions. An analyst opens a suite (e.g. "PTP Feb 2026 regression") and populates it with pipelines across versions. Lifecycle: `open` → `closed`.
+- **Version** — Product/OCP version (e.g. `4.21`). First-class entity shared across suites so we can query "all symptoms affecting version X."
+- **Pipeline** — One CI pipeline run for one version. Bound to a suite + version. Contains launches.
+- **Launch** — One RP launch (evolves from the former `envelopes` blob). Contains jobs. Stores extracted fields (env attributes, git metadata) plus the full envelope payload.
+- **Job** — One test execution group within a launch (maps to RP TEST-level items, e.g. `[T-TSC] RAN PTP tests`). Contains cases. Carries execution stats (total, failed, passed, skipped).
+- **Triage** — F1 prompt family output per case. One per case. Records symptom category, severity, defect type hypothesis, and guard flags (clock_skew_suspected, cascade_suspected).
+
+### Global knowledge terms
+
+- **Symptom fingerprint** — Deterministic hash used to match new failures against known symptoms. Algorithm: `hash(normalize(test_name_pattern) + normalize(error_pattern) + component)`. Normalization: lowercase, collapse whitespace, strip ANSI codes, strip numeric IDs. Fuzzy/embedding matching is a post-PoC enhancement.
+- **Symptom staleness** — Temporal rule: if a symptom's `last_seen_at` is older than a configurable window (default 90 days) and its status is `active`, it auto-transitions to `dormant`. Dormant symptoms get lower recall confidence in F0. If a dormant symptom reappears, it transitions back to `active` — a strong signal of **regression** (fix reverted or backport missing).
+- **RCA temporal status** — RCA lifecycle: `open` (under investigation) → `resolved` (fix identified/merged; `resolved_at` set) → `verified` (fix confirmed in CI; `verified_at` set) → `archived` (no longer relevant; `archived_at` set). A `resolved`+`verified` RCA whose symptom reappears in a new version = **backport regression**. RCAs can be reopened: `resolved`/`verified` → `open` (clears temporal timestamps).
+
 ## Hierarchy: tree terms and domain naming
 
 The execution model is a **recursive hierarchy**: at the bottom are executions/steps (leaves); above them are containers that can themselves contain more containers, to any depth (**Envelope of Envelope**).
