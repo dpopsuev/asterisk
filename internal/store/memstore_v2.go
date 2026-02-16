@@ -472,6 +472,11 @@ func (s *MemStore) GetSymptomByFingerprint(fingerprint string) (*Symptom, error)
 }
 
 func (s *MemStore) FindSymptomCandidates(testName string) ([]*Symptom, error) {
+	// Do not match on empty test names — this would return all symptoms with
+	// empty names, causing false recall hits during calibration.
+	if testName == "" {
+		return nil, nil
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Symptom

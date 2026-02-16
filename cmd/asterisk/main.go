@@ -672,7 +672,7 @@ func runStatus(args []string) {
 
 func runCalibrate(args []string) {
 	fs := flag.NewFlagSet("calibrate", flag.ExitOnError)
-	scenarioName := fs.String("scenario", "ptp-mock", "Scenario name (ptp-mock, daemon-mock, ptp-real)")
+	scenarioName := fs.String("scenario", "ptp-mock", "Scenario name (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)")
 	adapterName := fs.String("adapter", "stub", "Model adapter (stub, cursor)")
 	dispatchMode := fs.String("dispatch", "stdin", "Dispatch mode for cursor adapter (stdin, file)")
 	agentDebug := fs.Bool("agent-debug", false, "Enable verbose debug logging for dispatcher/agent communication")
@@ -691,8 +691,10 @@ func runCalibrate(args []string) {
 		scenario = scenarios.DaemonMockScenario()
 	case "ptp-real":
 		scenario = scenarios.PTPRealScenario()
+	case "ptp-real-ingest":
+		scenario = scenarios.PTPRealIngestScenario()
 	default:
-		fmt.Fprintf(os.Stderr, "unknown scenario: %s (available: ptp-mock, daemon-mock, ptp-real)\n", *scenarioName)
+		fmt.Fprintf(os.Stderr, "unknown scenario: %s (available: ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)\n", *scenarioName)
 		os.Exit(1)
 	}
 
@@ -732,7 +734,7 @@ func runCalibrate(args []string) {
 	// For stub: temp dir (auto-cleaned). For cursor: persistent dir (user needs access).
 	calibDir := ".asterisk/calibrate"
 	if *adapterName == "cursor" {
-		// Pre-run cleanup: remove stale artifacts from previous runs.
+		// Pre-run cleanup: remove stale artifacts and DB from previous runs.
 		if *clean {
 			if info, err := os.Stat(calibDir); err == nil && info.IsDir() {
 				fmt.Printf("[cleanup] removing previous calibration artifacts: %s/\n", calibDir)
@@ -740,6 +742,13 @@ func runCalibrate(args []string) {
 					fmt.Fprintf(os.Stderr, "clean calibrate dir: %v\n", err)
 					os.Exit(1)
 				}
+			}
+			// Also remove the DB to prevent symptom accumulation across runs
+			dbPath := store.DefaultDBPath
+			if _, err := os.Stat(dbPath); err == nil {
+				fmt.Printf("[cleanup] removing previous DB: %s\n", dbPath)
+				_ = os.Remove(dbPath)
+				_ = os.Remove(dbPath + "-journal")
 			}
 		}
 		if err := os.MkdirAll(calibDir, 0755); err != nil {

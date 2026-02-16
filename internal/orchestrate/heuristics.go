@@ -107,6 +107,20 @@ func DefaultHeuristics(th Thresholds) []HeuristicRule {
 			},
 		},
 		{
+			ID: "H18", Name: "triage-skip-investigation", Stage: StepF1Triage,
+			SignalField: "skip_investigation",
+			Evaluate: func(artifact any, state *CaseState) *HeuristicAction {
+				r, ok := artifact.(*TriageResult)
+				if !ok || r == nil || !r.SkipInvestigation {
+					return nil
+				}
+				return &HeuristicAction{
+					NextStep:    StepF5Review,
+					Explanation: "triage requests skip investigation: go to review",
+				}
+			},
+		},
+		{
 			ID: "H17", Name: "triage-clock-skew", Stage: StepF1Triage,
 			SignalField: "clock_skew_suspected",
 			Evaluate: func(artifact any, state *CaseState) *HeuristicAction {

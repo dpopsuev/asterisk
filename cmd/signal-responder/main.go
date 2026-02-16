@@ -216,110 +216,159 @@ func produceArtifact(step, caseID, prompt string) map[string]any {
 }
 
 func produceRecall(caseID string, prompt string) map[string]any {
-	// The recall prompt renders "## known symptom" and "## prior rcas linked"
-	// sections when history exists. If either is present, we have prior data.
-	hasPriorData := strings.Contains(prompt, "## known symptom") || strings.Contains(prompt, "rca #")
+	// Be very conservative with recall. Only match when both conditions are met:
+	// 1. The "## known symptom" section contains specific symptom data (not boilerplate)
+	// 2. The error pattern in the failure clearly matches the symptom description
+	hasKnownSymptom := strings.Contains(prompt, "## known symptom")
+	hasPriorRCA := strings.Contains(prompt, "rca #")
 
-	if hasPriorData && strings.Contains(prompt, "holdover") {
-		return map[string]any{
-			"match":         true,
-			"prior_rca_id":  1,
-			"symptom_id":    1,
-			"confidence":    0.9,
-			"reasoning":     "Error pattern matches known symptom S1 (ptp4l holdover timeout).",
-			"is_regression": false,
-		}
-	}
-	if hasPriorData && (strings.Contains(prompt, "stale") || strings.Contains(prompt, "ptpconfig")) {
-		return map[string]any{
-			"match":         true,
-			"prior_rca_id":  2,
-			"symptom_id":    2,
-			"confidence":    0.85,
-			"reasoning":     "Error pattern matches known symptom for stale PtpConfig CRD.",
-			"is_regression": false,
-		}
-	}
-	if hasPriorData && strings.Contains(prompt, "cleanup") {
-		return map[string]any{
-			"match":         true,
-			"prior_rca_id":  2,
-			"symptom_id":    2,
-			"confidence":    0.85,
-			"reasoning":     "Cleanup issue matches known symptom for stale config.",
-			"is_regression": false,
+	if hasKnownSymptom && hasPriorRCA {
+		// Only match if the symptom section contains meaningful data (more than header)
+		symIdx := strings.Index(prompt, "## known symptom")
+		if symIdx >= 0 {
+			symSection := prompt[symIdx:]
+			endIdx := strings.Index(symSection[len("## known symptom"):], "\n## ")
+			if endIdx > 0 {
+				symSection = symSection[:len("## known symptom")+endIdx]
+			}
+			// Must have at least 50 chars of actual content (not just the header)
+			content := strings.TrimSpace(symSection[len("## known symptom"):])
+			if len(content) > 50 {
+				dbg("recall: found known symptom with content (%d chars)", len(content))
+				return map[string]any{
+					"match":         true,
+					"prior_rca_id":  1,
+					"symptom_id":    1,
+					"confidence":    0.90,
+					"reasoning":     "Error pattern matches known symptom from prior investigation.",
+					"is_regression": false,
+				}
+			}
 		}
 	}
 
-	// No prior data or no match — fresh case
+	// No match — this is a fresh case
 	return map[string]any{
 		"match":         false,
 		"prior_rca_id":  0,
 		"symptom_id":    0,
-		"confidence":    0.1,
+		"confidence":    0.05,
 		"reasoning":     "No prior symptom matches this failure pattern.",
 		"is_regression": false,
 	}
 }
 
 func produceTriage(caseID string, prompt string) map[string]any {
-	if strings.Contains(prompt, "ntp") && strings.Contains(prompt, "sync validation") {
-		return map[string]any{
-			"symptom_category":       "infra",
-			"severity":               "medium",
-			"defect_type_hypothesis": "si001",
-			"candidate_repos":        []string{},
-			"skip_investigation":     true,
-			"cascade_suspected":      false,
-		}
+	cat, severity, defect, skip := classifyFailure(prompt)
+	component := identifyComponent(prompt)
+
+	repos := []string{component}
+	if skip {
+		repos = []string{}
 	}
-	if strings.Contains(prompt, "flak") || strings.Contains(prompt, "intermittent") || strings.Contains(prompt, "flaky timing") {
-		return map[string]any{
-			"symptom_category":       "flake",
-			"severity":               "low",
-			"defect_type_hypothesis": "nd001",
-			"candidate_repos":        []string{},
-			"skip_investigation":     true,
-			"cascade_suspected":      false,
-		}
-	}
-	if strings.Contains(prompt, "stale") || strings.Contains(prompt, "ptpconfig") || strings.Contains(prompt, "cleanup") {
-		repos := []string{"linuxptp-daemon-operator"}
-		return map[string]any{
-			"symptom_category":       "automation",
-			"severity":               "high",
-			"defect_type_hypothesis": "ab001",
-			"candidate_repos":        repos,
-			"skip_investigation":     false,
-			"cascade_suspected":      strings.Contains(prompt, "cascade") || strings.Contains(prompt, "setup"),
-		}
-	}
-	if strings.Contains(prompt, "holdover") || strings.Contains(prompt, "freerun") || strings.Contains(prompt, "ptp4l") {
-		repos := []string{"linuxptp-daemon-operator"}
-		return map[string]any{
-			"symptom_category":       "product",
-			"severity":               "critical",
-			"defect_type_hypothesis": "pb001",
-			"candidate_repos":        repos,
-			"skip_investigation":     false,
-			"cascade_suspected":      false,
-		}
-	}
+
 	return map[string]any{
-		"symptom_category":       "product",
-		"severity":               "medium",
-		"defect_type_hypothesis": "pb001",
-		"candidate_repos":        []string{"linuxptp-daemon-operator"},
-		"skip_investigation":     false,
+		"symptom_category":       cat,
+		"severity":               severity,
+		"defect_type_hypothesis": defect,
+		"candidate_repos":        repos,
+		"skip_investigation":     skip,
 		"cascade_suspected":      false,
 	}
 }
 
+// classifyFailure determines the defect category from failure data.
+func classifyFailure(prompt string) (category, severity, defectType string, skip bool) {
+	// Environment/infra indicators
+	envKeywords := []string{
+		"deployment fail", "deploy fail", "failed to deploy",
+		"node not ready", "machine not ready", "cluster not available",
+		"network unreachable", "connection refused", "timeout waiting for cluster",
+		"interface going up unexpectedly", "assisted install",
+		"configuration issue", "environment issue",
+	}
+	for _, kw := range envKeywords {
+		if strings.Contains(prompt, kw) {
+			return "environment", "medium", "en001", true
+		}
+	}
+
+	// Automation/flake indicators
+	autoKeywords := []string{
+		"automation issue", "automation bug", "qe bug",
+		"test framework", "as designed",
+		"flaky", "intermittent", "flake", "timing issue",
+	}
+	for _, kw := range autoKeywords {
+		if strings.Contains(prompt, kw) {
+			return "automation", "low", "au001", true
+		}
+	}
+
+	// Firmware indicators
+	fwKeywords := []string{
+		"firmware", "clock not locking", "gnss module",
+		"ice driver", "hardware clock",
+	}
+	for _, kw := range fwKeywords {
+		if strings.Contains(prompt, kw) {
+			return "product", "high", "fw001", false
+		}
+	}
+
+	// Default: product bug
+	severity = "critical"
+	if strings.Contains(prompt, "warning") || strings.Contains(prompt, "minor") {
+		severity = "medium"
+	}
+	return "product", severity, "pb001", false
+}
+
+// identifyComponent determines the primary component from the prompt.
+func identifyComponent(prompt string) string {
+	// Cloud event proxy indicators
+	cepKeywords := []string{
+		"cloud-event-proxy", "cloud event proxy", "events.sock",
+		"event socket", "cloud native event",
+	}
+	for _, kw := range cepKeywords {
+		if strings.Contains(prompt, kw) {
+			return "cloud-event-proxy"
+		}
+	}
+
+	// PTP operator indicators
+	opKeywords := []string{
+		"ptp-operator", "ptpconfig crd", "ptp operator",
+		"operator lifecycle", "daemonset",
+	}
+	for _, kw := range opKeywords {
+		if strings.Contains(prompt, kw) {
+			return "ptp-operator"
+		}
+	}
+
+	// Test framework indicators
+	testKeywords := []string{
+		"cnf-gotests", "ginkgo", "beforesuite", "aftersuite",
+		"test framework", "test helper",
+	}
+	for _, kw := range testKeywords {
+		if strings.Contains(prompt, kw) {
+			return "cnf-gotests"
+		}
+	}
+
+	// Default: linuxptp-daemon is the most common component for PTP
+	return "linuxptp-daemon"
+}
+
 func produceResolve(prompt string) map[string]any {
+	component := identifyComponent(prompt)
 	repos := []any{
 		map[string]any{
-			"name":   "linuxptp-daemon-operator",
-			"reason": "Primary codebase for PTP daemon configuration and management",
+			"name":   component,
+			"reason": fmt.Sprintf("Primary component %s identified from failure evidence", component),
 		},
 	}
 	return map[string]any{
@@ -328,26 +377,11 @@ func produceResolve(prompt string) map[string]any {
 }
 
 func produceInvestigate(prompt string) map[string]any {
-	defectType := "pb001"
-	component := "linuxptp-daemon"
-	rca := "Root cause requires further investigation based on failure evidence in the prompt."
+	component := identifyComponent(prompt)
+	_, _, defectType, _ := classifyFailure(prompt)
 
-	if strings.Contains(prompt, "holdover") {
-		rca = "Holdover timeout was reduced from 300s to 60s in linuxptp-daemon configuration, causing PTP sync failure."
-	}
-	if strings.Contains(prompt, "stale") || strings.Contains(prompt, "ptpconfig") {
-		defectType = "ab001"
-		component = "ptp-test-suite"
-		rca = "Stale PtpConfig CRD from previous test not cleaned up, causing config conflict in subsequent test."
-	}
-	if strings.Contains(prompt, "ordered") || strings.Contains(prompt, "setup") || strings.Contains(prompt, "beforesuite") {
-		defectType = "ab001"
-		component = "ptp-test-suite"
-		rca = "Test setup ordering issue causing cascading failures in dependent tests."
-	}
-	if strings.Contains(prompt, "recovery") || strings.Contains(prompt, "restart") {
-		rca = "PTP recovery mechanism fails due to holdover timeout being too short for the recovery scenario."
-	}
+	// Build an RCA message from the error content
+	rca := buildRCAMessage(prompt, component)
 
 	return map[string]any{
 		"launch_id":         "",
@@ -355,27 +389,70 @@ func produceInvestigate(prompt string) map[string]any {
 		"rca_message":       rca,
 		"defect_type":       defectType,
 		"component":         component,
-		"convergence_score": 0.75,
-		"evidence_refs":     []string{"linuxptp-daemon-operator:pkg/daemon/config.go"},
+		"convergence_score": 0.80,
+		"evidence_refs":     []string{component + ":relevant_source_file"},
 	}
 }
 
-func produceCorrelate(caseID string, prompt string) map[string]any {
-	// Check if there are prior RCAs mentioned
-	if strings.Contains(prompt, "rca") && strings.Contains(prompt, "rca #") {
-		return map[string]any{
-			"is_duplicate":        true,
-			"linked_rca_id":       1,
-			"confidence":          0.85,
-			"reasoning":           "Same root cause pattern as prior RCA.",
-			"cross_version_match": false,
+// buildRCAMessage constructs a descriptive RCA from the failure data.
+func buildRCAMessage(prompt string, component string) string {
+	// Extract key phrases from the failure
+	var findings []string
+
+	phrases := map[string]string{
+		"phc2sys":           "phc2sys process failure",
+		"ptp4l":             "ptp4l synchronization issue",
+		"holdover":          "PTP holdover state transition failure",
+		"freerun":           "PTP entered freerun state unexpectedly",
+		"recovery":          "PTP process recovery mechanism failure",
+		"restart":           "PTP daemon restart issue",
+		"config change":     "configuration change handling failure",
+		"broken pipe":       "event socket broken pipe",
+		"events.sock":       "cloud event proxy socket communication failure",
+		"gnss":              "GNSS sync state mapping issue",
+		"clock class":       "clock class not reported correctly",
+		"sync state":        "PTP sync state transition failure",
+		"not in sync":       "PTP not achieving sync state",
+		"metrics":           "PTP metrics reporting failure",
+		"beforesuite":       "test setup failure in BeforeSuite",
+		"beforeeach":        "test setup failure in BeforeEach",
+		"interface":         "network interface state issue",
+		"grandmaster":       "PTP grandmaster configuration issue",
+		"boundary clock":    "boundary clock configuration issue",
+		"ordinary clock":    "ordinary clock configuration issue",
+		"2-port":            "dual-port ordinary clock issue",
+		"consumer":          "event consumer lifecycle issue",
+		"ntp":               "NTP failover mechanism issue",
+		"process restart":   "PTP process restart failure",
+		"daemon":            "linuxptp daemon operational failure",
+		"timeout":           "operation timed out",
+		"expected":          "assertion failure - expected state not reached",
+	}
+
+	for kw, desc := range phrases {
+		if strings.Contains(prompt, kw) {
+			findings = append(findings, desc)
 		}
 	}
+
+	if len(findings) == 0 {
+		return fmt.Sprintf("Root cause in %s requires investigation. Failure evidence suggests a defect in the PTP subsystem.", component)
+	}
+
+	// Build summary from top findings
+	if len(findings) > 4 {
+		findings = findings[:4]
+	}
+	return fmt.Sprintf("Investigation of %s identified: %s. The failure originates in the %s component.",
+		component, strings.Join(findings, "; "), component)
+}
+
+func produceCorrelate(caseID string, prompt string) map[string]any {
 	return map[string]any{
 		"is_duplicate":        false,
 		"linked_rca_id":       0,
-		"confidence":          0.1,
-		"reasoning":           "First RCA for this failure pattern.",
+		"confidence":          0.2,
+		"reasoning":           "First RCA for this failure pattern in the current investigation.",
 		"cross_version_match": false,
 	}
 }
@@ -387,11 +464,14 @@ func produceReview() map[string]any {
 }
 
 func produceReport(caseID string, prompt string) map[string]any {
+	component := identifyComponent(prompt)
+	_, _, defectType, _ := classifyFailure(prompt)
+
 	return map[string]any{
 		"case_id":     caseID,
 		"test_name":   "PTP test case",
-		"summary":     "Investigation complete.",
-		"defect_type": "pb001",
-		"component":   "linuxptp-daemon",
+		"summary":     "Investigation complete. Root cause identified in " + component + ".",
+		"defect_type": defectType,
+		"component":   component,
 	}
 }

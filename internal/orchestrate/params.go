@@ -251,6 +251,12 @@ func loadPriorArtifacts(caseDir string) *PriorParams {
 // on test name — the most reliable attribute available before triage.
 // Returns nil if no candidates are found.
 func findRecallCandidates(st store.Store, testName string) *HistoryParams {
+	// Guard: never search for recall candidates with an empty test name.
+	// Empty names would match generic symptoms from unrelated cases,
+	// causing false positives in the recall step.
+	if testName == "" {
+		return nil
+	}
 	candidates, err := st.FindSymptomCandidates(testName)
 	if err != nil || len(candidates) == 0 {
 		return nil

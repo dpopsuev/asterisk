@@ -655,6 +655,11 @@ func (s *SqlStore) GetSymptomByFingerprint(fingerprint string) (*Symptom, error)
 }
 
 func (s *SqlStore) FindSymptomCandidates(testName string) ([]*Symptom, error) {
+	// Do not match on empty test names — this would return all symptoms with
+	// empty names, causing false recall hits during calibration.
+	if testName == "" {
+		return nil, nil
+	}
 	rows, err := s.db.Query(
 		`SELECT id, fingerprint, name, description, error_pattern, test_name_pattern,
 		        component, severity, first_seen_at, last_seen_at, occurrence_count, status
