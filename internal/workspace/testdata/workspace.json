@@ -1,0 +1,6 @@
+{
+  "repos": [
+    { "name": "tests", "path": "../../cnf-gotests", "purpose": "PTP test cases" },
+    { "name": "ptp-operator", "path": "../../ptp-operator", "purpose": "SUT: lifecycle" }
+  ]
+}
