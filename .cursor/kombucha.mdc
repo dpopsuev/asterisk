@@ -1,0 +1,567 @@
+---
+description: FSC compiler — drop into .cursor/ to bootstrap the agentic knowledge layer
+---
+
+# Kombucha
+
+Agentic meta-engineering compiler. Drop this file into an empty `.cursor/` and run the compile sequence. Kombucha emits the full **FSC (File-System Context)** — the curated knowledge layer that gives AI agents project-specific guidance.
+
+**Soul:** tuned for a solo developer who treats programming as a problem-solving domain. Clear framing precedes engineering. BDD frames the problem; TDD validates the solution; code comes last.
+
+**Compiled artifacts:**
+
+| Artifact | Path |
+|----------|------|
+| Structure contract | `.cursor/meta.mdc` |
+| Dev flow | `.cursor/guide/dev-flow.mdc` |
+| Test matrix | `.cursor/rules/test-matrix.mdc` |
+| Contract template | `.cursor/contracts/_TEMPLATE.md` |
+| Contract trigger rule | `.cursor/rules/work-contracts.mdc` |
+| Security analysis rule | `.cursor/rules/security-analysis.mdc` |
+| Security case template | `.cursor/security-cases/_TEMPLATE.md` |
+| Save triggers rule | `.cursor/rules/save-triggers.mdc` |
+| Validator skill | `.cursor/skills/bootstrap/SKILL.md` |
+| Index enforcer skill | `.cursor/skills/index-integrity/SKILL.md` |
+| Directory tree | `.cursor/{rules,guide,docs,notes,contracts,security-cases,skills}/` |
+| Directory indexes | `.cursor/*/.index.mdc` |
+
+**Workspace preference:** If possible, work within a **Cursor workspace** and **git clone all relevant repositories** into that workspace. This increases agent speed because: (1) **local code is instantly readable and searchable** — no network or API latency; (2) **full codebase available** for grep, semantic search, and cross-reference across repos; (3) **consistent paths and version pinning** (e.g. service-api 5.11.x) so research and implementation match; (4) **no dependency on external services** being up or rate limits when reading code and docs. The workspace becomes the single source of truth; the agent reads from disk instead of guessing or waiting.
+
+**Cursor docs — MUST read before compile:**
+Fetch and read https://cursor.com/docs/context/ and its sub-pages before emitting any artifact. This is where Cursor defines Rules, Commands, and Skills — the mechanisms the soul artifacts compile into. If anything in this file conflicts with those docs, the docs win.
+[Context](https://cursor.com/docs/context/) · [Rules](https://cursor.com/docs/context/rules) · [Skills](https://cursor.com/docs/context/skills)
+
+**Key terms:**
+
+| Term | Meaning |
+|------|---------|
+| **FSC** | File-System Context — curated knowledge store under `.cursor/`. |
+| **meta** | `.cursor/meta.mdc` — binding structure contract. |
+| **bootstrap** | Skill that creates/verifies `.cursor/` structure. Invoke: `/bootstrap`. |
+| **.index.mdc** | Hidden per-directory listing. Unix directory + agentic metadata. |
+| **BDD** | Behavior-Driven Development — frame problems in stories + Given/When/Then. |
+| **TDD** | Test-Driven Development — test matrix per story, tests before code. |
+| **dev flow** | 10-step pre-implementation protocol. Steps 1–9 = discussion. Step 10 = code. |
+| **work contract** | Session-independent execution plan in `.cursor/contracts/`. Has a binary goal, task checklist, contract-specific rules, and always ends with validate-tune-validate. |
+| **security case** | Post-mortem for a security bug in `.cursor/security-cases/`. Has severity (CVSS-aligned), OWASP category, RCA, mitigation, and status (open/mitigated/accepted-risk/false-positive). |
+
+---
+
+## Compile
+
+Three passes, in order. Each is idempotent — safe to re-run.
+
+### Pass 0 — Read Cursor docs
+
+**Mandatory.** Fetch and read https://cursor.com/docs/context/ and its sub-pages (Rules, Commands, Skills). Understand how Cursor structures its `.cursor/` folder, what Rules look like, how Skills are defined, and what Commands are. This knowledge governs how soul artifacts are emitted as valid Cursor Rules, Skills, and Commands.
+
+### Pass 1 — Emit meta and soul artifacts
+
+1. If `.cursor/meta.mdc` does not exist → create it from **§Meta**.
+2. If `.cursor/guide/dev-flow.mdc` does not exist → create it from **§Dev flow**.
+3. If `.cursor/rules/test-matrix.mdc` does not exist → create it from **§Test matrix**.
+4. If `.cursor/contracts/_TEMPLATE.md` does not exist → create it from **§Work contracts** template.
+5. If `.cursor/rules/work-contracts.mdc` does not exist → create it from **§Work contracts** trigger rule.
+6. If `.cursor/rules/security-analysis.mdc` does not exist → create it from **§Security analysis**.
+7. If `.cursor/security-cases/_TEMPLATE.md` does not exist → create it from **§Security cases**.
+8. If `.cursor/rules/save-triggers.mdc` does not exist → create it from **§Save triggers**.
+
+### Pass 2 — Emit skills and bootstrap
+
+1. If `.cursor/skills/bootstrap/SKILL.md` does not exist → create it from **§Bootstrap**.
+2. If `.cursor/skills/index-integrity/SKILL.md` does not exist → create it from **§Index-integrity**.
+3. Execute bootstrap behavior:
+   - Create every missing FSC directory.
+   - Create every missing `.index.mdc` from **§Index template** (list existing children).
+   - Create `meta.mdc` if still absent (handles standalone `/bootstrap`).
+   - **Never** overwrite existing files.
+
+**Post-compile:** all artifacts exist · all FSC directories exist · all indexes reflect their contents.
+
+---
+
+## §Meta
+
+**Target:** `.cursor/meta.mdc`
+
+**Frontmatter:**
+```yaml
+---
+description: Portable meta-engineering rules for Cursor projects
+---
+```
+
+**Body:**
+
+# .cursor Meta Rules
+
+Binding structure contract for the FSC. All rules in `.cursor/rules/` reference this file.
+
+## Development discipline
+
+**Soul:** solo developer. Programming = problem-solving domain. Clear framing first; engineering follows.
+
+| Discipline | Role | Reference |
+|------------|------|-----------|
+| BDD | Frame the problem. Stories + acceptance criteria in Given/When/Then. | `.cursor/guide/dev-flow.mdc` step 5 |
+| TDD | Validate the solution. Test matrix per story — tests before code. | `.cursor/rules/test-matrix.mdc` |
+| Dev flow | 10-step pre-implementation protocol. Steps 1–9 = discussion. Step 10 = code. | `.cursor/guide/dev-flow.mdc` |
+
+**Cardinal rule:** do not generate code until the dev flow reaches step 10.
+
+## FSC directories
+
+| Directory | Purpose |
+|-----------|---------|
+| `rules/` | Non-negotiable constraints and always-apply guidance. |
+| `guide/` | Software development workflows and process guidance. |
+| `docs/` | Deep library — long-form references, design documents, case studies. |
+| `notes/` | Short summaries and quick references. |
+| `contracts/` | Work contracts — session-independent execution plans with state, tasks, and completion criteria. |
+| `security-cases/` | Security bug post-mortems — RCA, severity score, OWASP category, and mitigation. |
+| `skills/` | Project-specific skill definitions. |
+
+## Index rules
+
+1. Every `.cursor/` directory contains a `.index.mdc` (hidden file).
+2. Indexes list **only** direct children — shallow, no nested trees.
+3. Each entry = name + description. Unix directory with agentic metadata.
+4. Empty directory → index with empty Directories and Files sections.
+5. File add/remove/rename → update parent `.index.mdc`. Incomplete without this.
+
+## Expected skills
+
+| Skill | Purpose |
+|-------|---------|
+| `bootstrap` | Create/verify `.cursor/` structure. No repo scan. |
+| `index-integrity` | Scan, validate, and enforce `.index.mdc` compliance. Reconciles filesystem against indexes. |
+
+Skills live at `.cursor/skills/<name>/SKILL.md`. Folder name = skill name.
+
+## File extension policy
+
+| Extension | Use |
+|-----------|-----|
+| `.mdc` | Cursor rules or files requiring frontmatter. |
+| `.md` | General notes and docs (better tool compatibility). |
+
+## Verification
+
+**MUST** fetch and read https://cursor.com/docs/context/ before emitting or modifying any `.cursor/` artifact. Verify Rules format, Skills structure, and Commands conventions against the live docs. Do not guess — read first.
+
+---
+
+## §Dev flow
+
+**Target:** `.cursor/guide/dev-flow.mdc`
+
+**Frontmatter:**
+```yaml
+---
+description: 10-step pre-implementation protocol — discuss before code.
+alwaysApply: true
+---
+```
+
+**Body:**
+
+# Dev Flow
+
+Pre-implementation protocol. Walk through steps 1–9 with the user **before** generating any code. Step 10 is the only step that produces implementation.
+
+**Cardinal rule:** do not generate code until step 10. Steps 1–9 produce decisions, not files.
+
+**Soul:** solo developer. Programming = problem-solving domain. Clear framing precedes engineering. BDD frames the problem; TDD validates the solution; code comes last.
+
+## Full flow
+
+| Step | Phase | Focus |
+|------|-------|-------|
+| 1 | Problem framing | Context, pain points, impacted users. |
+| 2 | Goal statement | Measurable success criteria + explicit non-goals. |
+| 3 | Constraints & assumptions | Data access, security, scale, dependencies. |
+| 4 | Personas & user research | Who uses it, current workflows, friction points. |
+| 5 | User stories & acceptance criteria | BDD-ready: As a [persona], I want [goal], so that [benefit]. Given/When/Then. |
+| 6 | Solution framing | Options, trade-offs, rationale for chosen approach. |
+| 7 | Architecture | Boundaries, data flows, trust zones. |
+| 8 | Components & interfaces | Responsibilities, contracts, failure modes. |
+| 9 | Tech stack & integrations | Choices and reasons. |
+| 10 | Implementation plan | Phases, risks, test plan (→ `.cursor/rules/test-matrix.mdc`), rollout. **Code starts here.** |
+
+## Fast path (MVP)
+
+Goal statement → Constraints → User stories → Architecture → MVP plan.
+
+## Agent behavior
+
+- **Do not skip steps.** Each step is a conversation checkpoint.
+- **Do not generate code before step 10.** Steps 1–9 produce decisions, not files.
+- At step 5, stories feed directly into the test matrix (`.cursor/rules/test-matrix.mdc`).
+- At step 10, the test matrix is populated before implementation begins.
+
+---
+
+## §Test matrix
+
+**Target:** `.cursor/rules/test-matrix.mdc`
+
+**Frontmatter:**
+```yaml
+---
+description: TDD test matrix — required test layers per story.
+alwaysApply: true
+---
+```
+
+**Body:**
+
+# Test Matrix
+
+For every user story (from `.cursor/guide/dev-flow.mdc` step 5), implement tests across all layers **before** writing production code.
+
+| Layer | Covers | Examples |
+|-------|--------|----------|
+| Unit | Pure logic — isolated, no I/O. | Parsers, mappers, scorers, classifiers. |
+| Integration | External service boundaries. | APIs, providers, CI systems. |
+| Contract | Interface agreements. | API schemas, auth scopes, rate limits. |
+| E2E | Full pipeline, trigger to output. | End-to-end workflow validation. |
+| Security | Trust boundaries and compliance. | Secret redaction, RBAC scope, audit logging. |
+
+## TDD cycle
+
+1. Story defined (BDD: Given/When/Then acceptance criteria).
+2. Test matrix populated for that story — one row per layer.
+3. Tests written and failing (red).
+4. Implementation written until tests pass (green).
+5. Refactor.
+
+---
+
+## §Work contracts
+
+Work contracts are **session-independent execution plans** that persist across conversations. Unlike notes (knowledge) or rules (constraints), contracts are **plans with state** — they track a body of work from inception to completion.
+
+Contracts are the **core unit of work** in agentic development. Any agent, in any session, can pick up a contract file and continue from where the last one left off. The contract is the handoff protocol between agents — between sessions — between humans and machines.
+
+### Why contracts exist
+
+- **Session independence.** Large work spans multiple sessions. Contracts survive context loss.
+- **Shareability.** A contract is a file. It can be read by any agent, any session, any collaborator.
+- **State tracking.** Each task has a status. Resume from where you left off.
+- **Accountability.** Binary goal — either the acceptance criteria are met or they aren't.
+- **Reconstruction.** Timestamped notes let any future reader reconstruct *what happened and why*.
+
+### Contract structure
+
+Every contract has:
+
+1. **Status** — `draft` | `active` | `complete` | `abandoned`
+2. **Goal** — One sentence. Binary — true or false.
+3. **Contract Rules** — Additions to global rules for this specific work. "Global rules only" if none.
+4. **Context** — Links to notes, docs, design decisions.
+5. **Execution Strategy** — Approach and ordering.
+6. **Tasks** — Ordered checklist. Must always end with:
+   - `[ ] Validate (green)` — all tests pass, acceptance criteria met.
+   - `[ ] Tune (blue)` — refactor for quality. No behavior changes.
+   - `[ ] Validate (green)` — all tests still pass after tuning.
+7. **Acceptance Criteria** — Given/When/Then or structural invariants.
+8. **Notes** — Running log (newest first). **Always include hour:minute** — format `YYYY-MM-DD HH:MM`. Decisions, bugs found, course corrections.
+
+### Note timestamp convention
+
+Notes use `YYYY-MM-DD HH:MM` format. The hour:minute precision matters — a contract can receive dozens of notes in a single day across multiple sessions. Date-only timestamps collapse the timeline and make reconstruction impossible. Examples:
+
+```
+2026-02-15 14:32 — Geological actor's lapse rate formula was producing sub-5°C temps everywhere. Fixed by switching to latitude-aware base temperatures.
+2026-02-15 09:10 — Contract created. Integrate-early approach chosen.
+```
+
+### Commit convention
+
+Every task must leave the codebase green. The agent **always suggests committing** after completing a task or a batch of related tasks. Each commit references the contract:
+
+```
+{what changed}
+
+Contract: {slug} {step}/{total}
+```
+
+- `{slug}` matches the contract filename (e.g., `world-baker` for `world-baker.md`).
+- `{step}/{total}` is the current task number out of total tasks at time of commit.
+- For batches: `{first}-{last}/{total}` (e.g., `14-18/25`).
+
+The test suite must be green before every commit. No exceptions. This makes every commit an atomic, bisectable checkpoint tied to a specific contract step.
+
+### Relationship to other FSC artifacts
+
+| Artifact type | What it is | State? | Example |
+|---------------|-----------|--------|---------|
+| Note | Knowledge | No | "How the dual mesh works" |
+| Rule | Constraint | No | "No temporary solutions" |
+| Contract | Plan | Yes | "Build the World Baker" |
+
+Contracts reference notes and rules. When a contract completes, reusable learnings go into notes/rules.
+
+### Template
+
+The canonical template lives at `.cursor/contracts/_TEMPLATE.md`. Copy it to create new contracts. **Never edit the template itself** — it is a compile artifact of this file.
+
+### Compiled artifacts
+
+| Artifact | Path |
+|----------|------|
+| Contract template | `.cursor/contracts/_TEMPLATE.md` |
+| Contract trigger rule | `.cursor/rules/work-contracts.mdc` |
+| Contract directory index | `.cursor/contracts/.index.mdc` |
+
+---
+
+## §Security analysis
+
+**Target:** `.cursor/rules/security-analysis.mdc`
+
+Security is a continuous lens, not a phase. Every feature, endpoint, data flow, and trust boundary is evaluated against the OWASP Top 10:2025 before shipping.
+
+**Frontmatter:**
+```yaml
+---
+description: Always-apply security analysis lens — OWASP Top 10:2025 checklist for every feature and code change.
+alwaysApply: true
+---
+```
+
+**Body content:**
+
+- OWASP Top 10:2025 checklist table (A01–A10) with "what to check" per category.
+- Agent behavior: scan checklist on every trust-boundary-touching code change; flag findings; file security cases.
+- Severity scale: critical/high/medium/low/informational aligned with CVSS 4.0 ranges.
+- Anti-patterns: common security mistakes to watch for.
+- Cross-reference: security layer in `test-matrix.mdc`.
+
+Reference: [OWASP Top 10:2025](https://owasp.org/Top10/2025/en) · [OWASP Foundation](https://owasp.org)
+
+---
+
+## §Security cases
+
+Security cases are **post-mortems** for security bugs found in the system. Unlike notes (knowledge, no state) or contracts (execution plans), security cases track a specific vulnerability from discovery through resolution.
+
+### Why security cases exist
+
+- **Institutional memory.** Every security bug is documented — root cause, impact, fix.
+- **Severity tracking.** CVSS-aligned scoring makes risk visible and comparable.
+- **OWASP mapping.** Each case maps to an OWASP Top 10 category for pattern detection.
+- **Prevention.** Lessons learned feed back into rules and tests. Recurring categories trigger new always-apply rules.
+
+### Case structure
+
+Every security case has:
+
+1. **Status** — `open` | `mitigated` | `accepted-risk` | `false-positive`
+2. **Severity** — `critical` | `high` | `medium` | `low` | `informational` (CVSS-aligned)
+3. **OWASP category** — A01–A10 mapping
+4. **Summary** — one paragraph, what is the vulnerability
+5. **Root Cause Analysis** — component, trust boundary violated, root cause category
+6. **Impact** — CIA triad assessment (confidentiality, integrity, availability)
+7. **Reproduction** — steps to reproduce or test demonstrating the vulnerability
+8. **Mitigation** — fix description, test added, residual risk
+9. **Lessons Learned** — rule/process changes to prevent recurrence
+
+### Naming convention
+
+Files are named `SEC-{NNN}-{slug}.md` where NNN is a zero-padded sequential number and slug is a kebab-case summary (e.g., `SEC-001-missing-input-validation.md`).
+
+### Compiled artifacts
+
+| Artifact | Path |
+|----------|------|
+| Security analysis rule | `.cursor/rules/security-analysis.mdc` |
+| Security case template | `.cursor/security-cases/_TEMPLATE.md` |
+| Security cases directory index | `.cursor/security-cases/.index.mdc` |
+
+---
+
+## §Save triggers
+
+**Target:** `.cursor/rules/save-triggers.mdc`
+
+**Frontmatter:**
+```yaml
+---
+description: Persistence protocol — when discussion produces reusable knowledge, persist it to the right FSC directory.
+---
+```
+
+**Body:**
+
+When a conversation produces reusable knowledge, propose persisting it:
+
+| Target | When |
+|--------|------|
+| `docs/` | Deep reference, long-form analysis |
+| `notes/` | Short summary, quick reference |
+| `contracts/` | Execution plan with tasks and state |
+| `security-cases/` | Security bug found or suspected |
+| `rules/` | New constraint, convention, or invariant |
+
+User says **"Save Block {{ID}}"** → persist to the appropriate target. Update the parent `.index.mdc`.
+
+---
+
+## §Bootstrap
+
+**Target:** `.cursor/skills/bootstrap/SKILL.md`
+
+**Frontmatter:**
+```yaml
+---
+name: bootstrap
+description: Create/verify .cursor structure (project-agnostic).
+---
+```
+
+**Body:**
+
+# Bootstrap
+
+Idempotent, non-destructive `.cursor/` structure validator.
+
+## Behavior
+
+1. Create missing directories: `rules`, `guide`, `docs`, `notes`, `contracts`, `security-cases`, `skills`.
+2. Create missing `.index.mdc` in every directory (use §Index template from `.cursor/kombucha.mdc`). List existing direct children; empty sections when directory is empty.
+3. Create `meta.mdc` if absent (use §Meta from `.cursor/kombucha.mdc`).
+4. **Never** overwrite existing files or content.
+5. **Never** scan the project repo for domain knowledge.
+6. **Do not** update existing indexes — use `/index-integrity` for that (`.cursor/skills/index-integrity/SKILL.md`).
+7. **Report** inconsistencies; do not auto-fix content.
+
+Safe to run repeatedly. Zero destructive changes.
+
+---
+
+## §Index-integrity
+
+**Target:** `.cursor/skills/index-integrity/SKILL.md`
+
+**Frontmatter:**
+```yaml
+---
+name: index-integrity
+description: Scan, validate, and enforce .index.mdc compliance across .cursor/.
+---
+```
+
+**Body:**
+
+# Index Integrity
+
+Scans every directory under `.cursor/`, validates its `.index.mdc` against the index rules (`.cursor/meta.mdc`), and enforces compliance by creating missing indexes and fixing stale ones.
+
+Unlike bootstrap (which only **creates** missing indexes and never touches existing ones), index-integrity **reads the filesystem and reconciles** — adding missing entries, removing stale entries, and creating absent indexes.
+
+## When to invoke
+
+- After adding, removing, or renaming files or directories under `.cursor/`.
+- After bulk operations (new system files, new case studies, directory restructures).
+- As a periodic hygiene pass.
+- When bootstrap reports inconsistencies but doesn't fix them.
+
+## Index rules (from `meta.mdc`)
+
+1. Every `.cursor/` directory contains a `.index.mdc` (hidden file).
+2. Indexes list **only** direct children — shallow, no nested trees.
+3. Each entry = name + one-line description. Unix directory listing with agentic metadata.
+4. Empty directory → index with empty Directories and Files sections.
+5. File add/remove/rename → parent `.index.mdc` must reflect the change.
+
+## Behavior
+
+### Phase 1 — Scan
+
+1. Recursively list every directory under `.cursor/`.
+2. For each directory, list its direct children (files and subdirectories).
+3. For each directory, read its `.index.mdc` (if it exists).
+
+### Phase 2 — Validate
+
+For each directory, check:
+
+| Check | Pass condition | Fail condition |
+|-------|---------------|----------------|
+| **Exists** | `.index.mdc` is present. | Missing → flag for creation. |
+| **Structure** | Has `# Index`, `## Directories`, `## Files` sections. | Malformed → flag for rewrite. |
+| **Shallow** | Lists only direct children, not nested. | Nested trees → flag as non-shallow. |
+| **Complete** | Every direct child has an entry. | Missing entry → flag for addition. |
+| **Accurate** | Every entry corresponds to an existing child. | Stale entry → flag for removal. |
+| **Descriptions** | Every entry has a non-empty description after `—`. | Empty description → flag for generation. |
+
+### Phase 3 — Report
+
+Print a summary before making changes.
+
+### Phase 4 — Enforce
+
+| Issue | Action |
+|-------|--------|
+| **Missing index** | Create from §Index template. Populate with current children. |
+| **Malformed index** | Rewrite with correct structure. Preserve valid entries. |
+| **Missing entry** | Add entry. Generate description from file heading / frontmatter. |
+| **Stale entry** | Remove. |
+| **Empty description** | Generate from file content. |
+
+### Description generation heuristic
+
+1. Frontmatter `description` field → use it.
+2. First `#` heading subtitle/tagline → use it.
+3. Directories → read child `.index.mdc` purpose. Fallback: "contains N files."
+4. Fallback → humanized filename.
+
+One short sentence or phrase. No period. Match existing terse style.
+
+## Constraints
+
+- **Never delete files or directories.** Only modify `.index.mdc` files.
+- **Preserve user-written descriptions** if valid.
+- **Idempotent.** Second run = no changes.
+- **Scope: `.cursor/` only.**
+
+---
+
+## §Index template
+
+`.index.mdc` = hidden Unix directory listing + agentic metadata. One per `.cursor/` directory. Tells the agent what lives here without re-scanning.
+
+### Empty directory
+
+```
+# Index
+
+Purpose: agentic directory listing — locate guidance without re-scanning.
+
+## Directories
+
+## Files
+```
+
+### Populated — `.cursor/` root example
+
+```
+# Index
+
+Purpose: agentic directory listing — locate guidance without re-scanning.
+
+## Directories
+- `rules/` — non-negotiable constraints and always-apply guidance.
+- `guide/` — software development workflows and process guidance.
+- `docs/` — deep library (long-form references).
+- `notes/` — short summaries and quick references.
+- `contracts/` — work contracts with state, tasks, and completion criteria.
+- `security-cases/` — security bug post-mortems with RCA, severity, and mitigation.
+- `skills/` — project-specific skill definitions.
+
+## Files
+- `.index.mdc` — agentic directory listing (hidden).
+- `meta.mdc` — binding structure contract.
+- `kombucha.mdc` — FSC compiler seed.
+```

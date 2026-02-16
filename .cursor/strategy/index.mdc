@@ -1,0 +1,7 @@
+# .cursor/strategy Index
+
+Long-term objectives and invariants.
+
+## Files
+- `index.mdc` — index for this directory.
+- `rca-invariants.mdc` — long-term RCA quality invariants.

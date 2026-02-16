@@ -1,0 +1,34 @@
+---
+description: ExecutionEnvelope data container for adapter-normalized runs
+---
+
+# ExecutionEnvelope
+
+## Purpose
+Adapter-level container that normalizes external run data (e.g., RP Launch) into a generic structure for Asterik analysis.
+
+## Design goals
+- Avoid making RP Launch a first-class domain concept.
+- Support future replacement of RP with an API compatible with RP Launch inputs.
+- Accept inputs from GitHub + Prow or other sources via adapters.
+
+## Suggested fields (high-level)
+- `run_id` — unique execution identifier
+- `source` — adapter source (`rp`, `prow`, `github`, etc.)
+- `started_at`, `finished_at`
+- `status`
+- `metadata` — labels, environment, cluster, versions
+- `items` — test items and hierarchy
+- `logs` — log records and attachments
+- `artifacts` — referenced files or links
+
+## Vital git metadata
+
+The envelope **must** carry git metadata so that `analyze` can resolve the correct branch/ref for each repo in the context workspace without manual intervention. Populated from the launch/CI run (e.g. RP launch attributes, CI env vars).
+
+- **`git.branch`** — branch name used for the run (e.g. `main`, `feature/foo`). Used to check out or resolve ref for repos in the context workspace when no per-repo override is set.
+- **`git.commit`** — full commit SHA of the revision used for the run. Preferred when present for exact reproducibility.
+- **`git.remote`** or **`git.repo_url`** (optional) — canonical repo URL for the run; used to match envelope to a repo in the context workspace when multiple repos are listed.
+- **`git.tag`** (optional) — tag used for the run, if applicable.
+
+Rule: for each repo in the context workspace, use **envelope git ref** (commit if present, else branch) unless the context workspace file specifies a per-repo override (e.g. always `main` for a shared lib).

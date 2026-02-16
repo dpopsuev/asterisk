@@ -1,0 +1,34 @@
+---
+description: PoC flow (CLI) and next stage
+---
+
+# PoC Flow (CLI)
+
+## Invocation (PoC)
+
+- **PoC scope:** **`asterisk --cursor` only.** No other mode is in scope for PoC.
+- **`asterisk --cursor`** — Cursor is the model. Symbiotic flow: Asterik injects prompts and conducts a dialog with Cursor; investigation data (cases, RCAs, assessment) is persisted to the **Asterik DB** (storage adapter) so state survives across the conversation.
+- **Future (post-PoC):** `asterisk` with no flags (TUI with another model), or subcommands from shell; not part of PoC.
+
+## Flow (fits three-phase workflow)
+
+Fits the three-phase manual workflow (`three-phases-manual.mdc`): **Pre-investigation** → get envelope (manual or future fetch); **Investigation** → analyze (within `asterisk --cursor` dialog); **Post-investigation** → Jira/Slack/tracking (manual); push to RP when desired.
+
+1. **Manual pull** — User/agent obtains Execution Envelope (launch; includes vital git metadata: branch, commit) and context workspace (key-value repo pointers; see `docs/context-workspace.mdc`, `docs/execution-envelope.mdc`).
+2. **analyze** — `asterisk analyze --launch=<path|id> --workspace=<path> [-o <artifact-path>]` → writes **artifact** to FS (RCA message, convergence score, suggested defect type, evidence refs).
+3. **Inspect** — User/agent reviews artifact; convergence score guides “push or not.”
+4. **push** — `asterisk push -f <artifact-path>` → reads artifact, pushes defect type to RP (explicit).
+
+## Cursor handoff (PoC)
+
+No Cursor API; handoff is manual. See `.cursor/docs/cursor-handoff.mdc` for step-by-step.
+
+1. **Get next prompt** — `asterisk cursor --launch=<path|id> [--workspace=<path>] [--case-id=<id>] [-o <prompt-file>]` → outputs the next RCA prompt (to stdout or file, e.g. `.asterisk/current_prompt.md`). User pastes or opens in Cursor.
+2. **Run model** — User runs the model in Cursor with the prompt; model produces artifact (JSON) or user saves output to a file.
+3. **Save/ingest** — `asterisk save -f <artifact-path>` → reads artifact, creates/updates RCA in Store, links cases to RCA. State persists in Asterik DB.
+4. Repeat for next case or step.
+
+## MVP (future)
+- Standalone service; CLI = thin client (same commands, calls service).
+- RP adapter: fetch launch → envelope; push result → RP.
+- Analysis loop (future): convergence check, multi-round, multiple context sources.

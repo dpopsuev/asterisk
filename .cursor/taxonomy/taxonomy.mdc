@@ -1,0 +1,24 @@
+---
+description: Naming and classification rules for .cursor artifacts
+---
+
+# Taxonomy
+
+## File naming
+- Use kebab-case: `dev-flow.md`, `data-io.mdc`.
+- Use `.mdc` for Cursor guidance and rules.
+- Use `.md` for general notes or long references unless guidance must always apply.
+
+## Classification
+- `rules/`: always-apply constraints.
+- `guide/`: workflows and process.
+- `docs/`: deep references and long-form.
+- `notes/`: short, action-oriented summaries.
+- `strategy/`: long-term objectives and invariants.
+- `tactics/`: "if X, do Y" playbooks.
+- `glossary/`: domain terms and definitions.
+- `goals/`: goal checklist + per-goal detail files.
+
+## Indexing
+- Every directory has a shallow `index.mdc` listing only direct children.
+- Update indexes on any file add/remove/rename.

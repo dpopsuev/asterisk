@@ -1,0 +1,65 @@
+---
+description: File-based RCA prompt templates; dev location vs CLI; red-green-blue iteration
+---
+
+# RCA Prompt Templates
+
+## File-based prompts
+
+RCA prompts are **file-based** (not generated only at CLI runtime). They are templates (parameterized by launch, workspace, ref, etc.) that the CLI or the user feeds to Cursor/agent. Versionable, diffable, iterable.
+
+## Locations
+
+| Phase | Location | Purpose |
+|-------|----------|---------|
+| **Development** | `.cursor/prompts/` (in repo) | Experiment, edit, run in Cursor, see results. Iterate quickly without rebuilding the CLI. |
+| **Shipped** | CLI’s prompt directory | When prompts are stable, move (or copy) into the CLI’s dedicated prompt directory so the binary ships with them. |
+
+During development, keep prompts under **`.cursor/prompts/`** so you can change them, run the flow in Cursor, observe outcomes, and refine. When a scenario (e.g. PTP test cases CI) is good enough, promote those files into the CLI’s prompt directory for distribution.
+
+## Red–green–blue development
+
+Prompt development follows an **experiment–observe–iterate** loop:
+
+1. **Red** — Change a prompt (or add a step); run the scenario; see what breaks or what the agent does.
+2. **Green** — Adjust until the outcome meets the bar (e.g. correct RCA step, good agent command).
+3. **Blue** — Refine wording, structure, or parameters; lock in the improvement.
+
+Then repeat for the next step or scenario. File-based prompts make this loop fast: edit file → run in Cursor → observe → iterate. No CLI rebuild required during prompt iteration.
+
+## Structure under `.cursor/prompts/`
+
+- One subdirectory per **scenario** (e.g. `ptp-ci/` for PTP test cases CI).
+- Per scenario: one file per step or stage (e.g. `step-01-assessment.mdc`, `step-02-rca.mdc`, `step-03-review.mdc`, `step-04-jira.mdc`, `step-05-report.mdc`) matching the contract of work in `notes/ci-analysis-flow.mdc`.
+- Templates can use placeholders (e.g. `{{.JobID}}`, `{{.WorkspacePath}}`, `{{.FailedCase}}`) for the CLI to fill when emitting agent commands.
+- Persist intermediate outputs (assessment tables, RCA table) to artifacts so the next step can read paths instead of relying on chat context alone — avoids context compression and data loss.
+
+## Template parameters
+
+All parameters the CLI (or cursor-handoff) can inject. Use **Go text/template** syntax: `{{.ParamName}}`. Struct field names below match placeholder names.
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `LaunchID` | Launch/run ID (e.g. from RP). | `33195` |
+| `RunID` | Same as LaunchID (alias). | `33195` |
+| `CaseID` | Investigation case ID (failure/test item). | `1697136` |
+| `FailureID` | Same as CaseID (failure/test item id). | `1697136` |
+| `WorkspacePath` | Path to context workspace file or workspace root. | `./.asterisk/workspace.yaml` |
+| `FailedTestName` | Name of the failed test (from envelope). | `[T-TSC] RAN PTP tests` |
+| `ArtifactPath` | Path where artifact (RCA, defect type) is written. | `./artifact.json` |
+| `JobID` | Job identifier (optional). | `t-tsc` |
+| `PipelineID` | Pipeline identifier (optional). | `telco-ft-ran-ptp-4.21` |
+
+**Output format:** Instruct the model to produce RCA summary, convergence score (0–1), suggested defect type, and evidence refs in the **artifact** format (see `docs/artifact-schema.mdc`). Output can be written to `ArtifactPath` or returned for the CLI to save.
+
+## Placeholder format
+
+- **Syntax:** Go `text/template`: `{{.FieldName}}`. Example: `{{.LaunchID}}`, `{{.WorkspacePath}}`.
+- **Conditionals:** `{{if .CaseID}}case {{.CaseID}}{{end}}`.
+- **Default:** Not in stdlib; use conditional or pre-fill in code. CLI should pass a struct with all keys (empty string if absent).
+
+## Loader contract
+
+- **Resolve path:** Prompts dir = `.cursor/prompts/` (dev) or CLI flag/config (e.g. `./.asterisk/prompts/`, `~/.config/asterisk/prompts/`). CLI loads by name (e.g. `rca.md`).
+- **Substitution:** Load template file, execute with `text/template` and a param struct; result is the prompt text (for user to paste, or for handoff to write to file/stdout).
+- **No Cursor API in PoC:** Output is text or file; user or handoff command opens/pastes.

@@ -1,0 +1,50 @@
+---
+description: Go testing preferences — Ginkgo (adopted) + stdlib hybrid; when to use which
+alwaysApply: false
+---
+
+# Go testing preferences
+
+Asterik uses a **hybrid** approach: **Ginkgo + Gomega** for BDD/integration specs, **standard library** for simple unit tests. Use the right tool per situation below.
+
+## Adopted: Ginkgo + Gomega (hybrid with stdlib)
+
+- **Ginkgo** (github.com/onsi/ginkgo/v2) and **Gomega** (github.com/onsi/gomega) are adopted for BDD-style and integration tests.
+- **Use Ginkgo when:** BDD scenarios (Describe/It/Context/BeforeEach); multi-step flows (e.g. full fetch → analyze → push); integration-style specs where the DSL improves readability.
+- **Use stdlib when:** Simple unit tests (one function, few branches); table-driven tests; tiny helpers where a full Describe/It would add ceremony without benefit.
+- **Same package can have both:** e.g. `internal/wiring` has `TestRun_FullFlow...` (stdlib) and a Ginkgo suite (`suite_test.go` + `run_spec.go`). Keep existing stdlib tests; add new BDD/integration specs in Ginkgo where they add value.
+
+## Conventions (Ginkgo specs)
+
+- **Running Ginkgo tests:** Use the **Ginkgo binary** to run Ginkgo specs. From repo root: `go run github.com/onsi/ginkgo/v2/ginkgo ./internal/wiring/...` (uses the version in go.mod), or install the CLI with `go install github.com/onsi/ginkgo/v2/ginkgo@latest` then run `ginkgo ./internal/wiring/...` or `ginkgo -r`. Prefer `go run ... ginkgo` so the CLI version matches the library. `go test ./...` still runs all tests including Ginkgo suites, but the Ginkgo binary gives better output (spec tree, progress, focus/skip).
+- **Suite:** One `*_suite_test.go` per package that runs Ginkgo (RegisterFailHandler + RunSpecs). Specs live in `*_spec.go` or `*_test.go` in the same package.
+- **Structure:** Describe → Context → It; use BeforeEach for shared setup (fixtures, temp dirs).
+- **Assertions:** Use Gomega matchers (Expect(x).To(Equal(y)), NotTo(BeNil()), To(Succeed())).
+
+## Conventions (stdlib tests)
+
+- **Naming:** `Test<Unit>_<ScenarioOrBehavior>`.
+- **Helpers:** Use `t.Helper()` in helper functions.
+- **Assertions:** Use `t.Errorf` / `t.Fatalf` with clear `got` / `want` messages.
+- **Tables:** Prefer table-driven with `t.Run(tt.name, ...)` for multiple inputs.
+
+## Fixtures and deps
+
+- **Fixtures:** Load from repo paths (e.g. `examples/pre-investigation-33195-4.21/`); use `t.TempDir()` (stdlib) or `ginkgo.GinkgoT().TempDir()` (Ginkgo). Skip with `t.Skipf` or return nil + Expect(env).NotTo(BeNil()) in specs.
+- **Other frameworks:** **go-cmp** for deep equality/diffs when needed. **httptest** (stdlib) for HTTP tests. **testify** not adopted; use Gomega for assertions in Ginkgo, stdlib for stdlib tests.
+
+## Rule summary
+
+| Situation | Use |
+|-----------|-----|
+| BDD/integration scenario (full flow, multi-step) | **Ginkgo** (Describe/It + Gomega) |
+| Simple unit test, table-driven, tiny helper | **Stdlib** `testing` |
+| Deep equality, readable diffs | **go-cmp** (optional) |
+| HTTP handler/client tests | Stdlib **httptest** |
+
+## References
+
+- **Research:** `notes/go-testing-frameworks-research.mdc` (use cases, pros/cons).
+- **Adoption:** Ginkgo + Gomega adopted; hybrid with stdlib. Example: `internal/wiring/suite_test.go`, `internal/wiring/run_spec.go`.
+- Contracts: `contracts/mock-pre-investigation.md` through `contracts/mock-wiring.md`.
+- Methodology: `rules/asterisk-development.mdc` (BDD + TDD); `contracts/go-testing-preferences.md`.

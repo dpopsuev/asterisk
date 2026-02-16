@@ -1,0 +1,25 @@
+---
+description: MVP — Standalone CLI, possibly side-car service, RP API client (Go)
+---
+
+# MVP — CLI and Possibly Side-Car Service
+
+## Goal statement
+Asterik is a **standalone CLI** (**Go**) that interacts with ReportPortal via the **RP API** (client, not an RP plugin). It may evolve into a **running side-car service**; the CLI then becomes a thin client to that service. Same UX (analyze, push -f); fetch launches (Execution Envelopes) and push defect types via RP API.
+
+## Scope (in)
+- Standalone Asterik CLI (Go); commands: analyze, push -f, optionally fetch.
+- Optionally: side-car service (Go) with API (analyze, push contract); CLI as thin client.
+- RP API client: fetch launch → Execution Envelope; push artifact result → RP (defect type update).
+- Multi-consumer: CLI (primary), optionally side-car service; future UIs.
+
+## Security (required if service is built)
+
+Any standalone Asterik service must address from day one:
+
+- **Access control** — Authentication and authorization: who can call the service; which operations (analyze, push, fetch) are allowed for which callers.
+- **Permissions** — Least privilege; scoped tokens for RP and AI provider; no over-broad admin by default; clear model for service account vs end user.
+- **Sensitive data** — Envelope/launch data, artifact contents (RCA, defect type), context workspace config (including repo URLs/tokens), RP and AI tokens. Define handling: encryption in transit and at rest, minimal logging/retention, no unnecessary persistence of PII or secrets.
+
+## Out of scope (for MVP)
+- Full RP UI parity; multi-round carousel across many context sources (future).

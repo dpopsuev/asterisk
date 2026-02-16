@@ -1,0 +1,9 @@
+---
+description: /survey state marker for incremental updates
+---
+
+# Survey State
+
+- last_head: ""
+- last_run: ""
+- updated_blocks: []

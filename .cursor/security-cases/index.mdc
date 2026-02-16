@@ -1,0 +1,9 @@
+# .cursor/security-cases Index
+
+Security bug post-mortems — RCA, severity (CVSS-aligned), OWASP category, mitigation.
+
+## Directories
+
+## Files
+- `index.mdc` — index for this directory.
+- `_TEMPLATE.md` — security case template; copy as SEC-{NNN}-{slug}.md (do not edit template).

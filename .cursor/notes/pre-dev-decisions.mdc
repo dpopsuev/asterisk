@@ -1,0 +1,49 @@
+---
+description: Pre-development decisions from contract pre-dev-questions; reference for implementation
+---
+
+# Pre-dev Decisions
+
+Decisions from executing `contracts/pre-dev-questions.md`. Use as reference when starting implementation.
+
+## Envelope and investigation identity
+
+- **Envelope identity:** Use a **slim key** for case identity: (pipeline_id or run_id, job_id, failed_test_name or failed_test_id). Full Execution Envelope can be stored or referenced; deduplication uses the slim key. Implementation: define `InvestigationEnvelopeKey` (or equivalent) with these fields.
+- **Execution DB:** **RP is the Execution DB.** Envelope (launch) and failure list (test items) come from **Report Portal** via API (launch by ID). We do not use Jenkins dump or local job logs as the source of execution data.
+- **Execution Envelope from RP:** Use report-portal-cli / RP API GetLaunch; map launch + test items to our envelope type. Primary path for PoC.
+- **Execution Envelope from file:** For **tests/fixture only**: expect JSON (same shape as RP launch). Not the primary path for execution data.
+
+## Storage adapter and DB
+
+- **Storage adapter interface:** PoC: **single Store facade** with methods CreateCase, GetCase, ListCasesByPipeline/ByJob, SaveRCA, LinkCaseToRCA, GetRCA, ListRCAs. Simpler than per-entity repos for PoC; can refactor later.
+- **DB placement:** **Per-workspace** for PoC: e.g. `./.asterisk/asterisk.db` or `./asterisk.db` when run from investigation workspace root. Configurable later (env or flag). Aligns with "one DB per investigation workspace."
+
+## Cursor integration (`asterisk --cursor`)
+
+- **Dialog mechanism:** PoC: Asterik generates **prompt text or a prompt file** (from template + params); **user pastes into Cursor** (or opens file in workspace); Cursor runs the model. No Cursor API/MCP in PoC. Handoff: user runs `asterisk --cursor` → gets next prompt/file → pastes/opens in Cursor → continues. Document in `notes/poc-flow.mdc` or a short "Cursor handoff" section.
+- **Saving to Asterik DB:** PoC: After each step, **user runs an Asterik command** (e.g. `asterisk save -f <artifact-path>` or equivalent) that reads the artifact file and writes to Asterik DB. No Cursor→Asterik API; explicit save step. Alternative: `asterisk ingest <path>`. Choose one for PoC and document.
+
+## Artifact and output format
+
+- **Artifact schema:** **JSON** for PoC. Fields: `rca_message` (string), `convergence_score` (number 0–1 or 0–100), `defect_type` (string), `evidence_refs` (array of strings or {type, ref}). Optional: case_id, launch_id. Same format for `analyze` output and `push -f` input. Document in `docs/data-io.mdc` or a short artifact-schema section.
+- **Failure list (PoC):** Get failure list **from RP** (launch test items). No Jenkins dump or job log parsing as source. RP API returns launch and test items; failed items → investigation cases.
+
+## RP API and push
+
+- **RP defect type update:** **Deferred** until implementing `push -f`. Verify against RP API 5.11/24.1; note in `notes/poc-constraints.mdc` open checks.
+- **RP auth in PoC:** API key from **`.rp-api-key`** (repo root or cwd). Base URL from **config file** (e.g. `~/.config/asterisk/config.yaml` or `./.asterisk/config.yaml`) or **flag** `--rp-base-url`. Prefer config with env override (e.g. ASTERIK_RP_BASE_URL).
+
+## Prompts and templates
+
+- **Prompt loading:** When running as CLI: load from **prompt directory** — e.g. `./.asterisk/prompts/` or `~/.config/asterisk/prompts/` or flag `--prompts-dir`. Fallback: fail with clear error if dir not found (or embedded defaults; decide in impl). Dev: `.cursor/prompts/`; ship: copy to CLI prompt dir. Document in `docs/prompts.mdc`.
+- **Template parameters:** Pass at least: **launch_id** (or run_id), **case_id** (or failure id), **workspace_path**, **failed_test_name**, **artifact_path**, **job_id**, **pipeline_id** (optional). List in `docs/prompts.mdc` so templates and CLI stay in sync.
+
+## Cases and RCA lifecycle
+
+- **When to create cases:** **Create cases up front** when user "opens investigation" (fetches launch from RP by ID). RP launch test items (failures) → one case per failure → insert into DB. Enables "list cases" and "pick next case" without creating on first access.
+- **RCA creation:** Create **RCA row only after** agent/human produces an RCA (or "same as case X"). No placeholder at case creation. When "same as case X": set case.rca_id = existing RCA. When new RCA: insert RCA row then set case.rca_id.
+
+## Optional / later
+
+- **Convergence score source:** **From the model** (in the prompt response). Agent returns structured output that includes convergence score in artifact JSON. No separate heuristic in PoC. Prompt template instructs model to emit score.
+- **First scenario (PTP) scope:** Use **RP launch by ID** + context workspace for "at least one real launch + context workspace." For **tests** (unit/integration), use a **minimal fixture envelope** (JSON with required fields only) or mock RP response.

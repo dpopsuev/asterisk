@@ -1,0 +1,35 @@
+---
+description: BDD acceptance templates for Asterik stories
+---
+
+# BDD Templates
+
+## Data ingestion
+Given a Report Portal launch exists with failed tests  
+When Asterik ingests the launch  
+Then failures are listed with suite, labels, environment, timestamps, and artifacts
+
+## Repository mapping
+Given a failure includes component labels or file paths  
+When Asterik resolves repository mappings  
+Then mapped repos are listed with rule evidence and confidence
+
+## Commit correlation
+Given a failure timestamp and mapped repositories  
+When Asterik queries commit history for the time window  
+Then candidate commits are listed with diffs and authors
+
+## Cross-run correlation
+Given the same test appears in multiple launches  
+When Asterik aggregates failures across runs  
+Then flake rate and recurrence are calculated
+
+## Classification + actions
+Given evidence from logs, commits, and pipeline context  
+When Asterik classifies the failure  
+Then a category and confidence are shown with recommended actions
+
+## Export
+Given an RCA summary is generated  
+When the user requests export  
+Then a Report Portal comment and/or GitHub issue is created

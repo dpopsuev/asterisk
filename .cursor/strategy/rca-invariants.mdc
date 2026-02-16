@@ -1,0 +1,13 @@
+---
+description: Long-term RCA quality and behavior invariants
+---
+
+# RCA Strategy Invariants
+
+- Ground every conclusion in evidence (logs, commits, pipeline data).
+- Provide confidence scores with rationale.
+- Prefer explainable heuristics before opaque model output.
+- Track feedback on RCA correctness for continuous improvement.
+- Keep outputs deterministic for the same inputs (seed ordering).
+- Defect type classification must use AI models and structured prompts (no hard-coded parsing rules).
+- Use a **convergence check** (and convergence score) to gate analysis rounds: deepen, try next Context Source, or stop.

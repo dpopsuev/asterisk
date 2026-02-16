@@ -1,0 +1,76 @@
+---
+description: Envelope mental model — generic hierarchy and artifact concept; current use case (PTP Operator CI) as scenario-specific example
+---
+
+# Envelope Mental Model
+
+A simple hierarchy for "where am I" in a CI run. Maps to the data model in `cli-data-model.mdc` (pipeline ⊃ job ⊃ failure) with a **timeframe** on top.
+
+**Important:** The **pure model** (hierarchy + artifact concept) is generic and should fit any CI/operator. Artifact layout, file names, and meta labels are **scenario-specific** and will differ per operator and CI; document them as use-case sections, not as part of the generic model. See rule: `rules/scenario-vs-generic.mdc`.
+
+---
+
+## Pure model (generic)
+
+Applicable to any CI run: timeframe → pipeline → job → failure. Artifacts exist at job level and optionally at failure level; their **structure and naming depend on the CI/operator** and are not fixed by this model.
+
+### Hierarchy template
+
+```
+Timeframe {{ Date }}
+|- Pipeline {{ Pipeline / Version identifier }}
+|- Pipeline {{ ... }}
+...
+
+Pipeline {{ ... }}
+|- {{ Job / Test Execution }}
+|- {{ Job / Test Execution }}
+...
+
+{{ Job }}
+|- {{ Failed test case ID + Short Name }}
+|- {{ Failed test case ID + Short Name }}
+...
+```
+
+### Generic levels
+
+| Level | Meaning | Notes |
+|-------|---------|--------|
+| **Timeframe** | When (date of run or dump) | E.g. date dir or label. |
+| **Pipeline** | One pipeline run (e.g. tied to product/version) | Contains jobs. |
+| **Job** | One test execution run | One console log or artifact set per job; contains failures. |
+| **Failed test case** | One failed test (ID + short name) | One investigation case; failures come from **Execution DB** (RP launch/test items), not from local dumps. |
+
+### Execution DB (RP)
+
+- **RP is the Execution DB:** Envelope (launch) and failure list (test items) come from **Report Portal** via API (e.g. launch by ID). We do **not** use Jenkins dump or local job logs as the source of execution data.
+- **Artifacts (generic):** Optional local files (e.g. logs, dumps) may exist for RCA context; they are **not** the source of envelope or failure list. Structure and naming are scenario-specific when present.
+
+Do **not** assume a layout based on Jenkins dump (`#NNNN.txt`, `failed_ptp_suite_test/`) in the generic model. Execution data comes from RP.
+
+### Alignment with CLI data model
+
+- **Pipeline** → `docs/cli-data-model.mdc`: pipeline (per version); contains jobs.
+- **Job** → one test execution run; contains failures.
+- **Failed test case** → **failure** → **investigation case** (one case per failure, keyed by investigation envelope).
+
+Execution Envelope (`docs/execution-envelope.mdc`) carries the run's identity, metadata, items, and logs; the **mental model** is the human/navigation view of the same hierarchy.
+
+---
+
+## Recursive hierarchy: Envelope of Envelope
+
+The model supports **arbitrary nesting**: at the bottom are **executions/steps** (leaves); above them is one **Envelope** (e.g. a launch); above that there can be any number of **Envelopes containing Envelopes** (e.g. campaign → launch → job → step). So: **Leaf → Branch → Tree → Forest → Forest of forests** (formal terms); in domain terms: **Step** (leaf) → **Job** (branch) → **Launch** (tree) → **Envelope** (recursive container at any level).
+
+- **Domain naming (use in APIs and docs):** **Envelope** (recursive), **Launch** (one run), **Job** (group under launch), **Step** (leaf; one investigation case per step). See `glossary/glossary.mdc` (Hierarchy: tree terms and domain naming).
+- **Formal tree terms** (leaf, branch, tree, forest, forest of forests) are for the structural model only; prefer domain terms in user-facing text.
+
+---
+
+## Current use case: PTP Operator CI (RP as Execution DB)
+
+Execution and failure list come from **RP** (launch by ID, test items). No Jenkins dump or local job log as source of execution data.
+
+- **Timeframe / Pipeline / Job / Failed test case:** Identifiers and hierarchy are derived from **RP launch and test items** (e.g. launch ID, item hierarchy, failed test names). Optional: local artifact dirs for logs/dumps used only as **RCA context** (e.g. when RP links to external logs); they are not the source of envelope or failure list.
+- When adding another operator or CI, document how that scenario maps to RP (or another Execution DB); do not assume a Jenkins-dump layout.

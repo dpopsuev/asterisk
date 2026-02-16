@@ -1,0 +1,54 @@
+---
+description: Cursor Workspace (asterisk.code-workspace) folder structure and metadata for development
+---
+
+# Cursor Workspace Structure (asterisk.code-workspace)
+
+Directory layout and **metadata for development**: purpose per folder, RP version alignment, and where to do API research. File location: `~/Workspace/cursor-workspaces/asterisk.code-workspace` (paths below relative to workspace file).
+
+## Locked version
+
+- **RP:** 24.1 / **service-api 5.11** (see `notes/poc-constraints.mdc`). All API research and client work must target this version.
+
+## Version check (git)
+
+Before API research or when verifying behavior, **check that repos are on the right version**:
+
+- **report-portal/service-api** — For PoC we need **5.11.x**. Tags: `5.11.0`, `5.11.1`, `5.11.2`. Run: `git checkout 5.11.2` so API research matches the locked version and canonical instance.
+- **report-portal/reportportal** — Monorepo; product version **24.1** aligns with our locked RP 24.1. Tags: `24.1`, `24.2`, … (no 5.11.x — different scheme). Run: `git checkout 24.1`.
+- **report-portal/docs** — **No 5.11 or 24.1 tag or branch**; repo has no version tags. Leave on `develop` or use as-is for cross-check. No checkout required for version alignment.
+- **report-portal-cli** — Should align with 5.11 API (check go.mod / client version). Branch/tag may vary.
+- **asterisk** — May not be a git repo yet; no version check required for FSC work.
+
+See `rules/workspace-context.mdc` (version alignment).
+
+## Folders (with metadata)
+
+| # | Path (relative to workspace file) | Purpose / metadata |
+|---|-----------------------------------|--------------------|
+| 1 | `../../Projects/asterisk` | **Asterik PoC** — CLI, prompts, FSC (.cursor), Execution Envelope, RCA flow. Primary project. |
+| 2 | `../../Repositories/report-portal/service-ui` | **RP UI** — Frontend; reference for launch/test-item concepts and UX. |
+| 3 | `../../Repositories/report-portal/service-api` | **RP API (5.x)** — **Primary source for API research.** REST API implementation; endpoints, DTOs, version 5.11. Use for fetch launch, test items, logs, defect-type update. |
+| 4 | `../../Repositories/report-portal/docs` | **RP docs** — Official docs; cross-check API behavior and version. |
+| 5 | `../../Repositories/report-portal/reportportal` | **RP monorepo root** — Aggregates service-api, service-ui, etc. |
+| 6 | `../../Repositories/report-portal/reportportal-mcp-server` | **RP MCP server** — Out of scope for PoC (no MCP support per constraints); reference only. |
+| 7 | `../../Repositories/report-portal/plugin-bts-github` | **BTS GitHub plugin** — Bug tracking integration; reference if needed. |
+| 8 | `../../Repositories/report-portal/plugin-bts-gitlab` | **BTS GitLab plugin** — Bug tracking integration; reference if needed. |
+| 9 | `../../Repositories/report-portal/plugin-bts-jira` | **BTS Jira plugin** — Bug tracking integration; reference for Jira flow later. |
+| 10 | `../../Repositories/report-portal-cli` | **RP CLI + client** — **Use for PoC:** same API 5.11/24.1; `pkg/client` for GetByID, GetByUUID, List; extend for defect-type write. See `notes/workspace-references.mdc`. |
+| 11 | `../../Repositories/testo-resumado-agento` | **Agent + tools** — Reference for analyze pipeline (AI + context → RCA). See `notes/workspace-references.mdc`. |
+| 12 | `../archive/ci/4.21/16_feb_26` | **CI archive (example)** — Optional local artifact dir for RCA context (e.g. job logs); execution data comes from RP, not from here. |
+
+## RP instance (canonical)
+
+- **Base URL (saved in FSC):** **https://your-reportportal.example.com** — Reference instance for PoC (ecosystem-qe). See `notes/rp-instance-and-version.mdc` for version API and details.
+
+## API research
+
+- **Deep API research contract:** `contracts/rp-api-research.md` — Learn to interact with RP API 5.11 (locked version); document endpoints and usage for FSC; add rules if needed.
+- **Example test execution (pipeline launch):** [Launch 33195](https://your-reportportal.example.com/ui/#ecosystem-qe/launches/all/33195) — Use as reference for launch structure, test items, and failure list when researching API and mapping to Execution Envelope.
+
+## Cross-references
+
+- **Context Workspace (config):** `docs/context-workspace.mdc` — Key-value config for *analysis* repos (different from this Cursor multi-root layout).
+- **Workspace references (PoC):** `notes/workspace-references.mdc` — report-portal-cli and testo-resumado-agento detail.

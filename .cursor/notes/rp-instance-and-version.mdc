@@ -1,0 +1,37 @@
+---
+description: Canonical RP instance URL and version/info API (accurate version down to git hash)
+---
+
+# RP Instance and Version API
+
+## Canonical RP instance URL
+
+**Base URL (save in FSC):**
+
+- **https://your-reportportal.example.com**
+
+Use this URL as the reference Report Portal instance for PoC/MVP (ecosystem-qe). API base is the same host (e.g. `https://your-reportportal.example.com/api` per RP docs). UI: `.../ui/#ecosystem-qe/...`. Behind corp/VPN; `.rp-api-key` for auth.
+
+## Version API (accurate version down to git hash)
+
+**Endpoint (canonical instance):** **GET `{base}/api/info`** — **Requires Bearer token** (e.g. from `.rp-api-key`). Returns 401 without auth; `/api/v1/info` returns 404 on this instance.
+
+**Fetched from service:** (contacted API and noted below.)
+
+### Version from service (fetched)
+
+| Service | Version | Branch (includes git hash) | Repo |
+|---------|---------|----------------------------|------|
+| **API Service** | **5.11.2** | `hotfix/5.11.2-47c854e9739dab476c1bf7bc778cec5b67067a91` | reportportal/service-api |
+| Jobs Service | 5.11.1 | `hotfix/5.11.1-3119b8d4c7d96ca9f301da0b8f459c439078fa31` | reportportal/service-jobs |
+| Analyzer (default) | 5.11.0 | — | — |
+
+- **API Service git hash (from branch string):** `47c854e9739dab476c1bf7bc778cec5b67067a91`
+- **Instance ID (extensions):** `ad9395f6-22b4-4291-8bd9-615ab076bf85`
+- **Other:** `build.name`, `build.description`, `jobs`, `extensions` (jira, analyzers), `environment`, `jobsInfo`, `metadata` (activityAction, activityObjectEvent). Full response shape available from GET `{base}/api/info` with Bearer token.
+- **Note:** GET `{base}/info` (no `/api`) returns a different service (Index Service 5.11.1) on the same host.
+
+## Cross-references
+
+- **Instance URL also referenced in:** `notes/ci-notification-and-fetch.mdc`, `notes/cursor-workspace-structure.mdc`, `contracts/rp-api-research.md`.
+- **API research:** `contracts/rp-api-research.md` — include version/info endpoint and git hash in the discovery tasks.

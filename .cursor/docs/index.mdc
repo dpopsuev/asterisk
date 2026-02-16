@@ -1,0 +1,13 @@
+# .cursor/docs Index
+
+Deep library references (long-form).
+
+## Files
+- `index.mdc` — index for this directory.
+- `examples.mdc` — example data and fixtures (Pre-investigation 33195/4.21, envelope); paths under `examples/`.
+- `cli-data-model.mdc` — CLI core ideas: storage adapter (SQLite for now), investigation case per envelope, hierarchy (failure ⊂ job ⊂ pipeline), RCA and pattern (many cases → one RCA), RCA → Jira extension point.
+- `envelope-mental-model.mdc` — Envelope: pure model (generic hierarchy + artifact concept) vs current use case (PTP Operator CI layout and meta labels). See `rules/scenario-vs-generic.mdc`.
+- `context-workspace.mdc` — context workspace data structure (key-value, repo pointers, optional branch override).
+- `prompts.mdc` — file-based RCA prompt templates; dev (.cursor/prompts/) vs CLI prompt directory; red–green–blue iteration.
+- `data-io.mdc` — core inputs and outputs for Asterik.
+- `execution-envelope.mdc` — adapter-normalized run container; includes vital git metadata.

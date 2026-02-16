@@ -1,0 +1,74 @@
+---
+description: Research on Go testing frameworks — use cases, pros/cons, when to use
+---
+
+# Go Testing Frameworks — Research (contract go-testing-preferences)
+
+Findings from online research to support `contracts/go-testing-preferences.md` and `rules/go-testing.mdc`. No adoption decision; use to inform “consider X when Y.”
+
+---
+
+## Standard library (`testing`)
+
+- **Purpose:** Built-in, zero deps; conditional checks and `t.Error`/`t.Fatal`.
+- **Use when:** Unit tests, table-driven tests, small integration tests, BDD expressed in comments; performance or minimal deps matter; small or medium codebase.
+- **Pros:** No dependencies, simple, fast, idiomatic Go.
+- **Cons:** No assertion helpers (more boilerplate), no built-in suite lifecycle; failure messages are whatever you write.
+
+---
+
+## Testify (stretchr/testify)
+
+- **Purpose:** Assertions (`assert`, `require`), test suites (setup/teardown), and mocking.
+- **Use when:** Many assertion-heavy tests; need readable `assert.Equal(expected, actual)` and similar; want suite-style setup/teardown or built-in mocks without adding gomock.
+- **Pros:** Very common; better default error messages; `require` stops test on failure; suite helps structure tests.
+- **Cons:** Argument order inconsistent across functions (e.g. Equal is expected/actual, Len is object/expected); extra dependency; some prefer explicit `if got != want { t.Errorf(...) }` for clarity.
+- **Adoption:** Widely used; often paired with stdlib for simple cases.
+
+---
+
+## Ginkgo + Gomega (onsi/ginkgo, onsi/gomega)
+
+- **Purpose:** BDD-style DSL (Describe, Context, It, BeforeEach, AfterEach) and matchers (Gomega).
+- **Use when:** Team wants formal BDD structure; integration/acceptance tests with shared setup; async or parallel specs; flake detection; specs as documentation.
+- **Pros:** Natural-language-style structure; Gomega matchers work with stdlib via `NewWithT(t)`; parallelizable; good for complex or distributed scenarios.
+- **Cons:** Steeper learning curve; slower execution than plain stdlib; different style from typical Go tests.
+- **Adoption:** Common in BDD-focused or integration-heavy projects.
+
+---
+
+## go-cmp (google/go-cmp)
+
+- **Purpose:** Deep equality and diffs for tests; custom comparers (e.g. float tolerance, unexported fields).
+- **Use when:** Comparing structs/maps/slices; need readable `cmp.Diff(got, want)` on failure; need custom equality (times, floats, protos).
+- **Pros:** Safer than `reflect.DeepEqual` (e.g. unexported fields); great failure output; comparers are explicit.
+- **Cons:** Test-only (not for production); can panic on uncomparable types unless configured.
+- **Note:** Testify issue #535 suggests using go-cmp instead of reflect.DeepEqual for complex comparisons.
+
+---
+
+## Others (quick, httptest)
+
+- **testing/quick:** Property-style testing (fuzz inputs); use when you want property checks rather than fixed cases.
+- **net/http/httptest:** Standard library; use for HTTP handlers and clients (ResponseRecorder, Server). No framework needed.
+
+---
+
+## Summary: consider X when Y
+
+| Need | Consider |
+|------|----------|
+| Zero deps, simple unit/table tests | Standard `testing` |
+| Assertion-heavy tests, suites, mocks | Testify (if team adopts) |
+| Formal BDD (Describe/It), integration/async | Ginkgo + Gomega (if team adopts) |
+| Deep equality, readable diffs, custom comparers | go-cmp (single dep, test-only) |
+| HTTP handler/client tests | stdlib `net/http/httptest` |
+
+---
+
+## References (research sources)
+
+- Ginkgo vs Testify (Knapsack Pro); MoldStud “Evaluating Go Testing Libraries”; 6 Golang Testing Frameworks (Speedscale).
+- Testify vs standard (Till It’s Done); Against Testify (tychoish); testify pkg.go.dev.
+- Ginkgo/Gomega (Medium, Gopher Academy, onsi.github.io).
+- go-cmp (github.com/google/go-cmp, pkg.go.dev; testify #535).

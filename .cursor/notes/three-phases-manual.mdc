@@ -1,0 +1,43 @@
+---
+description: Three phases of the manual CI failure workflow — pre-investigation, investigation, post-investigation
+---
+
+# Three Phases (Manual Workflow)
+
+Single overview of the current **manual** flow from notification to archived RCA. For CLI command flow see `poc-flow.mdc`. Deep dives: pre-investigation → `ci-notification-and-fetch.mdc`; investigation + reporting → `ci-analysis-flow.mdc`.
+
+---
+
+## Pre-investigation
+
+1. **Receive mail** — Notification from CI (e.g. `ci-notify@example.com`): pipeline name, test type, version, result (UNSTABLE/FAILURE), and links (Jenkins, Report Portal, Polarion, Collect Job S3).
+2. **Get launch ID** — From email: Report Portal launch URL (e.g. `.../launches/all/33195`) → launch ID **33195**.
+3. **Fetch from RP (Execution DB)** — Use RP API + `.rp-api-key` to fetch launch and test items. Envelope and failure list come from RP; no Jenkins dump required.
+4. **Create workspace (one time)** — Multi-root workspace (e.g. `cnf-gotests.code-workspace`) with test repo, SUT repos, CI/config. Optional: local artifact dir (e.g. `archive/ci/`) only for RCA context. See `ci-analysis-flow.mdc` (Workspace).
+---
+
+## Investigation
+
+1. **Get failure list from RP** — Launch test items (from Execution DB) give failed tests; pick one per investigation case.
+2. **Make an inventory** — One table per failed run: failed test name, failure step, error output. No RCA yet; quick assessment. Maps to **assessment** in `ci-analysis-flow.mdc` and to **investigation case** per failure in `docs/cli-data-model.mdc`.
+3. **Begin RCA one by one** — Per failure: trace error → chain of events → code (repo, file, line); produce RCA (title, description, defect type, evidence). One case per context window.
+4. **Look for similarities** — Across failures: same root cause? Link cases to one RCA (“same as case X”); serial-killer pattern. See `docs/cli-data-model.mdc` (many cases → one RCA).
+
+Human review (Approve / Reassess / Overturn) per RCA entry sits between investigation and post-investigation; see `ci-analysis-flow.mdc` (Contract of Work, step 2.5).
+
+---
+
+## Post-investigation
+
+1. **Jira ticket** — For each distinct RCA (product defect): create Jira ticket; fill template (title, description, version, steps, actual/expected). Store **Jira ticket ID** and **Jira link** on the RCA (no integration yet). See `docs/cli-data-model.mdc` (RCA → Jira).
+2. **Slack message regarding new bugs found** — Notify team (e.g. channel) with summary and links to Jira tickets.
+3. **Tracking bug status to validate fix** — Follow Jira ticket status (e.g. In Progress → Done / Verified). Future: CLI can track status when Jira integration exists (`asterisk ticket status <id>`).
+4. **Once validated bug closed, RCA can be put to archive** — When the fix is validated and the bug is closed, the RCA (and linked cases) can be archived so active lists stay focused on open work.
+
+---
+
+## PoC / FSC
+
+- **Pre-investigation** → `ci-notification-and-fetch.mdc` (automation); envelope from RP (launch by ID) or future `asterisk fetch`.
+- **Investigation** → `ci-analysis-flow.mdc`; `docs/cli-data-model.mdc` (case, RCA, storage adapter).
+- **Post-investigation** → `docs/cli-data-model.mdc` (RCA + Jira ticket ID/link; track status via CLI later).

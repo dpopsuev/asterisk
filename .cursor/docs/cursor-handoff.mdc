@@ -1,0 +1,50 @@
+---
+description: Cursor handoff flow — get prompt, paste in Cursor, save artifact (no Cursor API)
+---
+
+# Cursor handoff (PoC)
+
+PoC uses **no Cursor API**. The handoff is manual: Asterik produces a prompt (file or text), the user pastes or opens it in Cursor; after the model runs, the user runs an Asterik command to save the artifact so state persists.
+
+## Step-by-step flow
+
+1. **Get next prompt**  
+   Run:  
+   `asterisk cursor --launch=<path|id> [--workspace=<path>] [--case-id=<id>] [-o <prompt-file>]`  
+   - `--launch`: path to envelope JSON file or launch ID (if envelope is in Store).  
+   - `--workspace`: path to context workspace file (YAML/JSON).  
+   - `--case-id`: optional failure (test item) ID; default is first failure in envelope.  
+   - `-o`: output path for the prompt; if omitted, prompt is printed to stdout.  
+   - Output: RCA prompt with LaunchID, CaseID, WorkspacePath, FailedTestName, ArtifactPath filled from template (`.cursor/prompts/rca.md` by default).
+
+2. **Use prompt in Cursor**  
+   - If you used `-o <file>`: open the file in Cursor.  
+   - If you used stdout: copy the printed prompt into Cursor.  
+   - Run the model (e.g. Composer) with that prompt. The model should produce an artifact (JSON: launch_id, case_ids, rca_message, defect_type, convergence_score, evidence_refs) or you save the model output to a file in that format.
+
+3. **Save/ingest artifact**  
+   Run:  
+   `asterisk save -f <artifact-path>`  
+   - Reads the artifact file.  
+   - Creates or updates an RCA in the Asterik Store (SQLite).  
+   - Links cases (from artifact case_ids) to the RCA. If cases do not exist yet, they are created from the artifact (launch_id + case_ids).  
+   - State (RCA, case–RCA links) persists in the DB (default `.asterisk/asterisk.db`).
+
+4. **Repeat**  
+   Run `asterisk cursor` again (optionally with `--case-id=<next>` or another launch) to get the next prompt; then run the model and `asterisk save -f <path>`.
+
+## Commands summary
+
+| Command | Purpose |
+|--------|---------|
+| `asterisk cursor --launch=... [-o <file>]` | Output next prompt (file or stdout). |
+| `asterisk save -f <artifact-path>` | Read artifact, write RCA and links to Store. |
+| `asterisk analyze --launch=... -o <artifact>` | One-shot analyze (writes artifact; no Cursor handoff). |
+| `asterisk push -f <artifact-path>` | Push defect type to RP (after review). |
+
+## Cross-references
+
+- **PoC flow:** `notes/poc-flow.mdc`  
+- **Prompts and params:** `docs/prompts.mdc`  
+- **Artifact schema:** `docs/artifact-schema.mdc`  
+- **Store:** `internal/store`; DB path `store.DefaultDBPath` (`.asterisk/asterisk.db`).

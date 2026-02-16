@@ -1,0 +1,23 @@
+# .cursor Index
+
+Purpose: quick map for agentic AI to locate guidance without re-scanning repos.
+
+## Directories
+- `rules/` — always-on AI behavior and development style constraints.
+- `guide/` — software development process and workflow guidance.
+- `docs/` — deep library (long-form references).
+- `notes/` — short summaries and quick references.
+- `contracts/` — work contracts (execution plans with state, tasks, completion criteria).
+- `security-cases/` — security bug post-mortems (RCA, severity, mitigation).
+- `prompts/` — RCA prompt templates (dev); later moved to CLI prompt directory.
+- `strategy/` — long-term objectives and invariants.
+- `tactics/` — situational playbooks ("if X, do Y").
+- `taxonomy/` — naming and classification rules.
+- `glossary/` — domain terms and definitions.
+- `goals/` — goal checklist + per-goal details.
+- `skills/` — project-specific skill definitions.
+
+## Files
+- `index.mdc` — entry map for this directory.
+- `meta.mdc` — portable meta-engineering rules for .cursor structure.
+- `kombucha.mdc` — portable FSC seed; copy repo-to-repo to bootstrap .cursor.

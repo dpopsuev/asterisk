@@ -1,0 +1,48 @@
+---
+description: Current PTP CI analysis flow with Cursor; contract of work; limitations to address
+---
+
+# Current CI Analysis Flow (PTP) and Limitations
+
+First-scenario reference for the PoC: the weekly PTP test-case CI analysis flow run in Cursor, and the pain points Asterik aims to reduce. In the three-phase view this is the **Investigation** phase (and the reporting part of **Post-investigation**); see `three-phases-manual.mdc`.
+
+## Workspace
+
+Well-defined, well-scoped workspace (e.g. `~/Workspace/cursor-workspaces/cnf-gotests.code-workspace`):
+
+- **Test / automation:** `cnf-gotests` (PTP tests in `cnf-gotests/test/ran/ptp`)
+- **SUT / product:** `ptp-operator`, `linuxptp-daemon`, `cloud-event-proxy`
+- **CI / config:** `ocp-edge-ci` (e.g. `jenkins/ci-profiles-new/4.22/telco-ft-ran-ptp.yaml`), `ocp-edge`, `ztp-site-configs`, `telco-reference`, `linuxptp`, `archive/ci`
+
+Opening prompt explains: goal, scenario, and benefit of each workspace folder for RCA.
+
+## Scenario (example: early PTP 4.22 regression)
+
+- Early regression run; 4 iterations, 3 failed (e.g. OC/BC, T-TSC, T-BC).
+- **Execution data from RP:** Launch by ID → envelope + test items (failures). No Jenkins dump or job log as source. Optional local artifact dirs only for RCA context when present.
+
+## Contract of Work (current manual flow)
+
+1. **Assessment** — One table per failed run. Columns: failed test name, failure step, error output. Quick inventory; no RCA yet.
+2. **AI Agent RCA** — RCA table: bug title, in-depth description, steps to reproduce, clock type, associated test(s), defect type. Trace error → chain of events → code (repo, file, line); use `git blame` where useful. Multiple tests per clock type on one line; new line per clock type.
+3. **Human review (2.5)** — For each RCA entry: explain bug and defect type; **stop and present menu: Approve / Reassess / Overturn**. Wait for human input; do not skip.
+4. **Jira reporting** — If defect type = Product: fill Product template (title, description, version, how reproducible, steps, actual/expected, additional info). Otherwise: general structure (scenario, symptoms, mitigation).
+5. **Special regression report** — Table of Product defects with Jira ticket name and issue number. **Stop and ask human for Jira issue URLs** (public Jira) before building the table.
+
+## Limitations observed
+
+| Issue | Effect | Direction |
+|-------|--------|-----------|
+| **Repetitive** | Same contract run again and again per run/case. | Automate structure and prompts; reuse templates and steps. |
+| **Human error** | Details missed sometimes. | Automate inventory and structured outputs; checklists. |
+| **Context compression = data loss** | AI context gets compressed; intermediate results lost. | **Memory only → data store.** Persist assessment tables, RCA table, and per-step outputs as artifacts so they survive context limits and can be resumed. |
+| **Over-scoped prompt** | One huge prompt for all failed runs/cases → large batches, fragile to connection loss and data loss. | **Smaller scope per context window** (e.g. one CI result #XXXX, one failed case per step) gives better results but increases repetition. |
+
+Tension: **small scope = better AI quality but more repetitive manual steps**; **large scope = less repetition but fragile and lossy**. PoC should support **scoped steps** (one run + one case per prompt) with **orchestration and persistence** so the human is not re-typing the same contract 100 times — prompts and artifacts carry state across steps.
+
+## PoC alignment
+
+- **First scenario:** This PTP CI flow (assessment → RCA → human review → Jira → report).
+- **File-based prompts:** Each stage (assessment, RCA, review, Jira, report) can be a template under `.cursor/prompts/ptp-ci/` (or similar); parameterized by job ID, failed case, workspace paths.
+- **Data store / artifacts:** Persist assessment tables and RCA table (and optional defect type / Jira draft) to files so they are not only in chat context; CLI or flow can pass paths into the next prompt.
+- **Scoped steps:** One CI result + one failed case per prompt where it helps; orchestration (CLI or text adventure) advances to next case/run and reuses the same template with new parameters.

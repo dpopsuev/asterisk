@@ -1,0 +1,24 @@
+---
+description: PoC constraints and assumptions
+---
+
+# PoC Constraints
+
+- PoC = **CLI** (artifact-based); MVP = standalone CLI, possibly side-car service + RP API client. **Written in Go.** Interacts with RP via the **RP API** (client only; not an RP plugin).
+- RP version pinned to 24.1 / service-api 5.11 (no MCP server support).
+- Pull/push manual at first: envelope from file or manual fetch; push only via `push -f`.
+- Context Workspace = config on FS (YAML/JSON/TOML); one external context source (e.g. GitHub) for PoC.
+- Output = artifact on FS (RCA, convergence score, defect type, evidence); defect type classification via AI models (no hard-coded parsing).
+- MVP: standalone service + RP adapter + CLI as thin client.
+
+## Organizational / security context
+
+- Post–[Red Hat Consulting GitLab incident](https://www.redhat.com/en/blog/security-update-incident-related-red-hat-consulting-gitlab-instance) (Oct 2025), the organization is cautious about **self-managed long-running services**. New services face higher scrutiny.
+- **CLI-first is the preferred/safest path**: short-lived execution, no new always-on service to harden and operate.
+- Any **standalone service** (e.g. MVP) is a **path of resistance**: it must be justified and designed with security front and center:
+  - **Access control** — Who can call the service (authn/authz); which operations (analyze, push, fetch) for which callers.
+  - **Permissions** — Least privilege; scoped tokens (RP, AI provider); no over-broad “admin” by default.
+  - **Sensitive data** — Launch/envelope data, RP tokens, context workspace config (repo URLs/tokens), AI prompts/responses, artifact contents (RCA, defect type). Requirements for encryption in transit and at rest, minimal logging/retention, no unnecessary persistence of PII or secrets. See glossary: *Sensitive data*.
+
+## Open checks
+- ~~Verify defect type update endpoint and permissions in RP API for 24.1/5.11.~~ Addressed in `notes/rp-api-usage.mdc`: PUT `/api/v1/{project}/item` (bulk) and PUT `/api/v1/{project}/item/{itemId}/update` (single); permissions require token with project update scope (403 if insufficient).

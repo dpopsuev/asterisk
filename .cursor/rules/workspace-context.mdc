@@ -1,0 +1,21 @@
+---
+description: Workspace includes all relevant code and docs; reference them when needed
+alwaysApply: true
+---
+
+# Workspace Context
+
+## Prefer Cursor workspace with cloned repos
+- **If possible, work within a Cursor workspace and git clone all relevant repositories.** This increases agent speed because: (1) **local code is instantly readable and searchable** — no network or API latency; (2) **full codebase available** for grep, semantic search, and cross-reference across repos; (3) **consistent paths and version pinning** (e.g. service-api 5.11.x) so research and implementation match; (4) **no dependency on external services** being up or rate limits when reading code and docs. The workspace becomes the single source of truth; the agent reads from disk instead of guessing or waiting.
+
+## Workspace scope
+- The **Cursor workspace** (e.g. `asterisk.code-workspace`) includes **all relevant code and docs** for Asterik development and for RP API research.
+- Repos and paths are listed in `notes/cursor-workspace-structure.mdc` with metadata (purpose, locked version).
+
+## Agent behavior
+- **Always reference workspace content when needed:** code, API definitions, and docs are in the workspace; read and cite them instead of relying only on prior knowledge.
+- When implementing or researching (e.g. RP API, CLI patterns, Execution Envelope): use the relevant workspace folders (service-api, report-portal-cli, docs, etc.) as the source of truth for the **locked version** (RP 5.11 / 24.1).
+- When answering questions about structure, endpoints, or behavior: prefer reading from the workspace over guessing.
+
+## Version alignment
+- For RP API work, ensure **report-portal/service-api** is checked out at **5.11.x** (e.g. tag `5.11.2`) so research matches the locked version. See `contracts/rp-api-research.md` and `notes/poc-constraints.mdc`.

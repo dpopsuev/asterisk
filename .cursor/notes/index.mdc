@@ -1,0 +1,23 @@
+# .cursor/notes Index
+
+Short summaries and quick references.
+
+## Files
+- `index.mdc` — index for this directory.
+- `cursor-workspace-structure.mdc` — Cursor Workspace (asterisk.code-workspace) folder structure and metadata for development; locked RP version; canonical RP instance URL; link to RP API research contract.
+- `rp-instance-and-version.mdc` — Canonical RP instance URL (saved in FSC); version/info API (accurate version down to git hash).
+- `workspace-references.mdc` — workspace repos helpful for PoC/MVP (report-portal-cli, testo-resumado-agento).
+- `kombucha-alignment.mdc` — alignment between Asterik FSC and Kombucha compiler; intentional differences.
+- `roadmap-summary.mdc` — condensed phase ordering and scope.
+- `poc-constraints.mdc` — PoC constraints and assumptions.
+- `poc-flow.mdc` — PoC flow and analysis loop.
+- `ci-analysis-flow.mdc` — Investigation (+ reporting) deep dive: workspace, scenario, contract of work, limitations, PoC alignment. Overview in `three-phases-manual.mdc`.
+- `ci-notification-and-fetch.mdc` — Pre-investigation detail: email contents, .rp-api-key, automation (RP/Jenkins/S3, fetch command). Overview in `three-phases-manual.mdc`.
+- `three-phases-manual.mdc` — **Single overview** of manual workflow: pre-investigation → investigation → post-investigation. Deep dives: `ci-notification-and-fetch.mdc`, `ci-analysis-flow.mdc`.
+- `test-output-and-ci-agnostic.mdc` — No guarantee of Jenkins or Ginkgo; BDD is universal; test output format (CSV, JSON, etc.) is a choice for agent quality; may require experiments.
+- `pre-dev-decisions.mdc` — Pre-development decisions from contract `pre-dev-questions`; reference for implementation (envelope, storage, Cursor, artifact, RP, prompts, lifecycle).
+- `go-testing-frameworks-research.mdc` — Research on Go testing frameworks (testify, ginkgo/gomega, go-cmp, quick, httptest): use cases, pros/cons. Supports `contracts/go-testing-preferences.md` and `rules/go-testing.mdc`.
+- `pre-investigation-33195-4.21.mdc` — Pre-investigation fetch for Launch 33195 (4.21): curl only, manual envelope + failure list; file locations and curl commands.
+- `survey-state.mdc` — /survey update marker (last head, last run).
+- `fsc-suggestions.mdc` — FSC backlog (what to add when needed); what’s already in docs.
+- `future-service-symptoms-model.mdc` — **Future design idea:** Issue → Symptom(s) → Root Cause; symptoms table when Asterik is a service with multiple agents; concurrency (duplicate symptoms, waiting, edge cases). Pure idea to look at later; not PoC/MVP.

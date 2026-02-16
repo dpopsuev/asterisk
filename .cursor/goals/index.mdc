@@ -1,0 +1,23 @@
+# .cursor/goals Index
+
+Goal checklist and per-goal details.
+
+## Checklist
+[*] PoC — CLI, **`asterisk --cursor` only** (symbiotic Cursor flow; artifact + push -f)
+[ ] MVP — CLI, possibly side-car service, RP API client (Go)
+
+## Before development (FSC tuned)
+- Glossary, docs, and rules aligned on **storage adapter** (SQLite for now), **RCA → Jira** (ticket ID + link; no integration yet), and **investigation case** per envelope.
+- Persistence rule in `rules/asterisk-development.mdc`: use adapter only; no raw SQLite in domain/CLI.
+- Open design choices documented in `docs/cli-data-model.mdc` (adapter interface shape, envelope identity, when to create cases, etc.). Implementation can resolve these.
+
+## Handoff summary
+- **PoC**: Standalone CLI (Go), **`asterisk --cursor` only**. Cursor as model; Asterik = prompt injector + dialog, data to Asterik DB. `analyze` (launch + context workspace → artifact on FS); `push -f <path>` (artifact → RP). Manual envelope; one context source; convergence score in artifact.
+- **MVP**: CLI may evolve into side-car service (Go); CLI as thin client; RP API client (fetch launch, push result); same UX.
+
+## Files
+- `index.mdc` — this checklist.
+- `poc.mdc` — PoC goal (CLI, artifact, context workspace).
+- `mvp.mdc` — MVP goal (CLI, possibly side-car, RP API client).
+
+Workspace references: see `notes/workspace-references.mdc` (report-portal-cli, testo-resumado-agento).

@@ -1,0 +1,12 @@
+# .cursor/rules Index
+
+## Files
+- `index.mdc` — index for this directory.
+- `go-testing.mdc` — Go testing preferences: default = standard library `testing`; when to consider a framework (testify, ginkgo); naming (TestXxx), helpers (t.Helper()), fixtures. See `contracts/go-testing-preferences.md`.
+- `workspace-context.mdc` — prefer Cursor workspace + git clone all relevant repos (increases agent speed); workspace includes all relevant code and docs; always reference them when needed; version alignment (e.g. service-api 5.11.x).
+- `scenario-vs-generic.mdc` — always ask: is this scenario-specific or generic? Separate pure model from current use case; document scenario-specific layout/labels as use-case sections.
+- `asterisk-development.mdc` — core development style for Asterisk (evidence-first RCA, BDD/TDD, security, PoC focus).
+- `fsc-structure.mdc` — FSC structure rules and Cursor conventions.
+- `work-contracts.mdc` — when to create work contracts; template and commit convention.
+- `security-analysis.mdc` — OWASP-aligned security lens for features and code changes.
+- `save-triggers.mdc` — persistence protocol (Save Block → docs/notes/contracts/rules/etc.).

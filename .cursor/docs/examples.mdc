@@ -1,0 +1,27 @@
+---
+description: Example data and fixtures for Asterik (Pre-investigation, envelope, tests)
+---
+
+# Examples
+
+Example data saved for reference, tests, and fixture. All under project root `examples/`.
+
+## Pre-investigation (Launch 33195, 4.21)
+
+**Path:** `examples/pre-investigation-33195-4.21/`
+
+Example output from **Pre-investigation** (fetch from RP via curl; manual structuring). Launch 33195, project ecosystem-qe, name telco-ft-ran-ptp-4.21.
+
+| File | Description |
+|------|-------------|
+| `launch_33195_raw.json` | Raw launch response from RP API. |
+| `items_33195_page1.json` | Test items for launch (page 1; 180 items). |
+| `items_33195_failed.json` | Failed test items only (12 items). |
+| `envelope_33195_4.21.json` | **Manually structured Execution Envelope + failure list** — use as fixture for envelope-from-file or `analyze` tests. |
+
+See `examples/pre-investigation-33195-4.21/README.md` for curl commands and `notes/pre-investigation-33195-4.21.mdc` for FSC note.
+
+## Adding examples
+
+- Put new example data under `examples/<name>/` with a short README.
+- Document here (path + one-line description) and link from relevant notes or docs.

@@ -1,0 +1,22 @@
+---
+description: We don't guarantee Jenkins or Ginkgo; BDD is universal; test output format (CSV, JSON) is a choice for agent quality; may require experiments
+---
+
+# Test Output and CI Agnosticism
+
+## No guarantee of CI or test framework
+
+- **CI system** — We do **not** guarantee Jenkins. Envelope and artifacts can come from any CI (Jenkins, Prow, GitHub Actions, etc.); the model is CI-agnostic. Current PTP use case happens to use Jenkins; document that as scenario-specific.
+- **Test framework / output** — We do **not** guarantee Ginkgo or any specific runner. The **BDD idea** (Given/When/Then, specs, failures) is universal; the framework and its **output format** are choices. Output can be changed (e.g. different reporter, structured format) to make the agent more effective.
+
+## Test output format: structured for the agent
+
+- BDD is universal; a **specific output format** can be chosen so the agent (and Asterik) can parse failures, spec names, and steps without relying on free-form console text.
+- **Options** — e.g. **JSON** (nested structure, easy to parse; one format for many tools) or **CSV** (flat, simple, human-glanceable). Which is **better for agent consumption** may require **experiments** (e.g. prompt size, accuracy of “list failures” vs parsing console).
+- Design direction: support **structured test output** (format TBD or configurable) in addition to or instead of raw console log parsing; keep the envelope and case model format-agnostic so we can swap output format without changing core logic.
+
+## When documenting or coding
+
+- Do not assume Jenkins or Ginkgo in generic docs or interfaces.
+- In the current PTP use case, “Ginkgo-style” or “job log (e.g. #NNNN.txt)” is **scenario-specific** and can be replaced by another CI or a different output format (e.g. JSON/CSV from the test run).
+- When experimenting with output format (CSV vs JSON, etc.), record findings in notes or docs so we can choose a default or make format configurable.

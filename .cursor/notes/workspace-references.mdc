@@ -1,0 +1,34 @@
+---
+description: Workspace repos helpful for PoC/MVP (RP client, agent+tools)
+---
+
+# Workspace References
+
+Workspace projects that support Asterik PoC and MVP. Paths and relevance.
+
+## report-portal-cli
+
+**Path:** `Repositories/report-portal-cli` (or `/home/dpopsuev/Repositories/report-portal-cli`).
+
+- **RP API 5.11 / 24.1** — Same version as FSC constraints.
+- **Launch read** — CLI `rp get launch <id|uuid> -p <project>`; client `GetByID`, `GetByUUID`, `List`. Use for **fetch launch → Execution Envelope** (PoC manual fetch; MVP `asterisk fetch` or analyze by launch-id).
+- **Reusable client** — `pkg/client` is a separate Go module. Asterik can depend on it for RP connection, config, launch fetch; extend for defect-type write when implementing `push -f`.
+- **CLI patterns** — Cobra, YAML config + profiles, output (table/json/go-template). Reference for `asterisk` (analyze, push -f, fetch, config).
+- **Gap** — Defect-type update not implemented; extend generated API or client for push.
+
+## testo-resumado-agento
+
+**Path:** `Repositories/testo-resumado-agento` (or `/home/dpopsuev/Repositories/testo-resumado-agento`).
+
+- **Agent + tools** — OpenAI-compatible client, tool-calling loop (list_dir, read_file, grep, find_files, save_document). Reference for **analyze** pipeline: AI + context → RCA + evidence.
+- **Go + CLI** — Cobra, Viper, working directory, model/timeout/base-url. Useful for `asterisk analyze` (e.g. `--workspace`, `--launch`, `-o`).
+- **No RP** — Use for analysis/agent side only; not for RP fetch/push.
+
+## Summary
+
+| Goal piece           | report-portal-cli       | testo-resumado-agento   |
+|----------------------|-------------------------|-------------------------|
+| Fetch launch         | ✅ Client + CLI         | —                       |
+| Push defect type     | ⚠️ Extend client/API    | —                       |
+| CLI structure        | ✅ Config, output       | ✅ Cobra, Viper         |
+| Analyze (AI + tools)  | —                       | ✅ Agent + tools pattern |

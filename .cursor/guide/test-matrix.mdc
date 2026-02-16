@@ -1,0 +1,12 @@
+---
+description: TDD test matrix per story
+---
+
+# TDD Test Matrix
+
+For every story, implement:
+- Unit: parsing, mapping, scoring, and classifiers
+- Integration: Report Portal API, GitHub/Git providers, Jenkins/Prow
+- Contract: API schemas, auth scopes, rate limits
+- E2E: full pipeline from RP launch to RCA output
+- Security: secret redaction, RBAC scope, audit logging

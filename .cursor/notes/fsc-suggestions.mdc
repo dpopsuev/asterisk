@@ -1,0 +1,15 @@
+---
+description: FSC backlog — what to add (docs/strategy/tactics when ready)
+---
+
+# FSC Suggestions (backlog)
+
+**Already in FSC:** Execution Envelope (`docs/execution-envelope.mdc`), context workspace (`docs/context-workspace.mdc`), CLI data model (`docs/cli-data-model.mdc`), prompts (`docs/prompts.mdc`).
+
+**Open (add when needed):**
+- Architecture overview (core + RP adapter + context sources).
+- RCA decision rubric (inputs, outputs, confidence rules).
+- Adapter contracts (RP, GitHub, future GitLab).
+- Evidence schema (what counts as evidence, how cited).
+
+Store in `docs/` (reference) or `strategy/` (invariants) or `tactics/` (playbooks).

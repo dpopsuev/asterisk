@@ -1,0 +1,26 @@
+---
+description: Work contracts — session-independent execution plans; when to create and how to use.
+---
+
+# Work Contracts
+
+Contracts are **session-independent execution plans** with state (status, tasks, notes). Any agent can pick up a contract and continue from where the last one left off.
+
+## When to create a contract
+
+- A body of work spans multiple sessions or has a clear binary goal.
+- You need a handoff protocol (tasks, acceptance criteria, notes with timestamps).
+
+## Contract location and template
+
+- **Directory:** `.cursor/contracts/`
+- **Template:** Copy `.cursor/contracts/_TEMPLATE.md` to create a new contract (e.g. `my-feature.md`). Never edit the template.
+- **Commit convention:** Each commit references the contract: `Contract: {slug} {step}/{total}`. Test suite must be green before every commit.
+
+## Contract structure (from template)
+
+Status, Goal, Contract rules, Context, Execution strategy, Tasks (always end with Validate → Tune → Validate), Acceptance criteria, Notes (`YYYY-MM-DD HH:MM`).
+
+## Index
+
+After adding or removing a contract, update `.cursor/contracts/index.mdc`.

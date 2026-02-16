@@ -1,0 +1,52 @@
+---
+description: Shared domain definitions for Asterik
+---
+
+# Glossary
+
+- **Asterik** — Standalone CLI (possibly evolving into a side-car service) for RCA on test failures using external repos and CI/infra context. **Command:** `asterisk`. **PoC:** only **`asterisk --cursor`** (Cursor as model; Asterik = prompt injector + dialog; investigation data → Asterik DB). Other modes (e.g. TUI with another model) are post-PoC. Interacts with ReportPortal via the **RP API** (client, not an RP plugin). **Written in Go.**
+- **RCA** — Root Cause Analysis based on evidence (logs, commits, pipeline context).
+- **RP** — ReportPortal.
+- **Execution DB** — Source of execution data (launch, test items, failures). **RP is the Execution DB:** envelope and failure list come from Report Portal via API (e.g. launch by ID). We do not use Jenkins dump or local job logs as the source of execution data. See `docs/envelope-mental-model.mdc`.
+- **MCP** — Model Context Protocol; standardized tool interface for AI to access external systems.
+- **Context Source** — a single external or internal data source used to enrich analysis (e.g., repo, CI artifact).
+- **Context Workspace** — key-value–style config on FS (YAML/JSON/TOML) listing pointers to local or remote git repos plus **agentic meta** (purpose/role per repo for RCA). Unlike Cursor workspaces (paths only), context workspace carries *what each path is for* so the agent can use repos correctly; that meta lives **separately from prompts**. Optional per-repo branch override; otherwise ref from Execution Envelope. Versionable, shareable. See `docs/context-workspace.mdc`.
+- **ExecutionEnvelope** — adapter-normalized run container used as Asterik analysis input. Includes **vital git metadata** (`git.branch`, `git.commit`, optional `git.remote`/repo URL) so the correct branch/ref can be used for each repo without manual intervention. See `docs/execution-envelope.mdc`.
+- **Investigation case** — one failed test case; unit of agent work. Keyed by **investigation envelope** (job ID, run path, failed test name, etc.). CLI opens one case per failure; stored via **storage adapter** (SQLite for now). See `docs/cli-data-model.mdc`.
+- **Storage adapter** — abstraction over persistence (cases, RCAs, pipeline hierarchy). CLI and domain logic use the adapter interface only; implementation is SQLite today, swappable later (e.g. other DB or remote store) for future-proofing. See `docs/cli-data-model.mdc`.
+- **Investigation envelope** — context identifying a single failure (job ID, run ID, clock type, artifact paths); may align with or derive from Execution Envelope. Used to key investigation cases and avoid duplicates.
+- **RCA** (in data model) — first-class entity in DB, **independent of pipeline/envelope**: title, description, defect type, evidence; optional **Jira ticket ID** and **Jira link** (URL). RCAs become Jira bugs; no Jira integration yet — model allows storing ticket ID/link and, when extended, **tracking ticket status via CLI**. Many cases (within or across pipelines/versions) can reference one RCA. See `docs/cli-data-model.mdc`.
+- **Convergence check** — the process of deciding whether the analysis has converged on an RCA; outcome gates the next step (deepen analysis, try next Context Source, or stop).
+- **Convergence score** — the score used in a convergence check (high = converging toward a clear RCA, low = not enough signal); the Coordinator uses it to select the next action.
+- **Prompt template** — file-based RCA prompt (parameterized by launch, workspace, ref, etc.). During development lives in `.cursor/prompts/`; when stable, moved to the CLI’s prompt directory. See `docs/prompts.mdc`.
+- **Cursor mode** — `asterisk --cursor`: Asterik uses Cursor as the backing model. Symbiotic flow: Asterik injects prompts and conducts a dialog with Cursor; investigation data (cases, RCAs, assessment) is written to the Asterik DB so state survives across the conversation. See `notes/poc-flow.mdc`.
+- **Red–green–blue** — prompt development loop: experiment (red) → get to a passing outcome (green) → refine and lock in (blue). File-based prompts allow iterate-in-Cursor without rebuilding the CLI.
+- **Sensitive data** — In Asterik context: Execution Envelope / launch data, artifact contents (RCA message, defect type, evidence refs), context workspace config (including repo URLs and tokens), RP API tokens, AI provider keys, and any PII. Handling must cover encryption in transit and at rest, minimal logging/retention, and no unnecessary persistence of secrets or PII.
+- **Access control** — For a standalone Asterik service: authentication (who is calling) and authorization (which operations — e.g. analyze, push, fetch — are allowed for that caller). Required if building a long-running service (see constraints).
+
+## Hierarchy: tree terms and domain naming
+
+The execution model is a **recursive hierarchy**: at the bottom are executions/steps (leaves); above them are containers that can themselves contain more containers, to any depth (**Envelope of Envelope**).
+
+### Formal tree terms (for specs / model only)
+
+| Term | Meaning |
+|------|--------|
+| **Leaf** | Node with no children — one execution/run. |
+| **Branch** | Node that has children (internal node). |
+| **Tree** | One root + all descendants (e.g. one launch and its items). |
+| **Forest** | Disjoint set of trees (e.g. several launches under one campaign). |
+| **Forest of forests** | Collection of forests (e.g. many campaigns); can repeat to any depth. |
+
+Use these in formal hierarchy descriptions; prefer **domain terms** in APIs and user-facing text.
+
+### Domain naming (recommended in APIs and docs)
+
+| Term | Level | Meaning |
+|------|--------|-------|
+| **Step** | Leaf | One failed test step (RP type STEP); **one investigation case per step**. |
+| **Job** | Branch under launch | Group under a launch (e.g. one TEST like [T-TSC] RAN PTP tests); contains steps. |
+| **Launch** | Tree root | One run from RP; envelope that directly contains jobs and steps. |
+| **Envelope** | Recursive container | Any container: can contain other **Envelopes** or steps. Launch is an Envelope; a future “Campaign” is an Envelope of Launches. **Envelope of Envelope** can nest arbitrarily (campaigns, programs, etc.). |
+
+- **Execution** — Optional: one *run* of a step; use **Step** for “one case per failure” unless you need to model multiple runs of the same step.

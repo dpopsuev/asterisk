@@ -1,0 +1,38 @@
+---
+description: Future design idea — symptoms layer and concurrency when Asterik is a service with multiple agents
+---
+
+# Future design: Issue → Symptom(s) → Root Cause (symptoms table)
+
+**Pure idea to look at later.** Not in PoC/MVP scope. For when Asterik is a **service** handling **concurrency of several agents**.
+
+## Current model (PoC)
+
+- **Failure** (investigation case) ↔ **RCA** (root cause). We link failure to RCA; many failures can reference one RCA (serial-killer pattern). See `docs/cli-data-model.mdc`.
+
+## Proposed extension: middle layer (symptoms)
+
+- **Issue** (e.g. failure / case) → **Symptom(s)** → **Root Cause** (RCA).
+- Introduce a **symptoms table**: shallow investigation of **symptoms** only (not root cause yet). Then investigate symptoms to get to root cause.
+- Several connections can reference the symptoms table:
+  - Multiple issues (failures) may map to the same symptom.
+  - Symptoms map to RCA(s).
+- This gives a place to extend for the next problem domain and keeps “symptom” as a first-class concept when scaling to a service and multiple agents.
+
+## Concurrency (open)
+
+- When multiple agents run in parallel: should we **wait** for others to finish so we don’t create duplicate symptom entries? Or allow duplicates and merge/dedup later?
+- Other edge cases: locking, visibility of in-progress symptoms, conflict resolution when two agents assign the same symptom to different RCAs, etc.
+- Leave these as open questions; revisit when designing the service and multi-agent concurrency.
+
+## Coordination via pub-sub and message queue (idea)
+
+- One way to address coordination: introduce a **pub-sub bus** and a **message queue**.
+- **Investigator service** (or each investigator agent) **reads from the queue after completing symptom assessments** so it does **not miss results from other investigators**.
+- Flow: agents publish symptom-assessment results (or “symptom created/updated”) to the bus; the investigator service subscribes and consumes from the queue, then continues with root-cause investigation using the full set of symptom data (its own + others’). That way no agent proceeds to RCA in isolation without having seen others’ symptom outcomes.
+- Still to clarify: queue semantics (at-least-once, ordering), dedup of symptom entries, who writes to the symptoms table (publisher vs consumer), and how “after completing symptom assessments” is signaled (e.g. barrier, or “drain queue before next phase”). Pure idea to explore when designing the service.
+
+## References
+
+- Current data model: `docs/cli-data-model.mdc` (failure ⊂ job ⊂ pipeline; case → RCA).
+- Service/MVP: `goals/poc.mdc` (next: standalone service); `notes/poc-constraints.mdc`.

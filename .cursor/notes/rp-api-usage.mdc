@@ -1,0 +1,84 @@
+---
+description: RP API usage for fetch (launch, test items) and push (defect-type update) — 5.11 / 24.1
+---
+
+# RP API usage (5.11 / 24.1)
+
+Canonical reference for implementing **fetch** (launch by ID, test items) and **push** (defect-type update). Pinned to service-api **5.11** and RP **24.1**. Example launch: **33195** (project `ecosystem-qe`).
+
+## Base URL and auth
+
+- **Base URL:** `https://your-reportportal.example.com` (see `notes/rp-instance-and-version.mdc`).
+- **API prefix:** `{base}/api/v1/{project}` — e.g. `{base}/api/v1/ecosystem-qe`.
+- **Auth:** Bearer token. Read token from `.rp-api-key` (one line, no extra whitespace). Send header: `Authorization: Bearer <token>`. Requests without a valid token receive **401**.
+
+## Launch endpoints
+
+### Get launch by ID
+
+- **Method/Path:** `GET /api/v1/{project}/launch/{launchId}`
+- **Example:** `GET {base}/api/v1/ecosystem-qe/launch/33195`
+- **Response:** JSON launch object: `id`, `uuid`, `name`, `number`, `status`, `startTime`, `endTime`, `attributes`, `statistics`, etc. Use for envelope `run_id`, `name`, `status`, `startTime`/`endTime`, `attributes`, `statistics`.
+
+Launch UUID is optional for PoC; launch ID is sufficient for filtering items.
+
+## Test-item endpoints
+
+### List items for launch (paginated)
+
+- **Method/Path:** `GET /api/v1/{project}/item`
+- **Query (required):** `filter.eq.launchId={launchId}` — items for that launch.
+- **Query (optional):** `filter.eq.status=FAILED` — only failed items.
+- **Pagination:** `page.size=200`, `page.page=1` (then 2, 3, …).
+- **Example (all items, page 1):**  
+  `GET {base}/api/v1/ecosystem-qe/item?filter.eq.launchId=33195&page.size=200&page.page=1`
+- **Example (failed only):**  
+  `GET {base}/api/v1/ecosystem-qe/item?filter.eq.launchId=33195&filter.eq.status=FAILED&page.size=200&page.page=1`
+
+**Response:** JSON array of test items. Each item: `id`, `uuid`, `name`, `type`, `status`, `launchId`, `startTime`, `endTime`, `attributes`, `statistics` (including `defects`). Use `id` (and optionally `uuid`) for push; build envelope `failure_list` from failed items (e.g. `id`, `name`, `status`, `path` = `id` as string, `launchId`, times, attributes, statistics).
+
+### Get single test item (by ID)
+
+- **Method/Path:** `GET /api/v1/{project}/item/{itemId}`
+- **Example:** `GET {base}/api/v1/ecosystem-qe/item/1697136`
+
+Use when a single item is needed (e.g. before updating defect type).
+
+## Defect-type update
+
+Report Portal 5.11 supports updating **issues** (defect type) for test items.
+
+### Update issues of specified test items
+
+- **Method/Path:** `PUT /api/v1/{project}/item`  
+  (Bulk: request body specifies which items and which issue type.)
+- **Doc:** [Define test item issue type](https://developers.reportportal.io/api-docs/service-api/define-test-item-issue-type)
+
+### Update single test item
+
+- **Method/Path:** `PUT /api/v1/{project}/item/{itemId}/update`  
+  (Single item: body can include status, description, attributes.)
+- **Doc:** [Update test item](https://developers.reportportal.io/api-docs/service-api/update-test-item)
+
+**Defect types (5.11):** To investigate, Product bug, Automation bug, System issue, No defect (plus project-specific subtypes, e.g. `ti001`, `nd001`). Exact request body schema for “define issue type” (bulk or per-item) should be taken from the [Test Item API](https://developers.reportportal.io/api-docs/service-api/test-item/) or service-api 5.11 source. Implementer: use PUT item or PUT item/:itemId/update with the payload that sets the chosen defect type for the item(s).
+
+**Permissions:** Requires a token with permission to update test items in the project. If 403 occurs, check project role and token scopes.
+
+## RP → envelope mapping
+
+- **run_id:** launch `id` (e.g. `33195`).
+- **launch_uuid:** launch `uuid` (optional).
+- **name, number, status, startTime, endTime, statistics, attributes:** from launch response.
+- **failure_list:** from test-item list filtered by `status=FAILED`; each entry: `id`, `uuid`, `name`, `type`, `status`, `path` (e.g. `id` as string), `launchId`, times, `attributes`, `statistics`.
+- **git:** from launch/run attributes or CI env when present; otherwise null (see `docs/execution-envelope.mdc`).
+
+## Logs / attachments (optional for PoC)
+
+Log content or attachment URLs for a test item are available via the Log API (e.g. by item ID). Not required for minimal fetch/push; add when RCA context from logs is needed.
+
+## Cross-references
+
+- **Instance and version:** `notes/rp-instance-and-version.mdc`
+- **Pre-investigation example:** `notes/pre-investigation-33195-4.21.mdc`
+- **Envelope shape:** `docs/execution-envelope.mdc`
+- **PoC constraints:** `notes/poc-constraints.mdc`

@@ -1,0 +1,64 @@
+---
+description: CLI core ideas — storage adapter (SQLite), investigation case, hierarchy, RCA and pattern, RCA→Jira extension
+---
+
+# CLI Data Model and Core Ideas
+
+## Local file-based store: SQLite
+
+- **Choice (for now):** SQLite as the CLI’s data store. Single file (e.g. `asterisk.db` or per-workspace), no server, local and in-reach. Fine for PoC and current scope.
+- **Use for:** Investigation cases, pipeline/job/failure hierarchy, RCA outcomes, artifact paths, optional step state for resume.
+- **Placement:** Next to CLI binary or in a well-known dir (e.g. `~/.config/asterisk/`). **Per-workspace DB** = one DB per investigation workspace so each regression run is self-contained.
+- **Adapter for future-proofing:** Access persistence through a **storage adapter** (repository/interface), not raw SQLite in domain code. The CLI talks to the adapter; the adapter implementation uses SQLite today. Later we can add another implementation (e.g. different DB, or remote store) without changing case/RCA/pipeline logic.
+
+## Investigation case = one failure, one envelope
+
+- **Case** — One failed test case. The unit of agent work (one case = one scoped context window).
+- **Investigation envelope** — Context for that failure: job ID, run ID, clock type, paths to logs/artifacts; may align with or derive from Execution Envelope. One case per failure, keyed by envelope; no duplicate cases for the same failure.
+- The CLI **opens one investigation case per failure**, per investigation envelope. Agent runs are scoped to a single case.
+
+## Hierarchy: failure ⊂ job ⊂ pipeline
+
+Containment model for PTP CI (and similar flows):
+
+| Level | What it is | Example |
+|-------|------------|---------|
+| **Failure** | One failed test case | Single Ginkgo failure in T-TSC |
+| **Job** | One test execution run (one clock type) | T-TSC run @ `12_feb_26_special_regression/t-tsc` |
+| **Pipeline** | Serial run of several jobs | BC-OC → OC2PORT → T-TSC → T-BC |
+
+- **Pipeline** contains **jobs**; **job** contains **failures**. Cases live at the failure level and reference their job and pipeline.
+- **Pipeline is per version.** Each pipeline run is tied to a version (e.g. 4.20, 4.22); different pipelines = different versions.
+- Enables: list all failures in a pipeline/job; scoped prompts (“failure X of job T-TSC in pipeline …”); aggregation by job, clock type, or pipeline.
+
+## RCA: separate from pipeline envelope
+
+- **RCA** is a **first-class entity independent of pipeline and envelope.** It is not owned by a single pipeline or version. Stored in DB: title, description, defect type, evidence; optional **Jira ticket ID** and **Jira link** (URL). RCAs in the end become Jira bugs; the model allows extension for Jira without integration today.
+- **Why:** The same root cause (e.g. a backport bug) can cause the same or similar failures in **multiple pipelines** (multiple versions). One RCA can be linked from cases that belong to **different pipelines** — e.g. regression in 4.20, 4.21, and 4.22 all pointing to the same RCA. RCAs live outside the pipeline envelope so they can span versions.
+
+## Many cases → one RCA (pattern / dedup)
+
+- **Case → RCA** — Many cases (within one pipeline or **across pipelines**) can reference **one** RCA (same root cause). Serial killer pattern: several victims (failures, possibly across versions), one cause (RCA). “Serial killer” pattern: several victims (failures), one cause (RCA).
+- **Use:** Deduplicate (e.g. five failures across two version runs → one Jira ticket, one RCA). Reporting: This RCA affects pipelines 4.20, 4.21, 4.22. Human review: “Case 3 same RCA as Case 1 — Approve / Reassess / Overturn?” Later: suggest “this failure may match RCA #2” from symptom/job/component; user confirms link.
+- **Schema (conceptual):** e.g. `rca(id, title, description, defect_type, jira_ticket_id nullable, jira_link nullable, ...)` with no pipeline_id; `case(rca_id nullable, pipeline_id, ...)`. Cases reference pipeline; RCA does not. When user/agent says same as case X, set `case.rca_id = case_x.rca_id` even if case X is from another pipeline/version.
+
+## RCA → Jira (extension point)
+
+- **Intent:** RCA outcomes become Jira bugs. There is **no Jira API integration yet**; the model is designed so it can be extended.
+- **Store now:** Per RCA: **Jira ticket ID** (e.g. `PROJ-123`) and **Jira link** (URL to the ticket). User or agent fills these when a ticket is created (e.g. from the Jira report step); they are persisted in the DB.
+- **Extension:** When Jira integration is added, the CLI can **track ticket status** (e.g. `asterisk ticket status PROJ-123` or show status in list/show RCA). Schema already has ticket ID and link; status can be fetched via Jira API and cached or displayed on demand.
+
+## Open design choices
+
+- **Storage adapter interface** — Exact shape deferred to implementation (e.g. per-entity repositories vs single Store facade). Domain and CLI must depend only on the adapter; implementation can be swapped.
+- **Envelope identity** — Investigation envelope = Execution Envelope or a slimmer key (job ID + run path + failed test name)? Fixes how “one case per failure” is keyed and deduplicated.
+- **When to create cases** — On “open investigation” (user points CLI at pipeline/job): create one case per failure up front, or create cases lazily as user/agent starts each?
+- **RCA creation** — Create RCA row only after agent/human produces an RCA, or create placeholder at case creation and fill/merge later?
+- **Pattern suggestion** — PoC: “same RCA” is manual (user links to existing RCA). Later: suggest links (error snippet, job, component); user confirms.
+
+## Fit with current flow
+
+- **Assessment** — CLI creates one case per failure; writes assessment table to artifact; store artifact path on case (or in DB).
+- **RCA** — One case → one agent run; output is new RCA or “same as case X”; store in DB and link case to RCA.
+- **Human review** — Per case (or per RCA when grouping “same RCA” cases). Approve/Reassess/Overturn updates case and optionally RCA.
+- **Jira / report** — Group cases by RCA (within or across pipelines); one Jira per distinct RCA; regression table = product defects (RCA + Jira ticket ID + link). User creates tickets (no integration yet); store ticket ID and link on RCA. Later: track ticket status via CLI when Jira integration exists.

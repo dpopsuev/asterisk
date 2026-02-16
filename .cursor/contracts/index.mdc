@@ -1,0 +1,54 @@
+# .cursor/contracts Index
+
+Work contracts — session-independent execution plans with state, tasks, and completion criteria.
+
+## Mock implementation & wiring (BDD/TDD, red–green–blue)
+
+Execute **in order**; each contract depends on the previous.
+
+| Order | Contract | Goal |
+|-------|----------|------|
+| **1** | `mock-pre-investigation.md` | Mock fetch + save envelope to store (fixture; no RP). **Complete.** |
+| **2** | `mock-investigation.md` | Mock analyze: read from store → cases + artifact (no real AI). **Complete.** |
+| **3** | `mock-post-investigation.md` | Mock push: read artifact → defect type + RCA to mock (no RP/Jira). **Complete.** |
+| **4** | `mock-wiring.md` | Wire 1→2→3: one runnable flow (fetch → analyze → push) with mocks. **Complete.** |
+
+**Execution order:** 1 → 2 → 3 → 4. Complete all tasks (Red → Green → Blue → Validate) in contract 1 before starting 2; same for 2→3, 3→4.
+
+## PoC implementation (from assessment)
+
+Contracts created from the PoC assessment. Dependencies: complete **rp-api-completion** before **rp-fetch** and **rp-push**; complete **storage-adapter**, **context-workspace**, **artifact-schema** before **asterisk-cli**; complete **asterisk-cli** and **prompts** before **cursor-handoff**. Others can run in parallel where no dep is listed.
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `rp-api-completion.md` | Finish RP API research; document launch, test-item, defect-type in FSC (`notes/rp-api-usage.mdc`). | — |
+| `storage-adapter.md` | SQLite + Store facade (cases, RCAs); per-workspace DB; wire into flow. | — |
+| `context-workspace.md` | Load workspace from FS (YAML/JSON/TOML); pass into analyze. | — |
+| `artifact-schema.md` | Add `rca_message` to artifact; document schema in FSC. | — |
+| `prompts.md` | Prompt templates in `.cursor/prompts/`; params doc in `docs/prompts.mdc`. | — |
+| `rp-fetch.md` | Real fetch from RP (launch by ID); produce envelope; persist to store/path. | rp-api-completion |
+| `rp-push.md` | Real push to RP (defect-type update); read artifact, call RP API. | rp-api-completion |
+| `asterisk-cli.md` | `asterisk` binary with `analyze` and `push -f`; envelope, workspace, storage, artifact. | storage-adapter, context-workspace, artifact-schema |
+| `cursor-handoff.md` | Minimal `asterisk --cursor`: prompt output, save/ingest, document flow. | asterisk-cli, prompts |
+
+## Directories
+
+## Files
+- `index.mdc` — index for this directory.
+- `_TEMPLATE.md` — contract template; copy to create new contracts (do not edit template).
+- `artifact-schema.md` — **Artifact schema:** add rca_message; document in FSC; align with pre-dev.
+- `asterisk-cli.md` — **asterisk CLI:** analyze and push -f subcommands; envelope, workspace, storage.
+- `context-workspace.md` — **Context workspace:** load from FS (YAML/JSON/TOML); use in analyze.
+- `cursor-handoff.md` — **Cursor handoff:** minimal asterisk --cursor; prompt output; save/ingest; document flow.
+- `go-testing-preferences.md` — **Go testing preferences:** when to use standard library vs framework; rules in `rules/go-testing.mdc`.
+- `mock-pre-investigation.md` — **Mock Pre-investigation:** fetch (stub) + save envelope to DB/workspace; BDD/TDD, red-green-blue.
+- `mock-investigation.md` — **Mock Investigation:** analyze from store → cases + artifact; BDD/TDD, red-green-blue.
+- `mock-post-investigation.md` — **Mock Post-investigation:** push artifact to mock RP/RCA store; BDD/TDD, red-green-blue.
+- `mock-wiring.md` — **Mock Wiring:** wire pre-inv → investigation → post-inv into one flow; BDD/TDD, red-green-blue.
+- `pre-dev-questions.md` — Pre-development questions: make question bank (envelope, storage, Cursor, artifact, RP, prompts, lifecycle); answer or defer each; record outcomes before starting implementation.
+- `prompts.md` — **Prompts:** templates in .cursor/prompts/; params in docs/prompts.mdc.
+- `rp-api-completion.md` — **RP API completion:** finish research; document launch, test-item, defect-type; FSC doc.
+- `rp-api-research.md` — **RP API deep research (5.11):** learn to interact with API at locked version; document endpoints and usage for FSC; add rules if needed; example launch 33195.
+- `rp-fetch.md` — **Real fetch from RP:** launch by ID; produce envelope; persist.
+- `rp-push.md` — **Real push to RP:** defect-type update from artifact.
+- `storage-adapter.md` — **Storage adapter:** SQLite + Store facade; per-workspace DB.

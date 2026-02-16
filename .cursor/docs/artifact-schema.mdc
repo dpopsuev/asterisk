@@ -1,0 +1,46 @@
+---
+description: Artifact schema — analyze output and push input (JSON)
+---
+
+# Artifact schema
+
+The **artifact** is the single JSON format produced by analyze and consumed by push (`push -f`). One file per investigation run; contains RCA message, defect type, convergence score, and evidence refs.
+
+## Purpose
+
+- **Analyze output:** Write artifact to path after investigation (one case per failure; aggregate RCA message, defect type, evidence).
+- **Push input:** Read artifact from path (`push -f <path>`) to update RP defect type and optionally store RCA in DB.
+
+## Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `launch_id` | string | Run/launch ID (e.g. from RP). |
+| `case_ids` | []int | Test item IDs (failure list) covered by this artifact. |
+| `rca_message` | string | RCA summary / root-cause message. |
+| `defect_type` | string | Suggested defect type (e.g. ti001, nd001, pb001). |
+| `convergence_score` | float64 | Confidence/convergence score (0–1). |
+| `evidence_refs` | []string | References to evidence (paths, links). |
+
+## Go type
+
+`asterisk/internal/investigate.Artifact` — JSON tags match field names above.
+
+## Example
+
+```json
+{
+  "launch_id": "33195",
+  "case_ids": [1697136, 1697139],
+  "rca_message": "Backport regression in PTP sync path.",
+  "defect_type": "ti001",
+  "convergence_score": 0.85,
+  "evidence_refs": ["logs/tsc.log", "commit abc123"]
+}
+```
+
+## Cross-references
+
+- **Pre-dev:** `notes/pre-dev-decisions.mdc` (artifact as single format).
+- **Investigation:** `internal/investigate/artifact.go`; mock flow writes artifact with placeholder values; `rca_message` may be empty for mock.
+- **Push:** `internal/postinvest/push.go` reads artifact and records defect type (and optional Jira fields).

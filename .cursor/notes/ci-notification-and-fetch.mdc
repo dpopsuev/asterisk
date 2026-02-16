@@ -1,0 +1,46 @@
+---
+description: CI notification flow, manual fetch pain, and automation options (Jenkins, RP, S3)
+---
+
+# CI Notification and Fetch (4.21 / far-edge-vran)
+
+
+Pre-investigation steps (receive mail → get launch ID → fetch from RP → workspace) are in `three-phases-manual.mdc`. **Execution data (envelope, failures) come from RP** (Execution DB); no Jenkins dump as source. This note details **email contents** and **automation**.
+
+## What the notification email contains (example)
+
+- **Subject:** e.g. `far-edge-vran-deployment - [[RAN TEST] PTP BC/OC functional test - 4.21] - UNSTABLE`
+- **Report Portal:** `Sent to Report Portal: <launch URL>` — e.g. `https://your-reportportal.example.com/ui/#ecosystem-qe/launches/all/33195` (launch ID **33195**).
+- **Polarion:** `Sent to Polarion: <testrun URL>`
+- **Collect Job S3:** `Collect Job S3: <index URL>` — e.g. `https://your-minio-s3.example.com/eco-bucket/ocp-far-edge-vran-collect/24607/index.html` (job **24607**).
+- **Jenkins:** `For more info check: <pipeline job URL>` — e.g. `https://your-jenkins.example.com/job/CI/job/far-edge-vran-deployment/15003/` (build **15003**).
+
+All of these URLs are behind corp/VPN; **agents and external tools cannot access them** unless run from a host that has network access and (where required) auth.
+
+## RP API key (local only)
+
+- **File:** `.rp-api-key` in repo root (created; contains API key).
+- **Safety:** `.rp-api-key` is in `.gitignore`; never commit it.
+- **Use:** CLI or scripts can read this file to call Report Portal API (e.g. get launch 33195, test items, logs) without using the browser. **Canonical RP instance base URL (saved in FSC):** **https://your-reportportal.example.com** — see `notes/rp-instance-and-version.mdc`.
+
+## Optional local artifacts (RCA context only)
+
+- **Execution data come from RP.** Optional local dir (e.g. `archive/ci/4.21/16_feb_26/`) may hold logs/dumps for RCA context; they are not the source of envelope or failure list. See `notes/ci-analysis-flow.mdc` for assessment/RCA flow.
+
+## How to automate further
+
+| Option | What | Notes |
+|--------|------|--------|
+| **Report Portal API** | Use launch ID from email (e.g. 33195) + `.rp-api-key` to fetch launch, items, logs, attachments. | **Ready:** key in place. PoC/MVP: CLI or script “fetch launch &lt;id&gt;” → build Execution Envelope from RP response; no Jenkins UI. |
+| **Parse email** | Parse notification mail (subject + body) to extract: RP launch URL/ID, Jenkins job URL, S3 Collect URL. | Enables “one click” or CLI: “ingest this email” → extract IDs → call RP API or trigger download. |
+| **Jenkins API** | From pipeline build URL get build number (15003), then use Jenkins REST API to list child jobs and artifact URLs. | Requires Jenkins API token (stored like `.rp-api-key`, gitignored). Then script: given pipeline build URL → list artifacts → download to `archive/ci/<version>/<date>/`. |
+| **S3 / Collect Job** | Collect Job S3 URL points to Minio; index.html may list artifacts. | If S3/Minio is accessible with same or separate credentials, “download from S3 by job ID” could replace per-child manual download. |
+| **Single “fetch run” command** | CLI: `asterisk fetch --rp-launch 33195` or `asterisk fetch --jenkins <url>` or `asterisk fetch --email <path>` (parse then fetch). | Combines parsing + RP (and optionally Jenkins/S3) to produce one local envelope + artifact tree for `analyze`. |
+| **Webhook / CI integration** | Jenkins or RP notifies a small service that triggers fetch + analyze. | Post-PoC: reduce “human opens email” to “human reviews results” after automation has already fetched and run analysis. |
+
+## Suggested next steps (for implementation)
+
+1. **RP-first:** Implement “fetch launch by ID” using RP API + `.rp-api-key`; output Execution Envelope (or artifact layout) to a known path so `analyze` can run without manual download.
+2. **Document envelope from RP:** In `docs/execution-envelope.mdc` or a new doc, describe how an RP launch (items, logs, git metadata) maps to Execution Envelope fields so both “from file” and “from RP” paths are clear.
+3. **Optional:** Script to parse a saved email (e.g. .eml) and print RP launch ID, Jenkins URL, S3 URL for copy-paste or for use by `asterisk fetch`.
+4. **Later:** Jenkins API token + script or CLI to “fetch this pipeline build” into `archive/ci/<version>/<date>/` so manual download is only a fallback.

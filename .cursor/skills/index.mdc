@@ -1,0 +1,10 @@
+# .cursor/skills Index
+
+Project-specific skill definitions.
+
+## Files
+- `index.mdc` — index for this directory.
+- `bootstrap/` — skill folder containing `SKILL.md`.
+- `index-integrity/` — skill folder containing `SKILL.md`; scan and enforce index.mdc compliance.
+- `onboard/` — skill folder containing `SKILL.md`.
+- `survey/` — skill folder containing `SKILL.md`.

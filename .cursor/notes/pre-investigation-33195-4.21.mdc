@@ -1,0 +1,48 @@
+---
+description: Pre-investigation fetch for Launch 33195 (4.21) — curl + manual structuring
+---
+
+# Pre-investigation: Launch 33195 (4.21)
+
+Fetched from RP (Execution DB) with **curl only**; data structured manually. No code — raw API + hand-built envelope.
+
+## Launch identity
+
+- **Launch ID:** 33195  
+- **Project:** ecosystem-qe  
+- **Name:** telco-ft-ran-ptp-4.21  
+- **Number:** 13  
+- **Status:** FAILED  
+- **Instance:** https://your-reportportal.example.com  
+
+## Curl used
+
+- **Launch:**  
+  `GET {base}/api/v1/ecosystem-qe/launch/33195`  
+  Header: `Authorization: Bearer $(cat .rp-api-key)`
+
+- **Test items (by launch):**  
+  `GET {base}/api/v1/ecosystem-qe/item?filter.eq.launchId=33195&page.size=200&page.page=1`
+
+- **Failed items only:**  
+  `GET {base}/api/v1/ecosystem-qe/item?filter.eq.launchId=33195&filter.eq.status=FAILED&page.size=200&page.page=1`
+
+## Files (saved as examples)
+
+**Canonical copies:** `examples/pre-investigation-33195-4.21/` — see `docs/examples.mdc` and `examples/pre-investigation-33195-4.21/README.md`.
+
+| File | Description |
+|------|-------------|
+| `launch_33195_raw.json` | Raw launch response from RP. |
+| `items_33195_page1.json` | All test items for launch (page 1; 180 items). |
+| `items_33195_failed.json` | Failed test items only (12 items). |
+| **`envelope_33195_4.21.json`** | **Manually structured Execution Envelope + failure list** (run_id, name, status, times, statistics, attributes, git placeholder, failure_list with id/name/status/path per failed item). Use as fixture for tests. |
+
+## Envelope summary
+
+- **run_id:** 33195  
+- **failure_list:** 12 failed test items (e.g. [T-TSC] RAN PTP tests, [T-BC] RAN PTP tests, [BC-OC] RAN PTP tests, [OC2port] RAN PTP tests, plus leaf-level failures).  
+- **git:** not present in launch attributes; left null in envelope.  
+- **attributes:** spoke_ocp_version=4.21, ci-lane=telco-ft-ran-ptp, etc.
+
+Use `envelope_33195_4.21.json` as the input envelope for Investigation (failure list from RP → one investigation case per failure).

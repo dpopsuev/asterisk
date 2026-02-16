@@ -1,0 +1,65 @@
+---
+description: Portable meta-engineering rules for Cursor projects
+---
+
+# .cursor Meta Rules
+
+Purpose: portable structure rules to reuse across projects.
+
+This file is the binding structure contract. `.cursor/rules` must reference it.
+
+## Directory purposes
+- `rules/` — non-negotiable constraints and always-apply guidance.
+- `guide/` — software development workflows and process guidance.
+- `docs/` — deep library (long-form references and tomes).
+- `notes/` — short summaries and quick references.
+- `contracts/` — work contracts (session-independent execution plans with state, tasks, completion criteria).
+- `security-cases/` — security bug post-mortems (RCA, severity, OWASP category, mitigation).
+- `prompts/` — RCA prompt templates (file-based); **development** location — iterate here, then move to CLI prompt directory for shipment.
+- `strategy/` — long-term objectives and invariants.
+- `tactics/` — situational playbooks ("if X, do Y").
+- `taxonomy/` — naming and classification rules.
+- `glossary/` — domain terms and definitions.
+- `goals/` — goal checklist + per-goal detail files.
+- `skills/` — project-specific skill definitions.
+
+## Index rules
+- Every `.cursor` directory must contain a shallow `index.mdc`.
+- Indexes list only items directly inside their directory (no trees).
+- Always update the local `index.mdc` when files are added, removed, or renamed.
+- Index integrity is mandatory: any directory change without index update is incomplete.
+
+## Skill definitions (expected)
+- `bootstrap`: create/verify `.cursor/` structure; create missing dirs and index.mdc; never overwrite existing. No repo scan for domain knowledge.
+- `index-integrity`: scan `.cursor/`, validate index.mdc against filesystem, reconcile (add missing entries, remove stale, create absent indexes). Invoke after add/remove/rename under `.cursor/`.
+- `onboarding`: teach newcomers the repo purpose, architecture, build/test flows, and safe change zones.
+- `survey`: scan repo and spill key concepts into `.cursor`, with update mode based on git diffs.
+- Skills are stored under `.cursor/skills/<name>/SKILL.md` and `name` must match folder name.
+
+## File-System Context (FSC) pattern
+- Official name: **FSC (File-System Context)**.
+- FSC is the curated knowledge store under `.cursor/`.
+- FSC is organized by the directories defined above and indexed via shallow `index.mdc` files.
+- Enforcement lives in `.cursor/rules/fsc-structure.mdc`.
+
+## File extension policy
+- Use `.mdc` for Cursor rules or when frontmatter metadata is required.
+- Use `.md` for general notes and documents (better tool compatibility).
+
+## Workspace preference
+- **If possible, work within a Cursor workspace and git clone all relevant repositories.** This increases agent speed because: (1) local code is instantly readable and searchable — no network or API latency; (2) full codebase available for grep, semantic search, and cross-reference; (3) consistent paths and version pinning (e.g. locked API version); (4) no dependency on external services being up or rate limits. The workspace is the single source of truth; the agent reads from disk instead of guessing or waiting. See `.cursor/rules/workspace-context.mdc`.
+
+## Verification rule
+- For Cursor features (rules, skills, commands), verify against official Cursor docs before encoding structure or conventions.
+
+## Cursor update triggers (topic blocks)
+- For each delimited topic in a discussion, propose a save block with an ID.
+- Present the trigger as: **"Save Block {{ID}}"**.
+- For each block, list the target directories and reasons, e.g.:
+  - `docs/` — deep reference
+  - `notes/` — summary
+  - `strategy/` — invariant
+  - `tactics/` — playbook
+  - `goals/` — in-scope / out-of-scope notes
+  - `glossary/` — new terms
+- If the user says **"Save Block {{ID}}"**, add the block to the proposed directories.

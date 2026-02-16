@@ -1,0 +1,32 @@
+---
+description: Alignment between Asterik FSC and Kombucha compiler spec
+---
+
+# Kombucha Alignment
+
+Asterik FSC is aligned with the artifacts emitted by `.cursor/kombucha.mdc` (FSC compiler). Intentional differences are documented here.
+
+## Implemented (Kombucha-aligned)
+
+- **contracts/** — Work contracts with `_TEMPLATE.md`; session-independent execution plans. Rule: `.cursor/rules/work-contracts.mdc`.
+- **security-cases/** — Security post-mortems with `_TEMPLATE.md`; naming `SEC-{NNN}-{slug}.md`. Rule: `.cursor/rules/security-analysis.mdc`.
+- **rules/** — Added `work-contracts.mdc`, `security-analysis.mdc`, `save-triggers.mdc`.
+- **skills/index-integrity** — Scan and enforce `index.mdc` compliance; reconcile filesystem vs indexes.
+- **meta.mdc** — Directory purposes include `contracts/`, `security-cases/`; expected skills include `index-integrity`.
+
+## Intentional differences
+
+| Kombucha | Asterik | Reason |
+|----------|---------|--------|
+| `.index.mdc` (hidden) | `index.mdc` | Asterik uses visible `index.mdc` in every directory; index-integrity skill uses `index.mdc`. |
+| Test matrix in `rules/` | Test matrix in `guide/test-matrix.mdc` | Already in guide; kept for consistency with dev-flow and BDD. |
+| `guide/dev-flow.mdc` | `guide/dev-flow.md` | Asterik uses `.md` for dev-flow; same content. |
+| No goals/glossary/strategy/tactics/taxonomy | goals/, glossary/, strategy/, tactics/, taxonomy/ | Asterik extensions for product goals, domain terms, and playbooks; preserved. |
+
+## Save triggers
+
+`rules/save-triggers.mdc` includes Asterik-specific targets: `goals/`, `glossary/` in addition to docs, notes, contracts, security-cases, rules.
+
+## Bootstrap skill
+
+Asterik bootstrap (`.cursor/skills/bootstrap/SKILL.md`) should create `contracts/` and `security-cases/` when missing and create their `index.mdc`; never overwrite. Index-integrity is used to reconcile existing indexes.

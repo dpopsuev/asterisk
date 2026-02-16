@@ -1,0 +1,33 @@
+---
+description: PoC goal statement and success criteria (CLI-first)
+---
+
+# PoC — CLI
+
+## Goal statement
+Asterik PoC is a **standalone CLI** (**Go**) that works **only with `asterisk --cursor`**: Cursor is the model. Asterik acts as a prompt injector and conducts a dialog with Cursor, persisting investigation data to the Asterik DB. It consumes an Execution Envelope (launch) and a context workspace (config on FS), runs RCA analysis with one external context source, and writes an **artifact** to FS; a separate **push** command sends that artifact to RP when the user chooses. PoC interacts with ReportPortal via the **RP API** (client, not an RP plugin).
+
+## Scope (in)
+- **PoC = `asterisk --cursor` only.** No other invocation mode is in scope for PoC. Symbiotic flow: Asterik injects prompts, dialog with Cursor; cases, RCAs, assessment saved to Asterik DB.
+- **analyze** — Input: **RP launch by ID** (Execution DB; from-file envelope only for tests/fixture), context workspace (YAML/JSON/TOML on FS defining context sources). One external source (e.g. GitHub) for PoC. Output: **artifact on FS** (RCA message, convergence score, suggested defect type, evidence refs). No RP write during analyze.
+- **push** — Input: path to artifact (`push -f <path>`). Reads artifact and pushes defect type (and related fields) to RP. Explicit; no automatic push from analyze.
+- Pulling launches from RP (Execution DB) and pushing to RP are **manual** in PoC (user/agent invokes CLI).
+- Context Workspace = config on FS defining context sources; versionable, shareable.
+- **Prompts** — File-based prompt templates. During development: live in **`.cursor/prompts/`** (experiment, iterate in Cursor). When stable: move to the **CLI’s prompt directory** for shipment. Development loop: **red–green–blue** (experiment → observe results → iterate).
+- **First scenario:** PTP test cases CI — weekly flow (assessment → RCA → human review → Jira → report). See `notes/ci-analysis-flow.mdc` for current Cursor flow, contract of work, and limitations (repetition, human error, context loss, over-scoped vs repetitive scoping). PoC addresses these via templates, persisted artifacts, and scoped steps with orchestration.
+- **CLI data model:** Persistence via **storage adapter** (SQLite for now); one **investigation case** per failure per **investigation envelope**; hierarchy failure ⊂ job ⊂ pipeline; many cases can share one **RCA** (pattern/dedup); RCA stores optional Jira ticket ID + link. See `docs/cli-data-model.mdc`.
+
+## Out of scope (for PoC)
+- **`asterisk` without `--cursor`** (e.g. TUI with another model, or subcommands from shell only). PoC is Cursor-only.
+- Standalone service (MVP).
+- RP adapter / automatic fetch from RP (manual fetch by launch ID).
+- Multi-round carousel; full UI parity with RP.
+
+## Success criteria
+- CLI: `analyze` and `push -f` implemented; artifact format stable.
+- At least one real launch (envelope) + one context workspace processed end-to-end.
+- Artifact contains RCA message, convergence score, suggested defect type, evidence refs.
+- Push to RP via `push -f` when user/agent decides; convergence score in artifact guides decision.
+
+## Next (MVP)
+Standalone CLI may evolve into a side-car service (Go); CLI becomes thin client. RP API client for fetch/write; same commands, execution optionally on server.

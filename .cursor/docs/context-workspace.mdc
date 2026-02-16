@@ -1,0 +1,90 @@
+---
+description: Context Workspace data structure (key-value, repo pointers)
+---
+
+# Context Workspace — Data Structure
+
+## Purpose
+
+The context workspace is a **key-value–style config on FS** that lists which git repositories to use as context sources for a single analysis round. It points to **local paths or remote git URLs**; branch/ref is normally taken from the **Execution Envelope** (see execution-envelope: vital git metadata), with optional per-repo override.
+
+Unlike Cursor/VS Code workspace files (which are just links to local directories), the **context workspace carries agentic meta**: each repo can have a **purpose** (or role) that explains its role in RCA. That meta lives **in the workspace file, separate from prompts** — so prompts stay about the flow (assessment, RCA, review); the workspace tells the agent *what each path is for* (e.g. test code, SUT product, CI config).
+
+## Design goals
+
+- Simple, scannable format (like Cursor/VS Code workspace files).
+- **Paths + agentic meta** — purpose/role per repo so the agent knows how to use it in RCA; meta lives in the workspace, not inside prompt templates.
+- Pointers: local path or remote URL; no mandatory branch in the file.
+- Optional per-repo override for branch/ref when the envelope default is not appropriate (e.g. shared lib always on `main`).
+
+## Example: cursor-workspace–like shape
+
+Reference: `~/Workspace/cursor-workspaces/*.code-workspace` — JSON with a `folders` array of `path` entries. The context workspace can follow the same idea for repos.
+
+### Minimal (array of repo pointers)
+
+```json
+{
+  "repos": [
+    { "path": "/abs/or/relative/path/to/repo" },
+    { "url": "https://github.com/org/repo.git" }
+  ]
+}
+```
+
+### With optional names and branch override
+
+```json
+{
+  "repos": [
+    { "name": "backend", "path": "../../Repositories/my-backend" },
+    { "name": "frontend", "url": "https://github.com/org/frontend.git" },
+    { "name": "shared-lib", "path": "../../Repositories/shared", "branch": "main" }
+  ]
+}
+```
+
+- **`path`** — local filesystem path (absolute or relative to the workspace file).
+- **`url`** — remote git URL (clone/fetch used at analyze time if not already present).
+- **`name`** (optional) — logical key for this repo in the workspace.
+- **`purpose`** (optional but recommended) — **agentic meta**: short description of this repo's role in RCA (e.g. test code, SUT component, CI config). Lives in the workspace file, **separate from prompt templates**.
+- **`branch`** (optional) — override: use this ref for this repo instead of envelope git metadata. Omit to use envelope’s branch/commit.
+
+### Example with purpose (PTP CI)
+
+```json
+{
+  "repos": [
+    { "name": "tests", "path": "../../cnf-gotests", "purpose": "PTP test cases (Ginkgo); test code and assertions" },
+    { "name": "ptp-operator", "path": "../../ptp-operator", "purpose": "SUT: lifecycle and meta-configurations" },
+    { "name": "linuxptp-daemon", "path": "../../linuxptp-daemon", "purpose": "SUT: PTP domain operations on the node" },
+    { "name": "ci", "path": "../../ocp-edge-ci", "purpose": "CI that ran the suite; profiles and job definitions" }
+  ]
+}
+```
+
+### Key-value variant
+
+```json
+{
+  "repos": {
+    "backend": "/path/to/backend",
+    "frontend": "https://github.com/org/frontend.git",
+    "shared-lib": { "path": "/path/to/shared", "branch": "main" }
+  }
+}
+```
+
+String value = path or URL (no override). Object value = path/url plus optional `branch` and `purpose`.
+
+## Format
+
+- Supported formats: **YAML**, **JSON** (TOML optional for PoC). Same semantics as above. Load via `workspace.LoadFromPath(path)`; format detected by extension (`.yaml`/`.yml`/`.json`) or content.
+- Versionable and shareable (e.g. in repo or shared drive).
+- Go type: `asterisk/internal/workspace.Workspace` with `Repos []Repo`; each `Repo` has `Path`, `URL`, `Name`, `Purpose`, `Branch`.
+
+## Resolving ref per repo
+
+- If **envelope** has `git.commit`: use that commit for the repo when it matches (e.g. by `git.remote` / repo URL). Else use `git.branch`.
+- If **context workspace** entry has `branch` (or equivalent) override: use that ref for that repo.
+- Otherwise: use envelope’s branch (or commit) for all repos. Envelope is the source of truth so that the correct branch is used without tedious human intervention.

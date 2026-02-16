@@ -1,0 +1,12 @@
+# .cursor/prompts Index
+
+RCA prompt templates (file-based). **Development location** — experiment here; when stable, move to the CLI’s prompt directory.
+
+## Directories
+
+(Add per-scenario subdirs, e.g. `ptp-ci/` for PTP test cases CI.)
+
+## Files
+- `index.mdc` — index for this directory.
+
+See `docs/prompts.mdc` for locations (dev vs CLI), red–green–blue iteration, and structure.
