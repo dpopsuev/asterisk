@@ -1,24 +1,33 @@
 # Asterisk — build, test, run
 # See .cursor/rules/go-testing.mdc for Ginkgo usage.
 
-.PHONY: build test test-ginkgo test-ginkgo-wiring run clean install help
+.PHONY: build build-all test test-ginkgo test-ginkgo-wiring run clean install help
 
-BINARY_NAME := run-mock-flow
-CMD_PATH    := ./cmd/run-mock-flow
+BIN_DIR     := bin
+CMD_ASTERISK := ./cmd/asterisk
+CMD_MOCK     := ./cmd/run-mock-flow
 
 # Default target
 help:
 	@echo "Targets:"
-	@echo "  make build            - build $(BINARY_NAME)"
+	@echo "  make build            - build asterisk CLI to $(BIN_DIR)/"
+	@echo "  make build-all        - build all binaries to $(BIN_DIR)/"
 	@echo "  make test             - run all tests (go test)"
 	@echo "  make test-ginkgo      - run all suites with Ginkgo binary (-r)"
 	@echo "  make test-ginkgo-wiring - run only wiring Ginkgo suite"
-	@echo "  make run              - run $(BINARY_NAME) with default args"
-	@echo "  make clean            - remove built binary"
-	@echo "  make install          - install $(BINARY_NAME) to GOPATH/bin"
+	@echo "  make run              - build and run asterisk with default args"
+	@echo "  make clean            - remove $(BIN_DIR)/"
+	@echo "  make install          - install asterisk to GOPATH/bin"
 
-build:
-	go build -o $(BINARY_NAME) $(CMD_PATH)
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
+
+build: $(BIN_DIR)
+	go build -o $(BIN_DIR)/asterisk $(CMD_ASTERISK)
+
+build-all: $(BIN_DIR)
+	go build -o $(BIN_DIR)/asterisk $(CMD_ASTERISK)
+	go build -o $(BIN_DIR)/run-mock-flow $(CMD_MOCK)
 
 test:
 	go test ./...
@@ -28,13 +37,13 @@ test-ginkgo:
 	go run github.com/onsi/ginkgo/v2/ginkgo -r
 
 run: build
-	./$(BINARY_NAME) -launch 33195 -artifact /tmp/asterisk-artifact.json
+	./$(BIN_DIR)/asterisk analyze -launch 33195 -o /tmp/asterisk-artifact.json
 
 clean:
-	rm -f $(BINARY_NAME)
+	rm -rf $(BIN_DIR)
 
 install:
-	go install $(CMD_PATH)
+	go install $(CMD_ASTERISK)
 
 # Optional: run only wiring Ginkgo suite (no stdlib tests)
 test-ginkgo-wiring:

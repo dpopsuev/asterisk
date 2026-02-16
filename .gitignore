@@ -6,9 +6,8 @@
 .dev/*
 !.dev/README.md
 
-# Binaries / build
-/asterik
-/run-mock-flow
+# Binaries / build output
+/bin/
 /dist/
 *.exe
 *.exe~
@@ -17,7 +16,7 @@
 *.dylib
 
 # Local runtime directory
-.asterik/
+.asterisk/
 
 # Go
 *.test
