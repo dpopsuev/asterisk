@@ -16,6 +16,7 @@ type MemStore struct {
 	casesBy   map[int][]int64 // launchID -> case IDs
 	rcas      map[int64]*RCA
 	envelopes map[int]*preinvest.Envelope
+	v2data    *memStoreV2 // lazy-initialized v2 entity storage
 }
 
 // NewMemStore returns a new in-memory Store.
@@ -34,7 +35,7 @@ func (s *MemStore) CreateCase(launchID, itemID int) (int64, error) {
 	defer s.mu.Unlock()
 	s.nextCase++
 	id := s.nextCase
-	c := &Case{ID: id, LaunchID: launchID, ItemID: itemID, RCAID: 0}
+	c := &Case{ID: id, LaunchID: int64(launchID), RPItemID: itemID, RCAID: 0}
 	s.cases[id] = c
 	s.casesBy[launchID] = append(s.casesBy[launchID], id)
 	return id, nil
@@ -89,12 +90,17 @@ func (s *MemStore) SaveRCA(rca *RCA) (int64, error) {
 	return id, nil
 }
 
-// LinkCaseToRCA implements Store.
+// LinkCaseToRCA implements Store. Updates both v1 and v2 case maps.
 func (s *MemStore) LinkCaseToRCA(caseID, rcaID int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if c, ok := s.cases[caseID]; ok {
 		c.RCAID = rcaID
+	}
+	if s.v2data != nil {
+		if c, ok := s.v2data.casesV2[caseID]; ok {
+			c.RCAID = rcaID
+		}
 	}
 	return nil
 }

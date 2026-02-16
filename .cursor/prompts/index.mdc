@@ -1,12 +1,27 @@
 # .cursor/prompts Index
 
-RCA prompt templates (file-based). **Development location** — experiment here; when stable, move to the CLI’s prompt directory.
+RCA prompt templates (file-based, Go `text/template`). **Development location** — experiment here; when stable, move to the CLI's prompt directory.
 
 ## Directories
-
-(Add per-scenario subdirs, e.g. `ptp-ci/` for PTP test cases CI.)
+- `recall/` — F0 Recall templates (symptom fingerprint matching + similarity judge).
+- `triage/` — F1 Triage templates (symptom classification from error output).
+- `resolve/` — F2 Resolve templates (repo selection and scoping).
+- `investigate/` — F3 Investigate templates (deep repo-level RCA).
+- `correlate/` — F4 Correlate templates (cross-case pattern detection).
+- `review/` — F5 Review templates (human gate: approve / reassess / overturn).
+- `report/` — F6 Report templates (Jira draft + regression table).
 
 ## Files
-- `index.mdc` — index for this directory.
+- `index.mdc` — this index.
+- `rca.md` — legacy single-shot RCA prompt (v1, kept for reference).
+- `recall/judge-similarity.md` — F0: judge similarity against prior symptoms/RCAs.
+- `triage/classify-symptoms.md` — F1: classify failure symptom from error output.
+- `resolve/select-repo.md` — F2: select repos and narrow focus paths.
+- `investigate/deep-rca.md` — F3: deep root-cause analysis in selected repos.
+- `correlate/match-cases.md` — F4: match cases across launches/suites.
+- `review/present-findings.md` — F5: present findings for human review.
+- `report/regression-table.md` — F6: generate Jira draft + regression summary.
 
-See `docs/prompts.mdc` for locations (dev vs CLI), red–green–blue iteration, and structure.
+See `docs/prompts.mdc` for locations (dev vs CLI), red-green-blue iteration, and structure.
+See `contracts/prompt-families.md` for the family taxonomy, pipelines, and routing heuristics.
+See `contracts/prompt-orchestrator.md` for the orchestrator engine implementation contract.

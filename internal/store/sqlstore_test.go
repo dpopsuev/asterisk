@@ -54,8 +54,11 @@ func TestSqlStore_Integration(t *testing.T) {
 		t.Errorf("ListCasesByLaunch: want 2, got %d", len(list))
 	}
 	c, err := s.GetCase(id1)
-	if err != nil || c == nil || c.LaunchID != 33195 || c.ItemID != 1 {
+	if err != nil || c == nil || c.RPItemID != 1 || c.LaunchID == 0 {
 		t.Errorf("GetCase: got %+v err %v", c, err)
+	}
+	if c.Status != "open" {
+		t.Errorf("GetCase status: got %q want %q", c.Status, "open")
 	}
 
 	// RCA
