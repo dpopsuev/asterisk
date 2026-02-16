@@ -51,7 +51,31 @@ Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orc
 |----------|------|------------|
 | `storage-adapter-v2.md` | Migrate Store interface and SQLite schema from v1 (flat) to v2 (two-tier: execution tree + symptoms + RCAs). **Complete.** | storage-adapter (v1 complete), investigation-context (design) |
 | `prompt-orchestrator.md` | Implement F0–F6 pipeline engine: heuristic engine, artifact I/O, per-case state, template filler, pipeline runner, CLI integration. **Complete.** | storage-adapter-v2, prompt-families (design), prompts, cursor-handoff |
-| `e2e-calibration.md` | Closed-world E2E test: synthetic ground truth (known RCAs/symptoms/failures), fake RP API, synthetic workspace (5 repos incl. red herring), blindfolded investigation, 20 instrumented metrics with pass/fail thresholds. | storage-adapter-v2, prompt-orchestrator |
+| `e2e-calibration.md` | Closed-world E2E test: 20 instrumented metrics. **Mock A (ptp-mock 12 cases): 20/20. Mock B (daemon-mock 8 cases): 20/20. Real (ptp-real 8 cases): 20/20. All stub-passing.** | storage-adapter-v2, prompt-orchestrator |
+
+## RP adapter v2 (quality upgrade)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `rp-adapter-v2.md` | Unify `rpfetch` + `rppush` into single `internal/rp` package. Scope-based client (`Client → ProjectScope → LaunchScope → ItemScope`), functional options, `APIError` type with predicates, `context.Context`, structured logging, enriched `FailureItem`, bulk defect update. Patterns adapted from `report-portal-cli` (read-only reference, no module dependency). | rp-fetch (complete), rp-push (complete), rp-api-completion (complete) |
+
+## Dispatcher (transport layer)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `fs-dispatcher.md` | Extract `Dispatcher` interface (Strategy pattern) from `CursorAdapter`; implement `StdinDispatcher` (current stdin) + `FileDispatcher` (signal file polling for auto-mode); wire `--dispatch` CLI flag. Future: HTTP, MCP, Harness dispatchers via same interface. | e2e-calibration (CursorAdapter exists), prompt-orchestrator |
+
+## Cursor skill (agent-side integration)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `cursor-skill.md` | Create `.cursor/skills/asterisk-investigate/` — Cursor agent skill that responds to FileDispatcher signal files, reads prompts, produces F0–F6 JSON artifacts, and writes them back. Dual mode: calibration (blind, scored against ground truth) and investigation (free, real analysis). 4 files: SKILL.md, signal-protocol.md, artifact-schemas.md, examples.md. | fs-dispatcher (signal protocol), e2e-calibration (scoring), prompt-orchestrator (pipeline/schemas) |
+
+## Calibration victory (wet calibration)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `wet-calibration.md` | Formalize dry/wet calibration taxonomy, 28 per-case Test Cards across 3 scenarios, and an iterative "victory loop" (run wet → diagnose → tune → dry check → repeat) until all scenarios pass 20/20 metrics with `--adapter=cursor`. | fs-dispatcher (auto dispatch), cursor-skill (agent responds to signals), e2e-calibration (dry baseline) |
 
 ## Directories
 
@@ -79,3 +103,7 @@ Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orc
 - `storage-adapter-v2.md` — **Storage adapter v2:** Migrate Store to two-tier schema (investigation tree + symptoms + RCAs); v1→v2 migration; expanded CRUD.
 - `prompt-orchestrator.md` — **Prompt orchestrator:** F0–F6 pipeline engine; heuristic engine, artifact I/O, per-case state, template filler, CLI integration.
 - `e2e-calibration.md` — **E2E calibration test:** closed-world scenario with synthetic ground truth, fake RP API, synthetic workspace (5 repos + red herring), blindfolded investigation, 20 metrics (structured, workspace, evidence, semantic, pipeline, aggregate), stub + cursor adapters.
+- `fs-dispatcher.md` — **FS Dispatcher:** Strategy-pattern transport layer for CursorAdapter; StdinDispatcher (extract current interactive), FileDispatcher (auto signal-file polling); `--dispatch` CLI flag; extensible to HTTP/MCP/Harness.
+- `rp-adapter-v2.md` — **RP adapter v2:** Unify rpfetch + rppush into `internal/rp`; scope-based client, functional options, APIError + predicates, context.Context, enriched FailureItem, bulk defect update. Patterns from `report-portal-cli` (read-only reference).
+- `cursor-skill.md` — **Cursor skill:** `asterisk-investigate` agent skill; responds to FileDispatcher signals, reads F0–F6 prompts, produces structured JSON artifacts; calibration (blind) and investigation (free) modes; 4 files (SKILL.md, signal-protocol, artifact-schemas, examples).
+- `wet-calibration.md` — **Wet calibration victory:** Dry/wet taxonomy, 28 Test Cards (ptp-mock 12 + daemon-mock 8 + ptp-real 8), victory loop (run wet → diagnose → tune → dry check → repeat), iteration log. Target: all 3 scenarios 20/20 with `--adapter=cursor --dispatch=file`.

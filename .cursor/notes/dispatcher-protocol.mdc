@@ -1,0 +1,188 @@
+---
+description: Signal file protocol for FileDispatcher — how external agents interact with the calibration/investigation pipeline via signal.json
+---
+
+# Dispatcher Protocol — signal.json
+
+## Overview
+
+The FileDispatcher communicates with external agents (Cursor skill, harness, scripts) via a `signal.json` file. The Go process writes the signal; the external agent reads it, produces an artifact, and writes the artifact to disk. The Go process detects the artifact and continues.
+
+## Fail-fast mechanisms
+
+The protocol is designed to avoid unnecessary timeouts:
+
+1. **`dispatch_id` (monotonic)** — Each signal carries a unique `dispatch_id`. The agent **must** echo it in the artifact wrapper. Artifacts with a mismatched `dispatch_id` are silently ignored as stale. This eliminates race conditions without timing fences.
+2. **Responder error propagation** — If the responder encounters an error (e.g. cannot read the prompt), it writes `status: "error"` back to `signal.json` with the same `dispatch_id`. The dispatcher detects this on the next poll and fails immediately instead of waiting for timeout.
+3. **Invalid JSON** — If the artifact file exists but contains invalid JSON after two read attempts, the dispatcher fails immediately.
+
+## signal.json schema
+
+```json
+{
+  "status": "waiting",
+  "dispatch_id": 1,
+  "case_id": "C1",
+  "step": "F0_RECALL",
+  "prompt_path": "/abs/path/to/prompt-recall.md",
+  "artifact_path": "/abs/path/to/recall-result.json",
+  "timestamp": "2026-02-16T12:00:00Z",
+  "error": ""
+}
+```
+
+### Fields
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `status` | string | Current state: `waiting`, `processing`, `done`, `error` |
+| `dispatch_id` | int64 | Monotonic ID — agent must echo this in the artifact wrapper |
+| `case_id` | string | Ground-truth case ID (e.g. "C1") |
+| `step` | string | Pipeline step (e.g. "F0_RECALL", "F1_TRIAGE") |
+| `prompt_path` | string | Absolute path to the filled prompt file (markdown) |
+| `artifact_path` | string | Absolute path where the agent must write the JSON artifact |
+| `timestamp` | string | ISO 8601 timestamp of when the signal was created |
+| `error` | string | Error message (only present when `status` is `error`) |
+
+### Status transitions
+
+```
+waiting → processing → done
+waiting → error (timeout, invalid artifact, or responder-reported error)
+```
+
+- **waiting**: Go process has written the signal and is polling for the artifact.
+- **processing**: Go process has found and validated the artifact; evaluating.
+- **done**: Go process has finished processing; ready for next step.
+- **error**: Something went wrong (timeout, invalid JSON, responder error, etc.).
+
+## Artifact wrapper
+
+The artifact file **must** be a JSON object with the `dispatch_id` echoed from the signal and the actual step payload under `data`:
+
+```json
+{
+  "dispatch_id": 1,
+  "data": {
+    "match": true,
+    "confidence": 0.95,
+    "reasoning": "..."
+  }
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `dispatch_id` | int64 | Must match the `dispatch_id` from the current `signal.json` |
+| `data` | object | The actual step artifact (schema depends on the pipeline step) |
+
+If `dispatch_id` does not match, the dispatcher treats the artifact as stale and continues polling. This means leftover artifacts from previous steps are harmlessly ignored.
+
+## Agent-side contract
+
+When `status` is `waiting`:
+
+1. Read `dispatch_id` and `prompt_path` from signal.json.
+2. Open and read the prompt file (markdown with all context).
+3. Analyze the failure data provided in the prompt.
+4. Produce the appropriate JSON artifact for the pipeline step.
+5. **Wrap it**: `{"dispatch_id": <from signal>, "data": <your artifact>}`.
+6. Write the wrapped JSON to `artifact_path` from signal.json.
+7. (The Go process detects the artifact file automatically — no need to update signal.json.)
+
+### Error reporting
+
+If the agent encounters an error (e.g. cannot read the prompt, internal failure), it should update `signal.json` directly:
+
+```json
+{
+  "status": "error",
+  "dispatch_id": 1,
+  "error": "description of what went wrong",
+  ...other fields unchanged...
+}
+```
+
+The dispatcher will detect this and fail fast.
+
+### Watcher loop (pseudocode)
+
+```
+while true:
+    signal = read("signal.json")
+    if signal.status == "waiting":
+        prompt = read(signal.prompt_path)
+        if error reading prompt:
+            signal.status = "error"
+            signal.error = "cannot read prompt"
+            write("signal.json", signal)
+            continue
+        artifact = analyze(prompt, signal.step)
+        wrapped = {"dispatch_id": signal.dispatch_id, "data": artifact}
+        write(signal.artifact_path, wrapped)
+    sleep(poll_interval)
+```
+
+## Signal file location
+
+The signal.json is written to the artifact directory for the current case:
+
+```
+.asterisk/calibrate/{suiteID}/{caseID}/signal.json
+```
+
+Or to a custom `SignalDir` if configured.
+
+## Artifact filenames by step
+
+| Step | Artifact filename |
+|------|------------------|
+| F0 Recall | `recall-result.json` |
+| F1 Triage | `triage-result.json` |
+| F2 Resolve | `resolve-result.json` |
+| F3 Investigate | `artifact.json` |
+| F4 Correlate | `correlate-result.json` |
+| F5 Review | `review-decision.json` |
+| F6 Report | `jira-draft.json` |
+
+## CLI usage
+
+```bash
+# Interactive (default) — stdin dispatcher
+asterisk calibrate --scenario=ptp-mock --adapter=cursor --dispatch=stdin
+
+# Automated — file dispatcher with signal polling
+asterisk calibrate --scenario=ptp-mock --adapter=cursor --dispatch=file
+```
+
+## Timeouts
+
+- Default poll interval: 500ms
+- Default timeout: 10 minutes
+- On timeout: signal.json updated to `status: "error"` with error message
+
+## Debugging
+
+Use `--agent-debug` to enable structured debug logging to stderr. This traces every filesystem operation in the dispatcher (signal writes, artifact polls, dispatch_id matching, MarkDone transitions).
+
+```bash
+# Debug mode — traces all dispatcher I/O to stderr
+asterisk calibrate --scenario=ptp-mock --adapter=cursor --dispatch=file --agent-debug
+
+# Combine with the signal-responder's --debug flag for full bidirectional trace
+signal-responder --debug .asterisk/calibrate
+```
+
+Debug output includes:
+- Signal file writes with status transitions and dispatch_id
+- Dispatch_id mismatch rejection (stale artifact detection)
+- Responder error detection via signal.json
+- Poll counts and artifact discovery timing
+- JSON validation results
+- MarkDone transitions
+
+## Implementation
+
+- Go side: `internal/calibrate/dispatcher.go` — `FileDispatcher`, `StdinDispatcher`, `artifactWrapper`
+- Agent side: `.cursor/skills/asterisk-investigate/` — Cursor agent skill
+- Test responder: `cmd/signal-responder/` — auto-responder for wet calibration

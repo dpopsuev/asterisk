@@ -1,6 +1,6 @@
 # Contract — E2E Calibration Test
 
-**Status:** draft  
+**Status:** active (mock A + mock B + real scenario complete; stub 20/20 all three)  
 **Goal:** Build two calibration modes — **mock** (synthetic closed-world) and **real** (actual Jira bugs + RP launches + local repos) — run the full investigation pipeline blindfolded (`--agent --dev-calibrate`), and measure how closely the agent's conclusions match the known answers — with instrumented metrics that produce numeric pass/fail signals from natural language outputs.
 
 ## Contract rules
@@ -582,6 +582,8 @@ Report saved to `.asterisk/calibration/{scenario}/{timestamp}/report.txt` and `m
 
 (Running log, newest first. YYYY-MM-DD HH:MM — decision or finding.)
 
+- 2026-02-16 17:00 — Mock scenario B (daemon-mock) implemented: 8 cases, 2 RCAs (broken pipe + config hang), 3 symptoms. Exercises PANIC vs FAIL, AfterEach, BeforeEach cascade (3 tests at same file:line), node reboot vs interface down. Stub 20/20. Real scenario (ptp-real) implemented: 8 cases from OCPBUGS-74895/74904 ground truth, 3 symptoms, 2 RCAs (linked duplicates). Real test names, error messages, file:line refs. Stub 20/20. Tests: TestStubCalibration_DaemonMock, TestStubCalibration_PTPReal. CLI now accepts --scenario={ptp-mock,daemon-mock,ptp-real}.
+- 2026-02-16 16:35 — Mock scenario A (Scenario A) implemented and validated: 12 cases, 4 symptoms, 3 RCAs, 20 metrics, stub adapter passes 20/20 metrics. Package: `internal/calibrate/` (types, adapter, runner, metrics, report), `internal/calibrate/scenarios/ptp_mock.go`, CLI subcommand `asterisk calibrate`. Tests: `TestStubCalibration_AllMetricsPass`, `TestStubCalibration_MultiRun`, `TestFormatReport`, `TestScenarioCoverage`. InvestigateArtifact now includes Component field, propagated to RCA on creation.
 - 2026-02-17 04:00 — Added real calibration scenario (Section 1B): OCPBUGS-74895 (broken pipe) + OCPBUGS-74904 (config change hang), 8 real failures, 3 symptoms, 2 RCAs (duplicate/same root cause). RP launches 32764, 32719. Real context workspace: 5 local repos (cnf-gotests, ptp-operator, linuxptp-daemon, cloud-event-proxy, eco-gotests) from ~/Workspace/. Added investigation context directory concept (.asterisk/context/repos/) for offline investigation — clone/pull at setup, pin versions, don't modify originals. Added RP data caching (fetch once, cache locally). Two calibration modes: `ptp-mock` (synthetic) and `ptp-real` (actual data).
 - 2026-02-17 03:30 — Added synthetic context workspace: 5 repos (3 relevant, 1 red herring, 1 tangential) with purpose metadata. Added workspace/repo selection metrics (M9–M11): precision, recall, red herring rejection. Added synthetic repo setup helper (programmatic git init + planted commits). Total: 20 metrics across 6 categories.
 - 2026-02-17 03:00 — Contract created. Closed-world E2E calibration: 12 synthetic cases across 3 versions, 4 symptoms, 3 RCAs. Fake RP API + synthetic git repos. Stub adapter for deterministic testing; cursor adapter for prompt calibration. Calibration report with per-case breakdown and pass/fail thresholds.

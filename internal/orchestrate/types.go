@@ -122,6 +122,7 @@ type InvestigateArtifact struct {
 	CaseIDs          []int    `json:"case_ids"`
 	RCAMessage       string   `json:"rca_message"`
 	DefectType       string   `json:"defect_type"`
+	Component        string   `json:"component,omitempty"`
 	ConvergenceScore float64  `json:"convergence_score"`
 	EvidenceRefs     []string `json:"evidence_refs"`
 }

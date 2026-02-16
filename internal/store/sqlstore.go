@@ -33,9 +33,6 @@ func nullFloat(nf sql.NullFloat64) float64 {
 	return 0
 }
 
-// currentSchemaVersion is the target schema version for this build.
-const currentSchemaVersion = schemaVersionV2
-
 // SqlStore implements Store with SQLite.
 type SqlStore struct {
 	db *sql.DB

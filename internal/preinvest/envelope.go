@@ -17,4 +17,11 @@ type FailureItem struct {
 	Type   string `json:"type"`
 	Status string `json:"status"`
 	Path   string `json:"path"`
+
+	// Enriched fields (populated by rp.FetchEnvelope from TestItemResource).
+	CodeRef      string `json:"code_ref,omitempty"`
+	Description  string `json:"description,omitempty"`
+	ParentID     int    `json:"parent_id,omitempty"`
+	IssueType    string `json:"issue_type,omitempty"`
+	IssueComment string `json:"issue_comment,omitempty"`
 }

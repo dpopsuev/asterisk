@@ -16,12 +16,15 @@ import (
 	"os"
 	"strconv"
 
+	"log/slog"
+
+	"asterisk/internal/calibrate"
+	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/investigate"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/postinvest"
 	"asterisk/internal/preinvest"
-	"asterisk/internal/rpfetch"
-	"asterisk/internal/rppush"
+	"asterisk/internal/rp"
 	"asterisk/internal/store"
 	"asterisk/internal/workspace"
 )
@@ -44,6 +47,8 @@ func main() {
 		runSave(args)
 	case "status":
 		runStatus(args)
+	case "calibrate":
+		runCalibrate(args)
 	default:
 		printUsage()
 		os.Exit(1)
@@ -51,12 +56,13 @@ func main() {
 }
 
 func printUsage() {
-	fmt.Fprintf(os.Stderr, "usage: asterisk <analyze|push|cursor|save|status> [options]\n")
-	fmt.Fprintf(os.Stderr, "  asterisk analyze  --launch=<path|id> [--workspace=<path>] -o <artifact>\n")
-	fmt.Fprintf(os.Stderr, "  asterisk push     -f <artifact-path>\n")
-	fmt.Fprintf(os.Stderr, "  asterisk cursor   --launch=<path|id> [--workspace=<path>] [--case-id=<id>]\n")
-	fmt.Fprintf(os.Stderr, "  asterisk save     -f <artifact-path> --case-id=<id> --suite-id=<id>\n")
-	fmt.Fprintf(os.Stderr, "  asterisk status   --case-id=<id> --suite-id=<id>\n")
+	fmt.Fprintf(os.Stderr, "usage: asterisk <analyze|push|cursor|save|status|calibrate> [options]\n")
+	fmt.Fprintf(os.Stderr, "  asterisk analyze    --launch=<path|id> [--workspace=<path>] [--adapter=basic] -o <artifact>\n")
+	fmt.Fprintf(os.Stderr, "  asterisk push       -f <artifact-path>\n")
+	fmt.Fprintf(os.Stderr, "  asterisk cursor     --launch=<path|id> [--workspace=<path>] [--case-id=<id>]\n")
+	fmt.Fprintf(os.Stderr, "  asterisk save       -f <artifact-path> --case-id=<id> --suite-id=<id>\n")
+	fmt.Fprintf(os.Stderr, "  asterisk status     --case-id=<id> --suite-id=<id>\n")
+	fmt.Fprintf(os.Stderr, "  asterisk calibrate  --scenario=<name> [--runs=N] [--adapter=stub|cursor] [--dispatch=stdin|file] [--agent-debug]\n")
 }
 
 func runAnalyze(args []string) {
@@ -65,6 +71,7 @@ func runAnalyze(args []string) {
 	workspacePath := fs.String("workspace", "", "Path to context workspace file (YAML/JSON)")
 	artifactPath := fs.String("o", "", "Output artifact path (required)")
 	dbPath := fs.String("db", store.DefaultDBPath, "Store DB path")
+	adapterName := fs.String("adapter", "basic", "Adapter: basic (heuristic, default)")
 	rpBase := fs.String("rp-base-url", "", "RP base URL (optional; for fetch by launch ID)")
 	rpKeyPath := fs.String("rp-api-key", ".rp-api-key", "Path to RP API key file")
 	_ = fs.Parse(args)
@@ -74,75 +81,186 @@ func runAnalyze(args []string) {
 		os.Exit(1)
 	}
 
-	// Resolve envelope source and launch ID
-	var envSrc investigate.EnvelopeSource
-	var launchID int
-	if _, err := os.Stat(*launch); err == nil {
-		// Treat as file path
-		data, err := os.ReadFile(*launch)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "read envelope: %v\n", err)
-			os.Exit(1)
-		}
-		var env preinvest.Envelope
-		if err := json.Unmarshal(data, &env); err != nil {
-			fmt.Fprintf(os.Stderr, "parse envelope: %v\n", err)
-			os.Exit(1)
-		}
-		launchID, _ = strconv.Atoi(env.RunID)
-		if launchID == 0 {
-			launchID = 1
-		}
-		envSrc = &singleEnvelopeSource{env: &env, launchID: launchID}
-	} else {
-		// Treat as launch ID; need store and optionally fetch from RP
-		var err error
-		launchID, err = strconv.Atoi(*launch)
-		if err != nil || launchID <= 0 {
-			fmt.Fprintf(os.Stderr, "launch must be path to envelope JSON or positive launch ID\n")
-			os.Exit(1)
-		}
-		st, err := store.Open(*dbPath)
-		if err != nil {
-			fmt.Fprintf(os.Stderr, "open store: %v\n", err)
-			os.Exit(1)
-		}
-		defer st.Close()
-		adapter := &store.PreinvestStoreAdapter{Store: st}
-		env, _ := adapter.Get(launchID)
-		if env == nil && *rpBase != "" {
-			key, _ := rpfetch.ReadAPIKey(*rpKeyPath)
-			client := rpfetch.NewClient(rpfetch.Config{BaseURL: *rpBase, APIKey: key, Project: "ecosystem-qe"})
-			fetcher := rpfetch.NewFetcher(client)
-			if err := preinvest.FetchAndSave(fetcher, adapter, launchID); err != nil {
-				fmt.Fprintf(os.Stderr, "fetch: %v\n", err)
-				os.Exit(1)
-			}
-			env, _ = adapter.Get(launchID)
-		}
-		if env == nil {
-			fmt.Fprintf(os.Stderr, "no envelope for launch %d (fetch from RP with --rp-base-url or provide envelope file)\n", launchID)
-			os.Exit(1)
-		}
-		envSrc = adapter
+	// Load envelope
+	env := loadEnvelopeForAnalyze(*launch, *dbPath, *rpBase, *rpKeyPath)
+	if env == nil {
+		fmt.Fprintf(os.Stderr, "could not load envelope for launch %q\n", *launch)
+		os.Exit(1)
+	}
+	if len(env.FailureList) == 0 {
+		fmt.Fprintf(os.Stderr, "envelope has no failures\n")
+		os.Exit(1)
 	}
 
+	// Open store for v2 pipeline
+	st, err := store.Open(*dbPath)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "open store: %v\n", err)
+		os.Exit(1)
+	}
+	defer st.Close()
+
 	// Load workspace
-	var ws *workspace.Workspace
+	var repoNames []string
 	if *workspacePath != "" {
-		w, err := workspace.LoadFromPath(*workspacePath)
+		ws, err := workspace.LoadFromPath(*workspacePath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "load workspace: %v\n", err)
 			os.Exit(1)
 		}
-		ws = w
+		for _, r := range ws.Repos {
+			repoNames = append(repoNames, r.Name)
+		}
 	}
 
-	if err := investigate.AnalyzeWithWorkspace(envSrc, launchID, *artifactPath, ws); err != nil {
+	// Create v2 store scaffolding for all failures
+	suiteID, cases := createAnalysisScaffolding(st, env)
+
+	// Create adapter
+	var adapter calibrate.ModelAdapter
+	switch *adapterName {
+	case "basic":
+		ba := calibrate.NewBasicAdapter(st, repoNames)
+		for i, c := range cases {
+			label := fmt.Sprintf("A%d", i+1)
+			ba.RegisterCase(label, &calibrate.BasicCaseInfo{
+				Name:         c.Name,
+				ErrorMessage: c.ErrorMessage,
+				LogSnippet:   c.LogSnippet,
+				StoreCaseID:  c.ID,
+			})
+		}
+		adapter = ba
+	default:
+		fmt.Fprintf(os.Stderr, "unknown adapter: %s (supported: basic)\n", *adapterName)
+		os.Exit(1)
+	}
+
+	// Run analysis through the v2 pipeline
+	cfg := calibrate.AnalysisConfig{
+		Adapter:    adapter,
+		Thresholds: orchestrate.DefaultThresholds(),
+	}
+	report, err := calibrate.RunAnalysis(st, cases, suiteID, cfg)
+	if err != nil {
 		fmt.Fprintf(os.Stderr, "analyze: %v\n", err)
 		os.Exit(1)
 	}
-	fmt.Printf("Artifact: %s\n", *artifactPath)
+	report.LaunchName = env.Name
+
+	// Write JSON report to artifact path
+	data, err := json.MarshalIndent(report, "", "  ")
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "marshal report: %v\n", err)
+		os.Exit(1)
+	}
+	if err := os.WriteFile(*artifactPath, data, 0644); err != nil {
+		fmt.Fprintf(os.Stderr, "write report: %v\n", err)
+		os.Exit(1)
+	}
+
+	// Print human-readable report to stdout
+	fmt.Print(calibrate.FormatAnalysisReport(report))
+	fmt.Printf("\nReport written to: %s\n", *artifactPath)
+}
+
+// loadEnvelopeForAnalyze resolves the envelope from a file path or launch ID.
+func loadEnvelopeForAnalyze(launch, dbPath, rpBase, rpKeyPath string) *preinvest.Envelope {
+	if _, err := os.Stat(launch); err == nil {
+		data, err := os.ReadFile(launch)
+		if err != nil {
+			return nil
+		}
+		var env preinvest.Envelope
+		if err := json.Unmarshal(data, &env); err != nil {
+			return nil
+		}
+		return &env
+	}
+
+	launchID, err := strconv.Atoi(launch)
+	if err != nil || launchID <= 0 {
+		return nil
+	}
+	st, err := store.Open(dbPath)
+	if err != nil {
+		return nil
+	}
+	defer st.Close()
+
+	env, _ := st.GetEnvelope(launchID)
+	if env == nil && rpBase != "" {
+		key, _ := rp.ReadAPIKey(rpKeyPath)
+		client, err := rp.New(rpBase, key)
+		if err != nil {
+			return nil
+		}
+		fetcher := rp.NewFetcher(client, "ecosystem-qe")
+		adapter := &store.PreinvestStoreAdapter{Store: st}
+		if err := preinvest.FetchAndSave(fetcher, adapter, launchID); err != nil {
+			return nil
+		}
+		env, _ = adapter.Get(launchID)
+	}
+	return env
+}
+
+// createAnalysisScaffolding creates v2 store entities (suite, version, pipeline,
+// launch, job, cases) for all failures in the envelope.
+func createAnalysisScaffolding(st store.Store, env *preinvest.Envelope) (int64, []*store.Case) {
+	rpLaunchID, _ := strconv.Atoi(env.RunID)
+
+	suiteID, _ := st.CreateSuite(&store.InvestigationSuite{
+		Name:        fmt.Sprintf("Analysis %s", env.Name),
+		Description: fmt.Sprintf("Automated analysis for launch %s", env.RunID),
+		Status:      "active",
+	})
+
+	vID, _ := st.CreateVersion(&store.Version{Label: "unknown"})
+	if vID == 0 {
+		v, _ := st.GetVersionByLabel("unknown")
+		if v != nil {
+			vID = v.ID
+		}
+	}
+
+	pID, _ := st.CreatePipeline(&store.Pipeline{
+		SuiteID:    suiteID,
+		VersionID:  vID,
+		Name:       env.Name,
+		RPLaunchID: rpLaunchID,
+		Status:     "complete",
+	})
+
+	lID, _ := st.CreateLaunch(&store.Launch{
+		PipelineID: pID,
+		RPLaunchID: rpLaunchID,
+		Name:       env.Name,
+		Status:     "complete",
+	})
+
+	jID, _ := st.CreateJob(&store.Job{
+		LaunchID: lID,
+		Name:     env.Name,
+		Status:   "complete",
+	})
+
+	var cases []*store.Case
+	for _, f := range env.FailureList {
+		caseID, _ := st.CreateCaseV2(&store.Case{
+			JobID:    jID,
+			LaunchID: lID,
+			RPItemID: f.ID,
+			Name:     f.Name,
+			Status:   "open",
+		})
+		c, _ := st.GetCaseV2(caseID)
+		if c != nil {
+			cases = append(cases, c)
+		}
+	}
+
+	return suiteID, cases
 }
 
 func runPush(args []string) {
@@ -160,13 +278,17 @@ func runPush(args []string) {
 	pushStore := postinvest.NewMemPushStore()
 	var pusher postinvest.Pusher = postinvest.DefaultPusher{}
 	if *rpBase != "" {
-		key, err := rpfetch.ReadAPIKey(*rpKeyPath)
+		key, err := rp.ReadAPIKey(*rpKeyPath)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "read API key: %v\n", err)
 			os.Exit(1)
 		}
-		client := rppush.NewClient(rppush.Config{BaseURL: *rpBase, APIKey: key, Project: "ecosystem-qe"})
-		pusher = rppush.NewRPPusher(client)
+		client, err := rp.New(*rpBase, key)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "create RP client: %v\n", err)
+			os.Exit(1)
+		}
+		pusher = rp.NewPusher(client, "ecosystem-qe")
 	}
 	if err := pusher.Push(*artifactPath, pushStore, "", ""); err != nil {
 		fmt.Fprintf(os.Stderr, "push: %v\n", err)
@@ -548,16 +670,108 @@ func runStatus(args []string) {
 	}
 }
 
-// singleEnvelopeSource returns a fixed envelope for one launch ID (for file-based envelope).
-// Implements investigate.EnvelopeSource.
-type singleEnvelopeSource struct {
-	env      *preinvest.Envelope
-	launchID int
-}
+func runCalibrate(args []string) {
+	fs := flag.NewFlagSet("calibrate", flag.ExitOnError)
+	scenarioName := fs.String("scenario", "ptp-mock", "Scenario name (ptp-mock, daemon-mock, ptp-real)")
+	adapterName := fs.String("adapter", "stub", "Model adapter (stub, cursor)")
+	dispatchMode := fs.String("dispatch", "stdin", "Dispatch mode for cursor adapter (stdin, file)")
+	agentDebug := fs.Bool("agent-debug", false, "Enable verbose debug logging for dispatcher/agent communication")
+	runs := fs.Int("runs", 1, "Number of calibration runs")
+	promptDir := fs.String("prompt-dir", ".cursor/prompts", "Prompt template directory")
+	_ = fs.Parse(args)
 
-func (s *singleEnvelopeSource) Get(launchID int) (*preinvest.Envelope, error) {
-	if launchID == s.launchID {
-		return s.env, nil
+	// Load scenario
+	var scenario *calibrate.Scenario
+	switch *scenarioName {
+	case "ptp-mock":
+		scenario = scenarios.PTPMockScenario()
+	case "daemon-mock":
+		scenario = scenarios.DaemonMockScenario()
+	case "ptp-real":
+		scenario = scenarios.PTPRealScenario()
+	default:
+		fmt.Fprintf(os.Stderr, "unknown scenario: %s (available: ptp-mock, daemon-mock, ptp-real)\n", *scenarioName)
+		os.Exit(1)
 	}
-	return nil, nil
+
+	// Build debug logger for agent communication
+	var debugLogger *slog.Logger
+	if *agentDebug {
+		debugLogger = slog.New(slog.NewTextHandler(os.Stderr, &slog.HandlerOptions{Level: slog.LevelDebug}))
+		debugLogger.Info("agent-debug enabled: dispatcher and adapter operations will be traced to stderr")
+	}
+
+	// Create adapter
+	var adapter calibrate.ModelAdapter
+	switch *adapterName {
+	case "stub":
+		adapter = calibrate.NewStubAdapter(scenario)
+	case "cursor":
+		// Build dispatcher based on --dispatch flag
+		var dispatcher calibrate.Dispatcher
+		switch *dispatchMode {
+		case "stdin":
+			dispatcher = calibrate.NewStdinDispatcher()
+		case "file":
+			cfg := calibrate.DefaultFileDispatcherConfig()
+			cfg.Logger = debugLogger
+			dispatcher = calibrate.NewFileDispatcher(cfg)
+		default:
+			fmt.Fprintf(os.Stderr, "unknown dispatch mode: %s (available: stdin, file)\n", *dispatchMode)
+			os.Exit(1)
+		}
+		adapter = calibrate.NewCursorAdapter(*promptDir, calibrate.WithDispatcher(dispatcher))
+	default:
+		fmt.Fprintf(os.Stderr, "unknown adapter: %s (available: stub, cursor)\n", *adapterName)
+		os.Exit(1)
+	}
+
+	// Set up the investigation artifacts directory.
+	// For stub: temp dir (auto-cleaned). For cursor: persistent dir (user needs access).
+	if *adapterName == "cursor" {
+		calibDir := ".asterisk/calibrate"
+		if err := os.MkdirAll(calibDir, 0755); err != nil {
+			fmt.Fprintf(os.Stderr, "create calibrate dir: %v\n", err)
+			os.Exit(1)
+		}
+		orchestrate.BasePath = calibDir
+		fmt.Printf("Calibration artifacts: %s/\n", calibDir)
+		fmt.Printf("Adapter: cursor (dispatch=%s)\n", *dispatchMode)
+		fmt.Printf("Scenario: %s (%d cases)\n\n", scenario.Name, len(scenario.Cases))
+	} else {
+		tmpDir, err := os.MkdirTemp("", "asterisk-calibrate-*")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "create temp dir: %v\n", err)
+			os.Exit(1)
+		}
+		defer os.RemoveAll(tmpDir)
+		orchestrate.BasePath = tmpDir
+	}
+
+	// Cursor mode is interactive — only 1 run makes sense
+	if *adapterName == "cursor" && *runs > 1 {
+		fmt.Fprintf(os.Stderr, "cursor adapter only supports --runs=1 (interactive mode)\n")
+		os.Exit(1)
+	}
+
+	cfg := calibrate.RunConfig{
+		Scenario:   scenario,
+		Adapter:    adapter,
+		Runs:       *runs,
+		PromptDir:  *promptDir,
+		Thresholds: orchestrate.DefaultThresholds(),
+	}
+
+	report, err := calibrate.RunCalibration(cfg)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "calibration failed: %v\n", err)
+		os.Exit(1)
+	}
+
+	fmt.Print(calibrate.FormatReport(report))
+
+	passed, total := report.Metrics.PassCount()
+	if passed < total {
+		os.Exit(1)
+	}
 }

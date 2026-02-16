@@ -365,9 +365,9 @@ func TestRunnerInvestigateLoop(t *testing.T) {
 }
 
 func TestComputeFingerprint(t *testing.T) {
-	fp1 := computeFingerprint("test1", "error1", "comp1")
-	fp2 := computeFingerprint("test1", "error1", "comp1")
-	fp3 := computeFingerprint("test2", "error1", "comp1")
+	fp1 := ComputeFingerprint("test1", "error1", "comp1")
+	fp2 := ComputeFingerprint("test1", "error1", "comp1")
+	fp3 := ComputeFingerprint("test2", "error1", "comp1")
 
 	if fp1 != fp2 {
 		t.Error("same inputs should produce same fingerprint")

@@ -116,7 +116,7 @@ func RunStep(
 		}
 
 		// Apply store side effects for the completed step
-		if err := applyStoreEffects(st, caseData, state.CurrentStep, artifact, caseDir); err != nil {
+		if err := ApplyStoreEffects(st, caseData, state.CurrentStep, artifact); err != nil {
 			log.Printf("[orchestrate] store side-effect error at %s: %v", state.CurrentStep, err)
 		}
 
@@ -198,7 +198,7 @@ func SaveArtifactAndAdvance(
 		IncrementLoop(state, "reassess")
 	}
 
-	if err := applyStoreEffects(st, caseData, state.CurrentStep, artifact, caseDir); err != nil {
+	if err := ApplyStoreEffects(st, caseData, state.CurrentStep, artifact); err != nil {
 		log.Printf("[orchestrate] store side-effect error at %s: %v", state.CurrentStep, err)
 	}
 
@@ -263,14 +263,14 @@ func loadCurrentArtifact(caseDir string, step PipelineStep) any {
 	return nil
 }
 
-// applyStoreEffects updates Store entities based on the completed step's artifact.
+// ApplyStoreEffects updates Store entities based on the completed step's artifact.
 // These are the side effects defined in the prompt-orchestrator contract §Phase 5.
-func applyStoreEffects(
+// Exported so that callers (e.g. calibrate runner) can reuse the same logic.
+func ApplyStoreEffects(
 	st store.Store,
 	caseData *store.Case,
 	step PipelineStep,
 	artifact any,
-	caseDir string,
 ) error {
 	switch step {
 	case StepF0Recall:
@@ -331,7 +331,7 @@ func applyTriageEffects(st store.Store, caseData *store.Case, artifact any) erro
 	}
 
 	// Upsert symptom (fingerprint from test name + error + category)
-	fingerprint := computeFingerprint(caseData.Name, caseData.ErrorMessage, r.SymptomCategory)
+	fingerprint := ComputeFingerprint(caseData.Name, caseData.ErrorMessage, r.SymptomCategory)
 	sym, err := st.GetSymptomByFingerprint(fingerprint)
 	if err != nil {
 		log.Printf("[orchestrate] get symptom by fingerprint: %v", err)
@@ -385,6 +385,7 @@ func applyInvestigateEffects(st store.Store, caseData *store.Case, artifact any)
 		Title:            title,
 		Description:      r.RCAMessage,
 		DefectType:       r.DefectType,
+		Component:        r.Component,
 		ConvergenceScore: r.ConvergenceScore,
 		Status:           "open",
 	}
@@ -475,10 +476,9 @@ func applyReviewEffects(st store.Store, caseData *store.Case, artifact any) erro
 	return nil
 }
 
-// computeFingerprint generates a deterministic fingerprint from failure attributes.
+// ComputeFingerprint generates a deterministic fingerprint from failure attributes.
 // This is a simple hash for PoC; can be upgraded to a more sophisticated algorithm.
-func computeFingerprint(testName, errorMessage, component string) string {
-	// Simple concatenation fingerprint for PoC
+func ComputeFingerprint(testName, errorMessage, component string) string {
 	input := testName + "|" + errorMessage + "|" + component
 	// FNV-1a hash
 	var h uint64 = 14695981039346656037
