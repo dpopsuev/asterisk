@@ -1,0 +1,41 @@
+# Report Portal API key (never commit)
+.rp-api-key
+
+# Private / development-only data (never commit)
+# Contents of .dev/ are ignored; .dev/README.md is kept so the folder's purpose is documented
+.dev/*
+!.dev/README.md
+
+# Binaries / build
+/asterik
+/run-mock-flow
+/dist/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Local runtime directory
+.asterik/
+
+# Go
+*.test
+*.out
+go.work
+
+# IDE / editor
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Local DB (per-workspace or dev)
+*.db
+*.db-journal
+
+# Env and secrets
+.env
+.env.local
+*.pem
