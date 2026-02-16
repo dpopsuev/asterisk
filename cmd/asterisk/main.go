@@ -678,6 +678,8 @@ func runCalibrate(args []string) {
 	agentDebug := fs.Bool("agent-debug", false, "Enable verbose debug logging for dispatcher/agent communication")
 	runs := fs.Int("runs", 1, "Number of calibration runs")
 	promptDir := fs.String("prompt-dir", ".cursor/prompts", "Prompt template directory")
+	clean := fs.Bool("clean", true, "Remove .asterisk/calibrate/ before starting (cursor adapter only)")
+	responderMode := fs.String("responder", "auto", "Responder lifecycle: auto (spawn/kill), external (user manages), none")
 	_ = fs.Parse(args)
 
 	// Load scenario
@@ -728,15 +730,25 @@ func runCalibrate(args []string) {
 
 	// Set up the investigation artifacts directory.
 	// For stub: temp dir (auto-cleaned). For cursor: persistent dir (user needs access).
+	calibDir := ".asterisk/calibrate"
 	if *adapterName == "cursor" {
-		calibDir := ".asterisk/calibrate"
+		// Pre-run cleanup: remove stale artifacts from previous runs.
+		if *clean {
+			if info, err := os.Stat(calibDir); err == nil && info.IsDir() {
+				fmt.Printf("[cleanup] removing previous calibration artifacts: %s/\n", calibDir)
+				if err := os.RemoveAll(calibDir); err != nil {
+					fmt.Fprintf(os.Stderr, "clean calibrate dir: %v\n", err)
+					os.Exit(1)
+				}
+			}
+		}
 		if err := os.MkdirAll(calibDir, 0755); err != nil {
 			fmt.Fprintf(os.Stderr, "create calibrate dir: %v\n", err)
 			os.Exit(1)
 		}
 		orchestrate.BasePath = calibDir
 		fmt.Printf("Calibration artifacts: %s/\n", calibDir)
-		fmt.Printf("Adapter: cursor (dispatch=%s)\n", *dispatchMode)
+		fmt.Printf("Adapter: cursor (dispatch=%s, responder=%s, clean=%v)\n", *dispatchMode, *responderMode, *clean)
 		fmt.Printf("Scenario: %s (%d cases)\n\n", scenario.Name, len(scenario.Cases))
 	} else {
 		tmpDir, err := os.MkdirTemp("", "asterisk-calibrate-*")
@@ -754,6 +766,21 @@ func runCalibrate(args []string) {
 		os.Exit(1)
 	}
 
+	// Spawn signal-responder subprocess when --responder=auto and --dispatch=file.
+	if *adapterName == "cursor" && *dispatchMode == "file" && *responderMode == "auto" {
+		responderProc, err := calibrate.SpawnResponder(calibDir, *agentDebug)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "spawn signal-responder: %v\n", err)
+			os.Exit(1)
+		}
+		defer calibrate.StopResponder(responderProc)
+
+		// Forward SIGINT/SIGTERM to ensure the responder is killed on interrupt.
+		calibrate.ForwardSignals(responderProc)
+	} else if *adapterName == "cursor" && *dispatchMode == "file" && *responderMode == "external" {
+		fmt.Println("[lifecycle] responder=external: ensure signal-responder is running separately")
+	}
+
 	cfg := calibrate.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
@@ -763,6 +790,12 @@ func runCalibrate(args []string) {
 	}
 
 	report, err := calibrate.RunCalibration(cfg)
+
+	// Post-run: finalize all signal.json files regardless of success/failure.
+	if *adapterName == "cursor" && *dispatchMode == "file" {
+		calibrate.FinalizeSignals(calibDir)
+	}
+
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "calibration failed: %v\n", err)
 		os.Exit(1)

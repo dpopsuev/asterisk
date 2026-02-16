@@ -77,6 +77,12 @@ Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orc
 |----------|------|------------|
 | `wet-calibration.md` | Formalize dry/wet calibration taxonomy, 28 per-case Test Cards across 3 scenarios, and an iterative "victory loop" (run wet → diagnose → tune → dry check → repeat) until all scenarios pass 20/20 metrics with `--adapter=cursor`. | fs-dispatcher (auto dispatch), cursor-skill (agent responds to signals), e2e-calibration (dry baseline) |
 
+## Cleanup lifecycle (operational hygiene)
+
+|| Contract | Goal | Depends on |
+||----------|------|------------|
+|| `cleanup-lifecycle.md` | Automated pre-run cleanup (`--clean`), signal-responder subprocess management (`--responder=auto`), `.tmp` orphan fix, post-run signal finalization. No manual cleanup between wet calibration iterations. | fs-dispatcher, wet-calibration |
+
 ## Directories
 
 ## Files
@@ -107,3 +113,4 @@ Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orc
 - `rp-adapter-v2.md` — **RP adapter v2:** Unify rpfetch + rppush into `internal/rp`; scope-based client, functional options, APIError + predicates, context.Context, enriched FailureItem, bulk defect update. Patterns from `report-portal-cli` (read-only reference).
 - `cursor-skill.md` — **Cursor skill:** `asterisk-investigate` agent skill; responds to FileDispatcher signals, reads F0–F6 prompts, produces structured JSON artifacts; calibration (blind) and investigation (free) modes; 4 files (SKILL.md, signal-protocol, artifact-schemas, examples).
 - `wet-calibration.md` — **Wet calibration victory:** Dry/wet taxonomy, 28 Test Cards (ptp-mock 12 + daemon-mock 8 + ptp-real 8), victory loop (run wet → diagnose → tune → dry check → repeat), iteration log. Target: all 3 scenarios 20/20 with `--adapter=cursor --dispatch=file`.
+- `cleanup-lifecycle.md` — **Cleanup lifecycle:** Automated pre-run cleanup, signal-responder subprocess management, `.tmp` orphan fix, post-run signal finalization. Eliminates manual cleanup between wet calibration iterations.

@@ -328,7 +328,9 @@ func writeSignal(path string, sig *signalFile) error {
 		return fmt.Errorf("write signal tmp: %w", err)
 	}
 	if err := os.Rename(tmp, path); err != nil {
-		// Fallback: direct write (rename may fail on some FS)
+		// Fallback: direct write (rename may fail on some FS).
+		// Clean up the orphaned .tmp file since rename didn't consume it.
+		defer os.Remove(tmp)
 		return os.WriteFile(path, data, 0644)
 	}
 	return nil
