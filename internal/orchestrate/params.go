@@ -221,6 +221,13 @@ func BuildParams(
 		params.History = loadHistory(st, caseData.SymptomID)
 	}
 
+	// At F0_RECALL with no linked symptom, search for candidate symptoms by test name.
+	// This enables the recall prompt to see prior symptom/RCA data from earlier cases
+	// that share the same test name, even before triage assigns a symptom to this case.
+	if st != nil && step == StepF0Recall && caseData.SymptomID == 0 && params.History == nil {
+		params.History = findRecallCandidates(st, caseData.Name)
+	}
+
 	return params
 }
 
@@ -236,6 +243,42 @@ func loadPriorArtifacts(caseDir string) *PriorParams {
 	prior.InvestigateResult, _ = ReadArtifact[InvestigateArtifact](caseDir, ArtifactFilename(StepF3Invest))
 	prior.CorrelateResult, _ = ReadArtifact[CorrelateResult](caseDir, ArtifactFilename(StepF4Correlate))
 	return prior
+}
+
+// findRecallCandidates searches the store for symptoms matching the test name.
+// At F0_RECALL the case hasn't been triaged yet (SymptomID == 0), so we can't
+// use the fingerprint (which includes the triage category). Instead we match
+// on test name — the most reliable attribute available before triage.
+// Returns nil if no candidates are found.
+func findRecallCandidates(st store.Store, testName string) *HistoryParams {
+	candidates, err := st.FindSymptomCandidates(testName)
+	if err != nil || len(candidates) == 0 {
+		return nil
+	}
+
+	// Pick the best candidate: prefer the one with the most occurrences
+	// (most established), breaking ties by most recently seen.
+	best := candidates[0]
+	for _, c := range candidates[1:] {
+		if c.OccurrenceCount > best.OccurrenceCount {
+			best = c
+		} else if c.OccurrenceCount == best.OccurrenceCount && c.LastSeenAt > best.LastSeenAt {
+			best = c
+		}
+	}
+
+	history := loadHistory(st, best.ID)
+	if history == nil {
+		return nil
+	}
+
+	// Flag dormant reactivation: if the best candidate symptom is dormant,
+	// this failure may be a regression.
+	if best.Status == "dormant" && history.SymptomInfo != nil {
+		history.SymptomInfo.IsDormantReactivation = true
+	}
+
+	return history
 }
 
 // loadHistory loads symptom and RCA history from the store.

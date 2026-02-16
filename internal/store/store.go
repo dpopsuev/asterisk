@@ -86,6 +86,10 @@ type Store interface {
 	CreateSymptom(s *Symptom) (int64, error)
 	GetSymptom(id int64) (*Symptom, error)
 	GetSymptomByFingerprint(fingerprint string) (*Symptom, error)
+	// FindSymptomCandidates returns symptoms whose Name matches testName exactly.
+	// Used at F0_RECALL to find prior data before a fingerprint (which requires
+	// the triage category) is available. Returns nil slice if no match.
+	FindSymptomCandidates(testName string) ([]*Symptom, error)
 	// UpdateSymptomSeen increments occurrence_count and updates last_seen_at.
 	UpdateSymptomSeen(id int64) error
 	ListSymptoms() ([]*Symptom, error)

@@ -654,6 +654,34 @@ func (s *SqlStore) GetSymptomByFingerprint(fingerprint string) (*Symptom, error)
 	return &sym, nil
 }
 
+func (s *SqlStore) FindSymptomCandidates(testName string) ([]*Symptom, error) {
+	rows, err := s.db.Query(
+		`SELECT id, fingerprint, name, description, error_pattern, test_name_pattern,
+		        component, severity, first_seen_at, last_seen_at, occurrence_count, status
+		 FROM symptoms WHERE name = ?`, testName,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("find symptom candidates: %w", err)
+	}
+	defer rows.Close()
+	var out []*Symptom
+	for rows.Next() {
+		var sym Symptom
+		var desc, errPat, testPat, comp, sev sql.NullString
+		if err := rows.Scan(&sym.ID, &sym.Fingerprint, &sym.Name, &desc, &errPat, &testPat,
+			&comp, &sev, &sym.FirstSeenAt, &sym.LastSeenAt, &sym.OccurrenceCount, &sym.Status); err != nil {
+			return nil, fmt.Errorf("scan symptom candidate: %w", err)
+		}
+		sym.Description = nullStr(desc)
+		sym.ErrorPattern = nullStr(errPat)
+		sym.TestNamePattern = nullStr(testPat)
+		sym.Component = nullStr(comp)
+		sym.Severity = nullStr(sev)
+		out = append(out, &sym)
+	}
+	return out, rows.Err()
+}
+
 func (s *SqlStore) UpdateSymptomSeen(id int64) error {
 	now := nowUTC()
 	res, err := s.db.Exec(

@@ -471,6 +471,19 @@ func (s *MemStore) GetSymptomByFingerprint(fingerprint string) (*Symptom, error)
 	return &cp, nil
 }
 
+func (s *MemStore) FindSymptomCandidates(testName string) ([]*Symptom, error) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	var out []*Symptom
+	for _, sym := range s.v2().symptoms {
+		if sym.Name == testName {
+			cp := *sym
+			out = append(out, &cp)
+		}
+	}
+	return out, nil
+}
+
 func (s *MemStore) UpdateSymptomSeen(id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
