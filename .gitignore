@@ -9,6 +9,8 @@
 # Binaries / build output
 /bin/
 /dist/
+/asterisk
+/signal-responder
 *.exe
 *.exe~
 *.dll
