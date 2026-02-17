@@ -190,8 +190,71 @@ When the prompt does NOT contain the calibration preamble, you are in **free inv
 7. Write `triage-result.json`.
 8. Continue until the pipeline reaches DONE.
 
+## Batch mode (multi-subagent)
+
+When `batch-manifest.json` exists in the suite directory with `status: "pending"`, switch to **batch mode**. In this mode you are a **parent agent** that coordinates multiple subagent Tasks.
+
+### Discovering the manifest
+
+Check for:
+
+```
+.asterisk/calibrate/{suiteID}/batch-manifest.json
+```
+
+If the file exists and `status` is `"pending"`, batch mode is active. If it does not exist, fall back to single-signal mode (the standard workflow above).
+
+### Parent control loop
+
+```
+1. manifest = read("batch-manifest.json")
+2. briefing = read(manifest.briefing_path)
+3. pending = [s for s in manifest.signals where s.status == "pending"]
+4. while pending is not empty:
+     batch = pending[:4]   # up to 4 subagents
+     for each signal in batch:
+       spawn Task(subagent_prompt(signal, briefing))
+     wait for all Tasks to complete
+     for each Task result:
+       verify artifact was written at signal.signal_path's artifact_path
+       if failed: write error to signal's signal.json
+     pending = [s for s in manifest.signals where s.status == "pending"]
+5. done -- Go CLI detects all artifacts and continues
+```
+
+### Spawning subagents
+
+Use the Cursor **Task tool** to spawn each subagent:
+
+- `subagent_type`: `"generalPurpose"`
+- `description`: `"Investigate case {case_id}"`
+- `prompt`: See [subagent-template.md](subagent-template.md) for the parameterized template
+
+Up to **4 subagents can run concurrently**. Each subagent:
+- Starts with a fresh context (no shared memory with siblings)
+- Reads the briefing file for shared context
+- Reads its signal.json for the specific case
+- Produces artifacts using the standard protocol
+
+### Budget enforcement
+
+If `budget-status.json` exists alongside the manifest:
+
+```json
+{"total_budget": 100000, "used": 45000, "remaining": 55000, "percent_used": 45.0}
+```
+
+- If `percent_used > 80%`: reduce batch size to 2
+- If `percent_used > 95%` or `remaining <= 0`: stop spawning, report budget exhausted
+- Check budget status between each batch of subagents
+
+### Fallback behavior
+
+When no `batch-manifest.json` exists, operate in **single-signal mode**: scan for individual `signal.json` files with `status: "waiting"` and process them one at a time. This is the standard behavior described in the Quick start section above.
+
 ## Additional resources
 
 - [signal-protocol.md](signal-protocol.md) -- Full signal.json schema and watcher instructions
 - [artifact-schemas.md](artifact-schemas.md) -- Complete JSON schemas for all F0-F6 artifacts
 - [examples.md](examples.md) -- Worked prompt-to-artifact examples for each step
+- [subagent-template.md](subagent-template.md) -- Parameterized prompt template for Task subagents

@@ -306,3 +306,84 @@ Prompt-to-artifact examples for each pipeline step. These show the reasoning pro
   "data_quality_notes": "Likely cascade from C1 (holdover timeout). The offset violation is a downstream symptom."
 }
 ```
+
+---
+
+## Batch mode walkthrough (multi-subagent)
+
+This example shows a parent agent processing a batch of 3 cases in parallel.
+
+### 1. Discover manifest
+
+The parent reads `batch-manifest.json`:
+
+```json
+{
+  "batch_id": 1,
+  "status": "pending",
+  "phase": "triage",
+  "total": 3,
+  "briefing_path": ".asterisk/calibrate/1001/briefing.md",
+  "signals": [
+    {"case_id": "C1", "signal_path": ".asterisk/calibrate/1001/101/signal.json", "status": "pending"},
+    {"case_id": "C2", "signal_path": ".asterisk/calibrate/1001/102/signal.json", "status": "pending"},
+    {"case_id": "C3", "signal_path": ".asterisk/calibrate/1001/103/signal.json", "status": "pending"}
+  ]
+}
+```
+
+### 2. Read briefing
+
+```markdown
+# Calibration Briefing — Batch 1
+
+## Run context
+- Scenario: ptp-real-ingest
+- Phase: triage
+- Cases in this batch: 3
+- Total: 10
+```
+
+### 3. Spawn subagents (3 Task calls, parallel)
+
+**Subagent 1 prompt** (for C1):
+```
+You are an Asterisk investigation subagent analyzing case C1 at step F0_RECALL.
+1. Read the briefing at .asterisk/calibrate/1001/briefing.md
+2. Read signal.json at .asterisk/calibrate/1001/101/signal.json
+3. Read the prompt at prompt_path from the signal
+4. Analyze and produce recall-result.json
+5. Write wrapped artifact to artifact_path
+```
+
+**Subagent 2 prompt** (for C2): same structure, different paths.
+
+**Subagent 3 prompt** (for C3): same structure, different paths.
+
+### 4. Wait and verify
+
+All 3 Tasks complete. The parent checks:
+- `.asterisk/calibrate/1001/101/recall-result.json` -- exists, valid JSON
+- `.asterisk/calibrate/1001/102/recall-result.json` -- exists, valid JSON
+- `.asterisk/calibrate/1001/103/recall-result.json` -- exists, valid JSON
+
+All artifacts present. The Go CLI detects them and moves to the next pipeline step.
+
+### 5. Subagent response example
+
+One subagent writes this artifact:
+
+```json
+{
+  "dispatch_id": 3,
+  "data": {
+    "match": false,
+    "prior_rca_id": 0,
+    "symptom_id": 0,
+    "confidence": 0.05,
+    "reasoning": "No prior symptoms in store. This is a fresh failure."
+  }
+}
+```
+
+The format is identical to single-agent mode -- the only difference is that multiple subagents produce artifacts simultaneously.
