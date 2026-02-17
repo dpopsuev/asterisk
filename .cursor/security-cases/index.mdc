@@ -7,3 +7,8 @@ Security bug post-mortems — RCA, severity (CVSS-aligned), OWASP category, miti
 ## Files
 - `index.mdc` — index for this directory.
 - `_TEMPLATE.md` — security case template; copy as SEC-{NNN}-{slug}.md (do not edit template).
+- `SEC-001-path-traversal-cli-flags.md` — **A01 Broken Access Control** (high): CLI flags accept arbitrary paths without validation; path traversal possible.
+- `SEC-002-api-key-file-permissions.md` — **A02 Cryptographic Failures** (medium): `.rp-api-key` file permissions not checked; could be world-readable.
+- `SEC-003-briefing-prompt-injection.md` — **A03 Injection** (medium): store data flows unescaped into briefing markdown; prompt injection vector for subagents.
+- `SEC-004-sensitive-file-permissions.md` — **A05 Security Misconfiguration** (medium): all output files use 0644 permissions; sensitive data readable on shared systems.
+- `SEC-005-unsigned-manifests-artifacts.md` — **A08 Data Integrity** (medium, accepted-risk): batch manifests and artifacts have no integrity verification; accepted for PoC phase.
