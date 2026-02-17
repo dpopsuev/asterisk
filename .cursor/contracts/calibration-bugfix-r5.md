@@ -15,6 +15,12 @@ Post-refactor changes that affect this contract:
 
 **Bugs still open**: All 5 bugs (P1.1–P1.5) require wet calibration runs to verify resolution. The false recall fixes may have indirectly addressed P1.1, but this needs explicit verification with a wet run.
 
+## Reassessment notes (2026-02-17, multi-subagent)
+
+- **Multi-subagent impact**: None for this contract. Bug reproduction requires isolated, deterministic execution. Use `--parallel=1 --dispatch=file` (serial mode) for all Phase 1-2 work.
+- **No dependency on multi-subagent contracts**: The multi-subagent path (`batch-dispatch-protocol.md` through `adaptive-subagent-scheduler.md`) is independent and does not affect bugfix work.
+- **Future opportunity**: Once bugs are fixed and multi-subagent infrastructure is available, wet calibration validation (Phase 3) could optionally use `--dispatch=batch-file` for faster round execution. This is not a requirement — serial validation is sufficient for this contract's acceptance criteria.
+
 ## Contract rules
 
 - BDD-TDD **Red-Orange-Green-Blue**: reproduce each bug with a failing test (red), add structured logging (orange), fix it (green), validate calibration run (blue).
@@ -81,5 +87,7 @@ Three phases following red-green-blue. Phase 1 creates failing tests for each bu
 
 (Running log, newest first.)
 
+- 2026-02-17 24:00 — Reassessed post-multi-subagent implementation: all 4 multi-subagent contracts now complete (protocol, dispatcher, skill, scheduler). No impact on this contract — serial mode remains correct for bug reproduction. Phase 3 wet validation can optionally use `--dispatch=batch-file --batch-size=4` for faster round execution, but serial is sufficient. `calibrate-batch` justfile recipe now available.
+- 2026-02-17 22:00 — Reassessed post-multi-subagent planning: no impact on this contract. Serial mode remains correct for bug reproduction. Multi-subagent path is independent; optional for future Phase 3 speedup.
 - 2026-02-17 10:50 — Reassessed post-refactor: rename complete, false recall fixes in MemStore/SqlStore, token tracking implemented (real M18), parallel mode available. All 5 bugs still need wet validation. Updated contract rules to R-O-G-B, updated line numbers.
 - 2026-02-17 01:30 — Contract created. Baseline: M19=0.58, 7/20 passing. Five specific bugs identified from Round 4 analysis.

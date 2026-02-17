@@ -10,6 +10,13 @@
 - **Token tracking**: M18 now uses real measured values from `TokenTrackingDispatcher`. The M18 target (60000) can be validated with actual data via `--cost-report` flag. Add `token-perf-tracking.md` as a dependency.
 - **Parallel mode**: Available but not recommended for classification tuning. Use `--parallel=1` (default) for deterministic results during classification development. Once classification is stable, validate with `--parallel=4` to ensure no regressions.
 
+## Reassessment notes (2026-02-17, multi-subagent)
+
+- **Multi-subagent impact**: Classification tuning must use `--parallel=1 --dispatch=file` for deterministic results. The multi-subagent path is independent and does not affect classification logic.
+- **Future parallel validation**: After classification is stable (Phase 4), add an optional validation step: run with `--dispatch=batch-file --batch-size=4` to verify no regressions under multi-subagent parallel execution. This validates that subagents produce the same artifacts as the single-agent watcher.
+- **Cost insight**: Multi-subagent runs with tighter context scope (briefing + single prompt, no accumulated history) may reduce M18 token count. Recommend comparing serial vs multi-subagent M18 once both paths are available — this informs Phase 3 token optimization targets.
+- **Optional dependency**: `batch-dispatch-protocol.md` (for future parallel validation in Phase 4). Not blocking.
+
 ## Contract rules
 
 - BDD-TDD **Red-Orange-Green-Blue**: build a ground-truth test fixture from the 30 real cases before touching classification code.
@@ -90,5 +97,7 @@ Four phases. Phase 1 builds the test harness from real data. Phase 2 rewrites cl
 
 (Running log, newest first.)
 
+- 2026-02-17 24:00 — Reassessed post-multi-subagent implementation: all 4 contracts complete (BatchFileDispatcher, skill rewrite, scheduler). Serial mode remains correct for classification tuning. Phase 4 parallel validation is now actionable — run `just calibrate-batch` to verify. Cost model doc (`subagent-cost-model.mdc`) created with placeholder values ready for real data.
+- 2026-02-17 22:00 — Reassessed post-multi-subagent planning: serial mode remains correct for classification tuning. Optional batch-file validation in Phase 4. Multi-subagent cost insight may inform M18 token optimization targets.
 - 2026-02-17 10:50 — Reassessed: added R-O-G-B development cycle, impatient agent rule, token tracking dependency. M18 now uses real measured values. Added `--cost-report` guidance for token validation.
 - 2026-02-17 01:30 — Contract created. Current baseline (post-bugfix target): M19 >= 0.65. Target: M19 >= 0.80.
