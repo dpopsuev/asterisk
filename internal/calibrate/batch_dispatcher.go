@@ -13,19 +13,22 @@ import (
 // manifest and briefing file, then polls all N artifact paths in parallel.
 // It wraps N FileDispatcher instances — one per signal slot.
 type BatchFileDispatcher struct {
-	cfg       FileDispatcherConfig
-	log       *slog.Logger
-	suiteDir  string // .asterisk/calibrate/{suiteID}
-	batchID   int64  // monotonic batch counter
-	batchSize int    // max signals per batch (default 4)
+	cfg         FileDispatcherConfig
+	log         *slog.Logger
+	suiteDir    string // .asterisk/calibrate/{suiteID}
+	batchID     int64  // monotonic batch counter
+	batchSize   int    // max signals per batch (default 4)
+	tokenBudget int    // total token budget; 0 = unlimited
+	tokenUsed   int    // cumulative tokens used across batches
 }
 
 // BatchFileDispatcherConfig configures the BatchFileDispatcher.
 type BatchFileDispatcherConfig struct {
-	FileConfig FileDispatcherConfig
-	SuiteDir   string
-	BatchSize  int
-	Logger     *slog.Logger
+	FileConfig  FileDispatcherConfig
+	SuiteDir    string
+	BatchSize   int
+	TokenBudget int // total token budget; 0 = unlimited
+	Logger      *slog.Logger
 }
 
 // NewBatchFileDispatcher creates a batch dispatcher.
@@ -38,10 +41,11 @@ func NewBatchFileDispatcher(cfg BatchFileDispatcherConfig) *BatchFileDispatcher 
 		l = discardLogger()
 	}
 	return &BatchFileDispatcher{
-		cfg:       cfg.FileConfig,
-		log:       l,
-		suiteDir:  cfg.SuiteDir,
-		batchSize: cfg.BatchSize,
+		cfg:         cfg.FileConfig,
+		log:         l,
+		suiteDir:    cfg.SuiteDir,
+		batchSize:   cfg.BatchSize,
+		tokenBudget: cfg.TokenBudget,
 	}
 }
 
@@ -150,6 +154,14 @@ func (d *BatchFileDispatcher) DispatchBatch(ctxs []DispatchContext, phase string
 	manifest.Signals = signals
 	_ = WriteManifest(manifestPath, manifest)
 
+	// Write budget status if a token budget is configured
+	if d.tokenBudget > 0 {
+		budgetPath := filepath.Join(d.suiteDir, "budget-status.json")
+		if err := WriteBudgetStatus(budgetPath, d.tokenBudget, d.tokenUsed); err != nil {
+			d.log.Warn("failed to write budget status", "error", err)
+		}
+	}
+
 	d.log.Debug("batch dispatch complete",
 		"batch_id", bid, "status", manifest.Status)
 
@@ -207,6 +219,17 @@ func (d *BatchFileDispatcher) WriteBriefing(content string) (string, error) {
 // LastBatchID returns the latest batch ID (useful for testing).
 func (d *BatchFileDispatcher) LastBatchID() int64 {
 	return d.batchID
+}
+
+// UpdateTokenUsage sets the cumulative token usage (called by the runner
+// after reading token tracker data). This drives the budget-status.json.
+func (d *BatchFileDispatcher) UpdateTokenUsage(used int) {
+	d.tokenUsed = used
+}
+
+// TokenBudget returns the configured token budget.
+func (d *BatchFileDispatcher) TokenBudget() int {
+	return d.tokenBudget
 }
 
 // now is a helper for timestamps (allows testing override).

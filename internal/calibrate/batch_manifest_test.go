@@ -130,3 +130,23 @@ func TestWriteBudgetStatus_ZeroBudget(t *testing.T) {
 		t.Errorf("percent_used with zero budget: got %f, want 0.0", got.PercentUsed)
 	}
 }
+
+func TestWriteBudgetStatus_OverBudget(t *testing.T) {
+	dir := t.TempDir()
+	path := filepath.Join(dir, "budget-status.json")
+
+	if err := WriteBudgetStatus(path, 1000, 1500); err != nil {
+		t.Fatalf("WriteBudgetStatus: %v", err)
+	}
+
+	got, err := ReadBudgetStatus(path)
+	if err != nil {
+		t.Fatalf("ReadBudgetStatus: %v", err)
+	}
+	if got.Remaining != -500 {
+		t.Errorf("remaining: got %d, want -500", got.Remaining)
+	}
+	if got.PercentUsed != 150.0 {
+		t.Errorf("percent_used: got %f, want 150.0", got.PercentUsed)
+	}
+}

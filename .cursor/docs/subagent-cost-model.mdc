@@ -1,0 +1,54 @@
+---
+description: Cost model for serial vs batch vs batch+clustering calibration modes
+---
+
+# Subagent Cost Model
+
+## Overview
+
+This document compares token usage and wall-clock time across calibration execution modes. Data is populated from actual wet calibration runs.
+
+## Cost comparison
+
+| Mode | Cases | Total tokens | Wall-clock | Cost estimate | Notes |
+|------|-------|-------------|------------|---------------|-------|
+| Serial (`--dispatch=file`) | — | — | — | — | Baseline: one case at a time |
+| Batch (`--dispatch=batch-file --batch-size=4`) | — | — | — | — | 4 concurrent subagents |
+| Batch + clustering | — | — | — | — | Representatives only |
+
+*Values marked "—" are placeholders; populate after Phase 7 wet calibration runs.*
+
+## Cost dynamics
+
+### Why batch mode can cost less per case
+
+1. **Shared briefing** reduces redundant reasoning. Each subagent reads prior findings instead of re-analyzing from scratch.
+2. **Symptom clustering** means only representatives (not all N cases) go through full investigation. Members inherit RCA.
+3. **Shorter wall-clock** means less idle time and overhead per case.
+
+### When batch mode costs more
+
+1. **Small case counts** (< 4): batch overhead (manifest, briefing) exceeds savings.
+2. **Highly unique failures**: clustering provides no dedup benefit.
+3. **Subagent failures**: retries consume additional tokens.
+
+## Diminishing returns threshold
+
+Expected: batch-size=4 offers ~3x throughput improvement with <2x cost. Beyond 4 (Cursor limit), no further parallelism is possible.
+
+## Token budget guidelines
+
+| Scenario | Recommended budget | Rationale |
+|----------|-------------------|-----------|
+| ptp-mock (synthetic, 10 cases) | 50,000 | Small dataset, fast |
+| ptp-real-ingest (real, 30 cases) | 200,000 | Larger dataset, real AI responses |
+| Custom (N cases) | N * 5,000 | ~5K tokens per case heuristic |
+
+## Measurement methodology
+
+Token counts come from `token-report.json` produced by `--cost-report`. This file tracks:
+- Per-case prompt tokens (input)
+- Per-case artifact tokens (output)
+- Per-step breakdown
+- Wall-clock time per case
+- Total tokens across the run

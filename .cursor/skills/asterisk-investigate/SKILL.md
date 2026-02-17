@@ -236,6 +236,33 @@ Up to **4 subagents can run concurrently**. Each subagent:
 - Reads its signal.json for the specific case
 - Produces artifacts using the standard protocol
 
+### Adaptive scheduling
+
+Adjust batch size dynamically based on feedback from prior batches:
+
+| Signal | Condition | Action |
+|--------|-----------|--------|
+| Quality | Last batch had >50% error rate | Reduce batch size by 1 (min 1) |
+| Quality | Last batch had 0% errors | Increase batch size by 1 (max 4) |
+| Wall-clock | Last batch took >5 min | Reduce batch size by 1 |
+| Budget | `percent_used > 80%` | Reduce batch size to 2 |
+| Budget | `percent_used > 95%` | Stop spawning |
+| Budget | `remaining <= 0` | Stop spawning |
+
+### Cluster-aware routing
+
+In the investigation phase, clusters share a representative:
+- Spawn subagents only for **cluster representatives**, not for all members.
+- Group cluster members in the briefing so subagents understand which cases share their findings.
+- After a representative completes, propagate its RCA to all members before the next batch.
+
+### Briefing enrichment
+
+Between batches, the parent agent should append findings to the briefing:
+- After triage batch: add symptom summaries.
+- After investigation batch: add RCA summaries and evidence links.
+- This creates a growing shared-context document that later subagents benefit from.
+
 ### Budget enforcement
 
 If `budget-status.json` exists alongside the manifest:
