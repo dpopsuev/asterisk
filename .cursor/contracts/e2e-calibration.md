@@ -1,6 +1,6 @@
 # Contract — E2E Calibration Test
 
-**Status:** active (mock A + mock B + real scenario complete; stub 20/20 all three)  
+**Status:** complete (2026-02-17) — Mock A + Mock B + Real: all stub-passing 20/20  
 **Goal:** Build two calibration modes — **mock** (synthetic closed-world) and **real** (actual Jira bugs + RP launches + local repos) — run the full investigation pipeline blindfolded (`--agent --dev-calibrate`), and measure how closely the agent's conclusions match the known answers — with instrumented metrics that produce numeric pass/fail signals from natural language outputs.
 
 ## Contract rules

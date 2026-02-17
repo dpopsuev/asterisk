@@ -1,6 +1,6 @@
 # Contract — RP API deep research (locked version 5.11)
 
-**Status:** draft  
+**Status:** complete (2026-02-17) — foundational research consumed by rp-fetch, rp-push, rp-adapter-v2  
 **Goal:** Learn to interact with the RP API at our locked version (service-api 5.11 / RP 24.1); document endpoints, payloads, and usage in FSC; add rules if needed so implementation (fetch launch, failure list, push defect type) is unambiguous.
 
 ## Contract rules

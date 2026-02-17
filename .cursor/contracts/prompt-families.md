@@ -1,6 +1,6 @@
 # Contract — Prompt Families, Pipelines, and Routing Heuristics
 
-**Status:** active  
+**Status:** complete (2026-02-17) — design consumed by prompt-orchestrator (F0–F6)  
 **Goal:** Design the prompt family taxonomy, define prompt pipelines (with loops), and specify heuristics the orchestrator uses to decide which prompt to fire next — replacing the current single-shot `rca.md` with a layered, evidence-first system.
 
 ## Contract rules

@@ -1,6 +1,6 @@
 # Contract — Cursor Skill (asterisk-investigate)
 
-**Status:** active  
+**Status:** complete (2026-02-17) — skill files created (SKILL.md, signal-protocol, artifact-schemas, examples)  
 **Goal:** Create a Cursor agent skill (`.cursor/skills/asterisk-investigate/SKILL.md`) that teaches the Cursor agent how to participate in the Asterisk investigation and calibration pipelines — reading prompts from the FileDispatcher, producing structured JSON artifacts per pipeline step, and writing them back to disk — so `asterisk calibrate --adapter=cursor --dispatch=file` runs without human intervention.
 
 ## Contract rules

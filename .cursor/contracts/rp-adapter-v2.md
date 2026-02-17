@@ -1,6 +1,6 @@
 # Contract — RP Adapter v2 (reference: report-portal-cli)
 
-**Status:** active  
+**Status:** complete (2026-02-17) — internal/rp package with scope-based client, APIError, context support  
 **Goal:** Unify `rpfetch` + `rppush` into a single `rp` package with a scope-based client, proper error types, context support, structured logging, and richer type coverage — using `report-portal-cli` (`/home/dpopsuev/Repositories/report-portal-cli/`) as the architectural reference. No external dependency on the CLI module; patterns and types are adapted, not imported.
 
 ## Contract rules

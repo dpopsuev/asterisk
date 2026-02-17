@@ -1,6 +1,6 @@
 # Contract — Investigation Context Data Model
 
-**Status:** active  
+**Status:** complete (2026-02-17) — design consumed by storage-adapter-v2  
 **Goal:** Replace the flat data model (cases/rcas/envelopes) with a two-tier entity model — investigation-scoped entities forming the execution tree and global cross-version knowledge entities (symptoms, RCAs) with temporal context — so the prompt system can inject structured, time-aware, cross-version knowledge into templates.
 
 ## Contract rules

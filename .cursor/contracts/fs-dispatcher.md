@@ -1,6 +1,6 @@
 # Contract — FS Dispatcher
 
-**Status:** active  
+**Status:** complete (2026-02-17) — Dispatcher interface, StdinDispatcher, FileDispatcher, BatchFileDispatcher all implemented  
 **Goal:** Extract the prompt-delivery and artifact-collection transport from `CursorAdapter.SendPrompt` into a `Dispatcher` interface, implement `StdinDispatcher` (current behavior) and `FileDispatcher` (auto-mode via signal file polling), and wire a `--dispatch` CLI flag — without changing any other adapter (Stub, Basic) or breaking existing calibration.
 
 ## Contract rules

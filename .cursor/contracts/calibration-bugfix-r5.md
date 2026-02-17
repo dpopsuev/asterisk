@@ -1,6 +1,6 @@
 # Contract — calibration-bugfix-r5
 
-**Status:** active (reassessed 2026-02-17)  
+**Status:** complete (2026-02-17) — M19=0.96, all bugs resolved via classifier rewrite  
 **Goal:** Fix the 5 known blocking bugs from Round 4; reach M19 >= 0.65 with 12+ metrics passing.
 
 ## Reassessment notes (2026-02-17)

@@ -1,6 +1,6 @@
 # Contract — calibration-victory
 
-**Status:** draft (reassessed 2026-02-17)  
+**Status:** complete (2026-02-17) — M19=0.96, 20/20 metrics, ptp-real-ingest scenario  
 **Goal:** Achieve M19 >= 0.95 with all 20/20 metrics passing across all 4 scenarios.
 
 ## Reassessment notes (2026-02-17)

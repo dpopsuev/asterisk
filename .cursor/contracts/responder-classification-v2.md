@@ -1,6 +1,6 @@
 # Contract — responder-classification-v2
 
-**Status:** draft (reassessed 2026-02-17)  
+**Status:** complete (2026-02-17) — M19=0.96, 30-case test harness, scored multi-signal classifier  
 **Goal:** Systematic classification overhaul of the mock-calibration-agent; reach M19 >= 0.80 with 16+ metrics passing.
 
 ## Reassessment notes (2026-02-17)

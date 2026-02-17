@@ -35,13 +35,13 @@ Contracts created from the PoC assessment. Dependencies: complete **rp-api-compl
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `prompt-families.md` | Design prompt family taxonomy, pipelines (with loops), and routing heuristics for layered investigation. | prompts, storage-adapter, context-workspace |
+| `prompt-families.md` | Design prompt family taxonomy, pipelines (with loops), and routing heuristics for layered investigation. **Complete.** | prompts, storage-adapter, context-workspace |
 
 ## Data model (design)
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `investigation-context.md` | Two-tier data model: investigation-scoped execution tree + global cross-version knowledge (symptoms, RCAs) with temporal context. | storage-adapter, prompt-families |
+| `investigation-context.md` | Two-tier data model: investigation-scoped execution tree + global cross-version knowledge (symptoms, RCAs) with temporal context. **Complete.** | storage-adapter, prompt-families |
 
 ## PoC v2 implementation (from design contracts)
 
@@ -51,25 +51,25 @@ Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orc
 |----------|------|------------|
 | `storage-adapter-v2.md` | Migrate Store interface and SQLite schema from v1 (flat) to v2 (two-tier: execution tree + symptoms + RCAs). **Complete.** | storage-adapter (v1 complete), investigation-context (design) |
 | `prompt-orchestrator.md` | Implement F0–F6 pipeline engine: heuristic engine, artifact I/O, per-case state, template filler, pipeline runner, CLI integration. **Complete.** | storage-adapter-v2, prompt-families (design), prompts, cursor-handoff |
-| `e2e-calibration.md` | Closed-world E2E test: 20 instrumented metrics. **Mock A (ptp-mock 12 cases): 20/20. Mock B (daemon-mock 8 cases): 20/20. Real (ptp-real 8 cases): 20/20. All stub-passing.** | storage-adapter-v2, prompt-orchestrator |
+| `e2e-calibration.md` | Closed-world E2E test: 20 instrumented metrics. **Mock A (ptp-mock 12 cases): 20/20. Mock B (daemon-mock 8 cases): 20/20. Real (ptp-real 8 cases): 20/20. All stub-passing.** **Complete.** | storage-adapter-v2, prompt-orchestrator |
 
 ## RP adapter v2 (quality upgrade)
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `rp-adapter-v2.md` | Unify `rpfetch` + `rppush` into single `internal/rp` package. Scope-based client (`Client → ProjectScope → LaunchScope → ItemScope`), functional options, `APIError` type with predicates, `context.Context`, structured logging, enriched `FailureItem`, bulk defect update. Patterns adapted from `report-portal-cli` (read-only reference, no module dependency). | rp-fetch (complete), rp-push (complete), rp-api-completion (complete) |
+| `rp-adapter-v2.md` | Unify `rpfetch` + `rppush` into single `internal/rp` package. Scope-based client (`Client → ProjectScope → LaunchScope → ItemScope`), functional options, `APIError` type with predicates, `context.Context`, structured logging, enriched `FailureItem`, bulk defect update. Patterns adapted from `report-portal-cli` (read-only reference, no module dependency). **Complete.** | rp-fetch (complete), rp-push (complete), rp-api-completion (complete) |
 
 ## Dispatcher (transport layer)
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `fs-dispatcher.md` | Extract `Dispatcher` interface (Strategy pattern) from `CursorAdapter`; implement `StdinDispatcher` (current stdin) + `FileDispatcher` (signal file polling for auto-mode); wire `--dispatch` CLI flag. Future: HTTP, MCP, Harness dispatchers via same interface. | e2e-calibration (CursorAdapter exists), prompt-orchestrator |
+| `fs-dispatcher.md` | Extract `Dispatcher` interface (Strategy pattern) from `CursorAdapter`; implement `StdinDispatcher` (current stdin) + `FileDispatcher` (signal file polling for auto-mode); wire `--dispatch` CLI flag. Future: HTTP, MCP, Harness dispatchers via same interface. **Complete.** | e2e-calibration (CursorAdapter exists), prompt-orchestrator |
 
 ## Cursor skill (agent-side integration)
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `cursor-skill.md` | Create `.cursor/skills/asterisk-investigate/` — Cursor agent skill that responds to FileDispatcher signal files, reads prompts, produces F0–F6 JSON artifacts, and writes them back. Dual mode: calibration (blind, scored against ground truth) and investigation (free, real analysis). 4 files: SKILL.md, signal-protocol.md, artifact-schemas.md, examples.md. | fs-dispatcher (signal protocol), e2e-calibration (scoring), prompt-orchestrator (pipeline/schemas) |
+| `cursor-skill.md` | Create `.cursor/skills/asterisk-investigate/` — Cursor agent skill that responds to FileDispatcher signal files, reads prompts, produces F0–F6 JSON artifacts, and writes them back. Dual mode: calibration (blind, scored against ground truth) and investigation (free, real analysis). 4 files: SKILL.md, signal-protocol.md, artifact-schemas.md, examples.md. **Complete.** | fs-dispatcher (signal protocol), e2e-calibration (scoring), prompt-orchestrator (pipeline/schemas) |
 
 ## Calibration victory (wet calibration)
 
@@ -89,9 +89,9 @@ Execute **in order**; each contract depends on the previous. Gate: the preceding
 
 | Order | Contract | Goal | Entry M19 | Exit M19 |
 |-------|----------|------|-----------|----------|
-| **1** | `calibration-bugfix-r5.md` | Fix 5 known blocking bugs (H15 dup, skip path, repo names, JSON error, component ID). | 0.58 | >= 0.65 |
-| **2** | `responder-classification-v2.md` | Systematic classification overhaul: ground-truth test fixture, scored multi-signal classifier, token optimization. | >= 0.65 | >= 0.80 |
-| **3** | `calibration-victory.md` | Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. All 20/20 metrics. | >= 0.80 | >= 0.95 |
+| **1** | `calibration-bugfix-r5.md` | Fix 5 known blocking bugs (H15 dup, skip path, repo names, JSON error, component ID). **Complete.** | 0.58 | >= 0.65 |
+| **2** | `responder-classification-v2.md` | Systematic classification overhaul: ground-truth test fixture, scored multi-signal classifier, token optimization. **Complete.** | >= 0.65 | >= 0.80 |
+| **3** | `calibration-victory.md` | Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. All 20/20 metrics. **Complete.** | >= 0.80 | >= 0.95 |
 | **4** | `parallel-investigation.md` | Parallel case processing: fan-out F0-F1, symptom clustering, on-demand RCA agents, token ceiling. **Complete.** | >= 0.95 | >= 0.95 + 3x speedup |
 
 ## Token performance tracking (cost observability)
@@ -116,7 +116,7 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 
 || Contract | Goal | Depends on |
 ||----------|------|------------|
-|| `cleanup-lifecycle.md` | Automated pre-run cleanup (`--clean`), mock-calibration-agent subprocess management (`--responder=auto`), `.tmp` orphan fix, post-run signal finalization. No manual cleanup between wet calibration iterations. | fs-dispatcher, wet-calibration |
+|| `cleanup-lifecycle.md` | Automated pre-run cleanup (`--clean`), mock-calibration-agent subprocess management (`--responder=auto`), `.tmp` orphan fix, post-run signal finalization. No manual cleanup between wet calibration iterations. **Complete.** | fs-dispatcher, wet-calibration |
 
 ## Directories
 
@@ -137,7 +137,7 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 - `pre-dev-questions.md` — Pre-development questions: make question bank (envelope, storage, Cursor, artifact, RP, prompts, lifecycle); answer or defer each; record outcomes before starting implementation.
 - `prompts.md` — **Prompts:** templates in .cursor/prompts/; params in docs/prompts.mdc.
 - `rp-api-completion.md` — **RP API completion:** finish research; document launch, test-item, defect-type; FSC doc.
-- `rp-api-research.md` — **RP API deep research (5.11):** learn to interact with API at locked version; document endpoints and usage for FSC; add rules if needed; example launch 33195.
+- `rp-api-research.md` — **RP API deep research (5.11):** learn to interact with API at locked version; document endpoints and usage for FSC; add rules if needed; example launch 33195. **Complete.**
 - `rp-fetch.md` — **Real fetch from RP:** launch by ID; produce envelope; persist.
 - `rp-push.md` — **Real push to RP:** defect-type update from artifact.
 - `storage-adapter.md` — **Storage adapter:** SQLite + Store facade; per-workspace DB.
