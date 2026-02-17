@@ -1,9 +1,9 @@
-// signal-responder is a simple auto-responder for wet calibration.
-// It watches for signal.json files and produces minimal valid artifacts.
-// This is used for the first wet calibration iteration to validate the
-// FileDispatcher pipeline works end-to-end.
+// mock-calibration-agent is a deterministic mock agent for calibration.
+// It watches for signal.json files and produces heuristic-classified artifacts,
+// standing in for a real Cursor agent during automated calibration runs.
+// This binary is testing-only — it has no role in production.
 //
-// Usage: signal-responder [--debug] [watch-dir]
+// Usage: mock-calibration-agent [--debug] [watch-dir]
 package main
 
 import (

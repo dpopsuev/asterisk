@@ -5,7 +5,7 @@ set dotenv-load := false
 
 bin_dir     := "bin"
 cmd_asterisk := "./cmd/asterisk"
-cmd_responder := "./cmd/signal-responder"
+cmd_responder := "./cmd/mock-calibration-agent"
 cmd_mock     := "./cmd/run-mock-flow"
 db_path      := ".asterisk/asterisk.db"
 calib_dir    := ".asterisk/calibrate"
@@ -23,12 +23,12 @@ build:
     @mkdir -p {{ bin_dir }}
     go build -o {{ bin_dir }}/asterisk {{ cmd_asterisk }}
 
-# Build the signal-responder
+# Build the mock calibration agent
 build-responder:
     @mkdir -p {{ bin_dir }}
-    go build -o {{ bin_dir }}/signal-responder {{ cmd_responder }}
+    go build -o {{ bin_dir }}/mock-calibration-agent {{ cmd_responder }}
 
-# Build all binaries (asterisk + signal-responder + mock-flow)
+# Build all binaries (asterisk + mock-calibration-agent + mock-flow)
 build-all: build build-responder
     go build -o {{ bin_dir }}/run-mock-flow {{ cmd_mock }}
 
@@ -131,12 +131,12 @@ clean-runtime:
 
 # Remove stray root-level binaries (safety net)
 clean-stray:
-    rm -f asterisk signal-responder
+    rm -f asterisk mock-calibration-agent signal-responder
 
-# Kill orphaned signal-responder processes
+# Kill orphaned mock-calibration-agent processes
 kill-responders:
-    -pkill -f "signal-responder" 2>/dev/null || true
-    -pkill -f "go run.*signal-responder" 2>/dev/null || true
+    -pkill -f "mock-calibration-agent" 2>/dev/null || true
+    -pkill -f "go run.*mock-calibration-agent" 2>/dev/null || true
 
 # Full cleanup: binaries + runtime + stray + orphan processes
 clean: clean-bin clean-runtime clean-stray kill-responders

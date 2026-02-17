@@ -775,19 +775,19 @@ func runCalibrate(args []string) {
 		os.Exit(1)
 	}
 
-	// Spawn signal-responder subprocess when --responder=auto and --dispatch=file.
+	// Spawn mock-calibration-agent subprocess when --responder=auto and --dispatch=file.
 	if *adapterName == "cursor" && *dispatchMode == "file" && *responderMode == "auto" {
 		responderProc, err := calibrate.SpawnResponder(calibDir, *agentDebug)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "spawn signal-responder: %v\n", err)
+			fmt.Fprintf(os.Stderr, "spawn mock-calibration-agent: %v\n", err)
 			os.Exit(1)
 		}
 		defer calibrate.StopResponder(responderProc)
 
-		// Forward SIGINT/SIGTERM to ensure the responder is killed on interrupt.
+		// Forward SIGINT/SIGTERM to ensure the mock agent is killed on interrupt.
 		calibrate.ForwardSignals(responderProc)
 	} else if *adapterName == "cursor" && *dispatchMode == "file" && *responderMode == "external" {
-		fmt.Println("[lifecycle] responder=external: ensure signal-responder is running separately")
+		fmt.Println("[lifecycle] responder=external: ensure mock-calibration-agent is running separately")
 	}
 
 	cfg := calibrate.RunConfig{

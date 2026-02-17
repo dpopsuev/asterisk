@@ -169,8 +169,8 @@ Use `--agent-debug` to enable structured debug logging to stderr. This traces ev
 # Debug mode — traces all dispatcher I/O to stderr
 asterisk calibrate --scenario=ptp-mock --adapter=cursor --dispatch=file --agent-debug
 
-# Combine with the signal-responder's --debug flag for full bidirectional trace
-signal-responder --debug .asterisk/calibrate
+# Combine with the mock-calibration-agent's --debug flag for full bidirectional trace
+mock-calibration-agent --debug .asterisk/calibrate
 ```
 
 Debug output includes:
@@ -185,4 +185,4 @@ Debug output includes:
 
 - Go side: `internal/calibrate/dispatcher.go` — `FileDispatcher`, `StdinDispatcher`, `artifactWrapper`
 - Agent side: `.cursor/skills/asterisk-investigate/` — Cursor agent skill
-- Test responder: `cmd/signal-responder/` — auto-responder for wet calibration
+- Mock agent: `cmd/mock-calibration-agent/` — deterministic mock agent for calibration (testing only)

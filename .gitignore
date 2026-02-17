@@ -10,7 +10,7 @@
 /bin/
 /dist/
 /asterisk
-/signal-responder
+/mock-calibration-agent
 *.exe
 *.exe~
 *.dll

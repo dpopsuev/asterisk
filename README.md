@@ -119,7 +119,7 @@ make build-all
 
 # Or directly
 go build -o bin/asterisk ./cmd/asterisk/
-go build -o bin/signal-responder ./cmd/signal-responder/
+go build -o bin/mock-calibration-agent ./cmd/mock-calibration-agent/
 ```
 
 ### Run an analysis
@@ -233,7 +233,7 @@ The calibration framework validates the investigation pipeline end-to-end agains
 ### Adapters
 
 - **Stub** -- returns ground-truth answers deterministically. Validates pipeline logic and heuristic routing.
-- **Cursor** -- fills prompt templates, dispatches to an AI agent (or signal-responder), and evaluates real outputs against ground truth.
+- **Cursor** -- fills prompt templates, dispatches to an AI agent (or mock-calibration-agent), and evaluates real outputs against ground truth.
 
 ### Metrics (M1 -- M20)
 
@@ -259,7 +259,7 @@ Target: **M19 (overall accuracy) >= 0.95**.
 asterisk/
 ├── cmd/
 │   ├── asterisk/              # Main CLI (analyze, push, cursor, save, status, calibrate)
-│   ├── signal-responder/      # Auto-responder for file-dispatch calibration
+│   ├── mock-calibration-agent/ # Mock agent for automated calibration (testing only)
 │   └── run-mock-flow/         # Dev tool: run mock fetch→analyze→push flow
 ├── internal/
 │   ├── calibrate/             # Calibration runner, adapters, dispatchers, metrics
