@@ -5,7 +5,7 @@
 
 ## Contract rules
 
-- BDD-TDD **Red-Orange-Green-Blue** per `rules/test-coverage-checklist.mdc`.
+- BDD-TDD **Red-Orange-Green-Yellow-Blue** per `rules/testing-methodology.mdc`.
 - `--dispatch=file --parallel=1` must produce identical results to today (backward compatibility).
 - `BatchFileDispatcher` wraps N `FileDispatcher` instances — reuse, don't rewrite, the existing polling logic.
 - The `Dispatcher` interface must not change; `BatchFileDispatcher` is a new implementation alongside `FileDispatcher`.

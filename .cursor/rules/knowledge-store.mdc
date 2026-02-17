@@ -1,0 +1,64 @@
+---
+description: .cursor/ knowledge store — directory structure, index integrity, persistence protocol, and work contracts
+alwaysApply: true
+---
+
+# Knowledge Store
+
+The `.cursor/` directory is the project's structured knowledge store. All reusable context — rules, contracts, docs, notes — lives here and is indexed for agent consumption.
+
+## Directory layout
+
+| Path | Purpose |
+|------|---------|
+| `rules/` | Persistent agent constraints and conventions (this directory) |
+| `contracts/` | Work contracts — session-independent execution plans with state and tasks |
+| `docs/` | Deep references and long-form analysis |
+| `notes/` | Short summaries and quick references |
+| `guide/` | Software development process guidance |
+| `prompts/` | RCA prompt templates (file-based) |
+| `security-cases/` | Security post-mortems (RCA, severity, mitigation) |
+| `strategy/` | Long-term objectives and invariants |
+| `tactics/` | Situational playbooks ("if X, do Y") |
+| `taxonomy/` | Naming and classification rules |
+| `glossary/` | Domain terms and definitions |
+| `goals/` | Goal checklists and per-goal details |
+| `skills/` | Project-specific skill definitions (`<name>/SKILL.md`) |
+
+## File conventions
+
+- `.mdc` — Cursor rules or files requiring YAML frontmatter.
+- `.md` — General notes and documents.
+- `meta.mdc` — Binding structure contract for the knowledge store.
+
+## Index integrity
+
+- Every directory has an `index.mdc` listing only its direct children.
+- **Add, remove, or rename a file → update the parent `index.mdc` in the same operation.**
+- Shallow indexing only; no recursive listings. A directory change without an index update is incomplete.
+
+## Persistence protocol
+
+When a conversation produces reusable knowledge, persist it to the appropriate target:
+
+| Target | Trigger |
+|--------|---------|
+| `docs/` | Deep reference, long-form analysis |
+| `notes/` | Short summary, quick reference |
+| `contracts/` | Execution plan with tasks and state |
+| `security-cases/` | Security bug found or suspected |
+| `rules/` | New constraint, convention, or invariant |
+| `goals/` | Scope decisions (in/out) |
+| `glossary/` | New domain terms |
+
+For delimited topic blocks, propose **"Save Block {{ID}}"** with target directory and rationale.
+
+## Work contracts
+
+Contracts are session-independent execution plans. Any agent can pick up a contract and continue from where the previous session left off.
+
+- **Location:** `.cursor/contracts/`
+- **Template:** Copy `_TEMPLATE.md` to create a new contract. Never edit the template directly.
+- **Structure:** Status, Goal, Rules, Context, Execution strategy, Tasks (always end with Validate → Tune → Validate), Acceptance criteria, Notes (`YYYY-MM-DD HH:MM`).
+- **Commit convention:** `Contract: {slug} {step}/{total}`. Test suite must be green before every commit.
+- **Index:** Update `.cursor/contracts/index.mdc` on add/remove.

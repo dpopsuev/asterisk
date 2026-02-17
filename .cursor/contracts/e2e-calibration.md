@@ -10,7 +10,7 @@
 - Metrics must be **numeric and deterministic** — no subjective "looks about right." Each metric has a threshold that gates pass/fail.
 - The calibration loop is repeatable: same synthetic data, multiple runs, measure variance.
 - Synthetic data must be realistic enough that the prompt system exercises all families (F0–F6), including recall hits, triage skips, low-confidence loops, and serial killer detection.
-- **Execution order:** Mock calibration (Scenario A) is developed and iterated **during** implementation. Real calibration (Scenario B) is the **absolute last step** — it runs only after all implementation contracts are complete, the code is refactored and decoupled, and mock calibration consistently passes. See `rules/asterisk-development.mdc` § Calibration ordering.
+- **Execution order:** Mock calibration (Scenario A) is developed and iterated **during** implementation. Real calibration (Scenario B) is the **absolute last step** — it runs only after all implementation contracts are complete, the code is refactored and decoupled, and mock calibration consistently passes. See `rules/project-standards.mdc` § Calibration ordering.
 
 ## Context
 

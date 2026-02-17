@@ -8,9 +8,9 @@ Asterik FSC is aligned with the artifacts emitted by `.cursor/kombucha.mdc` (FSC
 
 ## Implemented (Kombucha-aligned)
 
-- **contracts/** — Work contracts with `_TEMPLATE.md`; session-independent execution plans. Rule: `.cursor/rules/work-contracts.mdc`.
+- **contracts/** — Work contracts with `_TEMPLATE.md`; session-independent execution plans. Rule: `.cursor/rules/knowledge-store.mdc`.
 - **security-cases/** — Security post-mortems with `_TEMPLATE.md`; naming `SEC-{NNN}-{slug}.md`. Rule: `.cursor/rules/security-analysis.mdc`.
-- **rules/** — Added `work-contracts.mdc`, `security-analysis.mdc`, `save-triggers.mdc`.
+- **rules/** — Added `knowledge-store.mdc`, `security-analysis.mdc`.
 - **skills/index-integrity** — Scan and enforce `index.mdc` compliance; reconcile filesystem vs indexes.
 - **meta.mdc** — Directory purposes include `contracts/`, `security-cases/`; expected skills include `index-integrity`.
 
@@ -25,7 +25,7 @@ Asterik FSC is aligned with the artifacts emitted by `.cursor/kombucha.mdc` (FSC
 
 ## Save triggers
 
-`rules/save-triggers.mdc` includes Asterik-specific targets: `goals/`, `glossary/` in addition to docs, notes, contracts, security-cases, rules.
+`rules/knowledge-store.mdc` includes Asterik-specific targets: `goals/`, `glossary/` in addition to docs, notes, contracts, security-cases, rules.
 
 ## Bootstrap skill
 

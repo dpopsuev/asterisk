@@ -1,36 +1,35 @@
 ---
-description: Always-apply security lens — OWASP Top 10 checklist for feature and code changes.
+description: Security analysis — OWASP Top 10 checklist applied to every feature and trust-boundary change
 alwaysApply: true
 ---
 
 # Security Analysis
 
-Security is a continuous lens. Evaluate every feature, endpoint, data flow, and trust boundary against **OWASP Top 10** before shipping.
+Evaluate every feature, endpoint, data flow, and trust boundary against the OWASP Top 10 before shipping.
 
-## OWASP Top 10 — what to check
+## Checklist
 
-| Category | Focus |
-|----------|--------|
-| A01 Broken Access Control | Authz checks, path traversal, IDOR, privilege escalation. |
-| A02 Cryptographic Failures | Encryption at rest/transit, weak algorithms, key management. |
-| A03 Injection | SQL, command, template, LDAP — validate and parameterize. |
-| A04 Insecure Design | Threat modeling, safe defaults, fail secure. |
-| A05 Security Misconfiguration | Hardening, unused features, verbose errors. |
-| A06 Vulnerable Components | Dependencies, known CVEs, update policy. |
-| A07 Auth Failures | Session, credential handling, MFA, rate limiting. |
-| A08 Data Integrity | Unsigned data, deserialization, CI/CD integrity. |
-| A09 Logging/Monitoring | Audit logs, alerting, response to incidents. |
-| A10 SSRF | Outbound requests, URL validation, allowlists. |
+| Category | Focus areas |
+|----------|-------------|
+| A01 Broken Access Control | Authorization checks, path traversal, IDOR, privilege escalation |
+| A02 Cryptographic Failures | Encryption at rest and in transit, weak algorithms, key management |
+| A03 Injection | SQL, command, template, LDAP — validate and parameterize all inputs |
+| A04 Insecure Design | Threat modeling, safe defaults, fail-secure behavior |
+| A05 Security Misconfiguration | Hardening, unused features, verbose error exposure |
+| A06 Vulnerable Components | Dependency audit, known CVEs, update policy |
+| A07 Authentication Failures | Session management, credential handling, MFA, rate limiting |
+| A08 Data Integrity | Unsigned data, deserialization risks, CI/CD integrity |
+| A09 Logging and Monitoring | Audit logs, alerting, incident response coverage |
+| A10 SSRF | Outbound request validation, URL allowlists |
 
 ## Agent behavior
 
-- On trust-boundary-touching or security-relevant code changes, scan this checklist; flag findings.
-- File a security case (`.cursor/security-cases/SEC-{NNN}-{slug}.md`) when a bug or risk is found.
-- Severity: critical / high / medium / low / informational (CVSS-aligned).
+- On any change touching a trust boundary or handling external data, scan this checklist and flag findings.
+- File a security case (`.cursor/security-cases/SEC-{NNN}-{slug}.md`) when a vulnerability or risk is identified.
+- Severity classification: critical / high / medium / low / informational (CVSS-aligned).
 
-## Cross-reference
+## References
 
-- Security layer in `.cursor/guide/test-matrix.mdc`.
+- Security test layer: `rules/testing-methodology.mdc` (security-as-test section).
 - Security case template: `.cursor/security-cases/_TEMPLATE.md`.
-
-Reference: [OWASP Top 10](https://owasp.org/Top10/).
+- [OWASP Top 10](https://owasp.org/Top10/).

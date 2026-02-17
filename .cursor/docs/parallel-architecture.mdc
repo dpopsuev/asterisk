@@ -186,4 +186,4 @@ asterisk calibrate --dispatch=batch-file --batch-size=4 \
 - Multi-subagent skill: `contracts/multi-subagent-skill.md`
 - Adaptive scheduler: `contracts/adaptive-subagent-scheduler.md`
 - Cost model: `docs/subagent-cost-model.mdc`
-- Impatient agent rule: `rules/impatient-agent.mdc`
+- Impatient agent rule: `rules/agent-operations.mdc`

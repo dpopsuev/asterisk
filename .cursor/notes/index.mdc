@@ -16,7 +16,7 @@ Short summaries and quick references.
 - `three-phases-manual.mdc` — **Single overview** of manual workflow: pre-investigation → investigation → post-investigation. Deep dives: `ci-notification-and-fetch.mdc`, `ci-analysis-flow.mdc`.
 - `test-output-and-ci-agnostic.mdc` — No guarantee of Jenkins or Ginkgo; BDD is universal; test output format (CSV, JSON, etc.) is a choice for agent quality; may require experiments.
 - `pre-dev-decisions.mdc` — Pre-development decisions from contract `pre-dev-questions`; reference for implementation (envelope, storage, Cursor, artifact, RP, prompts, lifecycle).
-- `go-testing-frameworks-research.mdc` — Research on Go testing frameworks (testify, ginkgo/gomega, go-cmp, quick, httptest): use cases, pros/cons. Supports `contracts/go-testing-preferences.md` and `rules/go-testing.mdc`.
+- `go-testing-frameworks-research.mdc` — Research on Go testing frameworks (testify, ginkgo/gomega, go-cmp, quick, httptest): use cases, pros/cons. Supports `contracts/go-testing-preferences.md` and `rules/go-test-conventions.mdc`.
 - `pre-investigation-33195-4.21.mdc` — Pre-investigation fetch for Launch 33195 (4.21): curl only, manual envelope + failure list; file locations and curl commands.
 - `survey-state.mdc` — /survey update marker (last head, last run).
 - `fsc-suggestions.mdc` — FSC backlog (what to add when needed); what’s already in docs.

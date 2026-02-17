@@ -1,0 +1,29 @@
+---
+description: Abstraction boundaries — separate generic domain models from scenario-specific implementations
+alwaysApply: true
+---
+
+# Abstraction Boundaries
+
+Before encoding any logic, documentation, or data structure, determine whether it is **generic** or **scenario-specific**.
+
+## Generic
+
+Applies to any CI system, any operator, any envelope source. Uses only abstract concepts (timeframe, pipeline, job, failure, artifact). No hardcoded layouts, file names, or artifact paths.
+
+- Document in the **core model** or generic sections.
+- In code: prefer interfaces and abstract data shapes. Bind specifics via configuration or adapters.
+
+## Scenario-specific
+
+Tied to a current operator, CI system, or use case (e.g., PTP Operator CI, far-edge-vran, Ginkgo test output). Layouts, artifact directories, file names, and output formats may change. Other operators and CI systems will differ.
+
+- Document as clearly labeled **use-case sections** (e.g., "Current use case: PTP Operator CI").
+- Do not embed scenario details in the core model.
+
+## Rules
+
+1. **Envelope and artifact models** — keep the hierarchy and artifact concepts generic. Concrete layouts and metadata labels go in per-scenario sections.
+2. **Examples and defaults** — state whether they are generic or scenario-specific. If scenario-specific, name the scenario and note that it may change.
+3. **Code** — prefer generic interfaces. Bind CI/operator-specific naming and layout via configuration or adapter pattern, not as the only supported shape.
+4. **Test output format** — BDD structure is universal; the serialization format (JSON, CSV, console) is a tuning decision. See `notes/test-output-and-ci-agnostic.mdc`.

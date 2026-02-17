@@ -16,10 +16,10 @@ Agentic meta-engineering compiler. Drop this file into an empty `.cursor/` and r
 | Dev flow | `.cursor/guide/dev-flow.mdc` |
 | Test matrix | `.cursor/rules/test-matrix.mdc` |
 | Contract template | `.cursor/contracts/_TEMPLATE.md` |
-| Contract trigger rule | `.cursor/rules/work-contracts.mdc` |
+| Contract trigger rule | `.cursor/rules/knowledge-store.mdc` |
 | Security analysis rule | `.cursor/rules/security-analysis.mdc` |
 | Security case template | `.cursor/security-cases/_TEMPLATE.md` |
-| Save triggers rule | `.cursor/rules/save-triggers.mdc` |
+| Save triggers rule | `.cursor/rules/knowledge-store.mdc` |
 | Validator skill | `.cursor/skills/bootstrap/SKILL.md` |
 | Index enforcer skill | `.cursor/skills/index-integrity/SKILL.md` |
 | Directory tree | `.cursor/{rules,guide,docs,notes,contracts,security-cases,skills}/` |
@@ -61,10 +61,10 @@ Three passes, in order. Each is idempotent — safe to re-run.
 2. If `.cursor/guide/dev-flow.mdc` does not exist → create it from **§Dev flow**.
 3. If `.cursor/rules/test-matrix.mdc` does not exist → create it from **§Test matrix**.
 4. If `.cursor/contracts/_TEMPLATE.md` does not exist → create it from **§Work contracts** template.
-5. If `.cursor/rules/work-contracts.mdc` does not exist → create it from **§Work contracts** trigger rule.
+5. If `.cursor/rules/knowledge-store.mdc` does not exist → create it from **§Work contracts** trigger rule.
 6. If `.cursor/rules/security-analysis.mdc` does not exist → create it from **§Security analysis**.
 7. If `.cursor/security-cases/_TEMPLATE.md` does not exist → create it from **§Security cases**.
-8. If `.cursor/rules/save-triggers.mdc` does not exist → create it from **§Save triggers**.
+8. If `.cursor/rules/knowledge-store.mdc` does not exist → create it from **§Save triggers**.
 
 ### Pass 2 — Emit skills and bootstrap
 
@@ -311,7 +311,7 @@ The canonical template lives at `.cursor/contracts/_TEMPLATE.md`. Copy it to cre
 | Artifact | Path |
 |----------|------|
 | Contract template | `.cursor/contracts/_TEMPLATE.md` |
-| Contract trigger rule | `.cursor/rules/work-contracts.mdc` |
+| Contract trigger rule | `.cursor/rules/knowledge-store.mdc` |
 | Contract directory index | `.cursor/contracts/.index.mdc` |
 
 ---
@@ -383,7 +383,7 @@ Files are named `SEC-{NNN}-{slug}.md` where NNN is a zero-padded sequential numb
 
 ## §Save triggers
 
-**Target:** `.cursor/rules/save-triggers.mdc`
+**Target:** `.cursor/rules/knowledge-store.mdc`
 
 **Frontmatter:**
 ```yaml

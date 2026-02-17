@@ -40,7 +40,7 @@ This file is the binding structure contract. `.cursor/rules` must reference it.
 - Official name: **FSC (File-System Context)**.
 - FSC is the curated knowledge store under `.cursor/`.
 - FSC is organized by the directories defined above and indexed via shallow `index.mdc` files.
-- Enforcement lives in `.cursor/rules/fsc-structure.mdc`.
+- Enforcement lives in `.cursor/rules/knowledge-store.mdc`.
 
 ## File extension policy
 - Use `.mdc` for Cursor rules or when frontmatter metadata is required.

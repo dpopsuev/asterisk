@@ -9,7 +9,7 @@
 - RP API version locked to **5.11** (RP 24.1). All endpoints and response shapes must match the OpenAPI spec at `report-portal-cli/pkg/internal/openapi/openapi.yaml`.
 - Do **not** add `report-portal-cli` as a Go module dependency. Asterisk owns its own RP client. The CLI repo is a **read-only reference** for patterns, types, and API correctness.
 - Existing consumers (`cmd/asterisk/main.go`, `internal/calibrate/*`) must continue to work. Migration is incremental: new package `internal/rp` coexists with old `rpfetch`/`rppush` until callers are migrated, then old packages are removed.
-- All external HTTP calls must have `context.Context`, timeouts, and retry with backoff per `rules/asterisk-development.mdc`.
+- All external HTTP calls must have `context.Context`, timeouts, and retry with backoff per `rules/project-standards.mdc`.
 
 ## Context
 

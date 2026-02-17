@@ -4,4 +4,4 @@
 - `index.mdc` — index for this directory.
 - `dev-flow.md` — pre-implementation discussion flow for Asterik.
 - `bdd-templates.mdc` — BDD acceptance criteria templates.
-- `test-matrix.mdc` — TDD test matrix per story (pointer to `rules/test-coverage-checklist.mdc` for full checklist).
+- `test-matrix.mdc` — TDD test matrix per story (pointer to `rules/testing-methodology.mdc` for full checklist).

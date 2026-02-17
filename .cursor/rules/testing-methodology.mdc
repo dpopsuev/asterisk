@@ -1,0 +1,92 @@
+---
+description: Testing methodology — coverage matrix, Red-Orange-Green-Yellow-Blue development cycle, and security-as-test
+alwaysApply: true
+---
+
+# Testing Methodology
+
+## Coverage matrix
+
+Before writing or modifying production code, verify that each applicable layer has adequate coverage. If a layer is not applicable, state why.
+
+| Layer | Scope | Examples |
+|-------|-------|----------|
+| **Unit** | Function-level branches and edge cases | Parsers, classifiers, scoring, error paths, nil/empty inputs |
+| **Integration** | Cross-boundary interactions | RP API calls, Git providers, CI adapters, store read/write, dispatcher send/receive |
+| **Contract** | API schemas and interface compliance | Request/response shapes, auth scopes, rate-limit behavior, adapter interfaces |
+| **E2E** | Full pipeline validation | RP launch intake through F0–F6 to RCA output; stub and real calibration scenarios |
+| **Concurrency** | Shared state and parallel paths | Race detector (`-race`), deadlock-free channels, `sync.WaitGroup`, semaphore bounds |
+| **Security** | Trust boundaries and external data | OWASP checklist (`rules/security-analysis.mdc`), secret redaction, input validation, SSRF |
+
+## Development cycle: Red-Orange-Green-Yellow-Blue
+
+Every code increment follows five phases. Orange and Yellow are the observability pair — do not skip either.
+
+### 1. Red — write a failing test
+
+Capture the intended behavior or reproduce the bug. Run it. It **must fail**. If it passes, the test does not cover the change.
+
+- Unit or Ginkgo spec depending on complexity (see `rules/go-test-conventions.mdc`).
+- For BDD stories, map the test to a Given/When/Then acceptance criterion.
+
+### 2. Orange — instrument problem signals
+
+Before implementing the fix, add logging and instrumentation that surfaces **failures, errors, and anomalies**. Orange output answers: *"What went wrong? Where? Why?"*
+
+- Log at error paths, failed assertions, rejected inputs, timeout triggers.
+- Include machine-readable fields: `slog.String("case_id", id)`, `slog.String("step", "F1")`, `slog.String("error", err.Error())`.
+- Log classifier decisions that **disagree** with expectations (score mismatches, unexpected defaults).
+- **Why before Green?** The first run after a change is otherwise blind. Orange ensures failures are visible from the start — for humans reading terminal output and for AI agents parsing logs.
+
+### 3. Green — make the test pass
+
+Implement the minimal production code to pass the Red test. Run the full affected test suite. Everything must be green.
+
+- Do not over-implement. The test defines the scope.
+- If the change touches the pipeline, run stub calibration to verify no regression.
+
+### 4. Yellow — instrument success signals
+
+With the code working, add logging that surfaces **healthy operation and key decisions**. Yellow output answers: *"What happened? What did we choose? How long did it take?"*
+
+- Log successful path completions, selected components, chosen classifications, convergence scores.
+- Log per-step timing (`slog.Duration("elapsed", d)`) and throughput metrics.
+- Log dispatcher send/receive confirmations and artifact sizes.
+- **Why after Green?** Yellow confirms the system is operating correctly. It provides the baseline for regression detection and performance monitoring. Agents and humans use Yellow output to trust that things are working.
+
+### 5. Blue — refactor
+
+With tests green and full observability (Orange + Yellow) in place:
+
+- Remove duplication, improve naming, extract helpers.
+- Review log levels: Orange stays at `Warn`/`Error`; Yellow demotes from `Info` to `Debug` where appropriate.
+- Verify the coverage matrix still holds.
+- Update prompts if the change affects AI inference quality.
+
+### Orange vs Yellow summary
+
+| Phase | Signal type | Log level | Timing | Answers |
+|-------|-------------|-----------|--------|---------|
+| **Orange** | Problem / error / anomaly | `Warn`, `Error` | Before Green | *"What went wrong?"* |
+| **Yellow** | Success / decision / metric | `Info`, `Debug` | After Green | *"What happened? Are we healthy?"* |
+
+Both are **observability instrumentation** for agents (human and AI). Together they provide complete operational visibility.
+
+## Security as test
+
+Security tests prove the system **does not** exhibit harmful behavior. For every trust boundary touched:
+
+1. Consult the OWASP checklist in `rules/security-analysis.mdc`.
+2. Write at least one negative test (e.g., path traversal returns error, not file contents).
+3. File a security case per `security-cases/_TEMPLATE.md` if a risk is found.
+
+## Quick reference
+
+```
+  1. ASSESS  — verify coverage matrix (this rule)
+  2. RED     — write failing test
+  3. ORANGE  — instrument problem signals (errors, anomalies)
+  4. GREEN   — implement; make test pass
+  5. YELLOW  — instrument success signals (decisions, metrics)
+  6. BLUE    — refactor; tune log levels
+```

@@ -1,0 +1,48 @@
+---
+description: Asterisk project standards — product intent, development methodology, data handling, and output requirements
+alwaysApply: true
+---
+
+# Project Standards
+
+## Product definition
+
+- Asterisk is a **standalone Go CLI** (potential sidecar service) that interacts with ReportPortal via the RP API as an external client.
+- Purpose: automated root-cause analysis on RP test failures by correlating with source repositories, CI pipelines, and infrastructure telemetry.
+- Design principle: explainable, evidence-first RCA with confidence scores.
+
+## Development methodology
+
+- Start every story with Gherkin acceptance criteria (Given / When / Then).
+- Follow the **Red-Orange-Green-Yellow-Blue** cycle (see `rules/testing-methodology.mdc`).
+- Run the local pipeline after every change (see `rules/agent-operations.mdc`).
+- Prefer deterministic outputs for identical inputs; seed ordering where needed.
+- Every AI inference must cite evidence (logs, commits, pipeline data).
+
+## Scope alignment
+
+- Focus on the current PoC goal. Defer future phases unless explicitly re-scoped.
+
+## Calibration ordering
+
+1. **Mock calibration** (synthetic ground truth) runs continuously and guides refactoring.
+2. **Real calibration** (production Jira bugs, RP launches, production repos) is the **final step** — attempted only when:
+   - All implementation contracts are complete.
+   - The codebase is refactored and testable.
+   - Mock calibration consistently passes acceptance thresholds.
+3. Rationale: real-data calibration validates the finished system. Running it on mid-refactor code produces misleading metrics.
+
+## Data handling
+
+- Treat external data (RP, CI, repos) as partial and potentially absent. Return partial results with clear errors.
+- Redact secrets and PII in all outputs by default.
+- All external calls require timeouts and retry with exponential backoff (see `rules/agent-operations.mdc`).
+
+## Persistence
+
+- Use the **storage adapter** interface for cases, RCAs, and pipeline hierarchy. No raw SQLite in domain or CLI code.
+
+## Output requirements
+
+- RCA output must include: summary, suspected components/commits, category + confidence, and recommended next actions.
+- Every conclusion must link to supporting evidence.

@@ -8,7 +8,7 @@ Goal checklist and per-goal details.
 
 ## Before development (FSC tuned)
 - Glossary, docs, and rules aligned on **storage adapter** (SQLite for now), **RCA → Jira** (ticket ID + link; no integration yet), and **investigation case** per envelope.
-- Persistence rule in `rules/asterisk-development.mdc`: use adapter only; no raw SQLite in domain/CLI.
+- Persistence rule in `rules/project-standards.mdc`: use adapter only; no raw SQLite in domain/CLI.
 - Open design choices documented in `docs/cli-data-model.mdc` (adapter interface shape, envelope identity, when to create cases, etc.). Implementation can resolve these.
 
 ## Handoff summary

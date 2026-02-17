@@ -45,7 +45,7 @@ Contracts created from the PoC assessment. Dependencies: complete **rp-api-compl
 
 ## PoC v2 implementation (from design contracts)
 
-Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orchestrator depends on v2 Store). Design contracts (prompt-families, investigation-context) must be finalized before starting these. **Real calibration (Scenario B)** is the absolute last step — only after all contracts are complete, the code is refactored/decoupled, and mock calibration (Scenario A) passes. See `rules/asterisk-development.mdc` § Calibration ordering.
+Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orchestrator depends on v2 Store). Design contracts (prompt-families, investigation-context) must be finalized before starting these. **Real calibration (Scenario B)** is the absolute last step — only after all contracts are complete, the code is refactored/decoupled, and mock calibration (Scenario A) passes. See `rules/project-standards.mdc` § Calibration ordering.
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
@@ -129,7 +129,7 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 - `asterisk-cli.md` — **asterisk CLI:** analyze and push -f subcommands; envelope, workspace, storage.
 - `context-workspace.md` — **Context workspace:** load from FS (YAML/JSON/TOML); use in analyze.
 - `cursor-handoff.md` — **Cursor handoff:** minimal asterisk --cursor; prompt output; save/ingest; document flow.
-- `go-testing-preferences.md` — **Go testing preferences:** when to use standard library vs framework; rules in `rules/go-testing.mdc`.
+- `go-testing-preferences.md` — **Go testing preferences:** when to use standard library vs framework; rules in `rules/go-test-conventions.mdc`.
 - `mock-pre-investigation.md` — **Mock Pre-investigation:** fetch (stub) + save envelope to DB/workspace; BDD/TDD, red-green-blue.
 - `mock-investigation.md` — **Mock Investigation:** analyze from store → cases + artifact; BDD/TDD, red-green-blue.
 - `mock-post-investigation.md` — **Mock Post-investigation:** push artifact to mock RP/RCA store; BDD/TDD, red-green-blue.

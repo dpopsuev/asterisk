@@ -4,7 +4,7 @@ description: Research on Go testing frameworks — use cases, pros/cons, when to
 
 # Go Testing Frameworks — Research (contract go-testing-preferences)
 
-Findings from online research to support `contracts/go-testing-preferences.md` and `rules/go-testing.mdc`. No adoption decision; use to inform “consider X when Y.”
+Findings from online research to support `contracts/go-testing-preferences.md` and `rules/go-test-conventions.mdc`. No adoption decision; use to inform “consider X when Y.”
 
 ---
 

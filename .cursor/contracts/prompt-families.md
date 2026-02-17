@@ -9,7 +9,7 @@
 - Prompts are file-based templates (Go `text/template`); dev location `.cursor/prompts/`, shipped via CLI prompt dir. See `docs/prompts.mdc`.
 - Each prompt family produces a **typed intermediate artifact** (JSON) that the next stage can read from disk — no reliance on chat context surviving between steps.
 - Every heuristic must be explainable (no opaque "pick a prompt" logic); log the decision and the signal that triggered it.
-- Generic model: families and pipelines are CI/operator-agnostic; scenario-specific prompt *content* lives in per-scenario subdirs (e.g. `ptp-ci/`). See `rules/scenario-vs-generic.mdc`.
+- Generic model: families and pipelines are CI/operator-agnostic; scenario-specific prompt *content* lives in per-scenario subdirs (e.g. `ptp-ci/`). See `rules/abstraction-boundaries.mdc`.
 
 ## Context
 

@@ -5,7 +5,7 @@
 
 ## Contract rules
 
-- Global rules only. Follow `rules/scenario-vs-generic.mdc`: document API in a CI-agnostic way; PTP/ecosystem-qe is the example, not the only scenario.
+- Global rules only. Follow `rules/abstraction-boundaries.mdc`: document API in a CI-agnostic way; PTP/ecosystem-qe is the example, not the only scenario.
 - **Stick to 5.11:** All research targets `report-portal/service-api` at version 5.11 (and report-portal-cli aligned to same). Do not rely on newer API or MCP server.
 
 ## Context

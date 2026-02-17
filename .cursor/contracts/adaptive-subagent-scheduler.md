@@ -9,14 +9,14 @@
 - Adaptive logic lives in the **skill** (parent agent decision-making), not in the Go CLI. The Go CLI provides data (metrics, token reports); the parent agent interprets it.
 - All scheduling decisions must be explainable: the parent agent logs why it chose a batch size, why it stopped, or why it re-routed.
 - Cost model must be validated with real `--cost-report` data, not estimates.
-- Follow `rules/impatient-agent.mdc`: if a batch takes longer than expected, the parent should diagnose and adapt, not blindly wait.
+- Follow `rules/agent-operations.mdc`: if a batch takes longer than expected, the parent should diagnose and adapt, not blindly wait.
 
 ## Context
 
 - **Multi-subagent skill**: `contracts/multi-subagent-skill.md` — parent loop spawns up to 4 Task subagents per batch. Fixed batch size.
 - **Token tracking**: `internal/calibrate/tokens.go`, `token_dispatcher.go` — measures real tokens per step/case. `--cost-report` writes `token-report.json`.
 - **Symptom clustering**: `internal/calibrate/cluster.go` — groups cases by `{category, component, defect_hypothesis}`. Representatives investigated; members inherit results.
-- **Impatient agent**: `rules/impatient-agent.mdc` — abort long-running operations quickly, optimize afterward.
+- **Impatient agent**: `rules/agent-operations.mdc` — abort long-running operations quickly, optimize afterward.
 - **Calibration metrics**: `internal/calibrate/metrics.go` — M1-M20 scored per run. M19 is the primary accuracy target.
 - **Cost concern**: More subagents = more parallel token burn. But tighter context per subagent = fewer input tokens per call. Net effect depends on case complexity and clustering.
 

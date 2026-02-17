@@ -5,7 +5,7 @@
 
 ## Contract rules
 
-Global rules only. Follow `rules/scenario-vs-generic.mdc`: mark answers as generic vs PTP/current use case where it matters.
+Global rules only. Follow `rules/abstraction-boundaries.mdc`: mark answers as generic vs PTP/current use case where it matters.
 
 ## Context
 

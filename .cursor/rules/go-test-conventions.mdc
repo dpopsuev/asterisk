@@ -1,0 +1,41 @@
+---
+description: Go test conventions — Ginkgo + stdlib hybrid; framework selection, naming, and fixture management
+alwaysApply: false
+globs: "**/*.go"
+---
+
+# Go Test Conventions
+
+Asterisk uses a hybrid approach: **Ginkgo + Gomega** for BDD and integration specs, **standard library `testing`** for unit tests. Choose the right tool per situation.
+
+## Framework selection
+
+| Situation | Framework |
+|-----------|-----------|
+| BDD/integration scenario (multi-step flow, full pipeline) | Ginkgo (`Describe`/`It` + Gomega) |
+| Simple unit test, table-driven, small helper | Stdlib `testing` |
+| Deep equality with readable diffs | `go-cmp` (optional) |
+| HTTP handler/client tests | Stdlib `httptest` |
+
+Both frameworks may coexist in the same package.
+
+## Ginkgo conventions
+
+- **Runner:** Prefer `go run github.com/onsi/ginkgo/v2/ginkgo ./...` (uses `go.mod` version). `go test ./...` also runs Ginkgo suites.
+- **Suite file:** One `*_suite_test.go` per package (`RegisterFailHandler` + `RunSpecs`).
+- **Spec structure:** `Describe` → `Context` → `It`; use `BeforeEach` for shared setup.
+- **Assertions:** Gomega matchers (`Expect(x).To(Equal(y))`, `NotTo(BeNil())`, `To(Succeed())`).
+
+## Stdlib conventions
+
+- **Naming:** `Test<Unit>_<Scenario>` (e.g., `TestClassifyFailure_EnvironmentCase`).
+- **Helpers:** Use `t.Helper()` in helper functions.
+- **Assertions:** `t.Errorf` / `t.Fatalf` with clear `got` / `want` messages.
+- **Table-driven:** Prefer `t.Run(tt.name, ...)` for parameterized inputs.
+
+## Fixtures and dependencies
+
+- Load fixtures from repo paths (e.g., `examples/pre-investigation-33195-4.21/`).
+- Use `t.TempDir()` (stdlib) or `ginkgo.GinkgoT().TempDir()` (Ginkgo) for temporary state.
+- Skip unavailable fixtures with `t.Skipf` or guarded `Expect`.
+- **testify** is not adopted. Use Gomega for Ginkgo specs, stdlib for stdlib tests.

@@ -6,7 +6,7 @@ description: Envelope mental model — generic hierarchy and artifact concept; c
 
 A simple hierarchy for "where am I" in a CI run. Maps to the data model in `cli-data-model.mdc` (pipeline ⊃ job ⊃ failure) with a **timeframe** on top.
 
-**Important:** The **pure model** (hierarchy + artifact concept) is generic and should fit any CI/operator. Artifact layout, file names, and meta labels are **scenario-specific** and will differ per operator and CI; document them as use-case sections, not as part of the generic model. See rule: `rules/scenario-vs-generic.mdc`.
+**Important:** The **pure model** (hierarchy + artifact concept) is generic and should fit any CI/operator. Artifact layout, file names, and meta labels are **scenario-specific** and will differ per operator and CI; document them as use-case sections, not as part of the generic model. See rule: `rules/abstraction-boundaries.mdc`.
 
 ---
 

@@ -1,0 +1,75 @@
+---
+description: Agent execution model — local CI/CD pipeline, timeout SLAs, observability, and abort protocol
+alwaysApply: true
+---
+
+# Agent Operations
+
+The AI agent is the build-and-verify operator. Every code change passes through a local pipeline before being declared complete.
+
+## Local pipeline
+
+Run stages in order after every substantive change. Each stage is a quality gate.
+
+| Stage | Command | SLA | On failure |
+|-------|---------|-----|------------|
+| **Build** | `go build ./...` | 30 s | Fix compilation errors immediately |
+| **Lint** | `ReadLints` on changed files | 10 s | Fix introduced lints; ignore pre-existing |
+| **Unit test** | `go test ./...` | 60 s | Stop; fix before proceeding |
+| **Integration** | `just calibrate-stub` or scenario-specific | 2 min | Triage metric regressions |
+| **Wet validation** | `just calibrate-wet` or equivalent | 10 min | Monitor output; apply abort protocol |
+
+Never skip stages. Build before test; test before integration; integration before wet validation.
+
+## Timeout SLAs and abort protocol
+
+Time spent waiting on unresponsive code is a defect, not an inevitable cost. **Abort first, diagnose second, optimize third.**
+
+### Thresholds
+
+| Scope | Silence budget | Action |
+|-------|---------------|--------|
+| Project binaries (`asterisk`, `mock-calibration-agent`) | 30 s | Kill and diagnose |
+| External toolchain (`go build`, `go test`, linters) | 60 s cold / 30 s incremental | Kill and diagnose |
+| Dispatcher polling (file-based or MCP) | Configured timeout | Inspect state, kill, diagnose |
+
+### Calibration SLAs
+
+| Run type | Budget | Implication if exceeded |
+|----------|--------|------------------------|
+| Stub (no LLM) | 10 s | Bottleneck is in our code |
+| Full 30-case wet (`--parallel=1`) | 10 min | Investigate per-step timing |
+
+After each calibration run, record elapsed time. Flag regressions immediately.
+
+### Post-abort procedure
+
+1. **Diagnose** — read last output; check for deadlocks, infinite loops, missing exit conditions.
+2. **Measure** — note partial progress and elapsed time.
+3. **Propose fix** — concrete optimization (parallelism, caching, smaller input) or bug fix.
+4. **Re-run with instrumentation** — add `--verbose`, timing logs, or profiling flags.
+
+## Observability requirements
+
+1. **Stream, don't stare.** Always use `--debug`, `--verbose`, or `-v`. If a command produces no output for 15 seconds, something is wrong.
+2. **Fail fast, diagnose loud.** Print the exact error, file, and failing case. Never retry blindly.
+3. **Incremental over full.** After a targeted fix, run the affected test (`-run TestName`) first, then the full suite.
+4. **Commit at green gates.** Offer to commit when build + lint + unit tests all pass. Do not bundle uncommitted changes across features.
+
+## Design for fast abort
+
+When writing or modifying code with blocking or long-running operations:
+
+- Add `context.Context` with timeout — never block indefinitely.
+- Prefer `--timeout` and `--max-stale` CLI flags over hardcoded waits.
+- Emit progress signals (periodic log lines, heartbeat file, progress counter).
+- Return actionable errors: `"timed out after 10s waiting for signal.json"` beats a silent hang.
+
+## Anti-patterns
+
+- Editing multiple files without building or testing any of them.
+- Running a calibration before verifying the code compiles.
+- Piping output through `tail` or `head` and losing error context.
+- Sleeping in a poll loop without progress logging.
+- Retrying a failed command without diagnosing the failure.
+- Declaring "done" without running the pipeline.
