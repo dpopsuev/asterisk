@@ -14,7 +14,7 @@
 
 **Asterisk** is a standalone CLI written in Go that performs automated Root Cause Analysis (RCA) on test failures reported in [ReportPortal](https://reportportal.io/). It correlates failures with external repositories, CI pipeline context, and historical investigation data to produce explainable, evidence-first RCA reports with confidence scores.
 
-Asterisk ingests a ReportPortal launch, runs each failure through a six-stage investigation pipeline (F0-F6), and outputs structured RCA artifacts that can be pushed back to ReportPortal or exported to issue trackers.
+Asterisk ingests a ReportPortal launch, runs each failure through a six-stage investigation pipeline (Recall–Report, F0–F6), and outputs structured RCA artifacts that can be pushed back to ReportPortal or exported to issue trackers.
 
 ### Who is it for?
 
@@ -27,36 +27,36 @@ Asterisk ingests a ReportPortal launch, runs each failure through a six-stage in
 
 ## Architecture
 
-### Investigation Pipeline (F0 -- F6)
+### Investigation Pipeline (Recall–Report, F0–F6)
 
-Every failed test case flows through a heuristic-routed pipeline. At each stage, the engine evaluates rules (H1-H18) to decide the next step -- short-circuiting when possible, looping when evidence is insufficient.
+Every failed test case flows through a heuristic-routed pipeline. At each stage, the engine evaluates rules (Recall Hit, Triage Skip Infra, Correlate Duplicate, etc.; H1–H18) to decide the next step — short-circuiting when possible, looping when evidence is insufficient.
 
 ```mermaid
 flowchart LR
-    F0[F0 Recall] --> F1[F1 Triage]
-    F0 -->|"H1: prior RCA match"| F5
-    F1 -->|"H4/H5: infra or flake"| F5[F5 Review]
-    F1 -->|"H7: single repo"| F3[F3 Investigate]
-    F1 --> F2[F2 Resolve]
+    F0[Recall F0] --> F1[Triage F1]
+    F0 -->|"Recall Hit (H1): prior RCA match"| F5
+    F1 -->|"Triage Skip Infra/Flake (H4/H5)"| F5[Review F5]
+    F1 -->|"Triage Single Repo (H7)"| F3[Investigate F3]
+    F1 --> F2[Resolve F2]
     F2 --> F3
-    F3 -->|"H9: converged"| F4[F4 Correlate]
-    F3 -->|"H10: low confidence"| F2
-    F4 -->|"H15: duplicate"| Done((Done))
+    F3 -->|"Investigate Converged (H9)"| F4[Correlate F4]
+    F3 -->|"Investigate Low (H10): low confidence"| F2
+    F4 -->|"Correlate Duplicate (H15)"| Done((Done))
     F4 --> F5
-    F5 -->|"H12: approved"| F6[F6 Report]
-    F5 -->|"H13: reassess"| F3
+    F5 -->|"Review Approve (H12)"| F6[Report F6]
+    F5 -->|"Review Reassess (H13)"| F3
     F6 --> Done
 ```
 
 | Stage | Purpose | Output |
 |-------|---------|--------|
-| **F0 Recall** | Check if this failure matches a known symptom/RCA | `recall-result.json` |
-| **F1 Triage** | Classify symptom category, severity, defect type | `triage-result.json` |
-| **F2 Resolve** | Select candidate repositories for investigation | `resolve-result.json` |
-| **F3 Investigate** | Deep RCA -- analyze logs, commits, code paths | `artifact.json` |
-| **F4 Correlate** | Match against other cases; detect duplicates | `correlate-result.json` |
-| **F5 Review** | Present findings; approve, reassess, or overturn | `review-decision.json` |
-| **F6 Report** | Generate Jira draft / regression table | `jira-draft.json` |
+| **Recall (F0)** | Check if this failure matches a known symptom/RCA | `recall-result.json` |
+| **Triage (F1)** | Classify symptom category, severity, defect type | `triage-result.json` |
+| **Resolve (F2)** | Select candidate repositories for investigation | `resolve-result.json` |
+| **Investigate (F3)** | Deep RCA — analyze logs, commits, code paths | `artifact.json` |
+| **Correlate (F4)** | Match against other cases; detect duplicates | `correlate-result.json` |
+| **Review (F5)** | Present findings; approve, reassess, or overturn | `review-decision.json` |
+| **Report (F6)** | Generate Jira draft / regression table | `jira-draft.json` |
 
 ### Batch Dispatch (Multi-Subagent Mode)
 
@@ -113,8 +113,8 @@ flowchart TB
 
 - **ReportPortal integration** -- fetch launches, test items, and logs via the RP 5.11 API; push RCA defect updates back.
 - **Prompt-driven investigation** -- each pipeline stage uses a structured prompt template (`.cursor/prompts/`), enabling AI-assisted analysis via Cursor or any LLM adapter.
-- **Heuristic routing** -- 18 configurable rules (H1-H18) with tunable thresholds for recall confidence, convergence, loop limits, and duplicate detection.
-- **Calibration framework** -- run the full pipeline against ground-truth scenarios with 20 metrics (M1-M20) covering defect classification, recall accuracy, repo selection, semantic quality, and pipeline path correctness.
+- **Heuristic routing** — 18 configurable rules (Recall Hit, Triage Skip Infra, Correlate Duplicate, etc.; H1–H18) with tunable thresholds for recall confidence, convergence, loop limits, and duplicate detection.
+- **Calibration framework** — run the full pipeline against ground-truth scenarios with 20 metrics (Defect Type Accuracy, Overall Accuracy, etc.; M1–M20) covering defect classification, recall accuracy, repo selection, semantic quality, and pipeline path correctness.
 - **Storage layer** -- SQLite-backed persistence (via pure-Go `modernc.org/sqlite`) with an in-memory alternative for testing.
 - **Context workspace** -- YAML/JSON configuration mapping failures to relevant repositories with purpose metadata.
 - **File-based dispatch** -- `signal.json` polling protocol enabling automated agent communication without stdin.
@@ -183,7 +183,7 @@ asterisk calibrate --scenario=ptp-real-ingest --adapter=cursor \
 asterisk <analyze|push|cursor|save|status|calibrate> [options]
 ```
 
-### `analyze` -- Run F0-F6 pipeline
+### `analyze` — Run Recall–Report (F0–F6) pipeline
 
 | Flag | Default | Description |
 |------|---------|-------------|
@@ -266,21 +266,21 @@ The calibration framework validates the investigation pipeline end-to-end agains
 - **Stub** -- returns ground-truth answers deterministically. Validates pipeline logic and heuristic routing.
 - **Cursor** -- fills prompt templates, dispatches to an AI agent (or mock-calibration-agent), and evaluates real outputs against ground truth.
 
-### Metrics (M1 -- M20)
+### Metrics (M1–M20)
 
 | Group | Metrics | What they measure |
 |-------|---------|-------------------|
-| Classification | M1 defect type, M2 symptom category | Triage accuracy |
-| Recall | M3 recall hit rate, M4 false positive rate | Known-symptom detection |
-| Knowledge | M5 serial killer detection, M6 skip accuracy, M7 cascade | Pattern recognition |
-| Convergence | M8 convergence score | Investigation depth quality |
-| Repo Selection | M9 precision, M10 recall | Repository targeting |
-| Evidence | M11 evidence count, M12 link validity | Supporting data quality |
-| Semantic | M13 summary quality, M14 RCA relevance | Output usefulness |
-| Pipeline | M15 component ID, M16 path accuracy, M17 loop efficiency | Routing correctness |
-| Aggregate | M18 total prompt tokens, M19 overall accuracy, M20 run variance | System-level performance |
+| Classification | Defect Type Accuracy (M1), Symptom Category Accuracy (M2) | Triage accuracy |
+| Recall | Recall Hit Rate (M3), Recall False Positive Rate (M4) | Known-symptom detection |
+| Knowledge | Serial Killer Detection (M5), Skip Accuracy (M6), Cascade Detection (M7) | Pattern recognition |
+| Convergence | Convergence Calibration (M8) | Investigation depth quality |
+| Repo Selection | Repo Selection Precision (M9), Repo Selection Recall (M10) | Repository targeting |
+| Evidence | Red Herring Rejection (M11), Evidence Recall (M12), Evidence Precision (M13) | Supporting data quality |
+| Semantic | RCA Message Relevance (M14), Component Identification (M15) | Output usefulness |
+| Pipeline | Pipeline Path Accuracy (M16), Loop Efficiency (M17), Total Prompt Tokens (M18) | Routing correctness |
+| Aggregate | Overall Accuracy (M19), Run Variance (M20) | System-level performance |
 
-Target: **M19 (overall accuracy) >= 0.95**.
+Target: **Overall Accuracy (M19) >= 0.95**.
 
 ---
 
@@ -295,7 +295,7 @@ asterisk/
 ├── internal/
 │   ├── calibrate/             # Calibration runner, adapters, dispatchers, metrics
 │   │   └── scenarios/         # Ground-truth scenarios (ptp-mock, daemon-mock, ptp-real, ...)
-│   ├── orchestrate/           # F0-F6 pipeline engine, heuristics (H1-H18), state, templates
+│   ├── orchestrate/           # Recall–Report (F0–F6) pipeline engine, heuristics (H1–H18), state, templates
 │   ├── store/                 # Persistence: Store interface, SqlStore (SQLite), MemStore
 │   ├── rp/                    # ReportPortal API client (fetch, push, project/launch scopes)
 │   ├── preinvest/             # Pre-investigation: envelope fetch and storage
@@ -305,7 +305,7 @@ asterisk/
 │   └── wiring/                # End-to-end mock flow (Ginkgo integration tests)
 ├── examples/                  # Fixture data (launch 33195 envelope + items)
 ├── .cursor/
-│   ├── prompts/               # F0-F6 prompt templates (Markdown)
+│   ├── prompts/               # Recall–Report (F0–F6) prompt templates (Markdown)
 │   ├── contracts/             # Work contracts (execution plans)
 │   ├── docs/                  # Deep references (data model, envelope, artifacts)
 │   ├── notes/                 # Short summaries (PoC constraints, workspace structure)
@@ -361,13 +361,13 @@ Investigation prompts live in `.cursor/prompts/` organized by pipeline stage:
 
 | Directory | Stage | Template |
 |-----------|-------|----------|
-| `recall/` | F0 | `judge-similarity.md` |
-| `triage/` | F1 | `classify-symptoms.md` |
-| `resolve/` | F2 | `select-repo.md` |
-| `investigate/` | F3 | `deep-rca.md` |
-| `correlate/` | F4 | `match-cases.md` |
-| `review/` | F5 | `present-findings.md` |
-| `report/` | F6 | `regression-table.md` |
+| `recall/` | Recall (F0) | `judge-similarity.md` |
+| `triage/` | Triage (F1) | `classify-symptoms.md` |
+| `resolve/` | Resolve (F2) | `select-repo.md` |
+| `investigate/` | Investigate (F3) | `deep-rca.md` |
+| `correlate/` | Correlate (F4) | `match-cases.md` |
+| `review/` | Review (F5) | `present-findings.md` |
+| `report/` | Report (F6) | `regression-table.md` |
 
 ---
 
@@ -378,7 +378,7 @@ Investigation prompts live in `.cursor/prompts/` organized by pipeline stage:
 | **0 -- Foundations** | Ingest RP failures, map to repositories | Done |
 | **1 -- Evidence Gathering** | Commit history, CI pipeline context, calibration framework | Done |
 | **2 -- Parallel & Multi-Agent** | Parallel pipeline, batch dispatch, multi-subagent skill | Done |
-| **3 -- Calibration Victory** | Reach M19 >= 0.95 across all scenarios | In progress |
+| **3 — Calibration Victory** | Reach Overall Accuracy (M19) >= 0.95 across all scenarios | In progress |
 | **4 -- Reporting** | Export to RP / GitHub, learn from outcomes | Planned |
 | **5 -- Advanced** | Flaky test detection, cluster metrics, NL explanations | Future |
 

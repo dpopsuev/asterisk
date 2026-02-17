@@ -38,7 +38,7 @@ The protocol is designed to avoid unnecessary timeouts:
 | `status` | string | Current state: `waiting`, `processing`, `done`, `error` |
 | `dispatch_id` | int64 | Monotonic ID — agent must echo this in the artifact wrapper |
 | `case_id` | string | Ground-truth case ID (e.g. "C1") |
-| `step` | string | Pipeline step (e.g. "F0_RECALL", "F1_TRIAGE") |
+| `step` | string | Pipeline step (wire format: `F0_RECALL`, `F1_TRIAGE`, etc.; human-readable: Recall (F0), Triage (F1)) |
 | `prompt_path` | string | Absolute path to the filled prompt file (markdown) |
 | `artifact_path` | string | Absolute path where the agent must write the JSON artifact |
 | `timestamp` | string | ISO 8601 timestamp of when the signal was created |
@@ -135,15 +135,15 @@ Or to a custom `SignalDir` if configured.
 
 ## Artifact filenames by step
 
-| Step | Artifact filename |
-|------|------------------|
-| F0 Recall | `recall-result.json` |
-| F1 Triage | `triage-result.json` |
-| F2 Resolve | `resolve-result.json` |
-| F3 Investigate | `artifact.json` |
-| F4 Correlate | `correlate-result.json` |
-| F5 Review | `review-decision.json` |
-| F6 Report | `jira-draft.json` |
+| Step (wire format) | Human-readable | Artifact filename |
+|-------------------|----------------|------------------|
+| `F0_RECALL` | Recall (F0) | `recall-result.json` |
+| `F1_TRIAGE` | Triage (F1) | `triage-result.json` |
+| `F2_RESOLVE` | Resolve (F2) | `resolve-result.json` |
+| `F3_INVESTIGATE` | Investigate (F3) | `artifact.json` |
+| `F4_CORRELATE` | Correlate (F4) | `correlate-result.json` |
+| `F5_REVIEW` | Review (F5) | `review-decision.json` |
+| `F6_REPORT` | Report (F6) | `jira-draft.json` |
 
 ## CLI usage
 
@@ -217,7 +217,7 @@ When `--dispatch=batch-file` is used with `--parallel=N`, the Go CLI writes mult
 |-------|------|-------------|
 | `batch_id` | int64 | Monotonic batch counter within a calibration run |
 | `status` | string | Batch lifecycle: `pending`, `in_progress`, `done`, `error` |
-| `phase` | string | Pipeline phase: `triage` (F0+F1) or `investigation` (F2-F6) |
+| `phase` | string | Pipeline phase: `triage` (Recall–Triage F0+F1) or `investigation` (Resolve–Report F2–F6) |
 | `created_at` | string | ISO 8601 timestamp of batch creation |
 | `updated_at` | string | ISO 8601 timestamp of last status change |
 | `total` | int | Number of signals in this batch |

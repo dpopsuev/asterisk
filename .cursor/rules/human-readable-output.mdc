@@ -1,0 +1,44 @@
+# Human-Readable Output
+
+**Principle: Code is for machines, words are for humans.**
+
+## Machine context (codes are correct)
+
+Use short opaque identifiers (`pb001`, `F0_RECALL`, `M1`, `H3`, `C01`) in:
+
+- JSON/wire payloads and serialization fields
+- Map keys and internal lookups
+- Struct tags and database columns
+- Equality comparisons and switch cases
+- Test fixture expected-value fields (the value under test)
+
+## Human context (names are required)
+
+Use human-readable names in:
+
+- CLI output (`fmt.Printf`, status lines, progress messages)
+- Markdown reports (calibration report, TokiMeter, briefing, analysis)
+- Log messages (`log.Printf`, `dbg()`, `info()`)
+- Documentation (`.cursor/notes/`, `.cursor/contracts/`, `README.md`)
+- Error messages shown to the operator
+- Test failure messages (`t.Errorf`, `t.Fatalf`) -- so the developer can read the output
+
+## Dual-audience format
+
+When both a machine and a human read the same line (e.g. a structured log that is also printed to the terminal), use `"Name (code)"`:
+
+```
+Product Bug (pb001)
+Recall (F0)
+Defect Type Accuracy (M1)
+```
+
+## Display registry
+
+All code-to-name mappings live in `internal/display/display.go`. Every new code family must register display names there. Use the package functions (`display.DefectType()`, `display.Stage()`, `display.Metric()`) in all human-facing formatters.
+
+## Enforcement
+
+- When adding a new code family, add a `display.X()` function and tests before using the code in output.
+- When editing a formatter (`report.go`, `briefing.go`, `tokimeter.go`, `analysis.go`, CLI `main.go`), check that all emitted strings pass through the display layer.
+- Raw codes in human output are treated as bugs.

@@ -34,7 +34,7 @@ asterisk calibrate --scenario=ptp-mock --adapter=cursor --dispatch=file
 
 - **Dry status:** All three scenarios pass 20/20 with stub adapter. See `e2e-calibration.md`.
 - **Wet status:** Untested. Requires `fs-dispatcher.md` (FileDispatcher) and `cursor-skill.md` (agent skill) to be implemented.
-- **Metrics:** 20 metrics across 6 categories (M1–M20). See `e2e-calibration.md` §3.
+- **Metrics:** 20 metrics across 6 categories (Defect Type Accuracy, Overall Accuracy, etc.; M1–M20). See `e2e-calibration.md` §3.
 - **Scenarios:** ptp-mock (12 cases), daemon-mock (8 cases), ptp-real (8 cases). 28 total cases.
 
 ## Test Cards
@@ -95,13 +95,13 @@ Use this to diagnose systemic failures — if all cards with a pattern fail, the
 | Pattern | Cards | Key prompts/heuristics involved |
 |---------|-------|--------------------------------|
 | first-discovery | ptp-mock/C1, C4; daemon-mock/C1, C4; ptp-real/C1, C4 | triage, resolve, investigate, correlate templates |
-| recall-hit | ptp-mock/C2,C3,C5,C6,C7,C9; daemon-mock/C2,C3,C5,C7,C8; ptp-real/C2,C3,C5,C7,C8 | recall template, H1 heuristic |
-| serial-killer | ptp-mock/C3, C6, C9, C10 | recall + correlate templates, H15 heuristic |
-| triage-skip | ptp-mock/C8, C11 | triage template, H4/H5 heuristics |
-| cascade | ptp-mock/C12; daemon-mock/C6,C7,C8; ptp-real/C6,C7,C8 | triage template (cascade detection), H7/H8 guards |
+| recall-hit | ptp-mock/C2,C3,C5,C6,C7,C9; daemon-mock/C2,C3,C5,C7,C8; ptp-real/C2,C3,C5,C7,C8 | recall template, Recall Hit (H1) heuristic |
+| serial-killer | ptp-mock/C3, C6, C9, C10 | recall + correlate templates, Correlate Duplicate (H15) heuristic |
+| triage-skip | ptp-mock/C8, C11 | triage template, Triage Skip Infra/Flake (H4/H5) heuristics |
+| cascade | ptp-mock/C12; daemon-mock/C6,C7,C8; ptp-real/C6,C7,C8 | triage template (cascade detection), Triage Single Repo / Resolve Multi (H7/H8) guards |
 | PANIC-vs-FAIL | daemon-mock/C2; ptp-real/C2 | recall template (must not be confused by failure type) |
 | AfterEach | daemon-mock/C3; ptp-real/C3 | recall template (must recognize AfterEach), G9 guard |
-| cross-symptom-dedup | ptp-mock/C10 | correlate template, H15 cross-version match |
+| cross-symptom-dedup | ptp-mock/C10 | correlate template, Correlate Duplicate (H15) cross-version match |
 | red-herring-rejection | all cases with F2 | resolve template (must reject sriov-network-operator / eco-gotests) |
 
 ## Victory loop

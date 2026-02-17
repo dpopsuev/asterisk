@@ -40,12 +40,12 @@ Expected: batch-size=4 offers ~3x throughput improvement with <2x cost. Beyond 4
 
 | Step | Invocations | Prompt tokens | Artifact tokens | Total | Avg per call |
 |------|-------------|---------------|-----------------|-------|-------------|
-| F0 Recall | 30 | 21,246 | 1,380 | 22,626 | 754 |
-| F1 Triage | 30 | 43,100 | 1,657 | 44,757 | 1,492 |
-| F3 Investigate | 29 | 42,497 | 2,787 | 45,284 | 1,561 |
-| F4 Correlate | 29 | 23,882 | 1,421 | 25,303 | 873 |
-| F5 Review | 30 | 20,121 | 210 | 20,331 | 678 |
-| F6 Report | 30 | 25,179 | 1,530 | 26,709 | 890 |
+| Recall (F0) | 30 | 21,246 | 1,380 | 22,626 | 754 |
+| Triage (F1) | 30 | 43,100 | 1,657 | 44,757 | 1,492 |
+| Investigate (F3) | 29 | 42,497 | 2,787 | 45,284 | 1,561 |
+| Correlate (F4) | 29 | 23,882 | 1,421 | 25,303 | 873 |
+| Review (F5) | 30 | 20,121 | 210 | 20,331 | 678 |
+| Report (F6) | 30 | 25,179 | 1,530 | 26,709 | 890 |
 | **Total** | **178** | **176,025** | **8,985** | **185,010** | **1,039** |
 
 Average per case: 6,167 tokens (~$0.022 per case at $3/$15 per 1M in/out tokens).

@@ -10,4 +10,5 @@
 - `abstraction-boundaries.mdc` — separate generic domain models from scenario-specific implementations; adapter pattern over hardcoded layouts.
 - `security-analysis.mdc` — OWASP Top 10 checklist applied to every feature and trust-boundary change; security case filing protocol.
 - `workspace-context.mdc` — local-first workspace: cloned repos as source of truth, version alignment (RP 5.11.x), read from disk instead of guessing.
+- `human-readable-output.mdc` — "Code for machines, words for humans": machine codes stay in machine contexts; human-facing output uses readable names via `internal/display` registry.
 - `knowledge-store.mdc` — `.cursor/` directory structure, index integrity protocol, persistence triggers, and work contract conventions.
