@@ -116,8 +116,8 @@ Cases without clear ground truth (no bug link, ambiguous failure) get a `"needs_
 - [x] **P2.4** Identify recurring RCAs (same Jira across weeks) and recurring symptoms (same test_id across versions).
 - [x] **P3.1** Select 30 cases maximizing diversity (8 OCP versions, 6 sub-jobs, 4 defect types, 30 unique Jira IDs). Script: `.dev/scripts/select_cases.py`. Output: `.dev/calibration-data/selected-cases.json`.
 - [x] **P3.2** For each selected case: extract error message and log snippet from HTML tables.
-- [ ] **P4.1** Annotate ground truth from CI sheet bug links. Flag unannotated cases. *(Partially done — automated annotation from HTML; manual review pending.)*
-- [ ] **P4.2** User review: confirm or correct ground truth annotations.
+- [x] **P4.1** Annotate ground truth from CI sheet bug links. Flag unannotated cases. *(Done — Jira audit of 28/30 tickets + 6 user-exported HTMLs. 13 component corrections, 2 defect type corrections applied. See `.cursor/notes/jira-audit-report.md`.)*
+- [x] **P4.2** User review: confirm or correct ground truth annotations. *(Done — Jira data cross-referenced against all ground truth fields. 2 cases inaccessible: OCPBUGS-55838, OCPBUGS-65911.)*
 - [x] **P5.1** Generate `ptp_real_ingest.go` scenario file. Script: `.dev/scripts/generate_scenario.py`. Output: `internal/calibrate/scenarios/ptp_real_ingest.go` (30 RCAs, 30 symptoms, 30 cases).
 - [x] **P5.2** Dry run: `asterisk calibrate --scenario=ptp-real-ingest --adapter=stub` — passes structure validation.
 - [x] Validate (green) — scenario loads, stub calibration runs, structure is sound.

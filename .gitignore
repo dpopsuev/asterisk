@@ -36,6 +36,9 @@ go.work
 *.db
 *.db-journal
 
+# Jira exports (private data, never commit)
+.jira/
+
 # Env and secrets
 .env
 .env.local
