@@ -539,10 +539,13 @@ func scoreTotalPromptTokens(results []CaseResult) Metric {
 
 // --- M19: Overall accuracy (weighted average) ---
 func scoreOverallAccuracy(ms MetricSet) Metric {
-	// Weighted average of M1, M2, M5, M10, M12, M14
+	// Weighted average of M1, M2, M5, M9, M10, M12, M14, M15
+	// M15 (component ID) and M9 (repo precision) give 25% combined weight
+	// to "where is the bug?" vs 20% for "what kind of bug?" (M1).
 	weights := map[string]float64{
-		"M1": 0.20, "M2": 0.15, "M5": 0.20,
-		"M10": 0.15, "M12": 0.15, "M14": 0.15,
+		"M1": 0.20, "M2": 0.10, "M5": 0.15,
+		"M9": 0.10, "M10": 0.10, "M12": 0.10,
+		"M14": 0.10, "M15": 0.15,
 	}
 	sum, wsum := 0.0, 0.0
 	all := ms.AllMetrics()
@@ -559,7 +562,7 @@ func scoreOverallAccuracy(ms MetricSet) Metric {
 	return Metric{
 		ID: "M19", Name: "overall_accuracy",
 		Value: val, Threshold: 0.65,
-		Pass: val >= 0.65, Detail: "weighted avg of M1,M2,M5,M10,M12,M14",
+		Pass: val >= 0.65, Detail: "weighted avg of M1,M2,M5,M9,M10,M12,M14,M15",
 	}
 }
 

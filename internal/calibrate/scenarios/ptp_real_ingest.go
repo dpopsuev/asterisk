@@ -188,7 +188,7 @@ func ptpRealIngestRCAs() []calibrate.GroundTruthRCA {
 			JiraID:           "CNF-21102",
 			RequiredKeywords: []string{"clock", "cnf_gotests", "edge", "gotests", "holdover", "jenkins", "loss", "ptp_recovery"},
 			KeywordThreshold: 3,
-			RelevantRepos:    []string{"cnf-gotests"},
+			RelevantRepos:    []string{"cloud-event-proxy"},
 		},
 		{
 			ID:               "R14",
@@ -742,7 +742,7 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "environment",
 				Severity:             "medium",
 				DefectTypeHypothesis: "en001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 				SkipInvestigation:    true,
 			},
 			ExpectedReview: &calibrate.ExpectedReview{Decision: "approve"},
@@ -764,19 +764,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-74342"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-74342"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "OCPBUGS-74342 - GNSS Sync State Not Correctly Mapped to Cloud Event and Metrics OCPBUGS-59269 Role metrics are missing after restarting sidecar container in linuxptp-daemon needs to reopen for vers...",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -800,19 +800,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-63435"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-63435"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -872,19 +872,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"ptp-operator"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "ptp-operator", Reason: "Primary component for OCPBUGS-55121"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-55121"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "The configmap didn’t update",
 				DefectType:       "pb001",
-				Component:        "ptp-operator",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"ptp-operator:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -913,25 +913,39 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 			},
 			ExpectedReview: &calibrate.ExpectedReview{Decision: "approve"},
 		},
-		// C10: tid=49742, OCPBUGS-68352, 4.21, [T-BC] — first investigation — skip
+		// C10: tid=49742, OCPBUGS-68352, 4.21, [T-BC] — first investigation
 		{
 			ID: "C10", Version: "4.21", Job: "[T-BC]",
 			TestName:     "",
 			TestID:       "49742",
 			ErrorMessage: "PTP Events and Metrics - interface down /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_interfaces.go:753 Ran 19 of 39 Specs in 5903.299 seconds",
 			SymptomID: "S10", RCAID: "R10",
-			ExpectedPath:    []string{"F0", "F1", "F5", "F6"},
+			ExpectedPath:    []string{"F0", "F1", "F3", "F4", "F5", "F6"},
 			ExpectRecallHit: false,
-			ExpectSkip:      true,
+			ExpectSkip:      false,
 			ExpectCascade:   false,
 			ExpectedLoops:   0,
 			ExpectedRecall: &calibrate.ExpectedRecall{Match: false, Confidence: 0.0},
 			ExpectedTriage: &calibrate.ExpectedTriage{
-				SymptomCategory:      "automation",
-				Severity:             "medium",
-				DefectTypeHypothesis: "au001",
+				SymptomCategory:      "product",
+				Severity:             "critical",
+				DefectTypeHypothesis: "pb001",
 				CandidateRepos:       []string{"linuxptp-daemon"},
-				SkipInvestigation:    true,
+			},
+			ExpectedResolve: &calibrate.ExpectedResolve{
+				SelectedRepos: []calibrate.ExpectedResolveRepo{
+					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-68352"},
+				},
+			},
+			ExpectedInvest: &calibrate.ExpectedInvest{
+				RCAMessage:       "PTP Events and Metrics - interface down /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_interfaces.go:753 Ran 19 of 39 Specs in 5903.299 seconds",
+				DefectType:       "pb001",
+				Component:        "linuxptp-daemon",
+				ConvergenceScore: 0.80,
+				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+			},
+			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
+				IsDuplicate: false, Confidence: 0.3,
 			},
 			ExpectedReview: &calibrate.ExpectedReview{Decision: "approve"},
 		},
@@ -1007,25 +1021,39 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 			},
 			ExpectedReview: &calibrate.ExpectedReview{Decision: "approve"},
 		},
-		// C13: tid=83297, CNF-21102, 4.20, [T-TSC] — first investigation — skip
+		// C13: tid=83297, CNF-21102, 4.20, [T-TSC] — first investigation
 		{
 			ID: "C13", Version: "4.20", Job: "[T-TSC]",
 			TestName:     "",
 			TestID:       "83297",
 			ErrorMessage: "t-bc/t-tsc upstream clock loss & unassisted holdover /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_recovery.go:2062",
 			SymptomID: "S13", RCAID: "R13",
-			ExpectedPath:    []string{"F0", "F1", "F5", "F6"},
+			ExpectedPath:    []string{"F0", "F1", "F3", "F4", "F5", "F6"},
 			ExpectRecallHit: false,
-			ExpectSkip:      true,
+			ExpectSkip:      false,
 			ExpectCascade:   false,
 			ExpectedLoops:   0,
 			ExpectedRecall: &calibrate.ExpectedRecall{Match: false, Confidence: 0.0},
 			ExpectedTriage: &calibrate.ExpectedTriage{
-				SymptomCategory:      "environment",
-				Severity:             "medium",
-				DefectTypeHypothesis: "en001",
-				CandidateRepos:       []string{"cnf-gotests"},
-				SkipInvestigation:    true,
+				SymptomCategory:      "product",
+				Severity:             "critical",
+				DefectTypeHypothesis: "pb001",
+				CandidateRepos:       []string{"cloud-event-proxy"},
+			},
+			ExpectedResolve: &calibrate.ExpectedResolve{
+				SelectedRepos: []calibrate.ExpectedResolveRepo{
+					{Name: "cloud-event-proxy", Reason: "Primary component for CNF-21102"},
+				},
+			},
+			ExpectedInvest: &calibrate.ExpectedInvest{
+				RCAMessage:       "t-bc/t-tsc upstream clock loss & unassisted holdover /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_recovery.go:2062",
+				DefectType:       "pb001",
+				Component:        "cloud-event-proxy",
+				ConvergenceScore: 0.80,
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
+			},
+			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
+				IsDuplicate: false, Confidence: 0.3,
 			},
 			ExpectedReview: &calibrate.ExpectedReview{Decision: "approve"},
 		},
@@ -1154,19 +1182,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-74377"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-74377"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "HTTP events using consumer /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_events_and_metrics.go:267 Ran 16 of 39 Specs in 4903.088 seconds",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -1284,19 +1312,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cnf-features-deploy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-49373"},
+					{Name: "cnf-features-deploy", Reason: "Primary component for OCPBUGS-49373"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "HTTP events using consumer OCPBUGS-45680: Consumer is losing subscription to events after restarting linuxptp-daemon pod",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cnf-features-deploy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cnf-features-deploy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -1320,19 +1348,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-45680"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-45680"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "SNO management workload partitioning /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/workloadpartitioning/tests/workload_partitioning.go:381",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -1356,19 +1384,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-53247"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-53247"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "PTP Events and Metrics - interface down",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -1464,58 +1492,44 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-47685"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-47685"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "PTP Events and Metrics - interface down slave interface ens2fx was down but no metrics didn’t update to FREERUN",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
 			},
 			ExpectedReview: &calibrate.ExpectedReview{Decision: "approve"},
 		},
-		// C27: tid=64777, CNF-17776, 4.14, [GM] — first investigation
+		// C27: tid=64777, CNF-17776, 4.14, [GM] — first investigation — skip
 		{
 			ID: "C27", Version: "4.14", Job: "[GM]",
 			TestName:     "",
 			TestID:       "64777",
 			ErrorMessage: "CNF-17776 - Automation: Add version conditions to clack_class validations after gpsd restart",
 			SymptomID: "S27", RCAID: "R27",
-			ExpectedPath:    []string{"F0", "F1", "F3", "F4", "F5", "F6"},
+			ExpectedPath:    []string{"F0", "F1", "F5", "F6"},
 			ExpectRecallHit: false,
-			ExpectSkip:      false,
+			ExpectSkip:      true,
 			ExpectCascade:   false,
 			ExpectedLoops:   0,
 			ExpectedRecall: &calibrate.ExpectedRecall{Match: false, Confidence: 0.0},
 			ExpectedTriage: &calibrate.ExpectedTriage{
-				SymptomCategory:      "product",
-				Severity:             "critical",
-				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
-			},
-			ExpectedResolve: &calibrate.ExpectedResolve{
-				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for CNF-17776"},
-				},
-			},
-			ExpectedInvest: &calibrate.ExpectedInvest{
-				RCAMessage:       "CNF-17776 - Automation: Add version conditions to clack_class validations after gpsd restart",
-				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
-				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
-			},
-			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
-				IsDuplicate: false, Confidence: 0.3,
+				SymptomCategory:      "automation",
+				Severity:             "medium",
+				DefectTypeHypothesis: "au001",
+				CandidateRepos:       []string{"cnf-gotests"},
+				SkipInvestigation:    true,
 			},
 			ExpectedReview: &calibrate.ExpectedReview{Decision: "approve"},
 		},
@@ -1536,19 +1550,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cloud-event-proxy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-72558"},
+					{Name: "cloud-event-proxy", Reason: "Primary component for OCPBUGS-72558"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "PTP Recovery [AfterEach] sidecar container recovery should verify events are logged during sidecar recovery",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cloud-event-proxy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cloud-event-proxy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -1572,19 +1586,19 @@ func ptpRealIngestCases() []calibrate.GroundTruthCase {
 				SymptomCategory:      "product",
 				Severity:             "critical",
 				DefectTypeHypothesis: "pb001",
-				CandidateRepos:       []string{"linuxptp-daemon"},
+				CandidateRepos:       []string{"cnf-features-deploy"},
 			},
 			ExpectedResolve: &calibrate.ExpectedResolve{
 				SelectedRepos: []calibrate.ExpectedResolveRepo{
-					{Name: "linuxptp-daemon", Reason: "Primary component for OCPBUGS-49372"},
+					{Name: "cnf-features-deploy", Reason: "Primary component for OCPBUGS-49372"},
 				},
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "OCPBUGS-49372: [4.17] remove phc2sys `-w` option PHC2SYSY process not found From linuxptp daemon log:",
 				DefectType:       "pb001",
-				Component:        "linuxptp-daemon",
+				Component:        "cnf-features-deploy",
 				ConvergenceScore: 0.80,
-				EvidenceRefs:     []string{"linuxptp-daemon:relevant_source_file"},
+				EvidenceRefs:     []string{"cnf-features-deploy:relevant_source_file"},
 			},
 			ExpectedCorrelate: &calibrate.ExpectedCorrelate{
 				IsDuplicate: false, Confidence: 0.3,
@@ -1652,6 +1666,11 @@ func ptpRealIngestWorkspace() calibrate.WorkspaceConfig {
 				Name:    "cloud-event-proxy",
 				Purpose: "Cloud Event Proxy: receives PTP events via Unix socket; publishes cloud events",
 				Branch:  "release-4.18",
+			},
+			{
+				Name:    "cnf-features-deploy",
+				Purpose: "ZTP config: phc2sys options, deployment configs",
+				Branch:  "release-4.17",
 			},
 			{
 				Name:    "eco-gotests",
