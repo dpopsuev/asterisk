@@ -1,10 +1,10 @@
 ---
-description: TDD test matrix per story (see rules/test-coverage-checklist.mdc for the full checklist)
+description: TDD test matrix per story (see rules/testing-methodology.mdc for the full checklist)
 ---
 
 # TDD Test Matrix
 
-**Moved to an always-applied rule:** The full pre-code-write coverage checklist, including the Red-Orange-Green-Blue cycle and security layer, now lives at `rules/test-coverage-checklist.mdc`.
+**Moved to an always-applied rule:** The full pre-code-write coverage checklist, including the Red-Orange-Green-Yellow-Blue cycle and security layer, now lives at `rules/testing-methodology.mdc`.
 
 This file remains as a pointer for existing cross-references.
 
@@ -18,4 +18,4 @@ For every story, assess coverage across:
 - **Concurrency** — race detector, deadlock-free channels, semaphore bounds
 - **Security** — OWASP Top 10 lens (`rules/security-analysis.mdc`)
 
-See `rules/test-coverage-checklist.mdc` for the full gate and development cycle.
+See `rules/testing-methodology.mdc` for the full gate and development cycle.

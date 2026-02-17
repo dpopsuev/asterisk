@@ -10,7 +10,7 @@ Post-refactor changes that affect this contract:
 - **False recall fixes**: `MemStore.FindSymptomCandidates` now guards against empty test names. `SqlStore` has the same guard. `--clean` flag removes the DB between runs. These fixes address parts of P1.1 (H15 false-duplicate) and may have partially resolved the artifact corruption hypothesis.
 - **Token tracking**: M18 now uses real measured values when `TokenTracker` is present (via `TokenTrackingDispatcher`). M18 validation in Phase 3 will be more meaningful.
 - **Parallel mode**: `--parallel=N` is now available but does not affect this contract (serial mode is the default and should be used for bugfix validation).
-- **Development cycle**: Follow **Red-Orange-Green-Blue** per `rules/test-coverage-checklist.mdc` (Orange = structured logging before fixing).
+- **Development cycle**: Follow **Red-Orange-Green-Yellow-Blue** per `rules/testing-methodology.mdc` (Orange = problem/error signals before fixing; Yellow = success/info signals after Green).
 - **Line numbers**: H15 is now at heuristics.go line 236 (was 239).
 
 **Bugs still open**: All 5 bugs (P1.1–P1.5) require wet calibration runs to verify resolution. The false recall fixes may have indirectly addressed P1.1, but this needs explicit verification with a wet run.
@@ -23,7 +23,7 @@ Post-refactor changes that affect this contract:
 
 ## Contract rules
 
-- BDD-TDD **Red-Orange-Green-Blue**: reproduce each bug with a failing test (red), add structured logging (orange), fix it (green), validate calibration run (blue).
+- BDD-TDD **Red-Orange-Green-Yellow-Blue**: reproduce each bug with a failing test (red), add problem/error logging (orange), fix it (green), add success/info logging (yellow), validate calibration run (blue).
 - Each bug fix must be isolated: one commit per fix, no mixed changes.
 - Stub calibration on ptp-mock must remain 20/20 after every change (no regressions).
 - Save calibration results to `.dev/calibration-runs/round-5-results.txt` on completion.
@@ -89,5 +89,5 @@ Three phases following red-green-blue. Phase 1 creates failing tests for each bu
 
 - 2026-02-17 24:00 — Reassessed post-multi-subagent implementation: all 4 multi-subagent contracts now complete (protocol, dispatcher, skill, scheduler). No impact on this contract — serial mode remains correct for bug reproduction. Phase 3 wet validation can optionally use `--dispatch=batch-file --batch-size=4` for faster round execution, but serial is sufficient. `calibrate-batch` justfile recipe now available.
 - 2026-02-17 22:00 — Reassessed post-multi-subagent planning: no impact on this contract. Serial mode remains correct for bug reproduction. Multi-subagent path is independent; optional for future Phase 3 speedup.
-- 2026-02-17 10:50 — Reassessed post-refactor: rename complete, false recall fixes in MemStore/SqlStore, token tracking implemented (real M18), parallel mode available. All 5 bugs still need wet validation. Updated contract rules to R-O-G-B, updated line numbers.
+- 2026-02-17 10:50 — Reassessed post-refactor: rename complete, false recall fixes in MemStore/SqlStore, token tracking implemented (real M18), parallel mode available. All 5 bugs still need wet validation. Updated contract rules to R-O-G-Y-B, updated line numbers.
 - 2026-02-17 01:30 — Contract created. Baseline: M19=0.58, 7/20 passing. Five specific bugs identified from Round 4 analysis.

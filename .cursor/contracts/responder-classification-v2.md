@@ -5,8 +5,8 @@
 
 ## Reassessment notes (2026-02-17)
 
-- **Development cycle**: Follow **Red-Orange-Green-Blue** per `rules/test-coverage-checklist.mdc`. Each phase below should add structured logging (Orange) at decision points before implementing fixes (Green).
-- **Impatient agent**: Calibration runs must complete within 10 minutes (per `rules/impatient-agent.mdc`). If a run stalls, abort and diagnose.
+- **Development cycle**: Follow **Red-Orange-Green-Yellow-Blue** per `rules/testing-methodology.mdc`. Orange = problem/error signals at decision points before fixes; Yellow = success/info signals after Green.
+- **Impatient agent**: Calibration runs must complete within 10 minutes (per `rules/agent-operations.mdc`). If a run stalls, abort and diagnose.
 - **Token tracking**: M18 now uses real measured values from `TokenTrackingDispatcher`. The M18 target (60000) can be validated with actual data via `--cost-report` flag. Add `token-perf-tracking.md` as a dependency.
 - **Parallel mode**: Available but not recommended for classification tuning. Use `--parallel=1` (default) for deterministic results during classification development. Once classification is stable, validate with `--parallel=4` to ensure no regressions.
 
@@ -19,8 +19,8 @@
 
 ## Contract rules
 
-- BDD-TDD **Red-Orange-Green-Blue**: build a ground-truth test fixture from the 30 real cases before touching classification code.
-- **Orange phase mandatory**: add `slog.Debug` at `classifyFailure` and `identifyComponent` decision points before writing fixes.
+- BDD-TDD **Red-Orange-Green-Yellow-Blue**: build a ground-truth test fixture from the 30 real cases before touching classification code.
+- **Orange phase mandatory**: add problem/error logging at `classifyFailure` and `identifyComponent` decision points before writing fixes; Yellow = success/info logging after fixes.
 - All classification logic changes must be covered by table-driven tests (one row per case).
 - Each phase gate requires a calibration run with results saved to `.dev/calibration-runs/`.
 - Token budget matters: M18 target is <= 60000. Use `--cost-report` to validate real token usage. Avoid adding pipeline steps; prefer smarter classification.
@@ -99,5 +99,5 @@ Four phases. Phase 1 builds the test harness from real data. Phase 2 rewrites cl
 
 - 2026-02-17 24:00 — Reassessed post-multi-subagent implementation: all 4 contracts complete (BatchFileDispatcher, skill rewrite, scheduler). Serial mode remains correct for classification tuning. Phase 4 parallel validation is now actionable — run `just calibrate-batch` to verify. Cost model doc (`subagent-cost-model.mdc`) created with placeholder values ready for real data.
 - 2026-02-17 22:00 — Reassessed post-multi-subagent planning: serial mode remains correct for classification tuning. Optional batch-file validation in Phase 4. Multi-subagent cost insight may inform M18 token optimization targets.
-- 2026-02-17 10:50 — Reassessed: added R-O-G-B development cycle, impatient agent rule, token tracking dependency. M18 now uses real measured values. Added `--cost-report` guidance for token validation.
+- 2026-02-17 10:50 — Reassessed: added R-O-G-Y-B development cycle, impatient agent rule, token tracking dependency. M18 now uses real measured values. Added `--cost-report` guidance for token validation.
 - 2026-02-17 01:30 — Contract created. Current baseline (post-bugfix target): M19 >= 0.65. Target: M19 >= 0.80.

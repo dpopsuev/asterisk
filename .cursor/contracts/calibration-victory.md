@@ -9,7 +9,7 @@
 - **Token tracking**: Real M18 data is now available via `TokenTrackingDispatcher`. M18 validation in acceptance criteria is now meaningful (not estimated). Use `--cost-report` to write per-case breakdown.
 - **New dependencies**: `token-perf-tracking.md` (complete) and `parallel-investigation.md` (complete) are now available.
 - **Cross-scenario list**: The 4 scenarios (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest) remain valid. No new scenarios have been added.
-- **Development cycle**: Follow **Red-Orange-Green-Blue** per `rules/test-coverage-checklist.mdc`.
+- **Development cycle**: Follow **Red-Orange-Green-Yellow-Blue** per `rules/testing-methodology.mdc`.
 
 ## Reassessment notes (2026-02-17, multi-subagent)
 
@@ -20,7 +20,7 @@
 
 ## Contract rules
 
-- Per-metric BDD **Red-Orange-Green-Blue**: each failing metric gets its own cycle (Red test, Orange logging, Green fix, Blue refactor).
+- Per-metric BDD **Red-Orange-Green-Yellow-Blue**: each failing metric gets its own cycle (Red test, Orange problem/error logging, Green fix, Yellow success/info logging, Blue refactor).
 - Every calibration round is saved to `.dev/calibration-runs/` with monotonic round numbering.
 - Cross-scenario validation: fixes must not regress any of the 4 scenarios (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest). Use `--parallel=4` for faster cross-validation.
 - Final baseline commit: once 20/20 is achieved, commit the calibration results and lock the metric thresholds as the regression baseline.
@@ -113,5 +113,5 @@ Four phases targeting the remaining failing metrics in priority order. Each phas
 
 - 2026-02-17 24:00 — Reassessed post-multi-subagent implementation: all 4 contracts complete. P4.5 and P4.6 are now actionable — `--dispatch=batch-file`, `--batch-size`, `calibrate-batch` recipe, and `subagent-cost-model.mdc` all available. Updated `multi-subagent-skill.md` dependency status from Draft to Complete.
 - 2026-02-17 22:00 — Reassessed post-multi-subagent planning: added optional multi-subagent validation (P4.5, P4.6) and cost benchmark in Phase 4. Added `multi-subagent-skill.md` as optional dependency. M19 >= 0.95 must hold under both serial and multi-subagent execution when skill is available.
-- 2026-02-17 10:50 — Reassessed: added token-perf-tracking and parallel-investigation as completed dependencies. Cross-scenario list (4 scenarios) confirmed valid. Updated rules to R-O-G-B cycle and --cost-report usage. Phase 4 can now use `--parallel=4` for faster cross-validation.
+- 2026-02-17 10:50 — Reassessed: added token-perf-tracking and parallel-investigation as completed dependencies. Cross-scenario list (4 scenarios) confirmed valid. Updated rules to R-O-G-Y-B cycle and --cost-report usage. Phase 4 can now use `--parallel=4` for faster cross-validation.
 - 2026-02-17 01:30 — Contract created. Target: all 20/20 metrics passing, M19 >= 0.95. Expected entry point: M19 >= 0.80 from responder-classification-v2.
