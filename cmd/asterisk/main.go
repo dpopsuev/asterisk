@@ -64,7 +64,7 @@ func printUsage() {
 	fmt.Fprintf(os.Stderr, "  asterisk cursor     --launch=<path|id> [--workspace=<path>] [--case-id=<id>]\n")
 	fmt.Fprintf(os.Stderr, "  asterisk save       -f <artifact-path> --case-id=<id> --suite-id=<id>\n")
 	fmt.Fprintf(os.Stderr, "  asterisk status     --case-id=<id> --suite-id=<id>\n")
-	fmt.Fprintf(os.Stderr, "  asterisk calibrate  --scenario=<name> [--runs=N] [--adapter=stub|cursor] [--dispatch=stdin|file] [--agent-debug]\n")
+	fmt.Fprintf(os.Stderr, "  asterisk calibrate  --scenario=<name> [--runs=N] [--adapter=stub|basic|cursor] [--dispatch=stdin|file] [--agent-debug]\n")
 }
 
 func runAnalyze(args []string) {
@@ -719,6 +719,26 @@ func runCalibrate(args []string) {
 	switch *adapterName {
 	case "stub":
 		adapter = calibrate.NewStubAdapter(scenario)
+	case "basic":
+		// BasicAdapter: heuristic keyword-based adapter (zero-LLM baseline).
+		// Uses an in-memory store and registers scenario cases for recall lookups.
+		basicSt, err := store.Open(":memory:")
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "basic adapter: open store: %v\n", err)
+			os.Exit(1)
+		}
+		var repoNames []string
+		for _, r := range scenario.Workspace.Repos {
+			repoNames = append(repoNames, r.Name)
+		}
+		ba := calibrate.NewBasicAdapter(basicSt, repoNames)
+		for _, c := range scenario.Cases {
+			ba.RegisterCase(c.ID, &calibrate.BasicCaseInfo{
+				Name:         c.TestName,
+				ErrorMessage: c.ErrorMessage,
+			})
+		}
+		adapter = ba
 	case "cursor":
 		// Build dispatcher based on --dispatch flag
 		var dispatcher calibrate.Dispatcher
@@ -747,7 +767,7 @@ func runCalibrate(args []string) {
 		trackedDispatcher := calibrate.NewTokenTrackingDispatcher(dispatcher, tokenTracker)
 		adapter = calibrate.NewCursorAdapter(*promptDir, calibrate.WithDispatcher(trackedDispatcher))
 	default:
-		fmt.Fprintf(os.Stderr, "unknown adapter: %s (available: stub, cursor)\n", *adapterName)
+		fmt.Fprintf(os.Stderr, "unknown adapter: %s (available: stub, basic, cursor)\n", *adapterName)
 		os.Exit(1)
 	}
 

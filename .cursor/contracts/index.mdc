@@ -139,6 +139,13 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 | `critical-test-coverage.md` | Close 8 test coverage gaps (3 critical, 3 high, 2 medium). Target 80%+ critical, 70%+ high, 60%+ medium. | Ideally after calibrate-decomposition |
 | `concurrency-modernization.md` | Replace hand-rolled goroutine pools with `errgroup`; optional fsnotify for FileDispatcher; eliminate mutable globals. | calibrate-decomposition |
 
+## True calibration (Jira-verified ground truth)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `ground-truth-v2.md` | Correct scenario data to match Jira audit, add M15+M9 to M19, add cnf-features-deploy to workspace. **Complete.** | jira-audit-report (complete) |
+| `true-wet-calibration.md` | Blind calibration against Jira-verified truth. Iterate until M19 >= 0.90, M15 >= 0.70, M9 >= 0.70. **In Progress.** | ground-truth-v2 (complete) |
+
 ## Directories
 
 ## Files

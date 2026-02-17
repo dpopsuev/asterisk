@@ -401,6 +401,11 @@ func extractStepMetrics(result *CaseResult, step orchestrate.PipelineStep, artif
 			result.ActualCategory = r.SymptomCategory
 			result.ActualSkip = r.SkipInvestigation
 			result.ActualCascade = r.CascadeSuspected
+			// Capture defect type hypothesis from triage so skip cases get
+			// credit for correct classification even without investigation.
+			if r.SkipInvestigation && r.DefectTypeHypothesis != "" {
+				result.ActualDefectType = r.DefectTypeHypothesis
+			}
 			// When H7 fires (single candidate repo), F2 is skipped but the repo is
 			// effectively selected by triage. Capture it for repo selection metrics.
 			if len(r.CandidateRepos) == 1 && !r.SkipInvestigation {
