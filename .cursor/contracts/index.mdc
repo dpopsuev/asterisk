@@ -99,6 +99,7 @@ Execute **in order**; each contract depends on the previous. Gate: the preceding
 | Contract | Goal | Depends on |
 |----------|------|------------|
 | `token-perf-tracking.md` | Instrument real token usage per step/case/run; compute cost per calibration run; upgrade M18 from estimate to actual measurement. **Complete.** | e2e-calibration (M18 metric), fs-dispatcher (instrument dispatch) |
+| `tokimeter.md` | Markdown-formatted cost bill ("TokiMeter") printed at end of every run with per-case cost, per-step cost, and total launch cost. **Complete.** | token-perf-tracking (complete) |
 
 ## Multi-subagent path (parallel Cursor skill)
 
@@ -154,6 +155,7 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 - `calibration-victory.md` — **Calibration victory:** Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. Target: M19 >= 0.95, 20/20 metrics.
 - `parallel-investigation.md` — **Parallel investigation:** Fan-out F0-F1, symptom clustering, on-demand RCA agents, token ceiling. **Complete.** Target: >= 3x speedup.
 - `token-perf-tracking.md` — **Token perf tracking:** Instrument real token usage per step/case/run; compute estimated USD cost; upgrade M18 from `steps*1000` to actual measurement; per-case and per-step breakdowns in calibration report. **Complete.**
+- `tokimeter.md` — **TokiMeter:** Markdown-formatted cost bill (per-case, per-step, total) printed at end of every calibration run. **Complete.**
 - `batch-dispatch-protocol.md` — **Batch dispatch protocol:** Define batch signal protocol (manifest schema, briefing file, concurrent semantics, subagent response contract) for multi-subagent Cursor skill communication. **Complete.**
 - `batch-file-dispatcher.md` — **Batch file dispatcher:** Go implementation of batch dispatch — `BatchFileDispatcher`, `ManifestWriter`, `BriefingGenerator`, concurrent polling, `--dispatch=batch-file` CLI flag. **Complete.**
 - `multi-subagent-skill.md` — **Multi-subagent skill:** Rewrite `asterisk-investigate` skill for parent-child architecture — parent loop discovers batch manifests, spawns up to 4 Task subagents, collects artifacts, manages lifecycle. Backward-compatible with single-signal mode. **Complete.**

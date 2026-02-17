@@ -844,6 +844,21 @@ func runCalibrate(args []string) {
 
 	fmt.Print(calibrate.FormatReport(report))
 
+	// TokiMeter — markdown cost bill (always printed when tokens are tracked)
+	bill := calibrate.BuildTokiMeterBill(report)
+	if bill != nil {
+		md := calibrate.FormatTokiMeter(bill)
+		fmt.Print(md)
+
+		// Write tokimeter.md alongside JSON report
+		tokiPath := calibDir + "/tokimeter.md"
+		if err := os.WriteFile(tokiPath, []byte(md), 0644); err != nil {
+			fmt.Fprintf(os.Stderr, "write tokimeter bill: %v\n", err)
+		} else {
+			fmt.Printf("\nTokiMeter bill: %s\n", tokiPath)
+		}
+	}
+
 	// Write token-report.json when --cost-report is set
 	if *costReport && report.Tokens != nil {
 		tokenReportPath := calibDir + "/token-report.json"
