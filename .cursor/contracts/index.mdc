@@ -146,6 +146,16 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 | `ground-truth-v2.md` | Correct scenario data to match Jira audit, add M15+M9 to M19, add cnf-features-deploy to workspace. **Complete.** | jira-audit-report (complete) |
 | `true-wet-calibration.md` | Blind calibration against Jira-verified truth. Iterate until M19 >= 0.90, M15 >= 0.70, M9 >= 0.70. **Complete.** M19 = 0.93 achieved with BasicAdapter. | ground-truth-v2 (complete) |
 
+## MCP Dispatcher (Cursor-native transport)
+
+Execute **in order**; each contract depends on the previous.
+
+| Order | Contract | Goal | Depends on |
+|-------|----------|------|------------|
+| **1** | `mcp-server-foundation.md` | `asterisk serve` starts a stateful MCP server over stdio; placeholder tools (`ping`, `list_scenarios`); `.cursor/mcp.json` config. | — |
+| **2** | `mcp-pipeline-tools.md` | MCP tools driving F0–F6 pipeline: `start_investigation`, `get_prompt`, `submit_artifact`, `get_status`, `get_report`. Cursor calls tools directly instead of file polling. | mcp-server-foundation |
+| **3** | `mcp-calibration-mode.md` | Calibration-specific MCP tools: `start_calibration`, `get_calibration_report`, `get_transcripts`, `get_cost_report`. Ground truth scoring, preamble injection, transcript weaving, TokiMeter. | mcp-pipeline-tools |
+
 ## Observability (investigation output)
 
 | Contract | Goal | Depends on |
@@ -201,3 +211,6 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 - `concurrency-modernization.md` — **Concurrency modernization:** Replace goroutine pools with errgroup; optional fsnotify for FileDispatcher; eliminate mutable globals.
 - `critical-test-coverage.md` — **Critical test coverage:** Close 8 test gaps (3 critical, 3 high, 2 medium); target 80%+ critical, 70%+ high, 60%+ medium.
 - `transcript-weaver.md` — **Transcript weaver:** Post-hoc weaver consolidating per-step artifacts into one Markdown transcript per Root Cause. Flag-gated, adapter-agnostic, reverse-chronological.
+- `mcp-server-foundation.md` — **MCP Server Foundation:** `asterisk serve` command; official `go-sdk` dependency; placeholder tools (`ping`, `list_scenarios`); `.cursor/mcp.json`; stdio transport.
+- `mcp-pipeline-tools.md` — **MCP Pipeline Tools:** Investigation pipeline MCP tools (`start_investigation`, `get_prompt`, `submit_artifact`, `get_status`, `get_report`); stateful server; reuses orchestrate + calibrate.
+- `mcp-calibration-mode.md` — **MCP Calibration Mode:** Calibration-specific MCP tools (`start_calibration`, `get_calibration_report`, `get_transcripts`, `get_cost_report`); ground truth scoring, preamble injection, TokiMeter.
