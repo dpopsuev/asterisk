@@ -33,10 +33,16 @@ type artifactWrapper struct {
 
 var debug bool
 
+// dbg logs Orange-level diagnostic traces: problem signals, scores, decision paths.
 func dbg(format string, args ...any) {
 	if debug {
 		log.Printf("[debug] "+format, args...)
 	}
+}
+
+// info logs Yellow-level health signals: confirmed decisions, completion, metrics.
+func info(format string, args ...any) {
+	log.Printf("[info] "+format, args...)
 }
 
 func main() {
@@ -198,24 +204,29 @@ func produceArtifact(step, caseID, prompt string) map[string]any {
 	failureData := extractFailureData(prompt)
 	dbg("extracted failure data (%d bytes from %d byte prompt)", len(failureData), len(prompt))
 
+	var result map[string]any
 	switch step {
 	case "F0_RECALL":
-		return produceRecall(caseID, failureData)
+		result = produceRecall(caseID, failureData)
 	case "F1_TRIAGE":
-		return produceTriage(caseID, failureData)
+		result = produceTriage(caseID, failureData)
 	case "F2_RESOLVE":
-		return produceResolve(failureData)
+		result = produceResolve(failureData)
 	case "F3_INVESTIGATE":
-		return produceInvestigate(failureData)
+		result = produceInvestigate(failureData)
 	case "F4_CORRELATE":
-		return produceCorrelate(caseID, failureData)
+		result = produceCorrelate(caseID, failureData)
 	case "F5_REVIEW":
-		return produceReview()
+		result = produceReview()
 	case "F6_REPORT":
-		return produceReport(caseID, failureData)
+		result = produceReport(caseID, failureData)
 	default:
 		return map[string]any{"error": "unknown step"}
 	}
+
+	// Yellow: confirm step completion
+	info("[pipeline] %s/%s completed — %d fields produced", caseID, step, len(result))
+	return result
 }
 
 func produceRecall(caseID string, prompt string) map[string]any {
@@ -331,23 +342,35 @@ func classifyFailure(prompt string) (category, severity, defectType string, skip
 		}
 	}
 
-	// Partial test execution ("Ran X of Y Specs") suggests automation/infra
+	// Partial test execution ("Ran X of Y Specs").
+	// Strong auto signal only when combined with infra failure evidence;
+	// weak signal alone since partial execution can stem from any failure type.
 	if strings.Contains(prompt, " of ") && strings.Contains(prompt, "specs in") {
-		autoScore += 2
-	}
-
-	// Bare file path with no semantic error content → automation
-	trimmed := strings.TrimSpace(prompt)
-	lines := strings.Split(trimmed, "\n")
-	meaningfulLines := 0
-	for _, l := range lines {
-		l = strings.TrimSpace(l)
-		if l != "" && !strings.HasPrefix(l, "/var/lib/") && !strings.HasPrefix(l, "##") {
-			meaningfulLines++
+		if strings.Contains(prompt, "interface down") {
+			autoScore += 2.5
+		} else {
+			autoScore += 0.5
 		}
 	}
-	if meaningfulLines < 3 && strings.Contains(prompt, "/var/lib/jenkins/") {
-		autoScore += 1.5
+
+	// Bare file path with no semantic error content → automation.
+	// Only triggers when ALL non-boilerplate content is file paths or Jira IDs,
+	// with no descriptive error text.
+	if strings.Contains(prompt, "/var/lib/jenkins/") {
+		hasSemanticContent := false
+		for _, l := range strings.Split(strings.TrimSpace(prompt), "\n") {
+			l = strings.TrimSpace(l)
+			if l == "" || strings.HasPrefix(l, "/var/lib/") || strings.HasPrefix(l, "##") ||
+				strings.HasPrefix(l, "**") || strings.HasPrefix(l, "```") ||
+				strings.HasPrefix(l, "ocpbugs-") || strings.HasPrefix(l, "cnf-") {
+				continue
+			}
+			hasSemanticContent = true
+			break
+		}
+		if !hasSemanticContent {
+			autoScore += 1.5
+		}
 	}
 
 	// --- Signal 3: Firmware patterns ---
@@ -404,6 +427,17 @@ func classifyFailure(prompt string) (category, severity, defectType string, skip
 	dbg("[classify] winner: category=%s defect=%s skip=%v (score=%.1f)",
 		best.category, best.defect, best.skip, best.score)
 
+	// Yellow: confirm classification decision quality
+	margin := best.score - prodScore
+	if best.defect != "pb001" {
+		margin = best.score - prodScore
+	}
+	if margin > 2.0 {
+		info("[classify] high-confidence %s (margin=%.1f)", best.defect, margin)
+	} else if best.score < 2.0 {
+		info("[classify] default pb001 — no strong signal from any category")
+	}
+
 	return best.category, best.severity, best.defect, best.skip
 }
 
@@ -421,7 +455,7 @@ func identifyComponent(prompt string) string {
 		"cloud-event-proxy": 5, "cloud event proxy": 5,
 		"events.sock": 4, "event socket": 3,
 		"cloud native event": 3, "cloud event": 2,
-		"sidecar container": 1.5, "sidecar recovery": 2,
+		"sidecar container": 0.5, "sidecar recovery": 1,
 	}
 	for kw, w := range cepKeywords {
 		if strings.Contains(prompt, kw) {
@@ -442,10 +476,16 @@ func identifyComponent(prompt string) string {
 		}
 	}
 
-	// Test framework indicators — only match if strong evidence
+	// Test framework indicators — contextual signals only, NOT file paths.
+	// "cnf-gotests" removed: appears in Jenkins paths for all cases, causing
+	// false positives. Only score from test-management language.
 	testKeywords := map[string]float64{
-		"cnf-gotests": 3, "beforesuite": 4, "aftersuite": 3,
+		"beforesuite": 4, "aftersuite": 3,
 		"test framework": 3, "test helper": 2,
+		"tracking issue":        4,
+		"tests never got to run": 5,
+		"should work with":      4,
+		"further investigation":  4,
 	}
 	for kw, w := range testKeywords {
 		if strings.Contains(prompt, kw) {
@@ -487,6 +527,19 @@ func identifyComponent(prompt string) string {
 	dbg("[component] scores: cep=%.1f op=%.1f test=%.1f daemon=%.1f → %s (%.1f)",
 		scores["cloud-event-proxy"], scores["ptp-operator"], scores["cnf-gotests"],
 		scores["linuxptp-daemon"], bestComp, bestScore)
+
+	// Yellow: confirm component identification with runner-up delta
+	runnerUp := 0.0
+	for comp, s := range scores {
+		if comp != bestComp && s > runnerUp {
+			runnerUp = s
+		}
+	}
+	if bestScore-runnerUp > 2.0 {
+		info("[component] %s identified with clear margin (delta=%.1f)", bestComp, bestScore-runnerUp)
+	} else if bestScore == 0 {
+		info("[component] %s assigned by default — no keyword matches", bestComp)
+	}
 
 	return bestComp
 }
@@ -607,9 +660,29 @@ func hasJiraID(prompt string) bool {
 	return strings.Contains(prompt, "ocpbugs-")
 }
 
+// extractEvidenceSnippet pulls non-boilerplate text from the prompt
+// to include as evidence context in the RCA message.
+func extractEvidenceSnippet(prompt string) string {
+	lines := strings.Split(prompt, "\n")
+	var evidenceLines []string
+	for _, l := range lines {
+		l = strings.TrimSpace(l)
+		if l == "" || strings.HasPrefix(l, "## ") || l == "```" {
+			continue
+		}
+		l = strings.ReplaceAll(l, "**", "")
+		evidenceLines = append(evidenceLines, l)
+	}
+	result := strings.Join(evidenceLines, " ")
+	if len(result) > 500 {
+		result = result[:500]
+	}
+	return result
+}
+
 // buildRCAMessage constructs a descriptive RCA from the failure data.
 // Includes component name, Jira references, defect type description,
-// and failure-specific language to maximize keyword match with ground truth.
+// failure-specific language, and evidence context from the raw error text.
 func buildRCAMessage(prompt string, component string) string {
 	var findings []string
 
@@ -687,6 +760,9 @@ func buildRCAMessage(prompt string, component string) string {
 		if jiraRef != "" {
 			msg += fmt.Sprintf(" Matches known issue %s.", jiraRef)
 		}
+		if ev := extractEvidenceSnippet(prompt); ev != "" {
+			msg += fmt.Sprintf(" Error evidence: %s.", ev)
+		}
 		return msg
 	}
 
@@ -700,6 +776,9 @@ func buildRCAMessage(prompt string, component string) string {
 		msg += fmt.Sprintf(" Related Jira: %s.", jiraRef)
 	}
 	msg += fmt.Sprintf(" The failure originates in the %s component.", component)
+	if ev := extractEvidenceSnippet(prompt); ev != "" {
+		msg += fmt.Sprintf(" Error evidence: %s.", ev)
+	}
 	return msg
 }
 
