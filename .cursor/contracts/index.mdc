@@ -122,7 +122,13 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 
 || Contract | Goal | Depends on |
 ||----------|------|------------|
-|| `human-readable-output.md` | Replace opaque machine codes with human-readable names in all CLI output, reports, logs, and docs. Central `internal/display` registry. Rule: `.cursor/rules/human-readable-output.mdc`. | — |
+|| `human-readable-output.md` | Replace opaque machine codes with human-readable names in all CLI output, reports, logs, and docs. Central `internal/display` registry. Rule: `.cursor/rules/human-readable-output.mdc`. **Complete.** | — |
+
+## Unified table formatter (output consistency)
+
+||| Contract | Goal | Depends on |
+|||----------|------|------------|
+||| `unified-formatter.md` | Unified table formatter via adapter pattern over `go-pretty/v6`. `internal/format` package with `TableBuilder` interface, ASCII + Markdown modes. Replaced all bespoke `strings.Builder` table construction. **Complete.** | human-readable-output |
 
 ## Directories
 
@@ -167,3 +173,4 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 - `multi-subagent-skill.md` — **Multi-subagent skill:** Rewrite `asterisk-investigate` skill for parent-child architecture — parent loop discovers batch manifests, spawns up to 4 Task subagents, collects artifacts, manages lifecycle. Backward-compatible with single-signal mode. **Complete.**
 - `adaptive-subagent-scheduler.md` — **Adaptive subagent scheduler:** Quality-driven batch sizing, cluster-aware routing, token budget enforcement, progressive briefing enrichment, cost model documentation. **Complete.**
 - `human-readable-output.md` — **Human-readable output:** Replace opaque machine codes (`pb001`, `F0_RECALL`, `R21`, `M9`) with human-readable names in all human-facing surfaces; central `internal/display` registry.
+- `unified-formatter.md` — **Unified table formatter:** Adapter pattern over `go-pretty/v6`; `internal/format` package with `TableBuilder` (ASCII + Markdown); replaced bespoke `strings.Builder` tables in calibrate package. **Complete.**

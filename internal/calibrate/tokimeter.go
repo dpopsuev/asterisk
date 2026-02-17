@@ -2,6 +2,7 @@ package calibrate
 
 import (
 	"asterisk/internal/display"
+	"asterisk/internal/format"
 	"fmt"
 	"sort"
 	"strings"
@@ -124,77 +125,82 @@ func FormatTokiMeter(bill *TokiMeterBill) string {
 	}
 	var b strings.Builder
 
-	// Header
 	b.WriteString("\n")
 	b.WriteString("# TokiMeter\n\n")
 	b.WriteString(fmt.Sprintf("> **%s** | adapter: `%s` | %s\n\n", bill.Scenario, bill.Adapter, bill.Timestamp))
 
-	// Summary box
+	// Summary table
 	b.WriteString("## Summary\n\n")
-	b.WriteString("| Metric | Value |\n")
-	b.WriteString("|--------|-------|\n")
-	b.WriteString(fmt.Sprintf("| Cases | %d |\n", bill.CaseCount))
-	b.WriteString(fmt.Sprintf("| Steps | %d |\n", bill.TotalSteps))
-	b.WriteString(fmt.Sprintf("| Input tokens | %s |\n", fmtTokens(bill.TotalIn)))
-	b.WriteString(fmt.Sprintf("| Output tokens | %s |\n", fmtTokens(bill.TotalOut)))
-	b.WriteString(fmt.Sprintf("| **Total tokens** | **%s** |\n", fmtTokens(bill.TotalTokens)))
-	b.WriteString(fmt.Sprintf("| **Total cost** | **$%.4f** |\n", bill.TotalCostUSD))
-	b.WriteString(fmt.Sprintf("| Wall clock | %s |\n", fmtDuration(bill.WallClock)))
+	summary := format.NewTable(format.Markdown)
+	summary.Header("Metric", "Value")
+	summary.Row("Cases", bill.CaseCount)
+	summary.Row("Steps", bill.TotalSteps)
+	summary.Row("Input tokens", format.FmtTokens(bill.TotalIn))
+	summary.Row("Output tokens", format.FmtTokens(bill.TotalOut))
+	summary.Row("**Total tokens**", fmt.Sprintf("**%s**", format.FmtTokens(bill.TotalTokens)))
+	summary.Row("**Total cost**", fmt.Sprintf("**$%.4f**", bill.TotalCostUSD))
+	summary.Row("Wall clock", format.FmtDuration(bill.WallClock))
 	if bill.CaseCount > 0 {
-		b.WriteString(fmt.Sprintf("| Avg per case | %s ($%.4f) |\n",
-			fmtTokens(bill.TotalTokens/bill.CaseCount),
+		summary.Row("Avg per case", fmt.Sprintf("%s ($%.4f)",
+			format.FmtTokens(bill.TotalTokens/bill.CaseCount),
 			bill.TotalCostUSD/float64(bill.CaseCount)))
 	}
-	b.WriteString("\n")
+	b.WriteString(summary.String())
+	b.WriteString("\n\n")
 
 	// Per-case table
 	b.WriteString("## Per-case costs\n\n")
-	b.WriteString("| Case | Test | Ver/Job | Steps | In | Out | Total | Cost | Time |\n")
-	b.WriteString("|------|------|---------|------:|---:|----:|------:|-----:|-----:|\n")
 
-	// Sort cases naturally
 	sort.Slice(bill.CaseLines, func(i, j int) bool {
 		return bill.CaseLines[i].CaseID < bill.CaseLines[j].CaseID
 	})
 
+	cases := format.NewTable(format.Markdown)
+	cases.Header("Case", "Test", "Ver/Job", "Steps", "In", "Out", "Total", "Cost", "Time")
 	for _, cl := range bill.CaseLines {
-		testName := truncate(cl.TestName, 25)
+		testName := format.Truncate(cl.TestName, 25)
 		if testName == "" {
 			testName = "-"
 		}
-		b.WriteString(fmt.Sprintf("| %s | %s | %s/%s | %d | %s | %s | %s | $%.4f | %.1fs |\n",
+		cases.Row(
 			cl.CaseID,
 			testName,
-			cl.Version, cl.Job,
+			fmt.Sprintf("%s/%s", cl.Version, cl.Job),
 			cl.Steps,
-			fmtTokens(cl.In),
-			fmtTokens(cl.Out),
-			fmtTokens(cl.Total),
-			cl.CostUSD,
-			float64(cl.WallMs)/1000.0,
-		))
+			format.FmtTokens(cl.In),
+			format.FmtTokens(cl.Out),
+			format.FmtTokens(cl.Total),
+			fmt.Sprintf("$%.4f", cl.CostUSD),
+			fmt.Sprintf("%.1fs", float64(cl.WallMs)/1000.0),
+		)
 	}
-	b.WriteString("\n")
+	b.WriteString(cases.String())
+	b.WriteString("\n\n")
 
 	// Per-step table
 	b.WriteString("## Per-step costs\n\n")
-	b.WriteString("| Step | Calls | In | Out | Total | Cost |\n")
-	b.WriteString("|------|------:|---:|----:|------:|-----:|\n")
+	steps := format.NewTable(format.Markdown)
+	steps.Header("Step", "Calls", "In", "Out", "Total", "Cost")
 	for _, sl := range bill.StepLines {
-		b.WriteString(fmt.Sprintf("| %s | %d | %s | %s | %s | $%.4f |\n",
-			display.StageWithCode(sl.Step), sl.Invocations,
-			fmtTokens(sl.In), fmtTokens(sl.Out),
-			fmtTokens(sl.Total), sl.CostUSD))
+		steps.Row(
+			display.StageWithCode(sl.Step),
+			sl.Invocations,
+			format.FmtTokens(sl.In),
+			format.FmtTokens(sl.Out),
+			format.FmtTokens(sl.Total),
+			fmt.Sprintf("$%.4f", sl.CostUSD),
+		)
 	}
-
-	// Footer totals
-	b.WriteString(fmt.Sprintf("| **TOTAL** | **%d** | **%s** | **%s** | **%s** | **$%.4f** |\n",
-		bill.TotalSteps,
-		fmtTokens(bill.TotalIn),
-		fmtTokens(bill.TotalOut),
-		fmtTokens(bill.TotalTokens),
-		bill.TotalCostUSD))
-	b.WriteString("\n")
+	steps.Footer(
+		"**TOTAL**",
+		fmt.Sprintf("**%d**", bill.TotalSteps),
+		fmt.Sprintf("**%s**", format.FmtTokens(bill.TotalIn)),
+		fmt.Sprintf("**%s**", format.FmtTokens(bill.TotalOut)),
+		fmt.Sprintf("**%s**", format.FmtTokens(bill.TotalTokens)),
+		fmt.Sprintf("**$%.4f**", bill.TotalCostUSD),
+	)
+	b.WriteString(steps.String())
+	b.WriteString("\n\n")
 
 	// Pricing footnote
 	b.WriteString("---\n\n")
@@ -203,19 +209,3 @@ func FormatTokiMeter(bill *TokiMeterBill) string {
 	return b.String()
 }
 
-// fmtTokens formats a token count with K suffix for readability.
-func fmtTokens(n int) string {
-	if n >= 1000 {
-		return fmt.Sprintf("%.1fK", float64(n)/1000.0)
-	}
-	return fmt.Sprintf("%d", n)
-}
-
-// fmtDuration formats a duration as "Xm Ys" or "Ys".
-func fmtDuration(d time.Duration) string {
-	s := int(d.Seconds())
-	if s >= 60 {
-		return fmt.Sprintf("%dm %ds", s/60, s%60)
-	}
-	return fmt.Sprintf("%ds", s)
-}

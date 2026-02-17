@@ -2,6 +2,7 @@ package calibrate
 
 import (
 	"asterisk/internal/display"
+	"asterisk/internal/format"
 	"fmt"
 	"strings"
 )
@@ -19,16 +20,28 @@ func FormatReport(report *CalibrationReport) string {
 
 	writeSection := func(title string, metrics []Metric) {
 		b.WriteString(fmt.Sprintf("--- %s ---\n", title))
+		tbl := format.NewTable(format.ASCII)
+		tbl.Header("ID", "Metric", "Value", "Detail", "Pass", "Threshold")
+		tbl.Columns(
+			format.ColumnConfig{Number: 1, Align: format.AlignLeft},
+			format.ColumnConfig{Number: 2, Align: format.AlignLeft},
+			format.ColumnConfig{Number: 3, Align: format.AlignRight},
+			format.ColumnConfig{Number: 4, Align: format.AlignLeft},
+			format.ColumnConfig{Number: 5, Align: format.AlignCenter},
+			format.ColumnConfig{Number: 6, Align: format.AlignLeft},
+		)
 		for _, m := range metrics {
-			mark := "✓"
-			if !m.Pass {
-				mark = "✗"
-			}
-		threshStr := formatThreshold(m)
-		b.WriteString(fmt.Sprintf("%-4s %-30s %6.2f %-12s %s %s\n",
-			m.ID, display.Metric(m.ID), m.Value, "("+m.Detail+")", mark, threshStr))
+			tbl.Row(
+				m.ID,
+				display.Metric(m.ID),
+				fmt.Sprintf("%.2f", m.Value),
+				m.Detail,
+				format.BoolMark(m.Pass),
+				formatThreshold(m),
+			)
 		}
-		b.WriteString("\n")
+		b.WriteString(tbl.String())
+		b.WriteString("\n\n")
 	}
 
 	writeSection("Structured Metrics", report.Metrics.Structured)
@@ -52,21 +65,29 @@ func FormatReport(report *CalibrationReport) string {
 
 	// Per-case breakdown
 	b.WriteString("--- Per-case breakdown ---\n")
+	caseTbl := format.NewTable(format.ASCII)
+	caseTbl.Header("Case", "Test", "Ver/Job", "Defect", "DT", "Comp", "Path", "Path✓")
+	caseTbl.Columns(
+		format.ColumnConfig{Number: 2, MaxWidth: 40},
+	)
 	for _, cr := range report.CaseResults {
-		dtMark := boolMark(cr.DefectTypeCorrect)
-		pathMark := boolMark(cr.PathCorrect)
-		compMark := boolMark(cr.ComponentCorrect)
 		path := display.StagePath(cr.ActualPath)
 		if path == "" {
 			path = "(no steps)"
 		}
-		b.WriteString(fmt.Sprintf("%-4s %-40s (%s/%s): defect=%s %s  comp=%s  path=%s %s\n",
-			cr.CaseID, truncate(cr.TestName, 40),
-			cr.Version, cr.Job,
-			display.DefectTypeWithCode(cr.ActualDefectType), dtMark,
-			compMark,
-			path, pathMark))
+		caseTbl.Row(
+			cr.CaseID,
+			format.Truncate(cr.TestName, 40),
+			fmt.Sprintf("%s/%s", cr.Version, cr.Job),
+			display.DefectTypeWithCode(cr.ActualDefectType),
+			format.BoolMark(cr.DefectTypeCorrect),
+			format.BoolMark(cr.ComponentCorrect),
+			path,
+			format.BoolMark(cr.PathCorrect),
+		)
 	}
+	b.WriteString(caseTbl.String())
+	b.WriteString("\n")
 
 	return b.String()
 }
@@ -74,26 +95,12 @@ func FormatReport(report *CalibrationReport) string {
 func formatThreshold(m Metric) string {
 	switch m.ID {
 	case "M4", "M20":
-		return fmt.Sprintf("(≤%.2f)", m.Threshold)
+		return fmt.Sprintf("≤%.2f", m.Threshold)
 	case "M17":
-		return "(0.5–2.0)"
+		return "0.5–2.0"
 	case "M18":
-		return fmt.Sprintf("(≤%.0f)", m.Threshold)
+		return fmt.Sprintf("≤%.0f", m.Threshold)
 	default:
-		return fmt.Sprintf("(≥%.2f)", m.Threshold)
+		return fmt.Sprintf("≥%.2f", m.Threshold)
 	}
-}
-
-func boolMark(v bool) string {
-	if v {
-		return "✓"
-	}
-	return "✗"
-}
-
-func truncate(s string, maxLen int) string {
-	if len(s) <= maxLen {
-		return s
-	}
-	return s[:maxLen-3] + "..."
 }

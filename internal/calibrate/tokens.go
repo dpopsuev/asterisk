@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/format"
 	"fmt"
 	"sync"
 	"time"
@@ -147,23 +148,21 @@ func FormatTokenSummary(s TokenSummary) string {
 	minutes := int(wallSec) / 60
 	seconds := int(wallSec) % 60
 
-	return fmt.Sprintf(
-		"=== Token & Cost ===\n"+
-			"Total prompts:   %d tokens ($%.4f)\n"+
-			"Total artifacts: %d tokens ($%.4f)\n"+
-			"Total:           %d tokens ($%.4f)\n"+
-			"Per case avg:    %d tokens\n"+
-			"Per step avg:    %d tokens\n"+
-			"Steps:           %d\n"+
-			"Wall clock:      %dm %ds\n",
-		s.TotalPromptTokens, float64(s.TotalPromptTokens)/1_000_000*3.0,
-		s.TotalArtifactTokens, float64(s.TotalArtifactTokens)/1_000_000*15.0,
-		s.TotalTokens, s.TotalCostUSD,
-		avgPerCase,
-		avgPerStep,
-		s.TotalSteps,
-		minutes, seconds,
+	tbl := format.NewTable(format.ASCII)
+	tbl.Header("Metric", "Value")
+	tbl.Columns(
+		format.ColumnConfig{Number: 1, Align: format.AlignLeft},
+		format.ColumnConfig{Number: 2, Align: format.AlignRight},
 	)
+	tbl.Row("Total prompts", fmt.Sprintf("%d tokens ($%.4f)", s.TotalPromptTokens, float64(s.TotalPromptTokens)/1_000_000*3.0))
+	tbl.Row("Total artifacts", fmt.Sprintf("%d tokens ($%.4f)", s.TotalArtifactTokens, float64(s.TotalArtifactTokens)/1_000_000*15.0))
+	tbl.Row("Total", fmt.Sprintf("%d tokens ($%.4f)", s.TotalTokens, s.TotalCostUSD))
+	tbl.Row("Per case avg", fmt.Sprintf("%d tokens", avgPerCase))
+	tbl.Row("Per step avg", fmt.Sprintf("%d tokens", avgPerStep))
+	tbl.Row("Steps", fmt.Sprintf("%d", s.TotalSteps))
+	tbl.Row("Wall clock", fmt.Sprintf("%dm %ds", minutes, seconds))
+
+	return "=== Token & Cost ===\n" + tbl.String() + "\n"
 }
 
 // EstimateTokens converts byte count to estimated token count (bytes / 4).

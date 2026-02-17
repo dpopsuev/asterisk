@@ -2,6 +2,7 @@ package calibrate
 
 import (
 	"asterisk/internal/display"
+	"asterisk/internal/format"
 	"fmt"
 	"log"
 	"strings"
@@ -250,6 +251,12 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 	b.WriteString(fmt.Sprintf("Investigated: %d/%d\n\n", investigated, report.TotalCases))
 
 	b.WriteString("--- Per-case breakdown ---\n")
+	tbl := format.NewTable(format.ASCII)
+	tbl.Header("Case", "Test", "Defect", "Category", "Conv", "Path", "Flags")
+	tbl.Columns(
+		format.ColumnConfig{Number: 2, MaxWidth: 50},
+		format.ColumnConfig{Number: 5, Align: format.AlignRight},
+	)
 	for _, cr := range report.CaseResults {
 		path := display.StagePath(cr.Path)
 		if path == "" {
@@ -257,20 +264,37 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 		}
 		flags := ""
 		if cr.RecallHit {
-			flags += " [recall]"
+			flags += "[recall]"
 		}
 		if cr.Skip {
-			flags += " [skip]"
+			if flags != "" {
+				flags += " "
+			}
+			flags += "[skip]"
 		}
 		if cr.Cascade {
-			flags += " [cascade]"
+			if flags != "" {
+				flags += " "
+			}
+			flags += "[cascade]"
 		}
-		b.WriteString(fmt.Sprintf("%-4s %-50s defect=%-20s cat=%-10s conv=%.2f  path=%s%s\n",
-			cr.CaseLabel, truncate(cr.TestName, 50),
-			display.DefectTypeWithCode(cr.DefectType), cr.Category,
-			cr.Convergence, path, flags))
+		tbl.Row(
+			cr.CaseLabel,
+			format.Truncate(cr.TestName, 50),
+			display.DefectTypeWithCode(cr.DefectType),
+			cr.Category,
+			fmt.Sprintf("%.2f", cr.Convergence),
+			path,
+			flags,
+		)
+	}
+	b.WriteString(tbl.String())
+	b.WriteString("\n")
+
+	// RCA messages below the table
+	for _, cr := range report.CaseResults {
 		if cr.RCAMessage != "" {
-			b.WriteString(fmt.Sprintf("     RCA: %s\n", truncate(cr.RCAMessage, 80)))
+			b.WriteString(fmt.Sprintf("  %s RCA: %s\n", cr.CaseLabel, format.Truncate(cr.RCAMessage, 80)))
 		}
 	}
 

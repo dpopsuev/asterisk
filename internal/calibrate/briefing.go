@@ -2,6 +2,7 @@ package calibrate
 
 import (
 	"asterisk/internal/display"
+	"asterisk/internal/format"
 	"fmt"
 	"strings"
 )
@@ -49,31 +50,32 @@ func GenerateBriefing(
 	// Known symptoms from triage
 	if len(triageResults) > 0 {
 		b.WriteString("## Known symptoms (from prior batches)\n\n")
-		b.WriteString("| Case | Category | Component | Defect Hypothesis | Severity |\n")
-		b.WriteString("|------|----------|-----------|-------------------|----------|\n")
+		symptoms := format.NewTable(format.Markdown)
+		symptoms.Header("Case", "Category", "Component", "Defect Hypothesis", "Severity")
 		for _, tr := range triageResults {
 			if tr.TriageArtifact != nil {
 				caseID := ""
 				if tr.CaseResult != nil {
 					caseID = tr.CaseResult.CaseID
 				}
-				b.WriteString(fmt.Sprintf("| %s | %s | %s | %s | %s |\n",
+				symptoms.Row(
 					caseID,
 					tr.TriageArtifact.SymptomCategory,
 					safeField(tr.CaseResult, func(cr *CaseResult) string { return cr.ActualComponent }),
 					display.DefectType(tr.TriageArtifact.DefectTypeHypothesis),
 					tr.TriageArtifact.Severity,
-				))
+				)
 			}
 		}
-		b.WriteString("\n")
+		b.WriteString(symptoms.String())
+		b.WriteString("\n\n")
 	}
 
 	// Cluster assignments (investigation phase)
 	if len(clusters) > 0 {
 		b.WriteString("## Cluster assignments (investigation phase)\n\n")
-		b.WriteString("| Cluster | Representative | Members | Key |\n")
-		b.WriteString("|---------|---------------|---------|-----|\n")
+		clusterTbl := format.NewTable(format.Markdown)
+		clusterTbl.Header("Cluster", "Representative", "Members", "Key")
 		for i, cl := range clusters {
 			repID := ""
 			if cl.Representative != nil && cl.Representative.CaseResult != nil {
@@ -85,22 +87,27 @@ func GenerateBriefing(
 					memberIDs = append(memberIDs, m.CaseResult.CaseID)
 				}
 			}
-		b.WriteString(fmt.Sprintf("| K%d | %s | %s | %s |\n",
-			i+1, repID, strings.Join(memberIDs, ", "), display.ClusterKey(cl.Key)))
+			clusterTbl.Row(
+				fmt.Sprintf("K%d", i+1),
+				repID,
+				strings.Join(memberIDs, ", "),
+				display.ClusterKey(cl.Key),
+			)
 		}
-		b.WriteString("\n")
+		b.WriteString(clusterTbl.String())
+		b.WriteString("\n\n")
 	}
 
 	// Prior RCAs
 	if len(priorRCAs) > 0 {
 		b.WriteString("## Prior RCAs (from completed investigations)\n\n")
-		b.WriteString("| RCA ID | Component | Defect Type | Summary |\n")
-		b.WriteString("|--------|-----------|-------------|----------|\n")
+		rcaTbl := format.NewTable(format.Markdown)
+		rcaTbl.Header("RCA ID", "Component", "Defect Type", "Summary")
 		for _, rca := range priorRCAs {
-		b.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
-			rca.ID, rca.Component, display.DefectType(rca.DefectType), rca.Summary))
+			rcaTbl.Row(rca.ID, rca.Component, display.DefectType(rca.DefectType), rca.Summary)
 		}
-		b.WriteString("\n")
+		b.WriteString(rcaTbl.String())
+		b.WriteString("\n\n")
 	}
 
 	return b.String()

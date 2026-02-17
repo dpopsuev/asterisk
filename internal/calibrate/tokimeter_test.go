@@ -3,7 +3,6 @@ package calibrate
 import (
 	"strings"
 	"testing"
-	"time"
 )
 
 func TestBuildTokiMeterBill_NilTokens(t *testing.T) {
@@ -143,42 +142,5 @@ func TestFormatTokiMeter_Markdown(t *testing.T) {
 	}
 }
 
-func TestFmtTokens(t *testing.T) {
-	tests := []struct {
-		n    int
-		want string
-	}{
-		{0, "0"},
-		{999, "999"},
-		{1000, "1.0K"},
-		{1500, "1.5K"},
-		{100000, "100.0K"},
-		{1234567, "1234.6K"},
-	}
-	for _, tt := range tests {
-		got := fmtTokens(tt.n)
-		if got != tt.want {
-			t.Errorf("fmtTokens(%d) = %q, want %q", tt.n, got, tt.want)
-		}
-	}
-}
-
-func TestFmtDuration(t *testing.T) {
-	tests := []struct {
-		ms   int64
-		want string
-	}{
-		{0, "0s"},
-		{30000, "30s"},
-		{60000, "1m 0s"},
-		{89000, "1m 29s"},
-		{125000, "2m 5s"},
-	}
-	for _, tt := range tests {
-		d := time.Duration(tt.ms) * time.Millisecond
-		got := fmtDuration(d)
-		if got != tt.want {
-			t.Errorf("fmtDuration(%dms) = %q, want %q", tt.ms, got, tt.want)
-		}
-	}
-}
+// fmtTokens and fmtDuration helpers moved to internal/format package.
+// See internal/format/format_test.go for their tests.
