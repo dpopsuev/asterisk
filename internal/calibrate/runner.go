@@ -21,6 +21,7 @@ type RunConfig struct {
 	TokenTracker TokenTracker // optional; when set, records per-step token usage
 	Parallel     int          // number of parallel workers (default 1 = serial)
 	TokenBudget  int          // max concurrent dispatches (token semaphore); 0 = Parallel
+	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
 }
 
 // DefaultRunConfig returns defaults for calibration.

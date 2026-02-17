@@ -14,6 +14,7 @@ import (
 	"flag"
 	"fmt"
 	"os"
+	"path/filepath"
 	"strconv"
 
 	"log/slog"
@@ -674,7 +675,7 @@ func runCalibrate(args []string) {
 	fs := flag.NewFlagSet("calibrate", flag.ExitOnError)
 	scenarioName := fs.String("scenario", "ptp-mock", "Scenario name (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)")
 	adapterName := fs.String("adapter", "stub", "Model adapter (stub, cursor)")
-	dispatchMode := fs.String("dispatch", "stdin", "Dispatch mode for cursor adapter (stdin, file)")
+	dispatchMode := fs.String("dispatch", "stdin", "Dispatch mode for cursor adapter (stdin, file, batch-file)")
 	agentDebug := fs.Bool("agent-debug", false, "Enable verbose debug logging for dispatcher/agent communication")
 	runs := fs.Int("runs", 1, "Number of calibration runs")
 	promptDir := fs.String("prompt-dir", ".cursor/prompts", "Prompt template directory")
@@ -683,6 +684,7 @@ func runCalibrate(args []string) {
 	costReport := fs.Bool("cost-report", false, "Write token-report.json with per-case token/cost breakdown")
 	parallel := fs.Int("parallel", 1, "Number of parallel workers for triage/investigation (1 = serial)")
 	tokenBudget := fs.Int("token-budget", 0, "Max concurrent dispatches (0 = same as --parallel)")
+	batchSize := fs.Int("batch-size", 4, "Max signals per batch for batch-file dispatch mode")
 	_ = fs.Parse(args)
 
 	// Load scenario
@@ -726,8 +728,18 @@ func runCalibrate(args []string) {
 			cfg := calibrate.DefaultFileDispatcherConfig()
 			cfg.Logger = debugLogger
 			dispatcher = calibrate.NewFileDispatcher(cfg)
+		case "batch-file":
+			cfg := calibrate.BatchFileDispatcherConfig{
+				FileConfig: calibrate.FileDispatcherConfig{
+					Logger: debugLogger,
+				},
+				SuiteDir:  filepath.Join(".asterisk", "calibrate", "batch"),
+				BatchSize: *batchSize,
+				Logger:    debugLogger,
+			}
+			dispatcher = calibrate.NewBatchFileDispatcher(cfg)
 		default:
-			fmt.Fprintf(os.Stderr, "unknown dispatch mode: %s (available: stdin, file)\n", *dispatchMode)
+			fmt.Fprintf(os.Stderr, "unknown dispatch mode: %s (available: stdin, file, batch-file)\n", *dispatchMode)
 			os.Exit(1)
 		}
 		// Wrap the dispatcher with token tracking
