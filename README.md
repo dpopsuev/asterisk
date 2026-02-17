@@ -263,8 +263,9 @@ The calibration framework validates the investigation pipeline end-to-end agains
 
 ### Adapters
 
-- **Stub** -- returns ground-truth answers deterministically. Validates pipeline logic and heuristic routing.
-- **Cursor** -- fills prompt templates, dispatches to an AI agent (or mock-calibration-agent), and evaluates real outputs against ground truth.
+- **Stub** -- returns ground-truth answers deterministically. Validates pipeline logic and heuristic routing. Always scores 20/20.
+- **Basic** -- zero-LLM heuristic adapter. Uses keyword analysis and store lookups to produce answers in-process, without any AI. This is the primary quality baseline (M19 = 0.93 on Jira-verified ground truth).
+- **Cursor** -- fills prompt templates, dispatches to an external AI agent via the configured dispatcher, and evaluates real AI outputs against ground truth.
 
 ### Metrics (M1–M20)
 
@@ -281,6 +282,37 @@ The calibration framework validates the investigation pipeline end-to-end agains
 | Aggregate | Overall Accuracy (M19), Run Variance (M20) | System-level performance |
 
 Target: **Overall Accuracy (M19) >= 0.95**.
+
+### How calibration drives improvement
+
+Calibration is a **deterministic Go test harness**, not a self-learning AI loop.
+The pipeline does not update itself at runtime; a developer (with AI assistance)
+updates the code based on calibration results.
+
+The improvement cycle works like this:
+
+1. **Run calibration** — `asterisk calibrate --scenario=ptp-mock --adapter=basic`
+   produces a metrics report (M1–M20) comparing pipeline output to ground truth.
+2. **Read the metrics** — identify which metrics dropped and on which cases.
+3. **Diagnose** — trace the failing cases through the pipeline to find the root
+   cause (wrong heuristic threshold, missing keyword, bad prompt template, etc.).
+4. **Fix the code** — update heuristics, prompt templates, adapter logic, or
+   scenario data. This is a normal code change committed to git.
+5. **Re-run calibration** — confirm the fix improved the target metric without
+   regressing others. Repeat until the target is met.
+
+The AI assists in steps 2–4 (analyzing results, proposing fixes, writing code),
+but the calibration harness itself is plain Go — reproducible, deterministic,
+and version-controlled. Every improvement is a git commit, not a hidden model
+update.
+
+**Current baselines:**
+
+| Adapter | M19 (Overall Accuracy) | Notes |
+|---------|------------------------|-------|
+| Stub    | 1.00 (20/20)           | Perfect by construction |
+| Basic   | 0.93                   | Zero-LLM heuristic baseline |
+| Cursor  | TBD                    | Pending MCP integration |
 
 ---
 
@@ -334,7 +366,7 @@ Asterisk follows **BDD + TDD + AI**:
 1. **Gherkin first** -- write acceptance criteria (Given/When/Then) for every story.
 2. **Test matrix** -- unit, integration, contract, E2E, and security tests per feature.
 3. **Red-Green-Blue** -- fail (red), pass (green), tune prompts/refactor (blue).
-4. **Calibration loop** -- run scenarios, diagnose weakest metrics, apply fixes, re-run.
+4. **Calibration loop** -- run scenarios, diagnose weakest metrics, apply fixes, re-run. The AI assists analysis and code changes; the harness itself is deterministic Go. See [How calibration drives improvement](#how-calibration-drives-improvement).
 
 ### Testing
 
