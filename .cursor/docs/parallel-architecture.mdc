@@ -1,0 +1,124 @@
+---
+description: Parallel investigation pipeline architecture
+---
+
+# Parallel Investigation Architecture
+
+## Overview
+
+Asterisk's calibration pipeline supports parallel case processing via the
+`--parallel=N` flag. When N > 1, the pipeline splits into three stages:
+
+1. **Triage worker pool** (F0 + F1)
+2. **Symptom clustering** (barrier)
+3. **Investigation worker pool** (F2–F6)
+
+When N == 1, the pipeline degrades to sequential processing (same behavior
+as before parallel support was added).
+
+## Three-stage pipeline
+
+```
+                        ┌─────────────────┐
+                        │  Case Queue     │
+                        │  (all cases)    │
+                        └────────┬────────┘
+                                 │
+               ┌─────────────────┼─────────────────┐
+               ▼                 ▼                  ▼
+        ┌──────────┐      ┌──────────┐       ┌──────────┐
+        │ Worker 1 │      │ Worker 2 │  ...  │ Worker N │
+        │  F0→F1   │      │  F0→F1   │       │  F0→F1   │
+        └────┬─────┘      └────┬─────┘       └────┬─────┘
+             │                 │                   │
+             └─────────────────┼───────────────────┘
+                               │
+                     ┌─────────▼─────────┐
+                     │  Barrier:         │
+                     │  Symptom Cluster  │
+                     └─────────┬─────────┘
+                               │
+               ┌───────────────┼───────────────┐
+               ▼               ▼               ▼
+        ┌──────────┐    ┌──────────┐    ┌──────────┐
+        │ Cluster 1│    │ Cluster 2│    │ Cluster K│
+        │  F2→F6   │    │  F2→F6   │    │  F2→F6   │
+        └──────────┘    └──────────┘    └──────────┘
+```
+
+## Concurrency primitives
+
+| Concept | Go primitive | Location |
+|---------|-------------|----------|
+| Triage job queue | `chan TriageJob` | `parallel.go` |
+| Investigation job queue | `chan InvestigationJob` | `parallel.go` |
+| Worker pool | N goroutines reading from channel | `parallel.go` |
+| Barrier | `sync.WaitGroup` between phases | `parallel.go` |
+| Token semaphore | `chan struct{}` with capacity = `--token-budget` | `parallel.go` |
+| Store mutex | `sync.Mutex` in `MemStore` | `memstore_v2.go` |
+| Adapter mutex | `sync.RWMutex` in `StubAdapter` | `adapter.go` |
+
+## Token semaphore
+
+The `--token-budget=T` flag limits the number of concurrent dispatches
+(LLM API calls). When T < N, workers will block on the semaphore even
+if channel capacity allows more parallelism. This prevents burning
+excessive tokens during parallel runs.
+
+Default: T = N (one dispatch per worker).
+
+## Symptom clustering
+
+After triage completes for all cases, the barrier phase groups cases by:
+
+- **Primary key**: `{symptom_category, component, defect_type_hypothesis}`
+- **Secondary**: Jaccard similarity on tokenized error text (for future refinement)
+
+Each cluster elects a **representative** (the first case). Only the
+representative undergoes full investigation (F2–F6). Results are
+propagated to all cluster members.
+
+Special cases form singleton clusters:
+- **Recall hits** (H1 fired at F0)
+- **Skip investigation** (H4/H5/H18 fired at F1)
+
+## Configuration
+
+```bash
+# Serial (default, backward-compatible)
+asterisk calibrate --parallel=1
+
+# 4 parallel workers, budget matches workers
+asterisk calibrate --parallel=4
+
+# 4 workers but limit concurrent dispatches to 2
+asterisk calibrate --parallel=4 --token-budget=2
+```
+
+## Limitations
+
+- **Stub adapter**: Recall behavior differs from serial mode because
+  the stub adapter's `rcaIDMap` is populated progressively. Cases that
+  run before their predecessor's RCA is stored will miss recall hits.
+  This is expected and does not affect cursor adapter behavior.
+- **File dispatcher**: Currently uses a shared dispatcher. Future work
+  may add per-worker signal directories for true isolation.
+- **Clustering**: Currently uses exact-match primary key. Jaccard-based
+  secondary clustering is implemented but not yet used for merge decisions.
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `internal/calibrate/parallel.go` | Parallel runner, triage/investigation phases |
+| `internal/calibrate/cluster.go` | Symptom clustering, Jaccard similarity |
+| `internal/calibrate/parallel_test.go` | Race-detector-safe parallel tests |
+| `internal/calibrate/cluster_test.go` | Clustering unit tests |
+| `internal/calibrate/tokens.go` | Token tracking (integrates with parallel) |
+| `internal/calibrate/token_dispatcher.go` | Token-tracking dispatcher decorator |
+
+## Cross-references
+
+- Token performance tracking: `contracts/token-perf-tracking.md`
+- Parallel investigation contract: `contracts/parallel-investigation.md`
+- Impatient agent rule: `rules/impatient-agent.mdc`

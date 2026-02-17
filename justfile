@@ -100,6 +100,20 @@ calibrate-debug scenario="ptp-real-ingest":
         --clean \
         --agent-debug
 
+# Run stub calibration with parallel workers
+calibrate-parallel scenario="ptp-mock" workers="4":
+    go run {{ cmd_asterisk }} calibrate --scenario={{ scenario }} --adapter=stub --parallel={{ workers }}
+
+# Run wet calibration with token/cost report
+calibrate-cost scenario="ptp-real-ingest":
+    go run {{ cmd_asterisk }} calibrate \
+        --scenario={{ scenario }} \
+        --adapter=cursor \
+        --dispatch=file \
+        --responder=auto \
+        --clean \
+        --cost-report
+
 # Run wet calibration and save results to .dev/calibration-runs/
 calibrate-save scenario="ptp-real-ingest" round="":
     #!/usr/bin/env bash

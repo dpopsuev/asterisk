@@ -515,6 +515,20 @@ func (s *MemStore) ListSymptoms() ([]*Symptom, error) {
 	return out, nil
 }
 
+// SnapshotSymptoms returns a copy of all current symptoms for isolation
+// during parallel triage. The caller gets a point-in-time snapshot that
+// won't be affected by concurrent writes.
+func (s *MemStore) SnapshotSymptoms() []*Symptom {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	out := make([]*Symptom, 0, len(s.v2().symptoms))
+	for _, v := range s.v2().symptoms {
+		cp := *v
+		out = append(out, &cp)
+	}
+	return out
+}
+
 func (s *MemStore) MarkDormantSymptoms(staleDays int) (int64, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()

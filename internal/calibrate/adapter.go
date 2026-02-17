@@ -3,6 +3,7 @@ package calibrate
 import (
 	"encoding/json"
 	"fmt"
+	"sync"
 
 	"asterisk/internal/orchestrate"
 )
@@ -20,8 +21,10 @@ type ModelAdapter interface {
 
 // StubAdapter returns pre-authored "ideal" responses for each case+step.
 // Deterministic: validates the pipeline/heuristic/metric machinery without LLM variance.
+// Thread-safe: maps are protected by a mutex for parallel mode.
 type StubAdapter struct {
 	scenario *Scenario
+	mu       sync.RWMutex
 	// rcaIDMap maps ground truth RCA IDs (e.g. "R1") to store-assigned IDs.
 	// Populated during calibration as RCAs are created in the store.
 	rcaIDMap map[string]int64
@@ -40,14 +43,32 @@ func NewStubAdapter(scenario *Scenario) *StubAdapter {
 
 func (a *StubAdapter) Name() string { return "stub" }
 
-// SetRCAID maps a ground truth RCA ID to a store-assigned ID.
+// SetRCAID maps a ground truth RCA ID to a store-assigned ID. Thread-safe.
 func (a *StubAdapter) SetRCAID(gtID string, storeID int64) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.rcaIDMap[gtID] = storeID
 }
 
-// SetSymptomID maps a ground truth symptom ID to a store-assigned ID.
+// SetSymptomID maps a ground truth symptom ID to a store-assigned ID. Thread-safe.
 func (a *StubAdapter) SetSymptomID(gtID string, storeID int64) {
+	a.mu.Lock()
+	defer a.mu.Unlock()
 	a.symptomIDMap[gtID] = storeID
+}
+
+// getRCAID reads a mapped RCA ID. Thread-safe.
+func (a *StubAdapter) getRCAID(gtID string) int64 {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.rcaIDMap[gtID]
+}
+
+// getSymptomID reads a mapped symptom ID. Thread-safe.
+func (a *StubAdapter) getSymptomID(gtID string) int64 {
+	a.mu.RLock()
+	defer a.mu.RUnlock()
+	return a.symptomIDMap[gtID]
 }
 
 // SendPrompt returns the pre-authored ideal artifact for the given case and step.
@@ -111,10 +132,10 @@ func (a *StubAdapter) buildRecall(c *GroundTruthCase) *orchestrate.RecallResult 
 		if c.ExpectedRecall.Match {
 			r.Reasoning = fmt.Sprintf("Recalled prior RCA for symptom matching case %s", c.ID)
 			if c.RCAID != "" {
-				r.PriorRCAID = a.rcaIDMap[c.RCAID]
+				r.PriorRCAID = a.getRCAID(c.RCAID)
 			}
 			if c.SymptomID != "" {
-				r.SymptomID = a.symptomIDMap[c.SymptomID]
+				r.SymptomID = a.getSymptomID(c.SymptomID)
 			}
 		} else {
 			r.Reasoning = "No prior RCA found matching this failure pattern"
@@ -173,7 +194,7 @@ func (a *StubAdapter) buildCorrelate(c *GroundTruthCase) *orchestrate.CorrelateR
 			CrossVersionMatch: c.ExpectedCorrelate.CrossVersionMatch,
 		}
 		if c.ExpectedCorrelate.IsDuplicate && c.RCAID != "" {
-			r.LinkedRCAID = a.rcaIDMap[c.RCAID]
+			r.LinkedRCAID = a.getRCAID(c.RCAID)
 		}
 		return r
 	}

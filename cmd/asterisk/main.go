@@ -680,6 +680,9 @@ func runCalibrate(args []string) {
 	promptDir := fs.String("prompt-dir", ".cursor/prompts", "Prompt template directory")
 	clean := fs.Bool("clean", true, "Remove .asterisk/calibrate/ before starting (cursor adapter only)")
 	responderMode := fs.String("responder", "auto", "Responder lifecycle: auto (spawn/kill), external (user manages), none")
+	costReport := fs.Bool("cost-report", false, "Write token-report.json with per-case token/cost breakdown")
+	parallel := fs.Int("parallel", 1, "Number of parallel workers for triage/investigation (1 = serial)")
+	tokenBudget := fs.Int("token-budget", 0, "Max concurrent dispatches (0 = same as --parallel)")
 	_ = fs.Parse(args)
 
 	// Load scenario
@@ -697,6 +700,9 @@ func runCalibrate(args []string) {
 		fmt.Fprintf(os.Stderr, "unknown scenario: %s (available: ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)\n", *scenarioName)
 		os.Exit(1)
 	}
+
+	// Token tracker — always enabled; near-zero overhead, enables real M18 data.
+	tokenTracker := calibrate.NewTokenTracker()
 
 	// Build debug logger for agent communication
 	var debugLogger *slog.Logger
@@ -724,7 +730,9 @@ func runCalibrate(args []string) {
 			fmt.Fprintf(os.Stderr, "unknown dispatch mode: %s (available: stdin, file)\n", *dispatchMode)
 			os.Exit(1)
 		}
-		adapter = calibrate.NewCursorAdapter(*promptDir, calibrate.WithDispatcher(dispatcher))
+		// Wrap the dispatcher with token tracking
+		trackedDispatcher := calibrate.NewTokenTrackingDispatcher(dispatcher, tokenTracker)
+		adapter = calibrate.NewCursorAdapter(*promptDir, calibrate.WithDispatcher(trackedDispatcher))
 	default:
 		fmt.Fprintf(os.Stderr, "unknown adapter: %s (available: stub, cursor)\n", *adapterName)
 		os.Exit(1)
@@ -790,12 +798,24 @@ func runCalibrate(args []string) {
 		fmt.Println("[lifecycle] responder=external: ensure mock-calibration-agent is running separately")
 	}
 
+	parallelN := *parallel
+	if parallelN < 1 {
+		parallelN = 1
+	}
+	budgetN := *tokenBudget
+	if budgetN <= 0 {
+		budgetN = parallelN
+	}
+
 	cfg := calibrate.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       *runs,
-		PromptDir:  *promptDir,
-		Thresholds: orchestrate.DefaultThresholds(),
+		Scenario:     scenario,
+		Adapter:      adapter,
+		Runs:         *runs,
+		PromptDir:    *promptDir,
+		Thresholds:   orchestrate.DefaultThresholds(),
+		TokenTracker: tokenTracker,
+		Parallel:     parallelN,
+		TokenBudget:  budgetN,
 	}
 
 	report, err := calibrate.RunCalibration(cfg)
@@ -811,6 +831,19 @@ func runCalibrate(args []string) {
 	}
 
 	fmt.Print(calibrate.FormatReport(report))
+
+	// Write token-report.json when --cost-report is set
+	if *costReport && report.Tokens != nil {
+		tokenReportPath := calibDir + "/token-report.json"
+		data, err := json.MarshalIndent(report.Tokens, "", "  ")
+		if err == nil {
+			if err := os.WriteFile(tokenReportPath, data, 0644); err != nil {
+				fmt.Fprintf(os.Stderr, "write token report: %v\n", err)
+			} else {
+				fmt.Printf("\nToken report: %s\n", tokenReportPath)
+			}
+		}
+	}
 
 	passed, total := report.Metrics.PassCount()
 	if passed < total {

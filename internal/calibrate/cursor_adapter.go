@@ -163,8 +163,13 @@ func (a *CursorAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep,
 		return nil, fmt.Errorf("cursor: dispatch %s/%s: %w", caseID, step, err)
 	}
 
-	// Mark done if the dispatcher supports it (FileDispatcher)
-	if fd, ok := a.dispatcher.(*FileDispatcher); ok {
+	// Mark done if the dispatcher supports it (FileDispatcher).
+	// Unwrap TokenTrackingDispatcher if present.
+	disp := a.dispatcher
+	if td, ok := disp.(*TokenTrackingDispatcher); ok {
+		disp = td.Inner()
+	}
+	if fd, ok := disp.(*FileDispatcher); ok {
 		fd.MarkDone(artifactFile)
 	}
 

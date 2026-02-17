@@ -189,6 +189,7 @@ type CalibrationReport struct {
 	Metrics      MetricSet        `json:"metrics"`
 	CaseResults  []CaseResult     `json:"case_results"`
 	RunMetrics   []MetricSet      `json:"run_metrics,omitempty"` // per-run for variance
+	Tokens       *TokenSummary    `json:"tokens,omitempty"`      // populated when TokenTracker is present
 }
 
 // CaseResult captures the per-case investigation outcome.
@@ -213,6 +214,12 @@ type CaseResult struct {
 	ActualSelectedRepos []string `json:"actual_selected_repos"`
 	ActualRCAID       int64    `json:"actual_rca_id"`
 	ActualConvergence float64  `json:"actual_convergence"`
+
+	// Token tracking (populated when TokenTracker is present)
+	PromptTokensTotal   int   `json:"prompt_tokens_total,omitempty"`
+	ArtifactTokensTotal int   `json:"artifact_tokens_total,omitempty"`
+	StepCount           int   `json:"step_count,omitempty"`
+	WallClockMs         int64 `json:"wall_clock_ms,omitempty"`
 
 	// Per-case scoring
 	DefectTypeCorrect  bool    `json:"defect_type_correct"`

@@ -13,11 +13,14 @@ import (
 
 // RunConfig holds configuration for a calibration run.
 type RunConfig struct {
-	Scenario   *Scenario
-	Adapter    ModelAdapter
-	Runs       int
-	PromptDir  string
-	Thresholds orchestrate.Thresholds
+	Scenario     *Scenario
+	Adapter      ModelAdapter
+	Runs         int
+	PromptDir    string
+	Thresholds   orchestrate.Thresholds
+	TokenTracker TokenTracker // optional; when set, records per-step token usage
+	Parallel     int          // number of parallel workers (default 1 = serial)
+	TokenBudget  int          // max concurrent dispatches (token semaphore); 0 = Parallel
 }
 
 // DefaultRunConfig returns defaults for calibration.
@@ -65,6 +68,23 @@ func RunCalibration(cfg RunConfig) (*CalibrationReport, error) {
 		report.Metrics = aggregateRunMetrics(allRunMetrics)
 	}
 
+	// Attach token summary if tracker was present
+	if cfg.TokenTracker != nil {
+		ts := cfg.TokenTracker.Summary()
+		report.Tokens = &ts
+
+		// Populate per-case token fields from the summary
+		for i := range report.CaseResults {
+			cid := report.CaseResults[i].CaseID
+			if cs, ok := ts.PerCase[cid]; ok {
+				report.CaseResults[i].PromptTokensTotal = cs.PromptTokens
+				report.CaseResults[i].ArtifactTokensTotal = cs.ArtifactTokens
+				report.CaseResults[i].StepCount = cs.Steps
+				report.CaseResults[i].WallClockMs = cs.WallClockMs
+			}
+		}
+	}
+
 	return report, nil
 }
 
@@ -93,7 +113,6 @@ func runSingleCalibration(cfg RunConfig) ([]CaseResult, error) {
 	}
 
 	// Create pipelines and jobs per version+job combo
-	type pipeKey struct{ version, job string }
 	pipelineMap := make(map[pipeKey]int64)
 	jobMap := make(map[pipeKey]int64)
 	launchMap := make(map[pipeKey]int64)
@@ -131,6 +150,11 @@ func runSingleCalibration(cfg RunConfig) ([]CaseResult, error) {
 			}
 			jobMap[pk] = jobID
 		}
+	}
+
+	// When parallel > 1, delegate to the parallel runner
+	if cfg.Parallel > 1 {
+		return runParallelCalibration(cfg, st, suiteID, versionMap, jobMap, launchMap)
 	}
 
 	// Detect adapter type for per-case wiring
@@ -412,6 +436,9 @@ func updateStubIDMaps(stub *StubAdapter, st store.Store, caseData *store.Case, g
 		stub.SetSymptomID(gtCase.SymptomID, updated.SymptomID)
 	}
 }
+
+// pipeKey uniquely identifies a (version, job) combination for pipeline/launch/job mapping.
+type pipeKey struct{ version, job string }
 
 func stepName(s orchestrate.PipelineStep) string {
 	m := map[orchestrate.PipelineStep]string{

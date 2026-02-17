@@ -43,6 +43,12 @@ func FormatReport(report *CalibrationReport) string {
 	}
 	b.WriteString(fmt.Sprintf("RESULT: %s (%d/%d metrics within threshold)\n\n", result, passed, total))
 
+	// Token & Cost section (when tracker was present)
+	if report.Tokens != nil {
+		b.WriteString(FormatTokenSummary(*report.Tokens))
+		b.WriteString("\n")
+	}
+
 	// Per-case breakdown
 	b.WriteString("--- Per-case breakdown ---\n")
 	for _, cr := range report.CaseResults {

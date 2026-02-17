@@ -11,3 +11,4 @@ Deep library references (long-form).
 - `prompts.mdc` — file-based RCA prompt templates; dev (.cursor/prompts/) vs CLI prompt directory; red–green–blue iteration.
 - `data-io.mdc` — core inputs and outputs for Asterik.
 - `execution-envelope.mdc` — adapter-normalized run container; includes vital git metadata.
+- `parallel-architecture.mdc` — parallel investigation pipeline: three-stage fan-out/barrier/fan-out with worker pools, token semaphore, symptom clustering.

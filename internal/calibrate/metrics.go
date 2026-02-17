@@ -499,19 +499,39 @@ func scoreLoopEfficiency(results []CaseResult, caseMap map[string]*GroundTruthCa
 }
 
 // --- M18: Total prompt tokens ---
+// When TokenTracker data is present (PromptTokensTotal > 0), uses real
+// measured values. Falls back to step-count estimate for stub mode.
 func scoreTotalPromptTokens(results []CaseResult) Metric {
-	// In stub mode, estimate tokens from path length (each step ~1000 tokens)
+	// Check if we have real token data
+	realTokens := 0
+	hasReal := false
 	totalSteps := 0
 	for _, r := range results {
 		totalSteps += len(r.ActualPath)
+		if r.PromptTokensTotal > 0 {
+			realTokens += r.PromptTokensTotal
+			hasReal = true
+		}
 	}
-	estimated := totalSteps * 1000
+
 	budget := 60000.0
+
+	if hasReal {
+		val := float64(realTokens)
+		return Metric{
+			ID: "M18", Name: "total_prompt_tokens",
+			Value: val, Threshold: budget,
+			Pass: val <= budget, Detail: fmt.Sprintf("%d tokens (measured)", realTokens),
+		}
+	}
+
+	// Fallback: estimate from path length (each step ~1000 tokens)
+	estimated := totalSteps * 1000
 	val := float64(estimated)
 	return Metric{
 		ID: "M18", Name: "total_prompt_tokens",
 		Value: val, Threshold: budget,
-		Pass: val <= budget, Detail: fmt.Sprintf("~%d tokens (%d steps)", estimated, totalSteps),
+		Pass: val <= budget, Detail: fmt.Sprintf("~%d tokens (%d steps, estimated)", estimated, totalSteps),
 	}
 }
 
