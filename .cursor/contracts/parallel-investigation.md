@@ -1,6 +1,6 @@
 # Contract — parallel-investigation
 
-**Status:** draft  
+**Status:** complete (2026-02-17)  
 **Goal:** Enable parallel case processing via a job-queue pipeline with bounded worker pools for >= 3x wall-clock speedup on 30+ case scenarios without regressing M19.
 
 ## Contract rules

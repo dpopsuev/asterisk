@@ -1,14 +1,22 @@
 # Contract — responder-classification-v2
 
-**Status:** draft  
+**Status:** draft (reassessed 2026-02-17)  
 **Goal:** Systematic classification overhaul of the mock-calibration-agent; reach M19 >= 0.80 with 16+ metrics passing.
+
+## Reassessment notes (2026-02-17)
+
+- **Development cycle**: Follow **Red-Orange-Green-Blue** per `rules/test-coverage-checklist.mdc`. Each phase below should add structured logging (Orange) at decision points before implementing fixes (Green).
+- **Impatient agent**: Calibration runs must complete within 10 minutes (per `rules/impatient-agent.mdc`). If a run stalls, abort and diagnose.
+- **Token tracking**: M18 now uses real measured values from `TokenTrackingDispatcher`. The M18 target (60000) can be validated with actual data via `--cost-report` flag. Add `token-perf-tracking.md` as a dependency.
+- **Parallel mode**: Available but not recommended for classification tuning. Use `--parallel=1` (default) for deterministic results during classification development. Once classification is stable, validate with `--parallel=4` to ensure no regressions.
 
 ## Contract rules
 
-- BDD-TDD: build a ground-truth test fixture from the 30 real cases before touching classification code.
+- BDD-TDD **Red-Orange-Green-Blue**: build a ground-truth test fixture from the 30 real cases before touching classification code.
+- **Orange phase mandatory**: add `slog.Debug` at `classifyFailure` and `identifyComponent` decision points before writing fixes.
 - All classification logic changes must be covered by table-driven tests (one row per case).
 - Each phase gate requires a calibration run with results saved to `.dev/calibration-runs/`.
-- Token budget matters: M18 target is <= 60000. Avoid adding pipeline steps; prefer smarter classification.
+- Token budget matters: M18 target is <= 60000. Use `--cost-report` to validate real token usage. Avoid adding pipeline steps; prefer smarter classification.
 
 ## Context
 
@@ -76,9 +84,11 @@ Four phases. Phase 1 builds the test harness from real data. Phase 2 rewrites cl
 |----------|--------|--------------|
 | `calibration-bugfix-r5.md` | Must be complete | Unblocks this contract (bugs fixed, M19 >= 0.65) |
 | `e2e-calibration.md` | Complete (stub) | Metric framework |
+| `token-perf-tracking.md` | Complete | Real M18 data for Phase 3 token optimization |
 
 ## Notes
 
 (Running log, newest first.)
 
+- 2026-02-17 10:50 — Reassessed: added R-O-G-B development cycle, impatient agent rule, token tracking dependency. M18 now uses real measured values. Added `--cost-report` guidance for token validation.
 - 2026-02-17 01:30 — Contract created. Current baseline (post-bugfix target): M19 >= 0.65. Target: M19 >= 0.80.

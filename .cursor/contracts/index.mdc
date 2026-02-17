@@ -92,13 +92,13 @@ Execute **in order**; each contract depends on the previous. Gate: the preceding
 | **1** | `calibration-bugfix-r5.md` | Fix 5 known blocking bugs (H15 dup, skip path, repo names, JSON error, component ID). | 0.58 | >= 0.65 |
 | **2** | `responder-classification-v2.md` | Systematic classification overhaul: ground-truth test fixture, scored multi-signal classifier, token optimization. | >= 0.65 | >= 0.80 |
 | **3** | `calibration-victory.md` | Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. All 20/20 metrics. | >= 0.80 | >= 0.95 |
-| **4** | `parallel-investigation.md` | Parallel case processing: fan-out F0-F1, symptom clustering, on-demand RCA agents, token ceiling. Future phase. | >= 0.95 | >= 0.95 + 3x speedup |
+| **4** | `parallel-investigation.md` | Parallel case processing: fan-out F0-F1, symptom clustering, on-demand RCA agents, token ceiling. **Complete.** | >= 0.95 | >= 0.95 + 3x speedup |
 
 ## Token performance tracking (cost observability)
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `token-perf-tracking.md` | Instrument real token usage per step/case/run; compute cost per calibration run; upgrade M18 from estimate to actual measurement. | e2e-calibration (M18 metric), fs-dispatcher (instrument dispatch) |
+| `token-perf-tracking.md` | Instrument real token usage per step/case/run; compute cost per calibration run; upgrade M18 from estimate to actual measurement. **Complete.** | e2e-calibration (M18 metric), fs-dispatcher (instrument dispatch) |
 
 ## Cleanup lifecycle (operational hygiene)
 
@@ -141,5 +141,5 @@ Execute **in order**; each contract depends on the previous. Gate: the preceding
 - `calibration-bugfix-r5.md` — **Calibration bugfix R5:** Fix 5 known blocking bugs from Round 4 (H15 false-duplicate, skip path, repo names, JSON error, component ID). Target: M19 >= 0.65.
 - `responder-classification-v2.md` — **Responder classification v2:** Ground-truth test fixture, scored multi-signal classifier, token optimization. Target: M19 >= 0.80.
 - `calibration-victory.md` — **Calibration victory:** Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. Target: M19 >= 0.95, 20/20 metrics.
-- `parallel-investigation.md` — **Parallel investigation:** Fan-out F0-F1, symptom clustering, on-demand RCA agents, token ceiling. Future phase. Target: >= 3x speedup.
-- `token-perf-tracking.md` — **Token perf tracking:** Instrument real token usage per step/case/run; compute estimated USD cost; upgrade M18 from `steps*1000` to actual measurement; per-case and per-step breakdowns in calibration report.
+- `parallel-investigation.md` — **Parallel investigation:** Fan-out F0-F1, symptom clustering, on-demand RCA agents, token ceiling. **Complete.** Target: >= 3x speedup.
+- `token-perf-tracking.md` — **Token perf tracking:** Instrument real token usage per step/case/run; compute estimated USD cost; upgrade M18 from `steps*1000` to actual measurement; per-case and per-step breakdowns in calibration report. **Complete.**

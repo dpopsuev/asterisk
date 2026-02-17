@@ -1,6 +1,6 @@
 # Contract — token-perf-tracking
 
-**Status:** draft  
+**Status:** complete (2026-02-17)  
 **Goal:** Instrument real token usage tracking per step, per case, and per run so that every calibration and investigation run reports actual cost.
 
 ## Contract rules

@@ -1,11 +1,23 @@
 # Contract — calibration-bugfix-r5
 
-**Status:** active  
+**Status:** active (reassessed 2026-02-17)  
 **Goal:** Fix the 5 known blocking bugs from Round 4; reach M19 >= 0.65 with 12+ metrics passing.
+
+## Reassessment notes (2026-02-17)
+
+Post-refactor changes that affect this contract:
+- **Rename**: `signal-responder` → `mock-calibration-agent` (all references updated).
+- **False recall fixes**: `MemStore.FindSymptomCandidates` now guards against empty test names. `SqlStore` has the same guard. `--clean` flag removes the DB between runs. These fixes address parts of P1.1 (H15 false-duplicate) and may have partially resolved the artifact corruption hypothesis.
+- **Token tracking**: M18 now uses real measured values when `TokenTracker` is present (via `TokenTrackingDispatcher`). M18 validation in Phase 3 will be more meaningful.
+- **Parallel mode**: `--parallel=N` is now available but does not affect this contract (serial mode is the default and should be used for bugfix validation).
+- **Development cycle**: Follow **Red-Orange-Green-Blue** per `rules/test-coverage-checklist.mdc` (Orange = structured logging before fixing).
+- **Line numbers**: H15 is now at heuristics.go line 236 (was 239).
+
+**Bugs still open**: All 5 bugs (P1.1–P1.5) require wet calibration runs to verify resolution. The false recall fixes may have indirectly addressed P1.1, but this needs explicit verification with a wet run.
 
 ## Contract rules
 
-- BDD-TDD red-green-blue: reproduce each bug with a failing test (red), fix it (green), validate calibration run (blue).
+- BDD-TDD **Red-Orange-Green-Blue**: reproduce each bug with a failing test (red), add structured logging (orange), fix it (green), validate calibration run (blue).
 - Each bug fix must be isolated: one commit per fix, no mixed changes.
 - Stub calibration on ptp-mock must remain 20/20 after every change (no regressions).
 - Save calibration results to `.dev/calibration-runs/round-5-results.txt` on completion.
@@ -15,9 +27,10 @@
 - Round 4 results: `.dev/calibration-runs/round-4-results.txt` (M19 = 0.58, 7/20 passing)
 - Session notes: `.dev/calibration-runs/session-notes.md`
 - Mock-calibration-agent: `cmd/mock-calibration-agent/main.go`
-- Heuristics: `internal/orchestrate/heuristics.go` (H15 correlate-dup at line 239)
+- Heuristics: `internal/orchestrate/heuristics.go` (H15 correlate-dup at line 236)
 - Pipeline runner: `internal/calibrate/runner.go`
 - Scenario definition: `internal/calibrate/scenarios/ptp_real_ingest.go`
+- Token tracking: `internal/calibrate/tokens.go`, `token_dispatcher.go` (M18 now uses real data)
 
 ## Execution strategy
 
@@ -62,9 +75,11 @@ Three phases following red-green-blue. Phase 1 creates failing tests for each bu
 | `e2e-calibration.md` | Complete (stub) | Metric framework |
 | `real-calibration-ingest.md` | Active (phases 1-3 done) | 30-case scenario |
 | `cleanup-lifecycle.md` | Active | `--clean` and `--responder=auto` |
+| `token-perf-tracking.md` | Complete | Real M18 data for Phase 3 validation |
 
 ## Notes
 
 (Running log, newest first.)
 
+- 2026-02-17 10:50 — Reassessed post-refactor: rename complete, false recall fixes in MemStore/SqlStore, token tracking implemented (real M18), parallel mode available. All 5 bugs still need wet validation. Updated contract rules to R-O-G-B, updated line numbers.
 - 2026-02-17 01:30 — Contract created. Baseline: M19=0.58, 7/20 passing. Five specific bugs identified from Round 4 analysis.

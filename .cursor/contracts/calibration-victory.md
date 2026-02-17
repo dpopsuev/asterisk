@@ -1,14 +1,23 @@
 # Contract — calibration-victory
 
-**Status:** draft  
+**Status:** draft (reassessed 2026-02-17)  
 **Goal:** Achieve M19 >= 0.95 with all 20/20 metrics passing across all 4 scenarios.
+
+## Reassessment notes (2026-02-17)
+
+- **Parallel investigation**: `--parallel=N` is now available. Phase 4 cross-scenario validation can use `--parallel=4` for faster iteration (reduces wall-clock by ~3x for 30 cases). Use `just calibrate-parallel` recipe.
+- **Token tracking**: Real M18 data is now available via `TokenTrackingDispatcher`. M18 validation in acceptance criteria is now meaningful (not estimated). Use `--cost-report` to write per-case breakdown.
+- **New dependencies**: `token-perf-tracking.md` (complete) and `parallel-investigation.md` (complete) are now available.
+- **Cross-scenario list**: The 4 scenarios (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest) remain valid. No new scenarios have been added.
+- **Development cycle**: Follow **Red-Orange-Green-Blue** per `rules/test-coverage-checklist.mdc`.
 
 ## Contract rules
 
-- Per-metric BDD: each failing metric gets its own red-green cycle before moving to the next.
+- Per-metric BDD **Red-Orange-Green-Blue**: each failing metric gets its own cycle (Red test, Orange logging, Green fix, Blue refactor).
 - Every calibration round is saved to `.dev/calibration-runs/` with monotonic round numbering.
-- Cross-scenario validation: fixes must not regress any of the 4 scenarios (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest).
+- Cross-scenario validation: fixes must not regress any of the 4 scenarios (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest). Use `--parallel=4` for faster cross-validation.
 - Final baseline commit: once 20/20 is achieved, commit the calibration results and lock the metric thresholds as the regression baseline.
+- Use `--cost-report` to validate M18 with real token data in every calibration round.
 
 ## Context
 
@@ -85,9 +94,12 @@ Four phases targeting the remaining failing metrics in priority order. Each phas
 | `calibration-bugfix-r5.md` | Must be complete | Bug-free baseline |
 | `responder-classification-v2.md` | Must be complete | M19 >= 0.80 baseline |
 | `e2e-calibration.md` | Complete (stub) | Metric framework |
+| `token-perf-tracking.md` | Complete | Real M18 data for validation |
+| `parallel-investigation.md` | Complete | `--parallel=4` for faster cross-validation |
 
 ## Notes
 
 (Running log, newest first.)
 
+- 2026-02-17 10:50 — Reassessed: added token-perf-tracking and parallel-investigation as completed dependencies. Cross-scenario list (4 scenarios) confirmed valid. Updated rules to R-O-G-B cycle and --cost-report usage. Phase 4 can now use `--parallel=4` for faster cross-validation.
 - 2026-02-17 01:30 — Contract created. Target: all 20/20 metrics passing, M19 >= 0.95. Expected entry point: M19 >= 0.80 from responder-classification-v2.
