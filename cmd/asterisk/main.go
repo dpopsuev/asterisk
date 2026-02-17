@@ -10,6 +10,7 @@
 package main
 
 import (
+	"asterisk/internal/display"
 	"encoding/json"
 	"flag"
 	"fmt"
@@ -297,7 +298,7 @@ func runPush(args []string) {
 	}
 	rec := pushStore.LastPushed()
 	if rec != nil {
-		fmt.Printf("Pushed: launch=%s defect_type=%s\n", rec.LaunchID, rec.DefectType)
+		fmt.Printf("Pushed: launch=%s defect_type=%s\n", rec.LaunchID, display.DefectTypeWithCode(rec.DefectType))
 	}
 }
 
@@ -377,7 +378,7 @@ func runCursor(args []string) {
 		return
 	}
 
-	fmt.Printf("Step: %s\n", result.NextStep)
+	fmt.Printf("Step: %s\n", display.StageWithCode(string(result.NextStep)))
 	fmt.Printf("Prompt: %s\n", result.PromptPath)
 	fmt.Printf("\nPaste the prompt into Cursor, then save the artifact to the case directory.\n")
 	fmt.Printf("Run 'asterisk cursor' again to advance to the next step.\n")
@@ -595,7 +596,7 @@ func runSaveOrchestrated(artifactPath string, caseID, suiteID int64, dbPath stri
 	// Copy artifact to case directory with the correct filename
 	artifactFilename := orchestrate.ArtifactFilename(state.CurrentStep)
 	if artifactFilename == "" {
-		fmt.Fprintf(os.Stderr, "no artifact expected for step %s\n", state.CurrentStep)
+		fmt.Fprintf(os.Stderr, "no artifact expected for step %s\n", display.StageWithCode(string(state.CurrentStep)))
 		os.Exit(1)
 	}
 
@@ -621,11 +622,11 @@ func runSaveOrchestrated(artifactPath string, caseID, suiteID int64, dbPath stri
 		os.Exit(1)
 	}
 
-	fmt.Printf("Saved artifact for %s\n", state.CurrentStep)
+	fmt.Printf("Saved artifact for %s\n", display.StageWithCode(string(state.CurrentStep)))
 	if result.IsDone {
 		fmt.Printf("Pipeline complete! %s\n", result.Explanation)
 	} else {
-		fmt.Printf("Next step: %s (%s)\n", result.NextStep, result.Explanation)
+		fmt.Printf("Next step: %s (%s)\n", display.StageWithCode(string(result.NextStep)), result.Explanation)
 		fmt.Printf("Run 'asterisk cursor' to generate the next prompt.\n")
 	}
 }
@@ -655,7 +656,7 @@ func runStatus(args []string) {
 
 	fmt.Printf("Case:    #%d\n", state.CaseID)
 	fmt.Printf("Suite:   #%d\n", state.SuiteID)
-	fmt.Printf("Step:    %s\n", state.CurrentStep)
+	fmt.Printf("Step:    %s\n", display.StageWithCode(string(state.CurrentStep)))
 	fmt.Printf("Status:  %s\n", state.Status)
 	if len(state.LoopCounts) > 0 {
 		fmt.Printf("Loops:\n")
@@ -666,7 +667,7 @@ func runStatus(args []string) {
 	if len(state.History) > 0 {
 		fmt.Printf("History: (%d steps)\n", len(state.History))
 		for _, h := range state.History {
-			fmt.Printf("  %s -> %s [%s] %s\n", h.Step, h.Outcome, h.HeuristicID, h.Timestamp)
+			fmt.Printf("  %s -> %s [%s] %s\n", display.Stage(string(h.Step)), h.Outcome, display.HeuristicWithCode(h.HeuristicID), h.Timestamp)
 		}
 	}
 }

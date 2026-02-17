@@ -1,6 +1,7 @@
 package main
 
 import (
+	"asterisk/internal/display"
 	"fmt"
 	"strings"
 	"testing"
@@ -327,7 +328,7 @@ func TestClassifyFailure_AllCases(t *testing.T) {
 
 		t.Run(tc.caseID+"_defect_type", func(t *testing.T) {
 			if gotDefect != tc.wantDefectType {
-				t.Errorf("%s: defect_type got=%s want=%s", tc.caseID, gotDefect, tc.wantDefectType)
+				t.Errorf("%s: defect_type got=%s want=%s", tc.caseID, display.DefectTypeWithCode(gotDefect), display.DefectTypeWithCode(tc.wantDefectType))
 			}
 		})
 
@@ -339,7 +340,7 @@ func TestClassifyFailure_AllCases(t *testing.T) {
 
 		if gotDefect != tc.wantDefectType || gotSkip != tc.wantSkip {
 			failures = append(failures, fmt.Sprintf("%s: defect=%s(want %s) skip=%v(want %v)",
-				tc.caseID, gotDefect, tc.wantDefectType, gotSkip, tc.wantSkip))
+				tc.caseID, display.DefectTypeWithCode(gotDefect), display.DefectTypeWithCode(tc.wantDefectType), gotSkip, tc.wantSkip))
 		}
 	}
 

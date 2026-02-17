@@ -127,7 +127,7 @@ func TestFormatTokiMeter_Markdown(t *testing.T) {
 		"cursor",
 		"C1",
 		"C2",
-		"F1_TRIAGE",
+		"Triage (F1)",
 		"1m 30s",
 		"105.0K",
 	}

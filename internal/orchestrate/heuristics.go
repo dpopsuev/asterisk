@@ -142,7 +142,7 @@ func DefaultHeuristics(th Thresholds) []HeuristicRule {
 				}
 				return &HeuristicAction{
 					NextStep:    StepF3Invest,
-					Explanation: fmt.Sprintf("single candidate repo %q; skip F2, go directly to investigate", r.CandidateRepos[0]),
+					Explanation: fmt.Sprintf("single candidate repo %q; skip Resolve, go directly to Investigate", r.CandidateRepos[0]),
 					ContextAdditions: map[string]any{
 						"selected_repos": []RepoSelection{{Name: r.CandidateRepos[0], Reason: "only candidate from triage"}},
 					},

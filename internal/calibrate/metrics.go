@@ -347,7 +347,7 @@ func scoreRedHerringRejection(results []CaseResult, caseMap map[string]*GroundTr
 	return Metric{
 		ID: "M11", Name: "red_herring_rejection",
 		Value: val, Threshold: 0.80,
-		Pass: val >= 0.80, Detail: fmt.Sprintf("%d cases with F2, %d selected red herring", casesWithF2, redHerringSelected),
+		Pass: val >= 0.80, Detail: fmt.Sprintf("%d cases with Resolve, %d selected red herring", casesWithF2, redHerringSelected),
 	}
 }
 

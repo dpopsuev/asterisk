@@ -7,6 +7,7 @@
 package main
 
 import (
+	"asterisk/internal/display"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -88,7 +89,7 @@ func main() {
 		}
 		seen[key] = true
 
-		fmt.Printf("[responder] signal: case=%s step=%s dispatch_id=%d\n", sig.CaseID, sig.Step, sig.DispatchID)
+		fmt.Printf("[responder] signal: case=%s step=%s dispatch_id=%d\n", sig.CaseID, display.StageWithCode(sig.Step), sig.DispatchID)
 		dbg("prompt_path=%s", sig.PromptPath)
 		dbg("artifact_path=%s", sig.ArtifactPath)
 
@@ -225,7 +226,7 @@ func produceArtifact(step, caseID, prompt string) map[string]any {
 	}
 
 	// Yellow: confirm step completion
-	info("[pipeline] %s/%s completed — %d fields produced", caseID, step, len(result))
+	info("[pipeline] %s/%s completed — %d fields produced", caseID, display.Stage(step), len(result))
 	return result
 }
 

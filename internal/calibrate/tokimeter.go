@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/display"
 	"fmt"
 	"sort"
 	"strings"
@@ -181,7 +182,7 @@ func FormatTokiMeter(bill *TokiMeterBill) string {
 	b.WriteString("|------|------:|---:|----:|------:|-----:|\n")
 	for _, sl := range bill.StepLines {
 		b.WriteString(fmt.Sprintf("| %s | %d | %s | %s | %s | $%.4f |\n",
-			sl.Step, sl.Invocations,
+			display.StageWithCode(sl.Step), sl.Invocations,
 			fmtTokens(sl.In), fmtTokens(sl.Out),
 			fmtTokens(sl.Total), sl.CostUSD))
 	}

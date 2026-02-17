@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/display"
 	"fmt"
 	"strings"
 )
@@ -23,9 +24,9 @@ func FormatReport(report *CalibrationReport) string {
 			if !m.Pass {
 				mark = "✗"
 			}
-			threshStr := formatThreshold(m)
-			b.WriteString(fmt.Sprintf("%-4s %-30s %6.2f %-12s %s %s\n",
-				m.ID, m.Name, m.Value, "("+m.Detail+")", mark, threshStr))
+		threshStr := formatThreshold(m)
+		b.WriteString(fmt.Sprintf("%-4s %-30s %6.2f %-12s %s %s\n",
+			m.ID, display.Metric(m.ID), m.Value, "("+m.Detail+")", mark, threshStr))
 		}
 		b.WriteString("\n")
 	}
@@ -55,14 +56,14 @@ func FormatReport(report *CalibrationReport) string {
 		dtMark := boolMark(cr.DefectTypeCorrect)
 		pathMark := boolMark(cr.PathCorrect)
 		compMark := boolMark(cr.ComponentCorrect)
-		path := strings.Join(cr.ActualPath, "→")
+		path := display.StagePath(cr.ActualPath)
 		if path == "" {
 			path = "(no steps)"
 		}
 		b.WriteString(fmt.Sprintf("%-4s %-40s (%s/%s): defect=%s %s  comp=%s  path=%s %s\n",
 			cr.CaseID, truncate(cr.TestName, 40),
 			cr.Version, cr.Job,
-			cr.ActualDefectType, dtMark,
+			display.DefectTypeWithCode(cr.ActualDefectType), dtMark,
 			compMark,
 			path, pathMark))
 	}

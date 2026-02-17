@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/display"
 	"fmt"
 	"log"
 	"sync"
@@ -283,11 +284,11 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 
 	extractStepMetrics(result, orchestrate.StepF0Recall, recallResult, gtCase)
 	if err := orchestrate.ApplyStoreEffects(st, caseData, orchestrate.StepF0Recall, recallResult); err != nil {
-		log.Printf("[parallel] store effect F0 error: %v", err)
+		log.Printf("[parallel] store effect Recall error: %v", err)
 	}
 
 	action, ruleID := orchestrate.EvaluateHeuristics(rules, orchestrate.StepF0Recall, recallResult, state)
-	log.Printf("[parallel] case=%s step=F0 rule=%s next=%s", gtCase.ID, ruleID, action.NextStep)
+	log.Printf("[parallel] case=%s step=Recall rule=%s next=%s", gtCase.ID, display.HeuristicWithCode(ruleID), display.Stage(string(action.NextStep)))
 	orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 	_ = orchestrate.SaveState(caseDir, state)
 
@@ -332,11 +333,11 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 
 		extractStepMetrics(result, orchestrate.StepF1Triage, triageResult, gtCase)
 		if err := orchestrate.ApplyStoreEffects(st, caseData, orchestrate.StepF1Triage, triageResult); err != nil {
-			log.Printf("[parallel] store effect F1 error: %v", err)
+			log.Printf("[parallel] store effect Triage error: %v", err)
 		}
 
 		action, ruleID = orchestrate.EvaluateHeuristics(rules, orchestrate.StepF1Triage, triageResult, state)
-		log.Printf("[parallel] case=%s step=F1 rule=%s next=%s", gtCase.ID, ruleID, action.NextStep)
+		log.Printf("[parallel] case=%s step=Triage rule=%s next=%s", gtCase.ID, display.HeuristicWithCode(ruleID), display.Stage(string(action.NextStep)))
 		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		_ = orchestrate.SaveState(caseDir, state)
 
@@ -400,11 +401,11 @@ func runRemainingSteps(st store.Store, caseData *store.Case,
 		extractStepMetrics(result, currentStep, artifact, gtCase)
 
 		if err := orchestrate.ApplyStoreEffects(st, caseData, currentStep, artifact); err != nil {
-			log.Printf("[parallel] store effect %s error: %v", currentStep, err)
+			log.Printf("[parallel] store effect %s error: %v", display.Stage(string(currentStep)), err)
 		}
 
 		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
-		log.Printf("[parallel] case=%s step=%s rule=%s next=%s", gtCase.ID, currentStep, ruleID, action.NextStep)
+		log.Printf("[parallel] case=%s step=%s rule=%s next=%s", gtCase.ID, display.Stage(string(currentStep)), display.HeuristicWithCode(ruleID), display.Stage(string(action.NextStep)))
 		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		_ = orchestrate.SaveState(caseDir, state)
 	}
@@ -484,7 +485,7 @@ func runInvestigationPhase(job InvestigationJob, tokenSem chan struct{}) *CaseRe
 			if action.NextStep == orchestrate.StepF2Resolve {
 				orchestrate.IncrementLoop(state, "investigate")
 			}
-			log.Printf("[parallel] case=%s step=%s rule=%s next=%s", gtCase.ID, currentStep, ruleID, action.NextStep)
+			log.Printf("[parallel] case=%s step=%s rule=%s next=%s", gtCase.ID, display.Stage(string(currentStep)), display.HeuristicWithCode(ruleID), display.Stage(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		} else {
 			action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
@@ -493,7 +494,7 @@ func runInvestigationPhase(job InvestigationJob, tokenSem chan struct{}) *CaseRe
 				action.NextStep != orchestrate.StepDone {
 				orchestrate.IncrementLoop(state, "reassess")
 			}
-			log.Printf("[parallel] case=%s step=%s rule=%s next=%s", gtCase.ID, currentStep, ruleID, action.NextStep)
+			log.Printf("[parallel] case=%s step=%s rule=%s next=%s", gtCase.ID, display.Stage(string(currentStep)), display.HeuristicWithCode(ruleID), display.Stage(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		}
 

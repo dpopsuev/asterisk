@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/display"
 	"fmt"
 	"strings"
 )
@@ -60,7 +61,7 @@ func GenerateBriefing(
 					caseID,
 					tr.TriageArtifact.SymptomCategory,
 					safeField(tr.CaseResult, func(cr *CaseResult) string { return cr.ActualComponent }),
-					tr.TriageArtifact.DefectTypeHypothesis,
+					display.DefectType(tr.TriageArtifact.DefectTypeHypothesis),
 					tr.TriageArtifact.Severity,
 				))
 			}
@@ -84,8 +85,8 @@ func GenerateBriefing(
 					memberIDs = append(memberIDs, m.CaseResult.CaseID)
 				}
 			}
-			b.WriteString(fmt.Sprintf("| K%d | %s | %s | %s |\n",
-				i+1, repID, strings.Join(memberIDs, ", "), cl.Key))
+		b.WriteString(fmt.Sprintf("| K%d | %s | %s | %s |\n",
+			i+1, repID, strings.Join(memberIDs, ", "), display.ClusterKey(cl.Key)))
 		}
 		b.WriteString("\n")
 	}
@@ -96,8 +97,8 @@ func GenerateBriefing(
 		b.WriteString("| RCA ID | Component | Defect Type | Summary |\n")
 		b.WriteString("|--------|-----------|-------------|----------|\n")
 		for _, rca := range priorRCAs {
-			b.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
-				rca.ID, rca.Component, rca.DefectType, rca.Summary))
+		b.WriteString(fmt.Sprintf("| %s | %s | %s | %s |\n",
+			rca.ID, rca.Component, display.DefectType(rca.DefectType), rca.Summary))
 		}
 		b.WriteString("\n")
 	}

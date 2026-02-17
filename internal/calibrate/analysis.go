@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/display"
 	"fmt"
 	"log"
 	"strings"
@@ -143,7 +144,7 @@ func runAnalysisCasePipeline(
 
 		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
 		log.Printf("[orchestrate] step=%s rule=%s next=%s: %s",
-			currentStep, ruleID, action.NextStep, action.Explanation)
+			display.Stage(string(currentStep)), display.HeuristicWithCode(ruleID), display.Stage(string(action.NextStep)), action.Explanation)
 
 		if currentStep == orchestrate.StepF3Invest && action.NextStep == orchestrate.StepF2Resolve {
 			orchestrate.IncrementLoop(state, "investigate")
@@ -250,7 +251,7 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 
 	b.WriteString("--- Per-case breakdown ---\n")
 	for _, cr := range report.CaseResults {
-		path := strings.Join(cr.Path, "\u2192")
+		path := display.StagePath(cr.Path)
 		if path == "" {
 			path = "(no steps)"
 		}
@@ -264,9 +265,9 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 		if cr.Cascade {
 			flags += " [cascade]"
 		}
-		b.WriteString(fmt.Sprintf("%-4s %-50s defect=%-6s cat=%-10s conv=%.2f  path=%s%s\n",
+		b.WriteString(fmt.Sprintf("%-4s %-50s defect=%-20s cat=%-10s conv=%.2f  path=%s%s\n",
 			cr.CaseLabel, truncate(cr.TestName, 50),
-			cr.DefectType, cr.Category,
+			display.DefectTypeWithCode(cr.DefectType), cr.Category,
 			cr.Convergence, path, flags))
 		if cr.RCAMessage != "" {
 			b.WriteString(fmt.Sprintf("     RCA: %s\n", truncate(cr.RCAMessage, 80)))

@@ -99,7 +99,7 @@ func TestGenerateBriefing_InvestigationPhase(t *testing.T) {
 	if !strings.Contains(md, "Cluster assignments") {
 		t.Error("missing clusters section")
 	}
-	if !strings.Contains(md, "product|ptp4l|pb001") {
+	if !strings.Contains(md, "product / ptp4l / Product Bug") {
 		t.Error("missing cluster key")
 	}
 	if !strings.Contains(md, "Prior RCAs") {
