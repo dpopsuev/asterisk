@@ -314,7 +314,8 @@ asterisk/
 │   ├── glossary/              # Domain terminology
 │   ├── goals/                 # PoC and MVP goal checklists
 │   ├── skills/                # Cursor agent skills (investigate, bootstrap, ...)
-│   └── rules/                 # Development rules (Go testing, security, scenarios)
+│   ├── rules/                 # Development rules (Go testing, security, scenarios)
+│   └── security-cases/        # OWASP security findings (SEC-001 through SEC-005)
 ├── .dev/                      # Private dev data (git-ignored): scripts, calibration runs
 ├── justfile                   # Task runner (just) — primary
 ├── Makefile                   # Build and test targets (legacy)
@@ -375,9 +376,9 @@ Investigation prompts live in `.cursor/prompts/` organized by pipeline stage:
 | Phase | Focus | Status |
 |-------|-------|--------|
 | **0 -- Foundations** | Ingest RP failures, map to repositories | Done |
-| **1 -- Evidence Gathering** | Commit history, CI pipeline context | In progress |
-| **2 -- Correlation** | Multi-run correlation, link to code paths | Planned |
-| **3 -- Triage Intelligence** | Root cause category + confidence, next actions | Planned |
+| **1 -- Evidence Gathering** | Commit history, CI pipeline context, calibration framework | Done |
+| **2 -- Parallel & Multi-Agent** | Parallel pipeline, batch dispatch, multi-subagent skill | Done |
+| **3 -- Calibration Victory** | Reach M19 >= 0.95 across all scenarios | In progress |
 | **4 -- Reporting** | Export to RP / GitHub, learn from outcomes | Planned |
 | **5 -- Advanced** | Flaky test detection, cluster metrics, NL explanations | Future |
 
