@@ -30,6 +30,7 @@ var calibrateFlags struct {
 	parallel      int
 	tokenBudget   int
 	batchSize     int
+	transcript    bool
 }
 
 var calibrateCmd = &cobra.Command{
@@ -54,6 +55,7 @@ func init() {
 	f.IntVar(&calibrateFlags.parallel, "parallel", 1, "Number of parallel workers for triage/investigation (1 = serial)")
 	f.IntVar(&calibrateFlags.tokenBudget, "token-budget", 0, "Max concurrent dispatches (0 = same as --parallel)")
 	f.IntVar(&calibrateFlags.batchSize, "batch-size", 4, "Max signals per batch for batch-file dispatch mode")
+	f.BoolVar(&calibrateFlags.transcript, "transcript", false, "Write per-RCA transcript files after calibration")
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
@@ -233,6 +235,30 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			} else {
 				fmt.Fprintf(out, "\nToken report: %s\n", tokenReportPath)
 			}
+		}
+	}
+
+	if calibrateFlags.transcript {
+		transcripts, err := calibrate.WeaveTranscripts(report)
+		if err != nil {
+			fmt.Fprintf(os.Stderr, "weave transcripts: %v\n", err)
+		} else if len(transcripts) > 0 {
+			transcriptDir := filepath.Join(basePath, "transcripts")
+			if err := os.MkdirAll(transcriptDir, 0755); err != nil {
+				fmt.Fprintf(os.Stderr, "create transcript dir: %v\n", err)
+			} else {
+				for i := range transcripts {
+					slug := calibrate.TranscriptSlug(&transcripts[i])
+					md := calibrate.RenderRCATranscript(&transcripts[i])
+					tPath := filepath.Join(transcriptDir, slug+".md")
+					if err := os.WriteFile(tPath, []byte(md), 0644); err != nil {
+						fmt.Fprintf(os.Stderr, "write transcript %s: %v\n", slug, err)
+					}
+				}
+				fmt.Fprintf(out, "\n[transcript] wrote %d RCA transcript(s) to %s/\n", len(transcripts), transcriptDir)
+			}
+		} else {
+			fmt.Fprintln(out, "\n[transcript] no transcripts produced (no case results)")
 		}
 	}
 

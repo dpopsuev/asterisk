@@ -51,6 +51,7 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 		Scenario: cfg.Scenario.Name,
 		Adapter:  cfg.Adapter.Name(),
 		Runs:     cfg.Runs,
+		BasePath: cfg.BasePath,
 	}
 
 	var allRunMetrics []MetricSet
@@ -58,10 +59,12 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 	for run := 0; run < cfg.Runs; run++ {
 		log.Printf("[calibrate] === Run %d/%d ===", run+1, cfg.Runs)
 
-		results, err := runSingleCalibration(ctx, cfg)
+		results, suiteID, err := runSingleCalibration(ctx, cfg)
 		if err != nil {
 			return nil, fmt.Errorf("run %d: %w", run+1, err)
 		}
+
+		report.SuiteID = suiteID // keep last run's suite ID
 
 		if run == cfg.Runs-1 {
 			report.CaseResults = results
@@ -103,14 +106,15 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 }
 
 // runSingleCalibration runs one complete calibration pass: all cases, fresh store.
-func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, error) {
+// Returns the case results and the suite ID used for artifact directories.
+func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int64, error) {
 	st := store.NewMemStore()
 
 	// Create the investigation scaffolding in the store
 	suite := &store.InvestigationSuite{Name: cfg.Scenario.Name, Status: "active"}
 	suiteID, err := st.CreateSuite(suite)
 	if err != nil {
-		return nil, fmt.Errorf("create suite: %w", err)
+		return nil, 0, fmt.Errorf("create suite: %w", err)
 	}
 
 	// Create versions
@@ -120,7 +124,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, err
 			v := &store.Version{Label: c.Version}
 			vid, err := st.CreateVersion(v)
 			if err != nil {
-				return nil, fmt.Errorf("create version %s: %w", c.Version, err)
+				return nil, suiteID, fmt.Errorf("create version %s: %w", c.Version, err)
 			}
 			versionMap[c.Version] = vid
 		}
@@ -140,7 +144,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, err
 			}
 			pipeID, err := st.CreatePipeline(pipe)
 			if err != nil {
-				return nil, fmt.Errorf("create pipeline: %w", err)
+				return nil, suiteID, fmt.Errorf("create pipeline: %w", err)
 			}
 			pipelineMap[pk] = pipeID
 
@@ -150,7 +154,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, err
 			}
 			launchID, err := st.CreateLaunch(launch)
 			if err != nil {
-				return nil, fmt.Errorf("create launch: %w", err)
+				return nil, suiteID, fmt.Errorf("create launch: %w", err)
 			}
 			launchMap[pk] = launchID
 
@@ -160,7 +164,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, err
 			}
 			jobID, err := st.CreateJob(job)
 			if err != nil {
-				return nil, fmt.Errorf("create job: %w", err)
+				return nil, suiteID, fmt.Errorf("create job: %w", err)
 			}
 			jobMap[pk] = jobID
 		}
@@ -168,7 +172,8 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, err
 
 	// When parallel > 1, delegate to the parallel runner
 	if cfg.Parallel > 1 {
-		return runParallelCalibration(ctx, cfg, st, suiteID, versionMap, jobMap, launchMap)
+		results, err := runParallelCalibration(ctx, cfg, st, suiteID, versionMap, jobMap, launchMap)
+		return results, suiteID, err
 	}
 
 	// Wire store-aware adapters to this run's store and suite
@@ -198,7 +203,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, err
 		}
 		caseID, err := st.CreateCaseV2(caseData)
 		if err != nil {
-			return nil, fmt.Errorf("create case %s: %w", gtCase.ID, err)
+			return nil, suiteID, fmt.Errorf("create case %s: %w", gtCase.ID, err)
 		}
 		caseData.ID = caseID
 
@@ -232,7 +237,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, err
 		scoreCaseResult(&results[i], cfg.Scenario)
 	}
 
-	return results, nil
+	return results, suiteID, nil
 }
 
 // scoreCaseResult sets the DefectTypeCorrect, PathCorrect, and ComponentCorrect

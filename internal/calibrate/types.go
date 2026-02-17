@@ -188,9 +188,11 @@ type CalibrationReport struct {
 	Scenario     string           `json:"scenario"`
 	Adapter      string           `json:"adapter"`
 	Runs         int              `json:"runs"`
+	SuiteID      int64            `json:"suite_id"`               // last run's suite ID; used by transcript weaver
+	BasePath     string           `json:"-"`                      // artifact root; not serialized
 	Metrics      MetricSet        `json:"metrics"`
 	CaseResults  []CaseResult     `json:"case_results"`
-	RunMetrics   []MetricSet      `json:"run_metrics,omitempty"` // per-run for variance
+	RunMetrics   []MetricSet      `json:"run_metrics,omitempty"`  // per-run for variance
 	Tokens       *dispatch.TokenSummary    `json:"tokens,omitempty"`      // populated when TokenTracker is present
 }
 

@@ -146,6 +146,12 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 | `ground-truth-v2.md` | Correct scenario data to match Jira audit, add M15+M9 to M19, add cnf-features-deploy to workspace. **Complete.** | jira-audit-report (complete) |
 | `true-wet-calibration.md` | Blind calibration against Jira-verified truth. Iterate until M19 >= 0.90, M15 >= 0.70, M9 >= 0.70. **Complete.** M19 = 0.93 achieved with BasicAdapter. | ground-truth-v2 (complete) |
 
+## Observability (investigation output)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `transcript-weaver.md` | Post-hoc weaver: consolidate per-step prompt/response artifacts into one Markdown transcript per Root Cause. Flag-gated (`--transcript`), adapter-agnostic (works with stubs). | e2e-calibration (artifacts on disk), unified-formatter (Markdown tables) |
+
 ## Directories
 
 ## Files
@@ -194,3 +200,4 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 - `cobra-cli.md` — **Cobra CLI migration:** Replace hand-rolled main.go with Cobra; subcommands, help, shell completion; eliminate `orchestrate.BasePath` global.
 - `concurrency-modernization.md` — **Concurrency modernization:** Replace goroutine pools with errgroup; optional fsnotify for FileDispatcher; eliminate mutable globals.
 - `critical-test-coverage.md` — **Critical test coverage:** Close 8 test gaps (3 critical, 3 high, 2 medium); target 80%+ critical, 70%+ high, 60%+ medium.
+- `transcript-weaver.md` — **Transcript weaver:** Post-hoc weaver consolidating per-step artifacts into one Markdown transcript per Root Cause. Flag-gated, adapter-agnostic, reverse-chronological.
