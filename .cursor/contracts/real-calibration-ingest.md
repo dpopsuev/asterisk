@@ -107,20 +107,20 @@ Cases without clear ground truth (no bug link, ambiguous failure) get a `"needs_
 
 ## Tasks
 
-- [ ] **P1.1** Write email parser: extract subject fields, RP link, Jenkins URL, S3 URL, date from `.eml` files.
-- [ ] **P1.2** Run parser on `.maildump/`, produce `mail-index.json` in `.dev/calibration-data/`.
-- [ ] **P1.3** Report: RP-linked count, FAILURE/UNSTABLE count per job+version, date range.
-- [ ] **P2.1** Parse `.results/jan_26.md` tables: extract date, version, job, test_id, Jira links, RP item links, error messages, human category annotations.
-- [ ] **P2.2** Produce `ci-results-index.json` with structured failure records.
-- [ ] **P2.3** Cross-reference `mail-index.json` with `ci-results-index.json` by version+date+job.
-- [ ] **P2.4** Identify recurring RCAs (same Jira across weeks) and recurring symptoms (same test_id across versions).
-- [ ] **P3.1** Select ≤30 cases reverse-chronologically, maximizing diversity.
-- [ ] **P3.2** For each selected case: extract error message and log snippet from Jenkins/S3/archive.
-- [ ] **P4.1** Annotate ground truth from CI sheet bug links. Flag unannotated cases.
+- [x] **P1.1** Write email parser: extract subject fields, RP link, Jenkins URL, S3 URL, date from `.eml` files.
+- [x] **P1.2** Run parser on `.maildump/`, produce `ptp-mail-index.json` in `.dev/calibration-data/`. (833 PTP emails, 342 with RP links.)
+- [x] **P1.3** Report: RP-linked count, FAILURE/UNSTABLE count per job+version, date range.
+- [x] **P2.1** Parse HTML tables from `.dev/results/` (zipped Google Docs exports: `feb_26.zip`, `jan_26.zip`, `h2_25.zip`, `h1_25.zip`). Script: `.dev/scripts/ingest_ci_results.py`.
+- [x] **P2.2** Produce `ptp-cases.json` (1659 PTP records, 1251 failures) and `ptp-recurring-bugs.json` (71 unique Jira IDs) in `.dev/calibration-data/`.
+- [x] **P2.3** Cross-reference mail-index with CI results by version+date+job.
+- [x] **P2.4** Identify recurring RCAs (same Jira across weeks) and recurring symptoms (same test_id across versions).
+- [x] **P3.1** Select 30 cases maximizing diversity (8 OCP versions, 6 sub-jobs, 4 defect types, 30 unique Jira IDs). Script: `.dev/scripts/select_cases.py`. Output: `.dev/calibration-data/selected-cases.json`.
+- [x] **P3.2** For each selected case: extract error message and log snippet from HTML tables.
+- [ ] **P4.1** Annotate ground truth from CI sheet bug links. Flag unannotated cases. *(Partially done — automated annotation from HTML; manual review pending.)*
 - [ ] **P4.2** User review: confirm or correct ground truth annotations.
-- [ ] **P5.1** Generate `ptp_real_ingest.go` scenario file.
-- [ ] **P5.2** Dry run: `asterisk calibrate --scenario=ptp-real-ingest --adapter=stub`.
-- [ ] Validate (green) — scenario loads, stub calibration runs, structure is sound.
+- [x] **P5.1** Generate `ptp_real_ingest.go` scenario file. Script: `.dev/scripts/generate_scenario.py`. Output: `internal/calibrate/scenarios/ptp_real_ingest.go` (30 RCAs, 30 symptoms, 30 cases).
+- [x] **P5.2** Dry run: `asterisk calibrate --scenario=ptp-real-ingest --adapter=stub` — passes structure validation.
+- [x] Validate (green) — scenario loads, stub calibration runs, structure is sound.
 - [ ] Tune (blue) — refactor for quality. No behavior changes.
 - [ ] Validate (green) — all tests still pass after tuning.
 
@@ -134,5 +134,6 @@ Cases without clear ground truth (no bug link, ambiguous failure) get a `"needs_
 
 ## Notes
 
+2026-02-17 01:30 — Phases 1-3 and P5.1/P5.2 complete. Data pipeline executed: `.dev/scripts/ingest_ci_results.py` → `.dev/scripts/select_cases.py` → `.dev/scripts/generate_scenario.py`. 30 diverse PTP cases ingested into `ptp_real_ingest.go`. Stub calibration validates structure. Wet calibration Round 4 achieved M19=0.58 (7/20 passing). Remaining: P4.1/P4.2 manual ground truth review, blue tuning. Follow-up calibration improvement tracked in `calibration-bugfix-r5.md` → `responder-classification-v2.md` → `calibration-victory.md`.
 2026-02-16 22:10 — Corrected RP link count: 318 emails (30.5%), not 8. Initial grep was truncated by multi-workspace pagination. UNSTABLE runs (250) are the primary calibration source — they completed the test suite and reported to RP. FAILURE runs (350) hard-fail before RP reporting. The mail dump alone is a strong calibration source; the CI spreadsheet enriches with bug links and defect categories.
 2026-02-16 21:45 — Initial data assessment. 1041 emails. CI spreadsheet not yet exported. Archive sample shows Ginkgo test output with per-test failure artifacts (pod logs, specs, CRs). Phase 1 (mail parsing) can proceed immediately; Phase 2 blocks on spreadsheet export.
