@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/calibrate/dispatch"
 	"asterisk/internal/display"
 	"asterisk/internal/format"
 	"fmt"
@@ -59,7 +60,7 @@ func FormatReport(report *CalibrationReport) string {
 
 	// Token & Cost section (when tracker was present)
 	if report.Tokens != nil {
-		b.WriteString(FormatTokenSummary(*report.Tokens))
+		b.WriteString(dispatch.FormatTokenSummary(*report.Tokens))
 		b.WriteString("\n")
 	}
 

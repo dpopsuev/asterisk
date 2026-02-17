@@ -1,4 +1,4 @@
-package calibrate
+package dispatch
 
 import (
 	"encoding/json"
@@ -15,7 +15,7 @@ func writeWrappedArtifact(t *testing.T, path string, dispatchID int64, payload a
 	if err != nil {
 		t.Fatalf("marshal inner payload: %v", err)
 	}
-	wrapper := artifactWrapper{
+	wrapper := ArtifactWrapper{
 		DispatchID: dispatchID,
 		Data:       json.RawMessage(inner),
 	}
@@ -35,7 +35,7 @@ func readDispatchIDFromSignal(t *testing.T, signalPath string) int64 {
 	if err != nil {
 		t.Fatalf("read signal for dispatch_id: %v", err)
 	}
-	var sig signalFile
+	var sig SignalFile
 	if err := json.Unmarshal(data, &sig); err != nil {
 		t.Fatalf("unmarshal signal for dispatch_id: %v", err)
 	}
@@ -76,7 +76,7 @@ func TestFileDispatcher_HappyPath(t *testing.T) {
 			if err != nil {
 				continue
 			}
-			var sig signalFile
+			var sig SignalFile
 			if json.Unmarshal(data, &sig) == nil && sig.Status == "waiting" {
 				did = sig.DispatchID
 				break
@@ -84,7 +84,7 @@ func TestFileDispatcher_HappyPath(t *testing.T) {
 		}
 		artifact := map[string]any{"match": true, "confidence": 0.95}
 		inner, _ := json.Marshal(artifact)
-		wrapper := artifactWrapper{DispatchID: did, Data: json.RawMessage(inner)}
+		wrapper := ArtifactWrapper{DispatchID: did, Data: json.RawMessage(inner)}
 		data, _ := json.MarshalIndent(wrapper, "", "  ")
 		_ = os.WriteFile(artifactPath, data, 0644)
 	}()
@@ -108,7 +108,7 @@ func TestFileDispatcher_HappyPath(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read signal: %v", err)
 	}
-	var sig signalFile
+	var sig SignalFile
 	if err := json.Unmarshal(sigData, &sig); err != nil {
 		t.Fatalf("unmarshal signal: %v", err)
 	}
@@ -160,7 +160,7 @@ func TestFileDispatcher_Timeout(t *testing.T) {
 	if err != nil {
 		t.Fatalf("read signal: %v", err)
 	}
-	var sig signalFile
+	var sig SignalFile
 	if err := json.Unmarshal(sigData, &sig); err != nil {
 		t.Fatalf("unmarshal signal: %v", err)
 	}
@@ -205,7 +205,7 @@ func TestFileDispatcher_InvalidJSON(t *testing.T) {
 	// Verify signal.json shows error status
 	signalPath := filepath.Join(dir, "signal.json")
 	sigData, _ := os.ReadFile(signalPath)
-	var sig signalFile
+	var sig SignalFile
 	_ = json.Unmarshal(sigData, &sig)
 	if sig.Status != "error" {
 		t.Errorf("expected signal status=error for invalid JSON, got %q", sig.Status)
@@ -240,11 +240,11 @@ func TestFileDispatcher_SignalLifecycle(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			sigData, err := os.ReadFile(signalPath)
 			if err == nil {
-				var sig signalFile
+				var sig SignalFile
 				if json.Unmarshal(sigData, &sig) == nil && sig.Status == "waiting" {
 					payload := map[string]any{"selected_repos": []string{"linuxptp-daemon"}}
 					inner, _ := json.Marshal(payload)
-					wrapper := artifactWrapper{DispatchID: sig.DispatchID, Data: json.RawMessage(inner)}
+					wrapper := ArtifactWrapper{DispatchID: sig.DispatchID, Data: json.RawMessage(inner)}
 					data, _ := json.MarshalIndent(wrapper, "", "  ")
 					_ = os.WriteFile(artifactPath, data, 0644)
 					return
@@ -270,7 +270,7 @@ func TestFileDispatcher_SignalLifecycle(t *testing.T) {
 	d.MarkDone(artifactPath)
 
 	sigData, _ := os.ReadFile(signalPath)
-	var sig signalFile
+	var sig SignalFile
 	_ = json.Unmarshal(sigData, &sig)
 	if sig.Status != "done" {
 		t.Errorf("expected signal status=done, got %q", sig.Status)
@@ -285,7 +285,7 @@ func TestFileDispatcher_RejectsStaleArtifactByDispatchID(t *testing.T) {
 	_ = os.WriteFile(promptPath, []byte("# Prompt"), 0644)
 
 	// Pre-create a stale artifact with dispatch_id=0 (no dispatch_id)
-	stale := artifactWrapper{DispatchID: 0, Data: json.RawMessage(`{"stale": true}`)}
+	stale := ArtifactWrapper{DispatchID: 0, Data: json.RawMessage(`{"stale": true}`)}
 	staleData, _ := json.MarshalIndent(stale, "", "  ")
 	if err := os.WriteFile(artifactPath, staleData, 0644); err != nil {
 		t.Fatal(err)
@@ -311,12 +311,12 @@ func TestFileDispatcher_RejectsStaleArtifactByDispatchID(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			data, err := os.ReadFile(signalPath)
 			if err == nil {
-				var sig signalFile
+				var sig SignalFile
 				if json.Unmarshal(data, &sig) == nil && sig.Status == "waiting" {
 					time.Sleep(30 * time.Millisecond) // let dispatcher see the stale one a few times
 					fresh := map[string]any{"match": false, "confidence": 0.1}
 					inner, _ := json.Marshal(fresh)
-					wrapper := artifactWrapper{DispatchID: sig.DispatchID, Data: json.RawMessage(inner)}
+					wrapper := ArtifactWrapper{DispatchID: sig.DispatchID, Data: json.RawMessage(inner)}
 					out, _ := json.MarshalIndent(wrapper, "", "  ")
 					_ = os.WriteFile(artifactPath, out, 0644)
 					return
@@ -373,7 +373,7 @@ func TestFileDispatcher_StaleToleranceExceeded(t *testing.T) {
 	go func() {
 		defer close(done)
 		time.Sleep(5 * time.Millisecond) // let dispatch start and remove any pre-existing artifact
-		stale := artifactWrapper{DispatchID: 999, Data: json.RawMessage(`{"stale": true}`)}
+		stale := ArtifactWrapper{DispatchID: 999, Data: json.RawMessage(`{"stale": true}`)}
 		staleData, _ := json.MarshalIndent(stale, "", "  ")
 		for i := 0; i < 20; i++ {
 			_ = os.WriteFile(artifactPath, staleData, 0644)
@@ -399,7 +399,7 @@ func TestFileDispatcher_StaleToleranceExceeded(t *testing.T) {
 	// Verify signal.json shows error status
 	signalPath := filepath.Join(dir, "signal.json")
 	sigData, _ := os.ReadFile(signalPath)
-	var sig signalFile
+	var sig SignalFile
 	_ = json.Unmarshal(sigData, &sig)
 	if sig.Status != "error" {
 		t.Errorf("expected signal status=error for stale tolerance, got %q", sig.Status)
@@ -432,7 +432,7 @@ func TestFileDispatcher_ResponderErrorFailsFast(t *testing.T) {
 		for i := 0; i < 100; i++ {
 			data, err := os.ReadFile(signalPath)
 			if err == nil {
-				var sig signalFile
+				var sig SignalFile
 				if json.Unmarshal(data, &sig) == nil && sig.Status == "waiting" {
 					sig.Status = "error"
 					sig.Error = "responder crashed: out of memory"
@@ -488,11 +488,11 @@ func TestFileDispatcher_MonotonicDispatchID(t *testing.T) {
 			for j := 0; j < 100; j++ {
 				data, err := os.ReadFile(signalPath)
 				if err == nil {
-					var sig signalFile
+					var sig SignalFile
 					if json.Unmarshal(data, &sig) == nil && sig.Status == "waiting" && sig.DispatchID == expectedID {
 						payload := map[string]any{"iteration": expectedID}
 						inner, _ := json.Marshal(payload)
-						wrapper := artifactWrapper{DispatchID: expectedID, Data: json.RawMessage(inner)}
+						wrapper := ArtifactWrapper{DispatchID: expectedID, Data: json.RawMessage(inner)}
 						out, _ := json.MarshalIndent(wrapper, "", "  ")
 						_ = os.WriteFile(artifactPath, out, 0644)
 						return

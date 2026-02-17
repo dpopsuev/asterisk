@@ -499,7 +499,7 @@ func scoreLoopEfficiency(results []CaseResult, caseMap map[string]*GroundTruthCa
 }
 
 // --- M18: Total prompt tokens ---
-// When TokenTracker data is present (PromptTokensTotal > 0), uses real
+// When dispatch.TokenTracker data is present (PromptTokensTotal > 0), uses real
 // measured values. Falls back to step-count estimate for stub mode.
 func scoreTotalPromptTokens(results []CaseResult) Metric {
 	// Check if we have real token data

@@ -15,6 +15,7 @@ import (
 type AnalysisConfig struct {
 	Adapter    ModelAdapter
 	Thresholds orchestrate.Thresholds
+	BasePath   string // root directory for investigation artifacts; defaults to DefaultBasePath
 }
 
 // AnalysisReport is the output of an analysis run.
@@ -88,7 +89,11 @@ func runAnalysisCasePipeline(
 		StoreCaseID: caseData.ID,
 	}
 
-	caseDir, err := orchestrate.EnsureCaseDir(suiteID, caseData.ID)
+	basePath := cfg.BasePath
+	if basePath == "" {
+		basePath = orchestrate.DefaultBasePath
+	}
+	caseDir, err := orchestrate.EnsureCaseDir(basePath, suiteID, caseData.ID)
 	if err != nil {
 		return result, fmt.Errorf("ensure case dir: %w", err)
 	}

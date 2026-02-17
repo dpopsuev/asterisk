@@ -1,4 +1,4 @@
-package calibrate
+package dispatch
 
 import (
 	"encoding/json"
@@ -12,8 +12,7 @@ import (
 )
 
 // SpawnResponder builds and launches cmd/mock-calibration-agent as a child
-// process watching the given directory. It returns the os.Process handle for
-// lifecycle management. The caller must call StopResponder when done.
+// process watching the given directory.
 func SpawnResponder(watchDir string, debug bool) (*os.Process, error) {
 	args := []string{"run", "./cmd/mock-calibration-agent"}
 	if debug {
@@ -31,14 +30,13 @@ func SpawnResponder(watchDir string, debug bool) (*os.Process, error) {
 	}
 	fmt.Printf("[lifecycle] mock-calibration-agent started (pid=%d)\n", cmd.Process.Pid)
 
-	// Give the responder a moment to initialize and start watching.
 	time.Sleep(500 * time.Millisecond)
 
 	return cmd.Process, nil
 }
 
 // StopResponder sends SIGTERM to the responder process, waits briefly for
-// graceful shutdown, then SIGKILL if still alive. Safe to call on a nil process.
+// graceful shutdown, then SIGKILL if still alive.
 func StopResponder(proc *os.Process) {
 	if proc == nil {
 		return
@@ -47,15 +45,12 @@ func StopResponder(proc *os.Process) {
 	pid := proc.Pid
 	fmt.Printf("[lifecycle] stopping mock-calibration-agent (pid=%d)\n", pid)
 
-	// Try graceful shutdown first.
 	if err := proc.Signal(syscall.SIGTERM); err != nil {
-		// Process may have already exited — that's fine.
 		fmt.Printf("[lifecycle] mock-calibration-agent already exited (pid=%d): %v\n", pid, err)
 		proc.Release()
 		return
 	}
 
-	// Wait up to 3 seconds for graceful exit.
 	done := make(chan error, 1)
 	go func() {
 		_, err := proc.Wait()
@@ -74,8 +69,7 @@ func StopResponder(proc *os.Process) {
 }
 
 // ForwardSignals installs a handler for SIGINT and SIGTERM that kills the
-// responder process before the main process exits. This ensures the responder
-// is cleaned up even when the user Ctrl-C's the calibration.
+// responder process before the main process exits.
 func ForwardSignals(proc *os.Process) {
 	if proc == nil {
 		return
@@ -89,16 +83,13 @@ func ForwardSignals(proc *os.Process) {
 		fmt.Printf("\n[lifecycle] received %s, stopping mock-calibration-agent before exit\n", sig)
 		StopResponder(proc)
 		signal.Stop(sigCh)
-		// Re-raise the signal so the default handler runs (exit with correct code).
 		p, _ := os.FindProcess(os.Getpid())
 		_ = p.Signal(sig)
 	}()
 }
 
 // FinalizeSignals walks the calibration directory and sets every signal.json
-// to status "complete". This provides a clean terminal state for all signals
-// after a calibration run, preventing stale "waiting"/"processing" signals
-// from confusing a responder that may still be watching.
+// to status "complete".
 func FinalizeSignals(dir string) {
 	count := 0
 	_ = filepath.Walk(dir, func(path string, info os.FileInfo, err error) error {
@@ -114,7 +105,7 @@ func FinalizeSignals(dir string) {
 			return nil
 		}
 
-		var sig signalFile
+		var sig SignalFile
 		if err := json.Unmarshal(data, &sig); err != nil {
 			return nil
 		}
@@ -125,7 +116,7 @@ func FinalizeSignals(dir string) {
 
 		sig.Status = "complete"
 		sig.Timestamp = time.Now().UTC().Format(time.RFC3339)
-		if err := writeSignal(path, &sig); err != nil {
+		if err := WriteSignal(path, &sig); err != nil {
 			fmt.Fprintf(os.Stderr, "[lifecycle] finalize %s: %v\n", path, err)
 			return nil
 		}

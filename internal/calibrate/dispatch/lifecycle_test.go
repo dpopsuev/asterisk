@@ -1,4 +1,4 @@
-package calibrate
+package dispatch
 
 import (
 	"encoding/json"
@@ -20,13 +20,13 @@ func TestFinalizeSignals_SetsAllToComplete(t *testing.T) {
 		if sub == "C2" {
 			status = "processing"
 		}
-		sig := signalFile{
+		sig := SignalFile{
 			Status:     status,
 			DispatchID: 1,
 			CaseID:     sub,
 			Step:       "F0_RECALL",
 		}
-		if err := writeSignal(filepath.Join(caseDir, "signal.json"), &sig); err != nil {
+		if err := WriteSignal(filepath.Join(caseDir, "signal.json"), &sig); err != nil {
 			t.Fatal(err)
 		}
 	}
@@ -40,7 +40,7 @@ func TestFinalizeSignals_SetsAllToComplete(t *testing.T) {
 		if err != nil {
 			t.Fatalf("read %s: %v", path, err)
 		}
-		var sig signalFile
+		var sig SignalFile
 		if err := json.Unmarshal(data, &sig); err != nil {
 			t.Fatalf("unmarshal %s: %v", path, err)
 		}
@@ -52,14 +52,14 @@ func TestFinalizeSignals_SetsAllToComplete(t *testing.T) {
 
 func TestFinalizeSignals_SkipsAlreadyComplete(t *testing.T) {
 	dir := t.TempDir()
-	sig := signalFile{
+	sig := SignalFile{
 		Status:     "complete",
 		DispatchID: 5,
 		CaseID:     "C1",
 		Step:       "F1_TRIAGE",
 		Timestamp:  "2026-01-01T00:00:00Z",
 	}
-	if err := writeSignal(filepath.Join(dir, "signal.json"), &sig); err != nil {
+	if err := WriteSignal(filepath.Join(dir, "signal.json"), &sig); err != nil {
 		t.Fatal(err)
 	}
 
@@ -70,7 +70,7 @@ func TestFinalizeSignals_SkipsAlreadyComplete(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var after signalFile
+	var after SignalFile
 	if err := json.Unmarshal(data, &after); err != nil {
 		t.Fatal(err)
 	}
@@ -91,8 +91,8 @@ func TestWriteSignal_TmpCleanupOnRenameFail(t *testing.T) {
 	dir := t.TempDir()
 	path := filepath.Join(dir, "signal.json")
 
-	sig := &signalFile{Status: "waiting", CaseID: "C1", Step: "F0_RECALL"}
-	if err := writeSignal(path, sig); err != nil {
+	sig := &SignalFile{Status: "waiting", CaseID: "C1", Step: "F0_RECALL"}
+	if err := WriteSignal(path, sig); err != nil {
 		t.Fatal(err)
 	}
 
@@ -107,7 +107,7 @@ func TestWriteSignal_TmpCleanupOnRenameFail(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	var read signalFile
+	var read SignalFile
 	if err := json.Unmarshal(data, &read); err != nil {
 		t.Fatal(err)
 	}

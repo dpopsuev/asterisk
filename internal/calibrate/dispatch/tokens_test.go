@@ -1,4 +1,4 @@
-package calibrate
+package dispatch
 
 import (
 	"sync"

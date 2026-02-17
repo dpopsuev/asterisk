@@ -1,4 +1,4 @@
-package calibrate
+package dispatch
 
 import (
 	"encoding/json"
@@ -61,14 +61,14 @@ func TestBatchFileDispatcher_AllComplete(t *testing.T) {
 				}
 			}
 
-			var sig signalFile
+			var sig SignalFile
 			if err := json.Unmarshal(sigData, &sig); err != nil {
 				t.Logf("case %d: signal parse error: %v", i, err)
 				continue
 			}
 
 			// Write artifact with matching dispatch_id
-			wrapper := artifactWrapper{
+			wrapper := ArtifactWrapper{
 				DispatchID: sig.DispatchID,
 				Data:       json.RawMessage(`{"match":true,"confidence":0.95}`),
 			}
@@ -141,9 +141,9 @@ func TestBatchFileDispatcher_PartialFailure(t *testing.T) {
 		for i := 0; i < 20; i++ {
 			data, err := os.ReadFile(sigPath)
 			if err == nil {
-				var sig signalFile
+				var sig SignalFile
 				if json.Unmarshal(data, &sig) == nil && sig.Status == "waiting" {
-					wrapper := artifactWrapper{
+					wrapper := ArtifactWrapper{
 						DispatchID: sig.DispatchID,
 						Data:       json.RawMessage(`{"match":true}`),
 					}
@@ -222,9 +222,9 @@ func TestBatchFileDispatcher_ManifestLifecycle(t *testing.T) {
 		for i := 0; i < 30; i++ {
 			data, err := os.ReadFile(sigPath)
 			if err == nil {
-				var sig signalFile
+				var sig SignalFile
 				if json.Unmarshal(data, &sig) == nil && sig.Status == "waiting" {
-					wrapper := artifactWrapper{
+					wrapper := ArtifactWrapper{
 						DispatchID: sig.DispatchID,
 						Data:       json.RawMessage(`{"match":true}`),
 					}
@@ -292,9 +292,9 @@ func TestBatchFileDispatcher_SingleDispatchInterface(t *testing.T) {
 		for i := 0; i < 30; i++ {
 			data, err := os.ReadFile(sigPath)
 			if err == nil {
-				var sig signalFile
+				var sig SignalFile
 				if json.Unmarshal(data, &sig) == nil && sig.Status == "waiting" {
-					wrapper := artifactWrapper{
+					wrapper := ArtifactWrapper{
 						DispatchID: sig.DispatchID,
 						Data:       json.RawMessage(`{"ok":true}`),
 					}

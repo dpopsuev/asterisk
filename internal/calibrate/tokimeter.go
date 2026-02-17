@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"asterisk/internal/calibrate/dispatch"
 	"asterisk/internal/display"
 	"asterisk/internal/format"
 	"fmt"
@@ -55,7 +56,7 @@ func BuildTokiMeterBill(report *CalibrationReport) *TokiMeterBill {
 		return nil
 	}
 	ts := report.Tokens
-	cost := DefaultCostConfig()
+	cost := dispatch.DefaultCostConfig()
 
 	bill := &TokiMeterBill{
 		Scenario:     report.Scenario,

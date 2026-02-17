@@ -1,11 +1,19 @@
-package calibrate
+package dispatch
 
 import (
-	"asterisk/internal/format"
 	"fmt"
+	"os"
 	"sync"
 	"time"
+
+	"asterisk/internal/format"
 )
+
+// TokenTracker records and summarizes token usage.
+type TokenTracker interface {
+	Record(r TokenRecord)
+	Summary() TokenSummary
+}
 
 // TokenRecord captures token usage for a single pipeline step dispatch.
 type TokenRecord struct {
@@ -13,8 +21,8 @@ type TokenRecord struct {
 	Step           string    `json:"step"`
 	PromptBytes    int       `json:"prompt_bytes"`
 	ArtifactBytes  int       `json:"artifact_bytes"`
-	PromptTokens   int       `json:"prompt_tokens"`   // estimated: bytes / 4
-	ArtifactTokens int       `json:"artifact_tokens"` // estimated: bytes / 4
+	PromptTokens   int       `json:"prompt_tokens"`
+	ArtifactTokens int       `json:"artifact_tokens"`
 	Timestamp      time.Time `json:"timestamp"`
 	WallClockMs    int64     `json:"wall_clock_ms"`
 }
@@ -38,8 +46,8 @@ type StepTokenSummary struct {
 
 // CostConfig holds pricing for token cost estimation.
 type CostConfig struct {
-	InputPricePerMToken  float64 // USD per million input tokens (default: $3)
-	OutputPricePerMToken float64 // USD per million output tokens (default: $15)
+	InputPricePerMToken  float64
+	OutputPricePerMToken float64
 }
 
 // DefaultCostConfig returns typical LLM pricing.
@@ -52,20 +60,14 @@ func DefaultCostConfig() CostConfig {
 
 // TokenSummary is the aggregate view of all token usage in a calibration run.
 type TokenSummary struct {
-	TotalPromptTokens   int                      `json:"total_prompt_tokens"`
-	TotalArtifactTokens int                      `json:"total_artifact_tokens"`
-	TotalTokens         int                      `json:"total_tokens"`
-	TotalCostUSD        float64                  `json:"total_cost_usd"`
+	TotalPromptTokens   int                         `json:"total_prompt_tokens"`
+	TotalArtifactTokens int                         `json:"total_artifact_tokens"`
+	TotalTokens         int                         `json:"total_tokens"`
+	TotalCostUSD        float64                     `json:"total_cost_usd"`
 	PerCase             map[string]CaseTokenSummary `json:"per_case"`
 	PerStep             map[string]StepTokenSummary `json:"per_step"`
-	TotalSteps          int                      `json:"total_steps"`
-	TotalWallClockMs    int64                    `json:"total_wall_clock_ms"`
-}
-
-// TokenTracker records and summarizes token usage.
-type TokenTracker interface {
-	Record(r TokenRecord)
-	Summary() TokenSummary
+	TotalSteps          int                         `json:"total_steps"`
+	TotalWallClockMs    int64                       `json:"total_wall_clock_ms"`
 }
 
 // InMemoryTokenTracker is a thread-safe in-memory token tracker.
@@ -171,4 +173,52 @@ func EstimateTokens(bytes int) int {
 		return 0
 	}
 	return bytes / 4
+}
+
+// TokenTrackingDispatcher wraps any Dispatcher and records token usage
+// for each dispatch call.
+type TokenTrackingDispatcher struct {
+	inner   Dispatcher
+	tracker TokenTracker
+}
+
+// NewTokenTrackingDispatcher wraps a dispatcher with token tracking.
+func NewTokenTrackingDispatcher(inner Dispatcher, tracker TokenTracker) *TokenTrackingDispatcher {
+	return &TokenTrackingDispatcher{inner: inner, tracker: tracker}
+}
+
+// Dispatch delegates to the inner dispatcher while recording token metrics.
+func (d *TokenTrackingDispatcher) Dispatch(ctx DispatchContext) ([]byte, error) {
+	promptBytes := 0
+	if info, err := os.Stat(ctx.PromptPath); err == nil {
+		promptBytes = int(info.Size())
+	}
+
+	start := time.Now()
+	data, err := d.inner.Dispatch(ctx)
+	elapsed := time.Since(start)
+
+	if err != nil {
+		return data, err
+	}
+
+	artifactBytes := len(data)
+
+	d.tracker.Record(TokenRecord{
+		CaseID:         ctx.CaseID,
+		Step:           ctx.Step,
+		PromptBytes:    promptBytes,
+		ArtifactBytes:  artifactBytes,
+		PromptTokens:   EstimateTokens(promptBytes),
+		ArtifactTokens: EstimateTokens(artifactBytes),
+		Timestamp:      start,
+		WallClockMs:    elapsed.Milliseconds(),
+	})
+
+	return data, nil
+}
+
+// Inner returns the wrapped dispatcher for type-specific operations.
+func (d *TokenTrackingDispatcher) Inner() Dispatcher {
+	return d.inner
 }

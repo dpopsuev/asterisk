@@ -1,9 +1,11 @@
 package calibrate_test
 
 import (
+	"context"
 	"testing"
 
 	"asterisk/internal/calibrate"
+	"asterisk/internal/calibrate/adapt"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
 )
@@ -11,21 +13,20 @@ import (
 func TestStubCalibration_AllMetricsPass(t *testing.T) {
 	// Override the orchestrate base path to a temp dir
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPMockScenario()
-	adapter := calibrate.NewStubAdapter(scenario)
+	adapter := adapt.NewStubAdapter(scenario)
 	cfg := calibrate.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
 		Runs:       1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
+		BasePath:   tmpDir,
 	}
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}
@@ -87,21 +88,20 @@ func TestStubCalibration_AllMetricsPass(t *testing.T) {
 
 func TestStubCalibration_MultiRun(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPMockScenario()
-	adapter := calibrate.NewStubAdapter(scenario)
+	adapter := adapt.NewStubAdapter(scenario)
 	cfg := calibrate.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
 		Runs:       3,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
+		BasePath:   tmpDir,
 	}
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}
@@ -122,16 +122,15 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 
 func TestFormatReport(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPMockScenario()
-	adapter := calibrate.NewStubAdapter(scenario)
+	adapter := adapt.NewStubAdapter(scenario)
 	cfg := calibrate.DefaultRunConfig(scenario, adapter)
 	cfg.Thresholds = orchestrate.DefaultThresholds()
+	cfg.BasePath = tmpDir
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}
@@ -164,21 +163,20 @@ func TestFormatReport(t *testing.T) {
 
 func TestStubCalibration_DaemonMock(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.DaemonMockScenario()
-	adapter := calibrate.NewStubAdapter(scenario)
+	adapter := adapt.NewStubAdapter(scenario)
 	cfg := calibrate.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
 		Runs:       1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
+		BasePath:   tmpDir,
 	}
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}
@@ -215,21 +213,20 @@ func TestStubCalibration_DaemonMock(t *testing.T) {
 
 func TestStubCalibration_PTPReal(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPRealScenario()
-	adapter := calibrate.NewStubAdapter(scenario)
+	adapter := adapt.NewStubAdapter(scenario)
 	cfg := calibrate.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
 		Runs:       1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
+		BasePath:   tmpDir,
 	}
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("RunCalibration: %v", err)
 	}

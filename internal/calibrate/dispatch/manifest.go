@@ -1,4 +1,4 @@
-package calibrate
+package dispatch
 
 import (
 	"encoding/json"
@@ -8,24 +8,23 @@ import (
 )
 
 // BatchManifest is the coordination file between the Go CLI and the Cursor
-// skill for multi-subagent batch dispatch. It lists all signals that are ready
-// for processing in a single batch.
+// skill for multi-subagent batch dispatch.
 type BatchManifest struct {
-	BatchID     int64               `json:"batch_id"`
-	Status      string              `json:"status"` // pending, in_progress, done, error
-	Phase       string              `json:"phase"`  // triage, investigation
-	CreatedAt   string              `json:"created_at"`
-	UpdatedAt   string              `json:"updated_at"`
-	Total       int                 `json:"total"`
+	BatchID      int64              `json:"batch_id"`
+	Status       string             `json:"status"`
+	Phase        string             `json:"phase"`
+	CreatedAt    string             `json:"created_at"`
+	UpdatedAt    string             `json:"updated_at"`
+	Total        int                `json:"total"`
 	BriefingPath string             `json:"briefing_path"`
-	Signals     []BatchSignalEntry  `json:"signals"`
+	Signals      []BatchSignalEntry `json:"signals"`
 }
 
 // BatchSignalEntry is one per-case signal reference in a batch manifest.
 type BatchSignalEntry struct {
 	CaseID     string `json:"case_id"`
 	SignalPath string `json:"signal_path"`
-	Status     string `json:"status"` // pending, claimed, done, error
+	Status     string `json:"status"`
 }
 
 // BudgetStatus is written alongside the batch manifest to inform the skill
@@ -52,7 +51,7 @@ func NewBatchManifest(batchID int64, phase string, briefingPath string, signals 
 	}
 }
 
-// WriteManifest atomically writes a BatchManifest to disk (temp + rename).
+// WriteManifest atomically writes a BatchManifest to disk.
 func WriteManifest(path string, m *BatchManifest) error {
 	m.UpdatedAt = time.Now().UTC().Format(time.RFC3339)
 	data, err := json.MarshalIndent(m, "", "  ")

@@ -1,9 +1,11 @@
 package calibrate_test
 
 import (
+	"context"
 	"testing"
 
 	"asterisk/internal/calibrate"
+	"asterisk/internal/calibrate/adapt"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
 )
@@ -12,38 +14,38 @@ import (
 // metric scores to parallel=1 (serial) for the ptp-mock scenario.
 func TestTriagePool_ResultsMatch(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPMockScenario()
 
 	// Serial run
 	serialCfg := calibrate.RunConfig{
 		Scenario:   scenario,
-		Adapter:    calibrate.NewStubAdapter(scenario),
+		Adapter:    adapt.NewStubAdapter(scenario),
 		Runs:       1,
 		PromptDir:  ".cursor/prompts",
-		Thresholds: orchestrate.DefaultThresholds(),
-		Parallel:   1,
+		Thresholds:  orchestrate.DefaultThresholds(),
+		Parallel:    1,
 		TokenBudget: 1,
+		BasePath:    tmpDir,
 	}
-	serialReport, err := calibrate.RunCalibration(serialCfg)
+	serialReport, err := calibrate.RunCalibration(context.Background(), serialCfg)
 	if err != nil {
 		t.Fatalf("serial run failed: %v", err)
 	}
 
 	// Parallel run
 	parallelCfg := calibrate.RunConfig{
-		Scenario:   scenario,
-		Adapter:    calibrate.NewStubAdapter(scenario),
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: orchestrate.DefaultThresholds(),
-		Parallel:   4,
+		Scenario:    scenario,
+		Adapter:     adapt.NewStubAdapter(scenario),
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  orchestrate.DefaultThresholds(),
+		Parallel:    4,
 		TokenBudget: 4,
+		BasePath:    tmpDir,
 	}
-	parallelReport, err := calibrate.RunCalibration(parallelCfg)
+	parallelReport, err := calibrate.RunCalibration(context.Background(), parallelCfg)
 	if err != nil {
 		t.Fatalf("parallel run failed: %v", err)
 	}
@@ -86,22 +88,21 @@ func TestTriagePool_ResultsMatch(t *testing.T) {
 // the parallel code has no data races.
 func TestTriagePool_NoRace(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPMockScenario()
 	cfg := calibrate.RunConfig{
 		Scenario:   scenario,
-		Adapter:    calibrate.NewStubAdapter(scenario),
+		Adapter:    adapt.NewStubAdapter(scenario),
 		Runs:       1,
 		PromptDir:  ".cursor/prompts",
-		Thresholds: orchestrate.DefaultThresholds(),
-		Parallel:   4,
+		Thresholds:  orchestrate.DefaultThresholds(),
+		Parallel:    4,
 		TokenBudget: 2,
+		BasePath:    tmpDir,
 	}
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("parallel run failed: %v", err)
 	}
@@ -116,22 +117,21 @@ func TestTriagePool_NoRace(t *testing.T) {
 // receive investigation results in parallel mode.
 func TestInvestigationPool_AllClustersComplete(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPMockScenario()
 	cfg := calibrate.RunConfig{
 		Scenario:    scenario,
-		Adapter:     calibrate.NewStubAdapter(scenario),
+		Adapter:     adapt.NewStubAdapter(scenario),
 		Runs:        1,
 		PromptDir:   ".cursor/prompts",
 		Thresholds:  orchestrate.DefaultThresholds(),
 		Parallel:    4,
 		TokenBudget: 4,
+		BasePath:    tmpDir,
 	}
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("parallel run failed: %v", err)
 	}
@@ -178,24 +178,23 @@ func TestInvestigationPool_AllClustersComplete(t *testing.T) {
 // limits concurrent dispatches correctly.
 func TestInvestigationPool_TokenSemaphore(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := orchestrate.BasePath
-	orchestrate.BasePath = tmpDir
-	t.Cleanup(func() { orchestrate.BasePath = origBase })
+	// basePath is passed via RunConfig.BasePath below
 
 	scenario := scenarios.PTPMockScenario()
 
 	// Run with token budget = 1 (sequential dispatches even with 4 workers)
 	cfg := calibrate.RunConfig{
 		Scenario:    scenario,
-		Adapter:     calibrate.NewStubAdapter(scenario),
+		Adapter:     adapt.NewStubAdapter(scenario),
 		Runs:        1,
 		PromptDir:   ".cursor/prompts",
 		Thresholds:  orchestrate.DefaultThresholds(),
 		Parallel:    4,
 		TokenBudget: 1,
+		BasePath:    tmpDir,
 	}
 
-	report, err := calibrate.RunCalibration(cfg)
+	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
 		t.Fatalf("parallel run with budget=1 failed: %v", err)
 	}

@@ -2,12 +2,15 @@ package calibrate
 
 import (
 	"asterisk/internal/display"
+	"context"
 	"fmt"
 	"log"
 	"sync"
 
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
+
+	"golang.org/x/sync/errgroup"
 )
 
 // TriageJob is sent into the triage worker pool channel.
@@ -40,23 +43,23 @@ type InvestigationJob struct {
 	Cfg          RunConfig
 	Store        store.Store
 	SuiteID      int64
-	StubAdapter  *StubAdapter
-	IsStub       bool
+	IDMapper     IDMappable
+	HasIDMap     bool
 }
 
 // runParallelCalibration runs calibration with parallel triage and investigation phases.
-func runParallelCalibration(cfg RunConfig, st *store.MemStore, suiteID int64,
+func runParallelCalibration(ctx context.Context, cfg RunConfig, st *store.MemStore, suiteID int64,
 	versionMap map[string]int64, jobMap map[pipeKey]int64, launchMap map[pipeKey]int64,
 ) ([]CaseResult, error) {
-	// Detect adapter type
-	stubAdapter, isStub := cfg.Adapter.(*StubAdapter)
-	cursorAdapter, isCursor := cfg.Adapter.(*CursorAdapter)
-
-	if isCursor {
-		cursorAdapter.SetStore(st)
-		cursorAdapter.SetSuiteID(suiteID)
-		cursorAdapter.SetWorkspace(ScenarioToWorkspace(cfg.Scenario.Workspace))
+	// Wire store-aware adapters
+	if sa, ok := cfg.Adapter.(StoreAware); ok {
+		sa.SetStore(st)
+		sa.SetSuiteID(suiteID)
+		sa.SetWorkspace(ScenarioToWorkspace(cfg.Scenario.Workspace))
 	}
+
+	// Check for ID mapping support
+	idMapper, hasIDMap := cfg.Adapter.(IDMappable)
 
 	// Token semaphore bounds concurrent dispatches
 	tokenSem := make(chan struct{}, cfg.TokenBudget)
@@ -64,11 +67,10 @@ func runParallelCalibration(cfg RunConfig, st *store.MemStore, suiteID int64,
 	// Phase 1: Triage (F0 + F1) with worker pool
 	log.Printf("[parallel] Phase 1: Triage (%d workers, token-budget=%d)", cfg.Parallel, cfg.TokenBudget)
 
-	triageJobs := make(chan TriageJob, len(cfg.Scenario.Cases))
 	triageResults := make([]TriageResult, len(cfg.Scenario.Cases))
-	var triageWG sync.WaitGroup
 
-	// Prepare all cases and enqueue triage jobs
+	// Prepare all cases
+	var triageJobs []TriageJob
 	for i, gtCase := range cfg.Scenario.Cases {
 		pk := pipeKey{gtCase.Version, gtCase.Job}
 		caseData := &store.Case{
@@ -85,31 +87,29 @@ func runParallelCalibration(cfg RunConfig, st *store.MemStore, suiteID int64,
 		}
 		caseData.ID = caseID
 
-		if isCursor && cursorAdapter != nil {
-			cursorAdapter.RegisterCase(gtCase.ID, caseData)
+		if sa, ok := cfg.Adapter.(StoreAware); ok {
+			sa.RegisterCase(gtCase.ID, caseData)
 		}
 
-		triageJobs <- TriageJob{
+		triageJobs = append(triageJobs, TriageJob{
 			Index:  i,
 			Case:   gtCase,
 			CaseID: caseID,
 			Data:   caseData,
-		}
+		})
 	}
-	close(triageJobs)
 
-	// Launch triage workers
-	for w := 0; w < cfg.Parallel; w++ {
-		triageWG.Add(1)
-		go func(workerID int) {
-			defer triageWG.Done()
-			for job := range triageJobs {
-				result := runTriagePhase(st, job, suiteID, cfg, tokenSem, isStub, stubAdapter)
-				triageResults[job.Index] = result
-			}
-		}(w)
+	// Run triage workers using errgroup with context for cancellation
+	triageG, triageCtx := errgroup.WithContext(ctx)
+	triageG.SetLimit(cfg.Parallel)
+	for _, job := range triageJobs {
+		job := job
+		triageG.Go(func() error {
+			triageResults[job.Index] = runTriagePhase(triageCtx, st, job, suiteID, cfg, tokenSem, hasIDMap, idMapper)
+			return nil
+		})
 	}
-	triageWG.Wait()
+	_ = triageG.Wait() // errors captured in TriageResult.Err
 
 	// Check for triage errors
 	for i, tr := range triageResults {
@@ -127,38 +127,31 @@ func runParallelCalibration(cfg RunConfig, st *store.MemStore, suiteID int64,
 	log.Printf("[parallel] Phase 3: Investigation (%d clusters, %d workers)",
 		len(clusters), cfg.Parallel)
 
-	investJobs := make(chan InvestigationJob, len(clusters))
 	investResults := make(map[int]*CaseResult) // index -> result
 	var investMu sync.Mutex
-	var investWG sync.WaitGroup
 
+	investG, investCtx := errgroup.WithContext(ctx)
+	investG.SetLimit(cfg.Parallel)
 	for _, cluster := range clusters {
 		rep := cluster.Representative
-		investJobs <- InvestigationJob{
+		job := InvestigationJob{
 			TriageResult: rep,
 			GTCase:       cfg.Scenario.Cases[rep.Index],
 			Cfg:          cfg,
 			Store:        st,
 			SuiteID:      suiteID,
-			StubAdapter:  stubAdapter,
-			IsStub:       isStub,
+			IDMapper:     idMapper,
+			HasIDMap:     hasIDMap,
 		}
+		investG.Go(func() error {
+			result := runInvestigationPhase(investCtx, job, tokenSem)
+			investMu.Lock()
+			investResults[job.TriageResult.Index] = result
+			investMu.Unlock()
+			return nil
+		})
 	}
-	close(investJobs)
-
-	for w := 0; w < cfg.Parallel; w++ {
-		investWG.Add(1)
-		go func() {
-			defer investWG.Done()
-			for job := range investJobs {
-				result := runInvestigationPhase(job, tokenSem)
-				investMu.Lock()
-				investResults[job.TriageResult.Index] = result
-				investMu.Unlock()
-			}
-		}()
-	}
-	investWG.Wait()
+	_ = investG.Wait() // errors captured in CaseResult
 
 	// Phase 4: Assemble final results
 	log.Printf("[parallel] Phase 4: Assembling results")
@@ -200,18 +193,16 @@ func runParallelCalibration(cfg RunConfig, st *store.MemStore, suiteID int64,
 		refreshCaseResults(st, results[i].StoreCaseID, &results[i])
 	}
 
-	// Post-process: update stub ID maps and scoring
+	// Post-process: update ID maps and scoring
 	for i, gtCase := range cfg.Scenario.Cases {
-		if isStub && stubAdapter != nil {
-			pk := pipeKey{gtCase.Version, gtCase.Job}
-			_ = pk
+		if hasIDMap && idMapper != nil {
 			updated, err := st.GetCaseV2(triageResults[i].CaseResult.StoreCaseID)
 			if err == nil && updated != nil {
 				if updated.RCAID != 0 && gtCase.RCAID != "" {
-					stubAdapter.SetRCAID(gtCase.RCAID, updated.RCAID)
+					idMapper.SetRCAID(gtCase.RCAID, updated.RCAID)
 				}
 				if updated.SymptomID != 0 && gtCase.SymptomID != "" {
-					stubAdapter.SetSymptomID(gtCase.SymptomID, updated.SymptomID)
+					idMapper.SetSymptomID(gtCase.SymptomID, updated.SymptomID)
 				}
 			}
 		}
@@ -223,8 +214,8 @@ func runParallelCalibration(cfg RunConfig, st *store.MemStore, suiteID int64,
 
 // runTriagePhase runs F0 (Recall) and F1 (Triage) for a single case.
 // Returns a TriageResult with the partial CaseResult and routing information.
-func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
-	cfg RunConfig, tokenSem chan struct{}, isStub bool, stub *StubAdapter,
+func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID int64,
+	cfg RunConfig, tokenSem chan struct{}, hasIDMap bool, idMapper IDMappable,
 ) TriageResult {
 	gtCase := job.Case
 	caseData := job.Data
@@ -237,7 +228,7 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 		StoreCaseID: job.CaseID,
 	}
 
-	caseDir, err := orchestrate.EnsureCaseDir(suiteID, job.CaseID)
+	caseDir, err := orchestrate.EnsureCaseDir(cfg.BasePath, suiteID, job.CaseID)
 	if err != nil {
 		return TriageResult{Index: job.Index, CaseResult: result, Err: fmt.Errorf("ensure case dir: %w", err)}
 	}
@@ -260,7 +251,10 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 	// F0: Recall
 	result.ActualPath = append(result.ActualPath, "F0")
 
-	tokenSem <- struct{}{}
+	if err := acquireToken(ctx, tokenSem); err != nil {
+		tr.Err = err
+		return tr
+	}
 	response, err := cfg.Adapter.SendPrompt(gtCase.ID, orchestrate.StepF0Recall, "")
 	<-tokenSem
 
@@ -298,7 +292,7 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 		tr.FinalStep = state.CurrentStep
 
 		// Run remaining steps (F5, F6) in the triage phase
-		remaining := runRemainingSteps(st, caseData, state, caseDir, gtCase, cfg, result, rules, tokenSem)
+		remaining := runRemainingSteps(ctx, st, caseData, state, caseDir, gtCase, cfg, result, rules, tokenSem)
 		if remaining != nil {
 			tr.Err = remaining
 		}
@@ -309,7 +303,10 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 	if state.CurrentStep == orchestrate.StepF1Triage {
 		result.ActualPath = append(result.ActualPath, "F1")
 
-		tokenSem <- struct{}{}
+		if err := acquireToken(ctx, tokenSem); err != nil {
+			tr.Err = err
+			return tr
+		}
 		response, err = cfg.Adapter.SendPrompt(gtCase.ID, orchestrate.StepF1Triage, "")
 		<-tokenSem
 
@@ -345,7 +342,7 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 		if action.NextStep == orchestrate.StepF5Review || action.NextStep == orchestrate.StepDone {
 			tr.FinalStep = state.CurrentStep
 			if action.NextStep == orchestrate.StepF5Review {
-				remaining := runRemainingSteps(st, caseData, state, caseDir, gtCase, cfg, result, rules, tokenSem)
+				remaining := runRemainingSteps(ctx, st, caseData, state, caseDir, gtCase, cfg, result, rules, tokenSem)
 				if remaining != nil {
 					tr.Err = remaining
 				}
@@ -359,13 +356,16 @@ func runTriagePhase(st store.Store, job TriageJob, suiteID int64,
 }
 
 // runRemainingSteps runs F5+F6 (review and report) for cases that skip investigation.
-func runRemainingSteps(st store.Store, caseData *store.Case,
+func runRemainingSteps(ctx context.Context, st store.Store, caseData *store.Case,
 	state *orchestrate.CaseState, caseDir string,
 	gtCase GroundTruthCase, cfg RunConfig, result *CaseResult,
 	rules []orchestrate.HeuristicRule, tokenSem chan struct{},
 ) error {
 	maxSteps := 10
 	for step := 0; step < maxSteps; step++ {
+		if err := ctx.Err(); err != nil {
+			return err
+		}
 		if state.CurrentStep == orchestrate.StepDone {
 			break
 		}
@@ -373,7 +373,9 @@ func runRemainingSteps(st store.Store, caseData *store.Case,
 		currentStep := state.CurrentStep
 		result.ActualPath = append(result.ActualPath, stepName(currentStep))
 
-		tokenSem <- struct{}{}
+		if err := acquireToken(ctx, tokenSem); err != nil {
+			return err
+		}
 		response, err := cfg.Adapter.SendPrompt(gtCase.ID, currentStep, "")
 		<-tokenSem
 
@@ -418,7 +420,7 @@ func runRemainingSteps(st store.Store, caseData *store.Case,
 }
 
 // runInvestigationPhase runs F2-F6 for a cluster representative.
-func runInvestigationPhase(job InvestigationJob, tokenSem chan struct{}) *CaseResult {
+func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem chan struct{}) *CaseResult {
 	tr := job.TriageResult
 	result := tr.CaseResult
 	state := tr.State
@@ -437,6 +439,9 @@ func runInvestigationPhase(job InvestigationJob, tokenSem chan struct{}) *CaseRe
 	maxSteps := 20
 
 	for step := 0; step < maxSteps; step++ {
+		if ctx.Err() != nil {
+			break
+		}
 		if state.CurrentStep == orchestrate.StepDone {
 			break
 		}
@@ -444,7 +449,9 @@ func runInvestigationPhase(job InvestigationJob, tokenSem chan struct{}) *CaseRe
 		currentStep := state.CurrentStep
 		result.ActualPath = append(result.ActualPath, stepName(currentStep))
 
-		tokenSem <- struct{}{}
+		if err := acquireToken(ctx, tokenSem); err != nil {
+			break
+		}
 		response, err := cfg.Adapter.SendPrompt(gtCase.ID, currentStep, "")
 		<-tokenSem
 
@@ -526,6 +533,16 @@ func refreshCaseResults(st store.Store, caseID int64, result *CaseResult) {
 			result.ActualComponent = rca.Component
 			result.ActualConvergence = rca.ConvergenceScore
 		}
+	}
+}
+
+// acquireToken acquires a token from the semaphore, respecting context cancellation.
+func acquireToken(ctx context.Context, sem chan struct{}) error {
+	select {
+	case sem <- struct{}{}:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
 	}
 }
 

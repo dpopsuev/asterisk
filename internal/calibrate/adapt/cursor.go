@@ -1,6 +1,7 @@
-package calibrate
+package adapt
 
 import (
+	"asterisk/internal/calibrate/dispatch"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -41,7 +42,7 @@ const calibrationPreamble = `> **CALIBRATION MODE — BLIND EVALUATION**
 
 // CursorAdapter is an interactive adapter for real calibration.
 // Instead of returning canned answers, it generates a filled prompt from the
-// template, delivers it via a Dispatcher, waits for the external agent to
+// template, delivers it via a dispatch.Dispatcher, waits for the external agent to
 // produce an artifact, and reads it back. The calibrate runner then scores
 // the AI's real output against ground truth.
 type CursorAdapter struct {
@@ -49,8 +50,9 @@ type CursorAdapter struct {
 	promptDir  string
 	ws         *workspace.Workspace
 	suiteID    int64
+	basePath   string
 	cases      map[string]*cursorCaseCtx
-	dispatcher Dispatcher
+	dispatcher dispatch.Dispatcher
 }
 
 // CursorAdapterOption configures the CursorAdapter.
@@ -58,8 +60,13 @@ type CursorAdapterOption func(*CursorAdapter)
 
 // WithDispatcher sets the transport dispatcher for prompt delivery and
 // artifact collection. Defaults to StdinDispatcher if not set.
-func WithDispatcher(d Dispatcher) CursorAdapterOption {
+func WithDispatcher(d dispatch.Dispatcher) CursorAdapterOption {
 	return func(a *CursorAdapter) { a.dispatcher = d }
+}
+
+// WithBasePath sets the root directory for investigation artifacts.
+func WithBasePath(p string) CursorAdapterOption {
+	return func(a *CursorAdapter) { a.basePath = p }
 }
 
 type cursorCaseCtx struct {
@@ -73,8 +80,9 @@ type cursorCaseCtx struct {
 func NewCursorAdapter(promptDir string, opts ...CursorAdapterOption) *CursorAdapter {
 	a := &CursorAdapter{
 		promptDir:  promptDir,
+		basePath:   orchestrate.DefaultBasePath,
 		cases:      make(map[string]*cursorCaseCtx),
-		dispatcher: NewStdinDispatcher(),
+		dispatcher: dispatch.NewStdinDispatcher(),
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -123,7 +131,7 @@ func (a *CursorAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep,
 	}
 
 	// Build case dir
-	caseDir, err := orchestrate.EnsureCaseDir(a.suiteID, ctx.storeCase.ID)
+	caseDir, err := orchestrate.EnsureCaseDir(a.basePath, a.suiteID, ctx.storeCase.ID)
 	if err != nil {
 		return nil, fmt.Errorf("cursor: ensure case dir: %w", err)
 	}
@@ -153,7 +161,7 @@ func (a *CursorAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep,
 	artifactFile := filepath.Join(caseDir, orchestrate.ArtifactFilename(step))
 
 	// Dispatch: deliver prompt and collect artifact via the configured dispatcher
-	data, err := a.dispatcher.Dispatch(DispatchContext{
+	data, err := a.dispatcher.Dispatch(dispatch.DispatchContext{
 		CaseID:       caseID,
 		Step:         string(step),
 		PromptPath:   promptFile,
@@ -163,30 +171,16 @@ func (a *CursorAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep,
 		return nil, fmt.Errorf("cursor: dispatch %s/%s: %w", caseID, step, err)
 	}
 
-	// Mark done if the dispatcher supports it (FileDispatcher).
-	// Unwrap TokenTrackingDispatcher if present.
+	// Mark done if the dispatcher supports it (dispatch.FileDispatcher).
+	// Unwrap dispatch.TokenTrackingDispatcher if present.
 	disp := a.dispatcher
-	if td, ok := disp.(*TokenTrackingDispatcher); ok {
+	if td, ok := disp.(*dispatch.TokenTrackingDispatcher); ok {
 		disp = td.Inner()
 	}
-	if fd, ok := disp.(*FileDispatcher); ok {
+	if fd, ok := disp.(*dispatch.FileDispatcher); ok {
 		fd.MarkDone(artifactFile)
 	}
 
 	return json.RawMessage(data), nil
 }
 
-// ScenarioToWorkspace converts a calibrate.WorkspaceConfig to a workspace.Workspace
-// so the CursorAdapter can use it for BuildParams.
-func ScenarioToWorkspace(wc WorkspaceConfig) *workspace.Workspace {
-	ws := &workspace.Workspace{}
-	for _, r := range wc.Repos {
-		ws.Repos = append(ws.Repos, workspace.Repo{
-			Name:    r.Name,
-			Path:    r.Path,
-			Purpose: r.Purpose,
-			Branch:  r.Branch,
-		})
-	}
-	return ws
-}

@@ -7,18 +7,17 @@ import (
 	"path/filepath"
 )
 
-// BasePath is the root directory for investigation data.
-// It is a var (not const) so tests can override it to use a temp dir.
-var BasePath = ".asterisk/investigations"
+// DefaultBasePath is the default root directory for investigation data.
+const DefaultBasePath = ".asterisk/investigations"
 
-// CaseDir returns the per-case directory path: .asterisk/investigations/{suiteID}/{caseID}/
-func CaseDir(suiteID, caseID int64) string {
-	return filepath.Join(BasePath, fmt.Sprintf("%d", suiteID), fmt.Sprintf("%d", caseID))
+// CaseDir returns the per-case directory path: {basePath}/{suiteID}/{caseID}/
+func CaseDir(basePath string, suiteID, caseID int64) string {
+	return filepath.Join(basePath, fmt.Sprintf("%d", suiteID), fmt.Sprintf("%d", caseID))
 }
 
 // EnsureCaseDir creates the per-case directory if it doesn't exist.
-func EnsureCaseDir(suiteID, caseID int64) (string, error) {
-	dir := CaseDir(suiteID, caseID)
+func EnsureCaseDir(basePath string, suiteID, caseID int64) (string, error) {
+	dir := CaseDir(basePath, suiteID, caseID)
 	if err := os.MkdirAll(dir, 0755); err != nil {
 		return "", fmt.Errorf("create case dir: %w", err)
 	}
@@ -26,8 +25,8 @@ func EnsureCaseDir(suiteID, caseID int64) (string, error) {
 }
 
 // ListCaseDirs lists all case directories under a suite.
-func ListCaseDirs(suiteID int64) ([]string, error) {
-	suiteDir := filepath.Join(BasePath, fmt.Sprintf("%d", suiteID))
+func ListCaseDirs(basePath string, suiteID int64) ([]string, error) {
+	suiteDir := filepath.Join(basePath, fmt.Sprintf("%d", suiteID))
 	entries, err := os.ReadDir(suiteDir)
 	if err != nil {
 		if os.IsNotExist(err) {

@@ -1,6 +1,8 @@
 package calibrate
 
 import (
+	"asterisk/internal/calibrate/dispatch"
+	"context"
 	"encoding/json"
 	"fmt"
 	"log"
@@ -18,10 +20,11 @@ type RunConfig struct {
 	Runs         int
 	PromptDir    string
 	Thresholds   orchestrate.Thresholds
-	TokenTracker TokenTracker // optional; when set, records per-step token usage
+	TokenTracker dispatch.TokenTracker // optional; when set, records per-step token usage
 	Parallel     int          // number of parallel workers (default 1 = serial)
 	TokenBudget  int          // max concurrent dispatches (token semaphore); 0 = Parallel
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
+	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
 }
 
 // DefaultRunConfig returns defaults for calibration.
@@ -32,12 +35,18 @@ func DefaultRunConfig(scenario *Scenario, adapter ModelAdapter) RunConfig {
 		Runs:       1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
+		BasePath:   orchestrate.DefaultBasePath,
 	}
 }
 
 // RunCalibration executes the full calibration loop.
 // For each run: create a fresh store, run all cases through the pipeline, score.
-func RunCalibration(cfg RunConfig) (*CalibrationReport, error) {
+// The context enables cancellation of in-flight work across all goroutines.
+func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, error) {
+	if cfg.BasePath == "" {
+		cfg.BasePath = orchestrate.DefaultBasePath
+	}
+
 	report := &CalibrationReport{
 		Scenario: cfg.Scenario.Name,
 		Adapter:  cfg.Adapter.Name(),
@@ -49,7 +58,7 @@ func RunCalibration(cfg RunConfig) (*CalibrationReport, error) {
 	for run := 0; run < cfg.Runs; run++ {
 		log.Printf("[calibrate] === Run %d/%d ===", run+1, cfg.Runs)
 
-		results, err := runSingleCalibration(cfg)
+		results, err := runSingleCalibration(ctx, cfg)
 		if err != nil {
 			return nil, fmt.Errorf("run %d: %w", run+1, err)
 		}
@@ -94,7 +103,7 @@ func RunCalibration(cfg RunConfig) (*CalibrationReport, error) {
 }
 
 // runSingleCalibration runs one complete calibration pass: all cases, fresh store.
-func runSingleCalibration(cfg RunConfig) ([]CaseResult, error) {
+func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, error) {
 	st := store.NewMemStore()
 
 	// Create the investigation scaffolding in the store
@@ -159,19 +168,18 @@ func runSingleCalibration(cfg RunConfig) ([]CaseResult, error) {
 
 	// When parallel > 1, delegate to the parallel runner
 	if cfg.Parallel > 1 {
-		return runParallelCalibration(cfg, st, suiteID, versionMap, jobMap, launchMap)
+		return runParallelCalibration(ctx, cfg, st, suiteID, versionMap, jobMap, launchMap)
 	}
 
-	// Detect adapter type for per-case wiring
-	stubAdapter, isStub := cfg.Adapter.(*StubAdapter)
-	cursorAdapter, isCursor := cfg.Adapter.(*CursorAdapter)
-
-	// Wire cursor adapter to this run's store and suite
-	if isCursor {
-		cursorAdapter.SetStore(st)
-		cursorAdapter.SetSuiteID(suiteID)
-		cursorAdapter.SetWorkspace(ScenarioToWorkspace(cfg.Scenario.Workspace))
+	// Wire store-aware adapters to this run's store and suite
+	if sa, ok := cfg.Adapter.(StoreAware); ok {
+		sa.SetStore(st)
+		sa.SetSuiteID(suiteID)
+		sa.SetWorkspace(ScenarioToWorkspace(cfg.Scenario.Workspace))
 	}
+
+	// Check if adapter supports ID mapping (for post-pipeline updates)
+	idMapper, hasIDMap := cfg.Adapter.(IDMappable)
 
 	// Process each case in order
 	var results []CaseResult
@@ -194,12 +202,12 @@ func runSingleCalibration(cfg RunConfig) ([]CaseResult, error) {
 		}
 		caseData.ID = caseID
 
-		// Register case with cursor adapter so it can build prompts
-		if isCursor && cursorAdapter != nil {
-			cursorAdapter.RegisterCase(gtCase.ID, caseData)
+		// Register case with store-aware adapters so they can build prompts
+		if sa, ok := cfg.Adapter.(StoreAware); ok {
+			sa.RegisterCase(gtCase.ID, caseData)
 		}
 
-		result, err := runCasePipeline(st, caseData, suiteID, gtCase, cfg, stubAdapter, isStub)
+		result, err := runCasePipeline(ctx, st, caseData, suiteID, gtCase, cfg)
 		if err != nil {
 			log.Printf("[calibrate] ERROR on case %s: %v", gtCase.ID, err)
 			result = &CaseResult{
@@ -211,9 +219,9 @@ func runSingleCalibration(cfg RunConfig) ([]CaseResult, error) {
 			}
 		}
 
-		// After the pipeline, update stub adapter's ID maps from store
-		if isStub && stubAdapter != nil {
-			updateStubIDMaps(stubAdapter, st, caseData, gtCase, cfg.Scenario)
+		// After the pipeline, update ID maps from store
+		if hasIDMap {
+			updateIDMaps(idMapper, st, caseData, gtCase, cfg.Scenario)
 		}
 
 		results = append(results, *result)
@@ -264,13 +272,12 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 // the pipeline directly using lower-level orchestrate primitives: state management,
 // artifact I/O, heuristic evaluation, and store side effects.
 func runCasePipeline(
+	ctx context.Context,
 	st store.Store,
 	caseData *store.Case,
 	suiteID int64,
 	gtCase GroundTruthCase,
 	cfg RunConfig,
-	stub *StubAdapter,
-	isStub bool,
 ) (*CaseResult, error) {
 	result := &CaseResult{
 		CaseID:      gtCase.ID,
@@ -280,7 +287,7 @@ func runCasePipeline(
 		StoreCaseID: caseData.ID,
 	}
 
-	caseDir, err := orchestrate.EnsureCaseDir(suiteID, caseData.ID)
+	caseDir, err := orchestrate.EnsureCaseDir(cfg.BasePath, suiteID, caseData.ID)
 	if err != nil {
 		return result, fmt.Errorf("ensure case dir: %w", err)
 	}
@@ -296,6 +303,9 @@ func runCasePipeline(
 	maxSteps := 20
 
 	for step := 0; step < maxSteps; step++ {
+		if err := ctx.Err(); err != nil {
+			return result, err
+		}
 		if state.CurrentStep == orchestrate.StepDone {
 			break
 		}
@@ -428,9 +438,9 @@ func extractStepMetrics(result *CaseResult, step orchestrate.PipelineStep, artif
 	}
 }
 
-// updateStubIDMaps updates the stub adapter's RCA/symptom ID maps after a case
+// updateIDMaps updates the adapter's RCA/symptom ID maps after a case
 // completes, so subsequent cases can reference prior RCAs/symptoms by store ID.
-func updateStubIDMaps(stub *StubAdapter, st store.Store, caseData *store.Case, gtCase GroundTruthCase, scenario *Scenario) {
+func updateIDMaps(mapper IDMappable, st store.Store, caseData *store.Case, gtCase GroundTruthCase, scenario *Scenario) {
 	updated, err := st.GetCaseV2(caseData.ID)
 	if err != nil || updated == nil {
 		return
@@ -438,12 +448,12 @@ func updateStubIDMaps(stub *StubAdapter, st store.Store, caseData *store.Case, g
 
 	// Map ground truth RCA ID to store RCA ID
 	if updated.RCAID != 0 && gtCase.RCAID != "" {
-		stub.SetRCAID(gtCase.RCAID, updated.RCAID)
+		mapper.SetRCAID(gtCase.RCAID, updated.RCAID)
 	}
 
 	// Map ground truth symptom ID to store symptom ID
 	if updated.SymptomID != 0 && gtCase.SymptomID != "" {
-		stub.SetSymptomID(gtCase.SymptomID, updated.SymptomID)
+		mapper.SetSymptomID(gtCase.SymptomID, updated.SymptomID)
 	}
 }
 

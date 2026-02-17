@@ -13,10 +13,7 @@ import (
 func TestRunnerFullPipeline(t *testing.T) {
 	// Set up temp dirs and MemStore
 	tmpDir := t.TempDir()
-	origBase := BasePath
-	// Override BasePath to use temp dir
-	BasePath = filepath.Join(tmpDir, "investigations")
-	defer func() { BasePath = origBase }()
+	testBasePath := filepath.Join(tmpDir, "investigations")
 
 	st := store.NewMemStore()
 
@@ -63,6 +60,7 @@ func TestRunnerFullPipeline(t *testing.T) {
 	cfg := RunnerConfig{
 		PromptDir:  promptDir,
 		Thresholds: DefaultThresholds(),
+		BasePath:   testBasePath,
 	}
 
 	// Step 1: RunStep should produce F0 prompt
@@ -81,7 +79,7 @@ func TestRunnerFullPipeline(t *testing.T) {
 	}
 
 	// Verify state file exists
-	caseDir := CaseDir(suiteID, caseID)
+	caseDir := CaseDir(testBasePath, suiteID, caseID)
 	state, err := LoadState(caseDir)
 	if err != nil {
 		t.Fatalf("LoadState: %v", err)
@@ -242,9 +240,7 @@ func TestRunnerFullPipeline(t *testing.T) {
 // TestRunnerRecallHitShortCircuit tests the F0→F5→F6 short-circuit path.
 func TestRunnerRecallHitShortCircuit(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := BasePath
-	BasePath = filepath.Join(tmpDir, "investigations")
-	defer func() { BasePath = origBase }()
+	testBasePath := filepath.Join(tmpDir, "investigations")
 
 	st := store.NewMemStore()
 	suiteID, _ := st.CreateSuite(&store.InvestigationSuite{Name: "test"})
@@ -266,7 +262,7 @@ func TestRunnerRecallHitShortCircuit(t *testing.T) {
 	write("review/present-findings.md", "# Review {{.CaseID}}")
 	write("report/regression-table.md", "# Report {{.CaseID}}")
 
-	cfg := RunnerConfig{PromptDir: promptDir, Thresholds: DefaultThresholds()}
+	cfg := RunnerConfig{PromptDir: promptDir, Thresholds: DefaultThresholds(), BasePath: testBasePath}
 
 	// F0 prompt
 	result, err := RunStep(st, caseData, nil, nil, cfg)
@@ -278,7 +274,7 @@ func TestRunnerRecallHitShortCircuit(t *testing.T) {
 	}
 
 	// Recall hit → should skip to F5
-	caseDir := CaseDir(suiteID, caseID)
+	caseDir := CaseDir(testBasePath, suiteID, caseID)
 	WriteArtifact(caseDir, ArtifactFilename(StepF0Recall), &RecallResult{
 		Match: true, PriorRCAID: 42, Confidence: 0.92, Reasoning: "exact match",
 	})
@@ -295,9 +291,7 @@ func TestRunnerRecallHitShortCircuit(t *testing.T) {
 // TestRunnerInvestigateLoop tests the F3→F2→F3 low-confidence loop.
 func TestRunnerInvestigateLoop(t *testing.T) {
 	tmpDir := t.TempDir()
-	origBase := BasePath
-	BasePath = filepath.Join(tmpDir, "investigations")
-	defer func() { BasePath = origBase }()
+	testBasePath := filepath.Join(tmpDir, "investigations")
 
 	st := store.NewMemStore()
 	suiteID, _ := st.CreateSuite(&store.InvestigationSuite{Name: "test"})
@@ -321,8 +315,8 @@ func TestRunnerInvestigateLoop(t *testing.T) {
 	write("investigate/deep-rca.md", "# Investigate {{.CaseID}}")
 	write("review/present-findings.md", "# Review {{.CaseID}}")
 
-	cfg := RunnerConfig{PromptDir: promptDir, Thresholds: DefaultThresholds()}
-	caseDir := CaseDir(suiteID, caseID)
+	cfg := RunnerConfig{PromptDir: promptDir, Thresholds: DefaultThresholds(), BasePath: testBasePath}
+	caseDir := CaseDir(testBasePath, suiteID, caseID)
 
 	// Advance to F3: set up F0 miss, F1 investigate, F2 result
 	RunStep(st, caseData, nil, nil, cfg) // F0 prompt

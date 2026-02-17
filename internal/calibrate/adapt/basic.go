@@ -1,4 +1,7 @@
-package calibrate
+// Package adapt provides ModelAdapter implementations for the calibration
+// framework: stub (deterministic ground truth), basic (zero-LLM heuristic),
+// and cursor (interactive LLM-based).
+package adapt
 
 import (
 	"encoding/json"

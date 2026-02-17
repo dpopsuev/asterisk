@@ -13,6 +13,7 @@ import (
 type RunnerConfig struct {
 	PromptDir  string     // directory containing prompt templates (e.g. ".cursor/prompts")
 	Thresholds Thresholds // configurable thresholds for heuristics
+	BasePath   string     // root directory for investigation artifacts; defaults to DefaultBasePath
 }
 
 // DefaultRunnerConfig returns a RunnerConfig with sensible defaults.
@@ -64,7 +65,11 @@ func RunStep(
 		}
 	}
 
-	caseDir, err := EnsureCaseDir(suiteID, caseData.ID)
+	basePath := cfg.BasePath
+	if basePath == "" {
+		basePath = DefaultBasePath
+	}
+	caseDir, err := EnsureCaseDir(basePath, suiteID, caseData.ID)
 	if err != nil {
 		return nil, fmt.Errorf("ensure case dir: %w", err)
 	}
