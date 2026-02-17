@@ -12,11 +12,11 @@ This document compares token usage and wall-clock time across calibration execut
 
 | Mode | Cases | Total tokens | Wall-clock | Cost estimate | Notes |
 |------|-------|-------------|------------|---------------|-------|
-| Serial (`--dispatch=file`) | — | — | — | — | Baseline: one case at a time |
-| Batch (`--dispatch=batch-file --batch-size=4`) | — | — | — | — | 4 concurrent subagents |
-| Batch + clustering | — | — | — | — | Representatives only |
+| Serial (`--dispatch=file`) | 30 | 185,010 | 1m 29s | $0.66 | Baseline: mock-calibration-agent, 178 steps |
+| Batch (`--dispatch=batch-file --batch-size=4`) | — | — | — | — | 4 concurrent subagents (pending) |
+| Batch + clustering | — | — | — | — | Representatives only (pending) |
 
-*Values marked "—" are placeholders; populate after Phase 7 wet calibration runs.*
+*Serial data from ptp-real-ingest wet run (2026-02-17). Batch and clustering modes pending multi-subagent integration testing.*
 
 ## Cost dynamics
 
@@ -36,13 +36,27 @@ This document compares token usage and wall-clock time across calibration execut
 
 Expected: batch-size=4 offers ~3x throughput improvement with <2x cost. Beyond 4 (Cursor limit), no further parallelism is possible.
 
+## Per-step token distribution (serial baseline)
+
+| Step | Invocations | Prompt tokens | Artifact tokens | Total | Avg per call |
+|------|-------------|---------------|-----------------|-------|-------------|
+| F0 Recall | 30 | 21,246 | 1,380 | 22,626 | 754 |
+| F1 Triage | 30 | 43,100 | 1,657 | 44,757 | 1,492 |
+| F3 Investigate | 29 | 42,497 | 2,787 | 45,284 | 1,561 |
+| F4 Correlate | 29 | 23,882 | 1,421 | 25,303 | 873 |
+| F5 Review | 30 | 20,121 | 210 | 20,331 | 678 |
+| F6 Report | 30 | 25,179 | 1,530 | 26,709 | 890 |
+| **Total** | **178** | **176,025** | **8,985** | **185,010** | **1,039** |
+
+Average per case: 6,167 tokens (~$0.022 per case at $3/$15 per 1M in/out tokens).
+
 ## Token budget guidelines
 
 | Scenario | Recommended budget | Rationale |
 |----------|-------------------|-----------|
-| ptp-mock (synthetic, 10 cases) | 50,000 | Small dataset, fast |
-| ptp-real-ingest (real, 30 cases) | 200,000 | Larger dataset, real AI responses |
-| Custom (N cases) | N * 5,000 | ~5K tokens per case heuristic |
+| ptp-mock (synthetic, 12 cases) | 75,000 | Small dataset, ~6K per case |
+| ptp-real-ingest (real, 30 cases) | 200,000 | Measured: 185K actual |
+| Custom (N cases) | N * 6,200 | Based on measured ~6.2K tokens per case |
 
 ## Measurement methodology
 
