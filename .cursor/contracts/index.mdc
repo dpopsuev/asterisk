@@ -130,6 +130,15 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 |||----------|------|------------|
 ||| `unified-formatter.md` | Unified table formatter via adapter pattern over `go-pretty/v6`. `internal/format` package with `TableBuilder` interface, ASCII + Markdown modes. Replaced all bespoke `strings.Builder` table construction. **Complete.** | human-readable-output |
 
+## Architecture & refactoring
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `calibrate-decomposition.md` | Split `calibrate` God package into focused sub-packages: `dispatch/`, `metrics/`, `adapt/`. Root orchestration-only, target <= 2,500 LOC. | — |
+| `cobra-cli.md` | Replace hand-rolled main.go with Cobra for subcommands, help, shell completion. Eliminate `orchestrate.BasePath` global. | — (ideally after calibrate-decomposition) |
+| `critical-test-coverage.md` | Close 8 test coverage gaps (3 critical, 3 high, 2 medium). Target 80%+ critical, 70%+ high, 60%+ medium. | Ideally after calibrate-decomposition |
+| `concurrency-modernization.md` | Replace hand-rolled goroutine pools with `errgroup`; optional fsnotify for FileDispatcher; eliminate mutable globals. | calibrate-decomposition |
+
 ## Directories
 
 ## Files
@@ -174,3 +183,7 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 - `adaptive-subagent-scheduler.md` — **Adaptive subagent scheduler:** Quality-driven batch sizing, cluster-aware routing, token budget enforcement, progressive briefing enrichment, cost model documentation. **Complete.**
 - `human-readable-output.md` — **Human-readable output:** Replace opaque machine codes (`pb001`, `F0_RECALL`, `R21`, `M9`) with human-readable names in all human-facing surfaces; central `internal/display` registry.
 - `unified-formatter.md` — **Unified table formatter:** Adapter pattern over `go-pretty/v6`; `internal/format` package with `TableBuilder` (ASCII + Markdown); replaced bespoke `strings.Builder` tables in calibrate package. **Complete.**
+- `calibrate-decomposition.md` — **Calibrate package decomposition:** Split `calibrate` God package into `dispatch/`, `metrics/`, `adapt/` sub-packages; root orchestration-only, target <= 2,500 LOC.
+- `cobra-cli.md` — **Cobra CLI migration:** Replace hand-rolled main.go with Cobra; subcommands, help, shell completion; eliminate `orchestrate.BasePath` global.
+- `concurrency-modernization.md` — **Concurrency modernization:** Replace goroutine pools with errgroup; optional fsnotify for FileDispatcher; eliminate mutable globals.
+- `critical-test-coverage.md` — **Critical test coverage:** Close 8 test gaps (3 critical, 3 high, 2 medium); target 80%+ critical, 70%+ high, 60%+ medium.

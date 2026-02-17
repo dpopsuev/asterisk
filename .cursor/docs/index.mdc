@@ -3,6 +3,7 @@
 Deep library references (long-form).
 
 ## Files
+- `architecture.md` — Asterisk architecture: layers, dependency graph, component inventory, data flows, coupling hotspots, test coverage, modernization.
 - `index.mdc` — index for this directory.
 - `examples.mdc` — example data and fixtures (Pre-investigation 33195/4.21, envelope); paths under `examples/`.
 - `cli-data-model.mdc` — CLI core ideas: storage adapter (SQLite for now), investigation case per envelope, hierarchy (failure ⊂ job ⊂ pipeline), RCA and pattern (many cases → one RCA), RCA → Jira extension point.
@@ -13,3 +14,5 @@ Deep library references (long-form).
 - `execution-envelope.mdc` — adapter-normalized run container; includes vital git metadata.
 - `parallel-architecture.mdc` — parallel investigation pipeline: three-stage fan-out/barrier/fan-out with worker pools, token semaphore, symptom clustering, batch dispatch for multi-subagent mode.
 - `subagent-cost-model.mdc` — cost model for serial vs batch vs batch+clustering calibration modes; token usage, wall-clock, and cost estimates.
+- `test-gap-register.md` — severity-rated test coverage gaps with function-level detail; critical/high/medium gaps, coverage targets, cross-references.
+- `codebase-reduction-report.md` — LOC before/after tracking for architecture contracts; library offload inventory, bespoke justification, bug class elimination.

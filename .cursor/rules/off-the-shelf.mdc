@@ -1,0 +1,56 @@
+---
+description: "Use off-the-shelf solutions if they are mature and have community support; otherwise remain bespoke."
+globs: "**/*.go"
+alwaysApply: false
+---
+# Off-the-Shelf Module Policy
+
+**Rule: Prefer mature, community-backed Go modules over bespoke implementations — but only when the trade-off is justified.**
+
+## Maturity gate (all must pass to adopt)
+
+| Criterion | Threshold |
+|-----------|-----------|
+| **Stars** | >= 1,000 GitHub stars (community validation) |
+| **Maintenance** | Commit in last 12 months (not abandoned) |
+| **API stability** | Semantic versioning; no breaking changes in last 2 major releases |
+| **License** | MIT, Apache-2.0, or BSD (project-compatible) |
+| **Dependency weight** | Transitive dep count proportional to LOC replaced (don't pull 50 deps to save 30 LOC) |
+
+## Decision matrix
+
+| Decision | Criteria |
+|----------|----------|
+| **Adopt** | Module passes maturity gate AND replaces >= 100 LOC of bespoke code (or eliminates a known bug class) |
+| **Keep bespoke** | Module fails maturity gate, OR replaces < 100 LOC, OR domain logic is too specific for any generic library |
+| **Watch** | Module is promising but immature; document in architecture notes for future re-evaluation |
+
+## Current decisions
+
+### Adopted
+
+| Module | Replaces | LOC saved |
+|--------|----------|-----------|
+| `spf13/cobra` | Hand-rolled `flag` + `switch` CLI (880 LOC `main.go`) | ~600 |
+| `golang.org/x/sync/errgroup` | Hand-rolled goroutine pools in `parallel.go` | ~200 |
+| `fsnotify/fsnotify` | Polling loop in `FileDispatcher.Dispatch` | ~150 |
+| `jedib0t/go-pretty/v6` | `strings.Builder` table construction | ~300 (done) |
+
+### Kept bespoke (with justification)
+
+| Component | Candidate evaluated | Why bespoke wins |
+|-----------|---------------------|------------------|
+| Pipeline heuristics (H1–H18) | `rulego/rulego`, `luno/workflow` | Deeply coupled to domain artifact shapes; generic rules engine adds abstraction without value |
+| Metrics scoring (M1–M20) | None | Entirely domain-specific; no library exists |
+| RP client | None | Proprietary API; no community client |
+| Store (SQLite) | GORM, ent | Already using `modernc.org/sqlite`; 2,992 LOC is right-sized for raw SQL at this scale |
+| Display labels | None | Domain-specific lookup table; 206 LOC is trivial |
+| Template engine | `Masterminds/sprig` | Already using `text/template` stdlib; sprig adds 100+ functions we don't need |
+| Math helpers | `gonum/gonum` | 50 LOC of `mean`, `stddev`, `pearsonCorrelation`; gonum is 400K+ LOC module — overkill |
+| Clustering (Jaccard) | `hbollon/go-edlib` | 30 LOC; not worth the dependency |
+
+## Agent behavior
+
+- Before writing > 100 LOC of utility code, check if a module passes the maturity gate.
+- When adding a dependency, document the decision (adopt/bespoke/watch) in the architecture doc.
+- Periodically re-evaluate "Watch" items as modules mature.
