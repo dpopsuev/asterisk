@@ -106,6 +106,64 @@ asterisk calibrate --parallel=4 --token-budget=2
 - **Clustering**: Currently uses exact-match primary key. Jaccard-based
   secondary clustering is implemented but not yet used for merge decisions.
 
+## Batch dispatch (multi-subagent mode)
+
+When `--dispatch=batch-file` is used, the parallel pipeline adds a new
+dimension: instead of Go-level worker pools, the CLI coordinates with
+the Cursor skill to spawn multiple Cursor Task subagents.
+
+### How it works
+
+```
+Go CLI                          Cursor Skill (parent)
+  |                                   |
+  |-- write N signal.json files ----->|
+  |-- write batch-manifest.json ----->|
+  |-- write briefing.md ------------->|
+  |                                   |-- read manifest
+  |                                   |-- read briefing
+  |                                   |-- spawn Task(C1)
+  |                                   |-- spawn Task(C2)
+  |                                   |-- spawn Task(C3)
+  |                                   |-- spawn Task(C4)
+  |                                   |-- wait all
+  |<-- poll N artifact paths ---------|
+  |-- evaluate, next batch... ------->|
+```
+
+### Manifest-driven coordination
+
+- **batch-manifest.json**: lists all pending signals, briefing path, batch lifecycle state
+- **briefing.md**: shared context (known symptoms, cluster assignments, prior RCAs)
+- **budget-status.json**: token budget tracking for adaptive scheduling
+
+### Subagent fan-out
+
+The parent agent (Cursor skill) spawns up to 4 Task subagents per batch.
+Each subagent:
+1. Reads the shared briefing for context
+2. Reads its own signal.json (same protocol as single-agent mode)
+3. Produces artifacts in the standard artifactWrapper format
+4. Writes artifacts to disk; the Go CLI polls for them
+
+### Adaptive scheduling
+
+Between batches, the parent agent:
+- Checks budget-status.json for token consumption
+- Adjusts batch size based on quality (error rate) and wall-clock time
+- Enriches the briefing with findings from completed batches
+
+### Configuration
+
+```bash
+# Batch dispatch with 4 subagents per batch
+asterisk calibrate --dispatch=batch-file --batch-size=4
+
+# With token budget enforcement
+asterisk calibrate --dispatch=batch-file --batch-size=4 \
+  --token-budget=100000 --cost-report
+```
+
 ## Files
 
 | File | Purpose |
@@ -116,9 +174,16 @@ asterisk calibrate --parallel=4 --token-budget=2
 | `internal/calibrate/cluster_test.go` | Clustering unit tests |
 | `internal/calibrate/tokens.go` | Token tracking (integrates with parallel) |
 | `internal/calibrate/token_dispatcher.go` | Token-tracking dispatcher decorator |
+| `internal/calibrate/batch_dispatcher.go` | BatchFileDispatcher with concurrent FileDispatchers |
+| `internal/calibrate/batch_manifest.go` | Manifest and budget status read/write |
+| `internal/calibrate/briefing.go` | Briefing generation from MemStore |
 
 ## Cross-references
 
 - Token performance tracking: `contracts/token-perf-tracking.md`
 - Parallel investigation contract: `contracts/parallel-investigation.md`
+- Batch dispatch protocol: `contracts/batch-dispatch-protocol.md`
+- Multi-subagent skill: `contracts/multi-subagent-skill.md`
+- Adaptive scheduler: `contracts/adaptive-subagent-scheduler.md`
+- Cost model: `docs/subagent-cost-model.mdc`
 - Impatient agent rule: `rules/impatient-agent.mdc`

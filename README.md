@@ -58,6 +58,27 @@ flowchart LR
 | **F5 Review** | Present findings; approve, reassess, or overturn | `review-decision.json` |
 | **F6 Report** | Generate Jira draft / regression table | `jira-draft.json` |
 
+### Batch Dispatch (Multi-Subagent Mode)
+
+When using `--dispatch=batch-file`, the CLI writes a `batch-manifest.json` that coordinates multiple parallel signals:
+
+```
+Go CLI (orchestrator)          Cursor Skill (parent agent)
+       |                              |
+       |-- write N signals  --------->|
+       |-- write manifest   --------->|
+       |-- write briefing   --------->|
+       |                              |-- spawn Task(C1)
+       |                              |-- spawn Task(C2)
+       |                              |-- spawn Task(C3)
+       |                              |-- spawn Task(C4)
+       |                              |-- wait all
+       |<-- read N artifacts ---------|
+       |-- next batch... ------------>|
+```
+
+The parent agent reads the manifest, spawns up to 4 Task subagents, each processing one case independently. Adaptive scheduling adjusts batch size based on quality, wall-clock time, and token budget.
+
 ### Data Model
 
 Asterisk uses a two-tier persistence model inspired by a forensic metaphor:
@@ -97,6 +118,7 @@ flowchart TB
 - **Storage layer** -- SQLite-backed persistence (via pure-Go `modernc.org/sqlite`) with an in-memory alternative for testing.
 - **Context workspace** -- YAML/JSON configuration mapping failures to relevant repositories with purpose metadata.
 - **File-based dispatch** -- `signal.json` polling protocol enabling automated agent communication without stdin.
+- **Multi-subagent mode** -- batch dispatch with `--dispatch=batch-file` enables up to 4 parallel Cursor subagents per batch, with shared briefing, adaptive scheduling, and token budget enforcement.
 - **Evidence-first outputs** -- every conclusion cites evidence (logs, commits, pipeline data) with confidence scores.
 
 ---
@@ -146,6 +168,11 @@ asterisk calibrate --scenario=ptp-mock --adapter=stub
 # Wet calibration with file dispatcher and auto-responder
 asterisk calibrate --scenario=ptp-real-ingest --adapter=cursor \
                    --dispatch=file --responder=auto --clean
+
+# Batch calibration with multi-subagent mode (up to 4 parallel)
+asterisk calibrate --scenario=ptp-real-ingest --adapter=cursor \
+                   --dispatch=batch-file --batch-size=4 \
+                   --responder=auto --clean --cost-report
 ```
 
 ---
@@ -208,12 +235,16 @@ asterisk <analyze|push|cursor|save|status|calibrate> [options]
 |------|---------|-------------|
 | `--scenario` | `ptp-mock` | Scenario: `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest` |
 | `--adapter` | `stub` | Model adapter: `stub` (deterministic), `cursor` (AI) |
-| `--dispatch` | `stdin` | Dispatch mode: `stdin`, `file` |
+| `--dispatch` | `stdin` | Dispatch mode: `stdin`, `file`, `batch-file` |
 | `--runs` | `1` | Number of calibration runs |
 | `--prompt-dir` | `.cursor/prompts` | Prompt template directory |
 | `--clean` | `true` | Remove artifacts and DB before starting |
 | `--responder` | `auto` | Responder lifecycle: `auto`, `external`, `none` |
 | `--agent-debug` | `false` | Verbose debug logging for dispatcher |
+| `--batch-size` | `4` | Max signals per batch (batch-file mode) |
+| `--parallel` | `1` | Number of parallel workers (1 = serial) |
+| `--token-budget` | `0` | Max concurrent dispatches (0 = same as parallel) |
+| `--cost-report` | `false` | Write token-report.json with per-case cost breakdown |
 
 ---
 

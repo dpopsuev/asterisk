@@ -100,6 +100,17 @@ Execute **in order**; each contract depends on the previous. Gate: the preceding
 |----------|------|------------|
 | `token-perf-tracking.md` | Instrument real token usage per step/case/run; compute cost per calibration run; upgrade M18 from estimate to actual measurement. **Complete.** | e2e-calibration (M18 metric), fs-dispatcher (instrument dispatch) |
 
+## Multi-subagent path (parallel Cursor skill)
+
+Execute **in order**; each contract depends on the previous. The multi-subagent path is **independent** of the calibration improvement loop and can proceed in parallel. Both chains merge when wet calibration uses the multi-subagent skill with the improved mock agent.
+
+| Order | Contract | Goal | Depends on |
+|-------|----------|------|------------|
+| **1** | `batch-dispatch-protocol.md` | Define batch signal protocol: manifest schema, briefing file, concurrent semantics, subagent response contract. Design-only. **Complete.** | fs-dispatcher (complete), parallel-investigation (complete) |
+| **2** | `batch-file-dispatcher.md` | Go implementation: `BatchFileDispatcher`, `ManifestWriter`, `BriefingGenerator`, concurrent polling, `--dispatch=batch-file` CLI flag. **Complete.** | batch-dispatch-protocol (complete) |
+| **3** | `multi-subagent-skill.md` | Rewrite `asterisk-investigate` skill: parent agent loop, Task subagent spawning (up to 4), briefing consumption, batch lifecycle, fallback to single-signal mode. **Complete.** | batch-dispatch-protocol (complete), batch-file-dispatcher (complete) |
+| **4** | `adaptive-subagent-scheduler.md` | Optimize: quality-driven batch sizing, cluster-aware routing, token budget enforcement, progressive briefing enrichment, cost model documentation. **Complete.** | multi-subagent-skill (complete), token-perf-tracking (complete) |
+
 ## Cleanup lifecycle (operational hygiene)
 
 || Contract | Goal | Depends on |
@@ -143,3 +154,7 @@ Execute **in order**; each contract depends on the previous. Gate: the preceding
 - `calibration-victory.md` — **Calibration victory:** Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. Target: M19 >= 0.95, 20/20 metrics.
 - `parallel-investigation.md` — **Parallel investigation:** Fan-out F0-F1, symptom clustering, on-demand RCA agents, token ceiling. **Complete.** Target: >= 3x speedup.
 - `token-perf-tracking.md` — **Token perf tracking:** Instrument real token usage per step/case/run; compute estimated USD cost; upgrade M18 from `steps*1000` to actual measurement; per-case and per-step breakdowns in calibration report. **Complete.**
+- `batch-dispatch-protocol.md` — **Batch dispatch protocol:** Define batch signal protocol (manifest schema, briefing file, concurrent semantics, subagent response contract) for multi-subagent Cursor skill communication.
+- `batch-file-dispatcher.md` — **Batch file dispatcher:** Go implementation of batch dispatch — `BatchFileDispatcher`, `ManifestWriter`, `BriefingGenerator`, concurrent polling, `--dispatch=batch-file` CLI flag.
+- `multi-subagent-skill.md` — **Multi-subagent skill:** Rewrite `asterisk-investigate` skill for parent-child architecture — parent loop discovers batch manifests, spawns up to 4 Task subagents, collects artifacts, manages lifecycle. Backward-compatible with single-signal mode.
+- `adaptive-subagent-scheduler.md` — **Adaptive subagent scheduler:** Quality-driven batch sizing, cluster-aware routing, token budget enforcement, progressive briefing enrichment, cost model documentation.
