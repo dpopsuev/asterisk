@@ -54,12 +54,33 @@ func RunCalibration(cfg RunConfig) (*CalibrationReport, error) {
 			return nil, fmt.Errorf("run %d: %w", run+1, err)
 		}
 
-		metrics := computeMetrics(cfg.Scenario, results)
-		allRunMetrics = append(allRunMetrics, metrics)
-
 		if run == cfg.Runs-1 {
 			report.CaseResults = results
 		}
+
+		// Attach token summary if tracker was present — must happen
+		// BEFORE computeMetrics so M18 sees real token counts.
+		if cfg.TokenTracker != nil {
+			ts := cfg.TokenTracker.Summary()
+			report.Tokens = &ts
+
+			target := report.CaseResults
+			if run < cfg.Runs-1 {
+				target = results
+			}
+			for i := range target {
+				cid := target[i].CaseID
+				if cs, ok := ts.PerCase[cid]; ok {
+					target[i].PromptTokensTotal = cs.PromptTokens
+					target[i].ArtifactTokensTotal = cs.ArtifactTokens
+					target[i].StepCount = cs.Steps
+					target[i].WallClockMs = cs.WallClockMs
+				}
+			}
+		}
+
+		metrics := computeMetrics(cfg.Scenario, results)
+		allRunMetrics = append(allRunMetrics, metrics)
 	}
 
 	if len(allRunMetrics) == 1 {
@@ -67,23 +88,6 @@ func RunCalibration(cfg RunConfig) (*CalibrationReport, error) {
 	} else {
 		report.RunMetrics = allRunMetrics
 		report.Metrics = aggregateRunMetrics(allRunMetrics)
-	}
-
-	// Attach token summary if tracker was present
-	if cfg.TokenTracker != nil {
-		ts := cfg.TokenTracker.Summary()
-		report.Tokens = &ts
-
-		// Populate per-case token fields from the summary
-		for i := range report.CaseResults {
-			cid := report.CaseResults[i].CaseID
-			if cs, ok := ts.PerCase[cid]; ok {
-				report.CaseResults[i].PromptTokensTotal = cs.PromptTokens
-				report.CaseResults[i].ArtifactTokensTotal = cs.ArtifactTokens
-				report.CaseResults[i].StepCount = cs.Steps
-				report.CaseResults[i].WallClockMs = cs.WallClockMs
-			}
-		}
 	}
 
 	return report, nil
