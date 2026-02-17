@@ -21,15 +21,15 @@ Contracts created from the PoC assessment. Dependencies: complete **rp-api-compl
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `rp-api-completion.md` | Finish RP API research; document launch, test-item, defect-type in FSC (`notes/rp-api-usage.mdc`). | — |
-| `storage-adapter.md` | SQLite + Store facade (cases, RCAs); per-workspace DB; wire into flow. | — |
-| `context-workspace.md` | Load workspace from FS (YAML/JSON/TOML); pass into analyze. | — |
-| `artifact-schema.md` | Add `rca_message` to artifact; document schema in FSC. | — |
-| `prompts.md` | Prompt templates in `.cursor/prompts/`; params doc in `docs/prompts.mdc`. | — |
-| `rp-fetch.md` | Real fetch from RP (launch by ID); produce envelope; persist to store/path. | rp-api-completion |
-| `rp-push.md` | Real push to RP (defect-type update); read artifact, call RP API. | rp-api-completion |
-| `asterisk-cli.md` | `asterisk` binary with `analyze` and `push -f`; envelope, workspace, storage, artifact. | storage-adapter, context-workspace, artifact-schema |
-| `cursor-handoff.md` | Minimal `asterisk --cursor`: prompt output, save/ingest, document flow. | asterisk-cli, prompts |
+| `rp-api-completion.md` | Finish RP API research; document launch, test-item, defect-type in FSC (`notes/rp-api-usage.mdc`). **Complete.** | — |
+| `storage-adapter.md` | SQLite + Store facade (cases, RCAs); per-workspace DB; wire into flow. **Complete.** | — |
+| `context-workspace.md` | Load workspace from FS (YAML/JSON/TOML); pass into analyze. **Complete.** | — |
+| `artifact-schema.md` | Add `rca_message` to artifact; document schema in FSC. **Complete.** | — |
+| `prompts.md` | Prompt templates in `.cursor/prompts/`; params doc in `docs/prompts.mdc`. **Complete.** | — |
+| `rp-fetch.md` | Real fetch from RP (launch by ID); produce envelope; persist to store/path. **Complete.** | rp-api-completion |
+| `rp-push.md` | Real push to RP (defect-type update); read artifact, call RP API. **Complete.** | rp-api-completion |
+| `asterisk-cli.md` | `asterisk` binary with `analyze` and `push -f`; envelope, workspace, storage, artifact. **Complete.** | storage-adapter, context-workspace, artifact-schema |
+| `cursor-handoff.md` | Minimal `asterisk --cursor`: prompt output, save/ingest, document flow. **Complete.** | asterisk-cli, prompts |
 
 ## Prompt system (design)
 
@@ -134,17 +134,17 @@ Execute **in order**; each contract depends on the previous. The multi-subagent 
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `calibrate-decomposition.md` | Split `calibrate` God package into focused sub-packages: `dispatch/`, `metrics/`, `adapt/`. Root orchestration-only, target <= 2,500 LOC. | — |
-| `cobra-cli.md` | Replace hand-rolled main.go with Cobra for subcommands, help, shell completion. Eliminate `orchestrate.BasePath` global. | — (ideally after calibrate-decomposition) |
-| `critical-test-coverage.md` | Close 8 test coverage gaps (3 critical, 3 high, 2 medium). Target 80%+ critical, 70%+ high, 60%+ medium. | Ideally after calibrate-decomposition |
-| `concurrency-modernization.md` | Replace hand-rolled goroutine pools with `errgroup`; optional fsnotify for FileDispatcher; eliminate mutable globals. | calibrate-decomposition |
+| `calibrate-decomposition.md` | Split `calibrate` God package into focused sub-packages: `dispatch/`, `metrics/`, `adapt/`. Root orchestration-only, target <= 2,500 LOC. **Complete.** dispatch/ + adapt/ extracted; root 2,926 LOC (metrics/ deferred: circular dep). | — |
+| `cobra-cli.md` | Replace hand-rolled main.go with Cobra for subcommands, help, shell completion. Eliminate `orchestrate.BasePath` global. **Complete.** | — (ideally after calibrate-decomposition) |
+| `critical-test-coverage.md` | Close 8 test coverage gaps (3 critical, 3 high, 2 medium). Target 80%+ critical, 70%+ high, 60%+ medium. **Complete.** | Ideally after calibrate-decomposition |
+| `concurrency-modernization.md` | Replace hand-rolled goroutine pools with `errgroup`; optional fsnotify for FileDispatcher; eliminate mutable globals. **Complete.** errgroup + context.Context propagation. | calibrate-decomposition |
 
 ## True calibration (Jira-verified ground truth)
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
 | `ground-truth-v2.md` | Correct scenario data to match Jira audit, add M15+M9 to M19, add cnf-features-deploy to workspace. **Complete.** | jira-audit-report (complete) |
-| `true-wet-calibration.md` | Blind calibration against Jira-verified truth. Iterate until M19 >= 0.90, M15 >= 0.70, M9 >= 0.70. **In Progress.** | ground-truth-v2 (complete) |
+| `true-wet-calibration.md` | Blind calibration against Jira-verified truth. Iterate until M19 >= 0.90, M15 >= 0.70, M9 >= 0.70. **Complete.** M19 = 0.93 achieved with BasicAdapter. | ground-truth-v2 (complete) |
 
 ## Directories
 

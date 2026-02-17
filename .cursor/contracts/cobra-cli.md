@@ -1,7 +1,7 @@
 # Contract: Cobra CLI Migration
 
 **Priority:** HIGH — developer experience  
-**Status:** Pending  
+**Status:** Complete  
 **Depends on:** None (can proceed independently; ideally after calibrate-decomposition)
 
 ## Goal

@@ -1,7 +1,7 @@
 # Contract: True Wet Calibration — Blind Against Jira-Verified Truth
 
 **Priority:** HIGH — calibration quality  
-**Status:** In Progress  
+**Status:** Complete  
 **Depends on:** `ground-truth-v2.md` (complete)
 
 ## Goal

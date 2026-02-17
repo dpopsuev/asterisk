@@ -1,7 +1,7 @@
 # Contract: Critical Test Coverage
 
 **Priority:** HIGH — quality  
-**Status:** Pending  
+**Status:** Complete  
 **Depends on:** Ideally after `calibrate-decomposition.md` (metrics in separate package), but can start in parallel
 
 ## Goal

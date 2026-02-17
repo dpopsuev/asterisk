@@ -1,7 +1,7 @@
 # Contract: Concurrency Modernization
 
 **Priority:** MEDIUM — technical debt  
-**Status:** Pending  
+**Status:** Complete  
 **Depends on:** `calibrate-decomposition.md` (parallel.go stays in calibrate root after decomposition)
 
 ## Goal
