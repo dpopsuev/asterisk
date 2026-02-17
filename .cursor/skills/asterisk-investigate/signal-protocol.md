@@ -127,9 +127,110 @@ In a typical calibration run, you can watch for signal.json at:
 - **Wrong `dispatch_id`**: Stale artifact from a previous step — silently ignored, dispatcher keeps polling.
 - **Missing fields**: The Go process will attempt to parse the `data` field into the expected struct. Missing required fields may cause zero values rather than errors, but this will affect calibration scores.
 
+## Batch mode (multi-subagent)
+
+When the Go CLI uses `--dispatch=batch-file`, it writes a **batch manifest** that lists multiple pending signals at once. This enables a parent agent to spawn parallel Task subagents.
+
+### Batch manifest discovery
+
+Look for `batch-manifest.json` in the suite directory:
+
+```
+.asterisk/calibrate/{suiteID}/batch-manifest.json
+```
+
+If this file exists with `status: "pending"`, batch mode is active.
+
+### batch-manifest.json schema
+
+```json
+{
+  "batch_id": 1,
+  "status": "pending",
+  "phase": "triage",
+  "created_at": "2026-02-17T10:00:00Z",
+  "updated_at": "2026-02-17T10:00:00Z",
+  "total": 4,
+  "briefing_path": ".asterisk/calibrate/1001/briefing.md",
+  "signals": [
+    {"case_id": "C1", "signal_path": ".asterisk/calibrate/1001/101/signal.json", "status": "pending"},
+    {"case_id": "C2", "signal_path": ".asterisk/calibrate/1001/102/signal.json", "status": "pending"}
+  ]
+}
+```
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `batch_id` | int64 | Monotonic batch counter |
+| `status` | string | `pending`, `in_progress`, `done`, `error` |
+| `phase` | string | `triage` (F0+F1) or `investigation` (F2-F6) |
+| `total` | int | Number of signals in this batch |
+| `briefing_path` | string | Path to shared briefing file |
+| `signals[].case_id` | string | Case identifier |
+| `signals[].signal_path` | string | Path to that case's signal.json |
+| `signals[].status` | string | `pending`, `claimed`, `done`, `error` |
+
+### Briefing file
+
+The `briefing_path` in the manifest points to a markdown file with shared context:
+
+- Run context (scenario, suite ID, phase, case counts)
+- Known symptoms from prior batches
+- Cluster assignments (investigation phase)
+- Prior RCAs from completed investigations
+- Common error patterns
+
+Read this file before analyzing each case — it provides context that helps produce better artifacts.
+
+### Multi-subagent flow
+
+When operating as a **parent agent** in batch mode:
+
+1. Read `batch-manifest.json` — find signals with `status: "pending"`.
+2. Read the briefing file at `briefing_path`.
+3. For each pending signal (up to 4 at a time), spawn a Task subagent with:
+   - The briefing file path
+   - The signal file path
+   - Analysis instructions for the pipeline step
+4. Wait for all subagents to complete.
+5. For each completed subagent: verify the artifact was written.
+6. For any failed subagent: write `status: "error"` to that case's signal.json.
+7. If more pending signals remain, repeat from step 3.
+8. Once all signals are processed, the Go CLI detects the artifacts and continues.
+
+### Subagent prompt (what each Task receives)
+
+Each Task subagent gets a self-contained prompt:
+
+```
+You are analyzing case {case_id} at step {step}.
+1. Read the briefing at {briefing_path}.
+2. Read signal.json at {signal_path} — get prompt_path, artifact_path, dispatch_id.
+3. Read the prompt at prompt_path.
+4. Analyze the failure data.
+5. Write artifact JSON to artifact_path, wrapped: {"dispatch_id": N, "data": {...}}.
+```
+
+The subagent uses the same artifact wrapper format as single-signal mode.
+
+### Fallback to single-signal mode
+
+When `batch-manifest.json` does not exist, operate in single-signal mode: scan for individual `signal.json` files with `status: "waiting"` and process them one at a time. This is the default behavior when the CLI uses `--dispatch=file`.
+
+### Budget status (optional)
+
+If `budget-status.json` exists alongside the manifest:
+
+```json
+{"total_budget": 100000, "used": 45000, "remaining": 55000, "percent_used": 45.0}
+```
+
+Use this to decide whether to continue spawning subagents. If `percent_used > 80`, reduce batch size. If `remaining <= 0`, stop.
+
 ## Tips
 
 - Write the artifact file atomically if possible (write to temp, rename) to avoid the Go process reading a partial file.
 - Always read the `dispatch_id` from the signal fresh for each step — it increments with every dispatch.
 - If something goes wrong, write an error to `signal.json` so the dispatcher fails fast instead of timing out.
 - The prompt file contains everything you need for the current step.
+- In batch mode, read the briefing file for shared context before analyzing each case.
