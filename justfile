@@ -5,7 +5,6 @@ set dotenv-load := false
 
 bin_dir     := "bin"
 cmd_asterisk := "./cmd/asterisk"
-cmd_responder := "./cmd/mock-calibration-agent"
 cmd_mock     := "./cmd/run-mock-flow"
 db_path      := ".asterisk/asterisk.db"
 calib_dir    := ".asterisk/calibrate"
@@ -23,13 +22,8 @@ build:
     @mkdir -p {{ bin_dir }}
     go build -o {{ bin_dir }}/asterisk {{ cmd_asterisk }}
 
-# Build the mock calibration agent
-build-responder:
-    @mkdir -p {{ bin_dir }}
-    go build -o {{ bin_dir }}/mock-calibration-agent {{ cmd_responder }}
-
-# Build all binaries (asterisk + mock-calibration-agent + mock-flow)
-build-all: build build-responder
+# Build all binaries (asterisk + mock-flow)
+build-all: build
     go build -o {{ bin_dir }}/run-mock-flow {{ cmd_mock }}
 
 # Install asterisk to GOPATH/bin
@@ -81,13 +75,12 @@ check: vet lint staticcheck
 calibrate-stub scenario="ptp-mock":
     go run {{ cmd_asterisk }} calibrate --scenario={{ scenario }} --adapter=stub
 
-# Run wet calibration with file dispatch + auto-responder
+# Run wet calibration with file dispatch
 calibrate-wet scenario="ptp-real-ingest":
     go run {{ cmd_asterisk }} calibrate \
         --scenario={{ scenario }} \
         --adapter=cursor \
         --dispatch=file \
-        --responder=auto \
         --clean
 
 # Run wet calibration with debug logging
@@ -96,7 +89,6 @@ calibrate-debug scenario="ptp-real-ingest":
         --scenario={{ scenario }} \
         --adapter=cursor \
         --dispatch=file \
-        --responder=auto \
         --clean \
         --agent-debug
 
@@ -110,7 +102,6 @@ calibrate-cost scenario="ptp-real-ingest":
         --scenario={{ scenario }} \
         --adapter=cursor \
         --dispatch=file \
-        --responder=auto \
         --clean \
         --cost-report
 
@@ -121,7 +112,6 @@ calibrate-batch scenario="ptp-real-ingest" batch="4":
         --adapter=cursor \
         --dispatch=batch-file \
         --batch-size={{ batch }} \
-        --responder=auto \
         --clean \
         --cost-report
 
@@ -133,7 +123,6 @@ calibrate-save scenario="ptp-real-ingest" round="":
         --scenario={{ scenario }} \
         --adapter=cursor \
         --dispatch=file \
-        --responder=auto \
         --clean 2>&1)
     echo "$output"
     if [ -n "{{ round }}" ]; then
@@ -156,15 +145,10 @@ clean-runtime:
 
 # Remove stray root-level binaries (safety net)
 clean-stray:
-    rm -f asterisk mock-calibration-agent signal-responder
+    rm -f asterisk signal-responder
 
-# Kill orphaned mock-calibration-agent processes
-kill-responders:
-    -pkill -f "mock-calibration-agent" 2>/dev/null || true
-    -pkill -f "go run.*mock-calibration-agent" 2>/dev/null || true
-
-# Full cleanup: binaries + runtime + stray + orphan processes
-clean: clean-bin clean-runtime clean-stray kill-responders
+# Full cleanup: binaries + runtime + stray
+clean: clean-bin clean-runtime clean-stray
 
 # ─── Run ──────────────────────────────────────────────────
 

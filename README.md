@@ -141,7 +141,6 @@ make build-all
 
 # Or directly
 go build -o bin/asterisk ./cmd/asterisk/
-go build -o bin/mock-calibration-agent ./cmd/mock-calibration-agent/
 ```
 
 ### Run an analysis
@@ -322,7 +321,6 @@ update.
 asterisk/
 ├── cmd/
 │   ├── asterisk/              # Main CLI (analyze, push, cursor, save, status, calibrate)
-│   ├── mock-calibration-agent/ # Mock agent for automated calibration (testing only)
 │   └── run-mock-flow/         # Dev tool: run mock fetch→analyze→push flow
 ├── internal/
 │   ├── calibrate/             # Calibration runner, adapters, dispatchers, metrics

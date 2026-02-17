@@ -25,8 +25,7 @@ var calibrateFlags struct {
 	runs          int
 	promptDir     string
 	clean         bool
-	responderMode string
-	costReport    bool
+	costReport bool
 	parallel      int
 	tokenBudget   int
 	batchSize     int
@@ -50,7 +49,6 @@ func init() {
 	f.IntVar(&calibrateFlags.runs, "runs", 1, "Number of calibration runs")
 	f.StringVar(&calibrateFlags.promptDir, "prompt-dir", ".cursor/prompts", "Prompt template directory")
 	f.BoolVar(&calibrateFlags.clean, "clean", true, "Remove .asterisk/calibrate/ before starting (cursor adapter only)")
-	f.StringVar(&calibrateFlags.responderMode, "responder", "auto", "Responder lifecycle: auto (spawn/kill), external (user manages), none")
 	f.BoolVar(&calibrateFlags.costReport, "cost-report", false, "Write token-report.json with per-case token/cost breakdown")
 	f.IntVar(&calibrateFlags.parallel, "parallel", 1, "Number of parallel workers for triage/investigation (1 = serial)")
 	f.IntVar(&calibrateFlags.tokenBudget, "token-budget", 0, "Max concurrent dispatches (0 = same as --parallel)")
@@ -153,7 +151,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		basePath = calibDir
 		out := cmd.OutOrStdout()
 		fmt.Fprintf(out, "Calibration artifacts: %s/\n", calibDir)
-		fmt.Fprintf(out, "Adapter: cursor (dispatch=%s, responder=%s, clean=%v)\n", calibrateFlags.dispatchMode, calibrateFlags.responderMode, calibrateFlags.clean)
+		fmt.Fprintf(out, "Adapter: cursor (dispatch=%s, clean=%v)\n", calibrateFlags.dispatchMode, calibrateFlags.clean)
 		fmt.Fprintf(out, "Scenario: %s (%d cases)\n\n", scenario.Name, len(scenario.Cases))
 	} else {
 		tmpDir, err := os.MkdirTemp("", "asterisk-calibrate-*")
@@ -168,15 +166,8 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("cursor adapter only supports --runs=1 (interactive mode)")
 	}
 
-	if calibrateFlags.adapter == "cursor" && calibrateFlags.dispatchMode == "file" && calibrateFlags.responderMode == "auto" {
-		responderProc, err := dispatch.SpawnResponder(calibDir, calibrateFlags.agentDebug)
-		if err != nil {
-			return fmt.Errorf("spawn mock-calibration-agent: %w", err)
-		}
-		defer dispatch.StopResponder(responderProc)
-		dispatch.ForwardSignals(responderProc)
-	} else if calibrateFlags.adapter == "cursor" && calibrateFlags.dispatchMode == "file" && calibrateFlags.responderMode == "external" {
-		fmt.Fprintln(cmd.OutOrStdout(), "[lifecycle] responder=external: ensure mock-calibration-agent is running separately")
+	if calibrateFlags.adapter == "cursor" && calibrateFlags.dispatchMode == "file" {
+		fmt.Fprintln(cmd.OutOrStdout(), "[lifecycle] dispatch=file: ensure Cursor agent or MCP server is responding to signals")
 	}
 
 	parallelN := calibrateFlags.parallel
