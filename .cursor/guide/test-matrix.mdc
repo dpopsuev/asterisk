@@ -1,12 +1,21 @@
 ---
-description: TDD test matrix per story
+description: TDD test matrix per story (see rules/test-coverage-checklist.mdc for the full checklist)
 ---
 
 # TDD Test Matrix
 
-For every story, implement:
-- Unit: parsing, mapping, scoring, and classifiers
-- Integration: Report Portal API, GitHub/Git providers, Jenkins/Prow
-- Contract: API schemas, auth scopes, rate limits
-- E2E: full pipeline from RP launch to RCA output
-- Security: secret redaction, RBAC scope, audit logging
+**Moved to an always-applied rule:** The full pre-code-write coverage checklist, including the Red-Orange-Green-Blue cycle and security layer, now lives at `rules/test-coverage-checklist.mdc`.
+
+This file remains as a pointer for existing cross-references.
+
+## Quick summary
+
+For every story, assess coverage across:
+- **Unit** — parsing, mapping, scoring, classifiers, edge cases
+- **Integration** — RP API, Git/GitHub, CI adapters, store, dispatcher
+- **Contract** — API schemas, auth scopes, rate limits
+- **E2E** — full F0-F6 pipeline, stub + real calibration
+- **Concurrency** — race detector, deadlock-free channels, semaphore bounds
+- **Security** — OWASP Top 10 lens (`rules/security-analysis.mdc`)
+
+See `rules/test-coverage-checklist.mdc` for the full gate and development cycle.

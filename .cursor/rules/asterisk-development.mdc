@@ -12,8 +12,12 @@ alwaysApply: true
 
 ## Development methodology (BDD + TDD + AI)
 - Start every story by writing Gherkin acceptance criteria (Given/When/Then).
-- Create a test matrix for unit, integration, contract, e2e, and security tests.
-- Implement in small increments; each increment must keep tests green.
+- Assess the coverage matrix before writing code (see `rules/test-coverage-checklist.mdc`).
+- Follow the **Red-Orange-Green-Blue** cycle for every increment:
+  - **Red** — write a failing test.
+  - **Orange** — add structured logs at decision points (agent observability).
+  - **Green** — implement minimal code to pass the test.
+  - **Blue** — refactor, tune prompts, clean log levels.
 - Prefer deterministic outputs for the same inputs; seed ordering where needed.
 - Every AI inference must cite evidence (logs, commits, pipeline data).
 

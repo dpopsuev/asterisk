@@ -1,0 +1,91 @@
+---
+description: Pre-code-write test coverage checklist — assess the negative space before shaping the positive.
+alwaysApply: true
+---
+
+# Test Coverage Checklist
+
+## Philosophy: positive and negative space
+
+The production code is **positive space** — the shape we intend. Tests are **negative space** — everything around it that defines, constrains, and protects that shape. If you only paint the positive space, the edges blur. Before writing any new code, assess whether the negative space already holds, or needs extending.
+
+## Pre-code-write gate
+
+Before writing or modifying production code, answer these questions. If any answer is "no" or "unclear", address the gap **before** (or as part of) the code change.
+
+### Coverage matrix
+
+| Layer | Question | What to check |
+|-------|----------|---------------|
+| **Unit** | Does each function under change have tests for its branches and edge cases? | Parsing, mapping, scoring, classifiers, error paths, nil/empty inputs. |
+| **Integration** | Are cross-boundary interactions covered? | RP API calls, Git/GitHub providers, CI adapters (Jenkins/Prow), store read/write, dispatcher send/receive. |
+| **Contract** | Do API schemas and external interfaces have contract tests? | Request/response shapes, auth scopes, rate-limit behavior, adapter interface compliance. |
+| **E2E** | Is the full pipeline tested end-to-end? | RP launch intake through F0-F6 to RCA output. Stub and real calibration scenarios. |
+| **Concurrency** | Does the change touch shared state or parallel paths? | Race detector (`-race`), deadlock-free channels, `sync.WaitGroup` correctness, token semaphore bounds. |
+| **Security** | Does the change cross a trust boundary or handle external data? | See OWASP checklist in `rules/security-analysis.mdc`. Secret redaction, RBAC scope, audit logging, input validation, SSRF on outbound URLs. |
+
+If a layer is **not applicable** to the change, explicitly note why (e.g., "no external calls — integration N/A").
+
+## Development cycle: Red-Orange-Green-Blue
+
+Every code increment follows four phases. Do not skip Orange — agent observability is not optional.
+
+### Red — failing test
+
+Write a test that captures the intended behavior or reproduces the bug. Run it. It **must fail**. If it passes, the test is not testing the right thing.
+
+- Unit or Ginkgo spec depending on complexity (see `rules/go-testing.mdc`).
+- For BDD stories, the test maps to a Given/When/Then acceptance criterion.
+
+### Orange — log instrumentation
+
+Before writing the fix or feature, add **structured logging and observability** so that when the code runs (especially under agent/calibration), the behavior is visible without a debugger.
+
+- Add `slog.Info` / `slog.Debug` at decision points: which heuristic fired, what the classifier chose, what the dispatcher sent/received.
+- Include **machine-readable fields**: `slog.String("case_id", id)`, `slog.String("step", "F1")`, `slog.Int("dispatch_id", n)`.
+- For calibration: log per-step timing (`slog.Duration("elapsed", d)`) so the impatient-agent rule can detect regressions.
+- For dispatchers and adapters: log request/response sizes and latencies.
+- **Why Orange before Green?** When the agent runs calibration or investigates a hang, these logs are the primary evidence. Adding them after the fact means the first failure is blind. Instrument first, then the Green phase has full observability from the start.
+
+### Green — passing test
+
+Implement the minimal production code to make the Red test pass. Run the full affected test suite. Everything must be green.
+
+- Do not over-implement. The test defines the scope.
+- If the change touches the pipeline, run stub calibration (`just calibrate-stub`) to verify no regression.
+
+### Blue — refactor and tune
+
+With tests green and logs in place, refactor for clarity, performance, or structure.
+
+- Remove duplication, improve naming, extract helpers.
+- Review log levels: demote verbose logs from `Info` to `Debug`.
+- Check that the coverage matrix above still holds after refactoring.
+- Update prompts if the change affects AI inference quality.
+
+## Security as negative space
+
+Security tests are negative space by definition — they prove the system **does not** do harmful things. For every trust boundary touched:
+
+1. Check the OWASP row in `rules/security-analysis.mdc`.
+2. Write at least one negative test (e.g., "path traversal attempt returns error, not file contents").
+3. If a risk is found, file a security case per `security-cases/_TEMPLATE.md`.
+
+## Quick reference
+
+```
+  ┌─────────────────────────────────────────────────┐
+  │  1. ASSESS  — check coverage matrix (this rule) │
+  │  2. RED     — write failing test                │
+  │  3. ORANGE  — add structured logs at decisions  │
+  │  4. GREEN   — implement, make test pass         │
+  │  5. BLUE    — refactor, tune, clean logs        │
+  └─────────────────────────────────────────────────┘
+```
+
+## Cross-references
+
+- Testing conventions: `rules/go-testing.mdc`
+- Security lens: `rules/security-analysis.mdc`
+- BDD templates: `guide/bdd-templates.mdc`
+- Impatient agent (timing regressions): `rules/impatient-agent.mdc`
