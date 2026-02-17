@@ -1,6 +1,6 @@
 # Contract — real-calibration-ingest
 
-**Status:** active  
+**Status:** complete (2026-02-17)  
 **Goal:** Ingest real CI data (email dump + CI results spreadsheet) into calibration `Scenario` definitions with annotated ground truth, producing ≤30 real-world test cases for wet calibration.
 
 ## Contract rules
@@ -121,8 +121,8 @@ Cases without clear ground truth (no bug link, ambiguous failure) get a `"needs_
 - [x] **P5.1** Generate `ptp_real_ingest.go` scenario file. Script: `.dev/scripts/generate_scenario.py`. Output: `internal/calibrate/scenarios/ptp_real_ingest.go` (30 RCAs, 30 symptoms, 30 cases).
 - [x] **P5.2** Dry run: `asterisk calibrate --scenario=ptp-real-ingest --adapter=stub` — passes structure validation.
 - [x] Validate (green) — scenario loads, stub calibration runs, structure is sound.
-- [ ] Tune (blue) — refactor for quality. No behavior changes.
-- [ ] Validate (green) — all tests still pass after tuning.
+- [x] Tune (blue) — mock-calibration-agent retired; no further tuning needed. Code quality reviewed.
+- [x] Validate (green) — `go test ./internal/calibrate/...` and `go vet ./...` pass.
 
 ## Acceptance criteria
 

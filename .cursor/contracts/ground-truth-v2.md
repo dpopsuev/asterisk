@@ -1,8 +1,11 @@
 # Contract: Ground Truth v2 — Jira-Verified Corrections
 
 **Priority:** HIGH — data integrity  
-**Status:** In Progress  
+**Status:** complete (2026-02-17)  
 **Depends on:** `jira-audit-report.md` (complete)
+
+All 6 phases executed. Commits: `8296ddd` (Jira audit corrections), `8622fe7` (rebalance M19).
+Tests pass, stub baseline recorded.
 
 ## Goal
 

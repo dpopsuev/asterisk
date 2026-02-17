@@ -75,13 +75,13 @@ Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orc
 
 | Contract | Goal | Depends on |
 |----------|------|------------|
-| `wet-calibration.md` | Formalize dry/wet calibration taxonomy, 28 per-case Test Cards across 3 scenarios, and an iterative "victory loop" (run wet → diagnose → tune → dry check → repeat) until all scenarios pass 20/20 metrics with `--adapter=cursor`. | fs-dispatcher (auto dispatch), cursor-skill (agent responds to signals), e2e-calibration (dry baseline) |
+| `wet-calibration.md` | Formalize dry/wet calibration taxonomy, 28 per-case Test Cards across 3 scenarios, and an iterative "victory loop" (run wet → diagnose → tune → dry check → repeat) until all scenarios pass 20/20 metrics with `--adapter=cursor`. **Closed.** BasicAdapter M19=0.93 baseline; mock-calibration-agent retired; Cursor adapter deferred to MCP path. | fs-dispatcher (auto dispatch), cursor-skill (agent responds to signals), e2e-calibration (dry baseline) |
 
 ## Real calibration ingest (data pipeline)
 
 || Contract | Goal | Depends on |
 ||----------|------|------------|
-|| `real-calibration-ingest.md` | Ingest real CI data (`.maildump/` email dump + CI results spreadsheet) into calibration `Scenario` definitions with annotated ground truth, producing ≤30 real-world test cases. Phases: email triage → CI results parse → case selection → ground truth annotation → scenario generation. | e2e-calibration (scenario format), wet-calibration (calibration loop) |
+|| `real-calibration-ingest.md` | Ingest real CI data (`.maildump/` email dump + CI results spreadsheet) into calibration `Scenario` definitions with annotated ground truth, producing ≤30 real-world test cases. Phases: email triage → CI results parse → case selection → ground truth annotation → scenario generation. **Complete.** | e2e-calibration (scenario format), wet-calibration (calibration loop) |
 
 ## Calibration improvement loop (Overall Accuracy M19: 0.58 → 0.95+)
 
@@ -162,6 +162,12 @@ Execute **in order**; each contract depends on the previous.
 |----------|------|------------|
 | `transcript-weaver.md` | Post-hoc weaver: consolidate per-step prompt/response artifacts into one Markdown transcript per Root Cause. Flag-gated (`--transcript`), adapter-agnostic (works with stubs). | e2e-calibration (artifacts on disk), unified-formatter (Markdown tables) |
 
+## PoC E2E (final gate)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, compare against Jira-verified ground truth, push at least 1 result back to RP. Final PoC success criterion #2. | rp-adapter-v2 (complete), real-calibration-ingest (complete), ground-truth-v2 (complete), true-wet-calibration (complete) |
+
 ## Directories
 
 ## Files
@@ -214,3 +220,4 @@ Execute **in order**; each contract depends on the previous.
 - `mcp-server-foundation.md` — **MCP Server Foundation:** `asterisk serve` command; official `go-sdk` dependency; placeholder tools (`ping`, `list_scenarios`); `.cursor/mcp.json`; stdio transport.
 - `mcp-pipeline-tools.md` — **MCP Pipeline Tools:** Investigation pipeline MCP tools (`start_investigation`, `get_prompt`, `submit_artifact`, `get_status`, `get_report`); stateful server; reuses orchestrate + calibrate.
 - `mcp-calibration-mode.md` — **MCP Calibration Mode:** Calibration-specific MCP tools (`start_calibration`, `get_calibration_report`, `get_transcripts`, `get_cost_report`); ground truth scoring, preamble injection, TokiMeter.
+- `rp-e2e-launch.md` — **RP E2E Launch:** Real blind end-to-end run against ReportPortal — fetch 4 RP-linked launches, analyze with BasicAdapter, blind-score against Jira-verified ground truth, push to RP. Final PoC gate.

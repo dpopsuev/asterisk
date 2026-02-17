@@ -1,7 +1,21 @@
 # Contract — Wet Calibration Victory
 
-**Status:** active  
+**Status:** closed (2026-02-17)  
 **Goal:** Run all three calibration scenarios with the real cursor adapter (`--adapter=cursor`), iteratively tuning prompts, skill instructions, heuristics, or code until every scenario achieves 20/20 metrics — tracking progress via per-case Test Cards.
+
+## Closure note
+
+Closed without completing wet calibration via CursorAdapter. The mock-calibration-agent
+(which stood in for the Cursor agent) scored 6/20 — an architectural dead end because
+it lacked store access, relied on fragile text parsing, and had divergent heuristics.
+
+**BasicAdapter baseline (zero-LLM):** M19 = 0.93 on Jira-verified ground truth (commit `aee60c1`).
+This establishes the heuristic floor that any AI-driven adapter must exceed.
+
+**Path forward:** Wet calibration with the real Cursor agent is deferred to the MCP path
+(`mcp-server-foundation.md` -> `mcp-pipeline-tools.md` -> `mcp-calibration-mode.md`), which
+gives Cursor direct tool access to the store and pipeline — solving the root causes that
+made the mock-agent approach unviable. The mock-calibration-agent binary has been retired.
 
 ## Contract rules
 
