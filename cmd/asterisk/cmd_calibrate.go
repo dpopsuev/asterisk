@@ -36,7 +36,6 @@ var calibrateFlags struct {
 	rpBase        string
 	rpKeyPath     string
 	rpProject     string
-	grade         string
 }
 
 var calibrateCmd = &cobra.Command{
@@ -64,7 +63,6 @@ func init() {
 	f.StringVar(&calibrateFlags.rpBase, "rp-base-url", "", "RP base URL for RP-sourced scenario cases")
 	f.StringVar(&calibrateFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
 	f.StringVar(&calibrateFlags.rpProject, "rp-project", "", "RP project name (default: $ASTERISK_RP_PROJECT)")
-	f.StringVar(&calibrateFlags.grade, "grade", "", "Filter cases by evidence grade (A, B, C, or comma-separated e.g. A,B)")
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
@@ -101,14 +99,6 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		if err := calibrate.ResolveRPCases(rpFetcher, scenario); err != nil {
 			return fmt.Errorf("resolve RP-sourced cases: %w", err)
 		}
-	}
-
-	if calibrateFlags.grade != "" {
-		scenario = calibrate.FilterByGrade(scenario, calibrateFlags.grade)
-		if len(scenario.Cases) == 0 {
-			return fmt.Errorf("no cases match --grade=%s", calibrateFlags.grade)
-		}
-		fmt.Fprintf(cmd.OutOrStdout(), "[filter] --grade=%s: %d cases selected\n", calibrateFlags.grade, len(scenario.Cases))
 	}
 
 	calibDir := ".asterisk/calibrate"

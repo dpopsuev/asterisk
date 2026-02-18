@@ -73,7 +73,6 @@ func (s *Server) registerTools() {
 type startCalibrationInput struct {
 	Scenario  string `json:"scenario" jsonschema:"scenario name (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)"`
 	Adapter   string `json:"adapter" jsonschema:"model adapter (stub, basic, cursor)"`
-	Grade     string `json:"grade,omitempty" jsonschema:"filter by evidence grade (A, B, C, or comma-separated)"`
 	RPBaseURL string `json:"rp_base_url,omitempty" jsonschema:"ReportPortal base URL for RP-sourced cases"`
 	RPProject string `json:"rp_project,omitempty" jsonschema:"ReportPortal project name"`
 	Parallel  int    `json:"parallel,omitempty" jsonschema:"number of parallel workers (default 1 = serial)"`
@@ -164,7 +163,6 @@ func (s *Server) handleStartCalibration(ctx context.Context, _ *sdkmcp.CallToolR
 	sess, err := NewSession(ctx, StartCalibrationInput{
 		Scenario:    input.Scenario,
 		Adapter:     input.Adapter,
-		Grade:       input.Grade,
 		RPBaseURL:   input.RPBaseURL,
 		RPProject:   input.RPProject,
 		Parallel:    input.Parallel,

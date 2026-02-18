@@ -9,12 +9,13 @@ import (
 
 // Scenario defines a complete calibration scenario with ground truth data.
 type Scenario struct {
-	Name        string              `json:"name"`
-	Description string              `json:"description"`
-	RCAs        []GroundTruthRCA    `json:"rcas"`
+	Name        string               `json:"name"`
+	Description string               `json:"description"`
+	RCAs        []GroundTruthRCA     `json:"rcas"`
 	Symptoms    []GroundTruthSymptom `json:"symptoms"`
-	Cases       []GroundTruthCase   `json:"cases"`
-	Workspace   WorkspaceConfig     `json:"workspace"`
+	Cases       []GroundTruthCase    `json:"cases"`
+	Candidates  []GroundTruthCase    `json:"candidates,omitempty"` // unverified cases tracked for dataset growth, never scored
+	Workspace   WorkspaceConfig      `json:"workspace"`
 }
 
 // GroundTruthRCA is a known root cause for calibration scoring.
@@ -31,7 +32,7 @@ type GroundTruthRCA struct {
 	KeywordThreshold int      `json:"keyword_threshold"`  // min keywords needed
 	RelevantRepos    []string `json:"relevant_repos"`     // repos that should be selected for this RCA
 	FixPRs           []string `json:"fix_prs,omitempty"`
-	EvidenceGrade    string   `json:"evidence_grade,omitempty"` // A=PR-proven, B=Jira-only, C=disputed/unverified
+	Verified         bool     `json:"verified"`                 // true = PR-proven ground truth; false = candidate (not scored)
 	SmokingGun       string   `json:"smoking_gun,omitempty"`    // key phrase from the fix PR proving the root cause
 }
 
@@ -194,6 +195,21 @@ func (ms *MetricSet) PassCount() (int, int) {
 	return passed, len(all)
 }
 
+// DatasetHealth summarizes the ground truth dataset composition.
+type DatasetHealth struct {
+	VerifiedCount  int             `json:"verified_count"`
+	CandidateCount int             `json:"candidate_count"`
+	Candidates     []CandidateInfo `json:"candidates,omitempty"`
+}
+
+// CandidateInfo describes an unverified candidate case.
+type CandidateInfo struct {
+	CaseID string `json:"case_id"`
+	RCAID  string `json:"rca_id"`
+	JiraID string `json:"jira_id,omitempty"`
+	Reason string `json:"reason"`
+}
+
 // CalibrationReport is the final output of a calibration run.
 type CalibrationReport struct {
 	Scenario     string           `json:"scenario"`
@@ -203,8 +219,9 @@ type CalibrationReport struct {
 	BasePath     string           `json:"-"`                      // artifact root; not serialized
 	Metrics      MetricSet        `json:"metrics"`
 	CaseResults  []CaseResult     `json:"case_results"`
-	RunMetrics   []MetricSet      `json:"run_metrics,omitempty"`  // per-run for variance
-	Tokens       *dispatch.TokenSummary    `json:"tokens,omitempty"`      // populated when TokenTracker is present
+	RunMetrics   []MetricSet            `json:"run_metrics,omitempty"`  // per-run for variance
+	Tokens       *dispatch.TokenSummary  `json:"tokens,omitempty"`      // populated when TokenTracker is present
+	Dataset      *DatasetHealth          `json:"dataset,omitempty"`     // ground truth composition
 }
 
 // CaseResult captures the per-case investigation outcome.

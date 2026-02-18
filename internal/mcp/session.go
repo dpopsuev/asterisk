@@ -107,7 +107,6 @@ func (s *Session) GetState() SessionState {
 type StartCalibrationInput struct {
 	Scenario    string `json:"scenario"`
 	Adapter     string `json:"adapter"`
-	Grade       string `json:"grade,omitempty"`
 	RPBaseURL   string `json:"rp_base_url,omitempty"`
 	RPProject   string `json:"rp_project,omitempty"`
 	RPKeyPath   string `json:"rp_key_path,omitempty"`
@@ -147,13 +146,6 @@ func NewSession(ctx context.Context, input StartCalibrationInput) (*Session, err
 		rpFetcher = rp.NewFetcher(client, rpProject)
 		if err := calibrate.ResolveRPCases(rpFetcher, scenario); err != nil {
 			return nil, fmt.Errorf("resolve RP-sourced cases: %w", err)
-		}
-	}
-
-	if input.Grade != "" {
-		scenario = calibrate.FilterByGrade(scenario, input.Grade)
-		if len(scenario.Cases) == 0 {
-			return nil, fmt.Errorf("no cases match grade=%s", input.Grade)
 		}
 	}
 
