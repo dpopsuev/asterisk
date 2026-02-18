@@ -22,6 +22,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `mcp-server-foundation.md` | `asterisk serve` starts a stateful MCP server over stdio; placeholder tools. | MCP integration |
 | `mcp-pipeline-tools.md` | MCP tools driving F0-F6 pipeline. Depends on mcp-server-foundation. | MCP integration |
 | `mcp-calibration-mode.md` | Calibration-specific MCP tools. Depends on mcp-pipeline-tools. | MCP integration |
+| `origami-ground-truth-ingestor.md` | Agentic dataset curation: AI subagents consume unstructured evidence into structured ground truth. JSON files (reviewability-first), CLI-first, MCP bridge. | Dataset growth |
 | `defect-court.md` | Adversarial "Defect Court" phase (D0-D4): prosecution, defense, judicial verdict. | Architecture evolution |
 | `workspace-revisited.md` | Universal artifact reference system: taxonomy, format learning, local catalog/cache. | Architecture evolution |
 

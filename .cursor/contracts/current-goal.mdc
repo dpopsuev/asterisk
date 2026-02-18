@@ -21,6 +21,7 @@ Ordered by priority. Agents should work top-down: complete the gate before touch
 | **next-milestone** | `mcp-server-foundation` | draft | MCP chain step 1. `asterisk serve` over stdio; placeholder tools. Post-PoC. |
 | **next-milestone** | `mcp-pipeline-tools` | draft | MCP chain step 2. F0-F6 pipeline tools. Depends on mcp-server-foundation. |
 | **next-milestone** | `mcp-calibration-mode` | draft | MCP chain step 3. Calibration-specific MCP tools. Depends on mcp-pipeline-tools. |
+| **next-milestone** | `origami-ground-truth-ingestor` | draft | Agentic dataset curation: AI subagents consume unstructured evidence into structured ground truth. JSON files, CLI-first, MCP bridge. |
 | **vision** | `defect-court` | draft | Adversarial RCA (D0-D4). No timeline. |
 | **vision** | `workspace-revisited` | draft | Universal artifact reference system. No timeline. |
 | **vision** | _(persona-system)_ | not yet written | Specialized prompt preambles with workspace binding. No timeline. |
