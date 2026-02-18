@@ -6,6 +6,7 @@ package dispatch
 
 import (
 	"bufio"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -36,10 +37,48 @@ type Dispatcher interface {
 // DispatchContext carries all the metadata a dispatcher needs to deliver
 // a prompt and collect an artifact.
 type DispatchContext struct {
+	DispatchID   int64  // unique ID assigned by the dispatcher for artifact routing
 	CaseID       string // ground-truth case ID, e.g. "C1"
 	Step         string // pipeline step name, e.g. "F0_RECALL"
 	PromptPath   string // absolute path to the filled prompt file
 	ArtifactPath string // absolute path where artifact JSON should appear
+}
+
+// ExternalDispatcher is the agent-facing side of a mux dispatcher.
+// Any external agent (MCP server, CLI AI, HTTP API) uses this interface
+// to pull pipeline steps and submit artifacts with correct routing.
+type ExternalDispatcher interface {
+	GetNextStep(ctx context.Context) (DispatchContext, error)
+	SubmitArtifact(ctx context.Context, dispatchID int64, data []byte) error
+}
+
+// Finalizer is an optional interface for dispatchers that need post-dispatch
+// cleanup (e.g. updating signal files). Adapters check for this interface
+// instead of type-asserting specific dispatcher implementations.
+type Finalizer interface {
+	MarkDone(artifactPath string)
+}
+
+// Unwrapper is implemented by decorator dispatchers (e.g. TokenTrackingDispatcher)
+// to expose the inner dispatcher for interface checks.
+type Unwrapper interface {
+	Inner() Dispatcher
+}
+
+// UnwrapFinalizer walks the dispatcher decorator chain and returns the first
+// Finalizer found, or nil if none implements it.
+func UnwrapFinalizer(d Dispatcher) Finalizer {
+	for d != nil {
+		if f, ok := d.(Finalizer); ok {
+			return f
+		}
+		if u, ok := d.(Unwrapper); ok {
+			d = u.Inner()
+			continue
+		}
+		return nil
+	}
+	return nil
 }
 
 // --- StdinDispatcher (interactive, terminal-based) ---

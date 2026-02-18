@@ -26,6 +26,7 @@ func init() {
 	rootCmd.AddCommand(saveCmd)
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(calibrateCmd)
+	rootCmd.AddCommand(serveCmd)
 	rootCmd.Version = version
 }
 
