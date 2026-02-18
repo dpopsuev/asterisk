@@ -478,8 +478,8 @@ func TestBasicAdapter_Investigate_UnknownComponent(t *testing.T) {
 	var result orchestrate.InvestigateArtifact
 	json.Unmarshal(data, &result)
 
-	if result.ConvergenceScore != 0.40 {
-		t.Errorf("convergence = %f, want 0.40 for unknown component", result.ConvergenceScore)
+	if result.ConvergenceScore != 0.70 {
+		t.Errorf("convergence = %f, want 0.70 for unknown component (BasicAdapter signals done)", result.ConvergenceScore)
 	}
 }
 

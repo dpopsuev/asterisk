@@ -176,9 +176,21 @@ func (a *BasicAdapter) classifyDefect(text string) (category, hypothesis string,
 		}
 	}
 
+	// "HTTP events using consumer" + Jenkins file path but no OCPBUGS/Ginkgo
+	// stats → thin error with no real diagnostic info → environment skip
+	if isHTTPEventsEnvSkip(text) {
+		return "environment", "en001", true
+	}
+
 	// Generic automation/infra keywords (non-PTP)
 	autoKW := []string{"test setup failed", "ginkgo internal", "test teardown"}
 	if basicMatchCount(text, autoKW) > 0 {
+		return "automation", "au001", true
+	}
+
+	// Bare events/metrics file path with no descriptive content: the test
+	// framework captured only the assertion location → automation skip
+	if isBareEventsMetricsPath(text) {
 		return "automation", "au001", true
 	}
 
@@ -360,10 +372,7 @@ func (a *BasicAdapter) buildInvestigate(ci *BasicCaseInfo) *orchestrate.Investig
 		rcaMessage = "investigation pending (no error message available)"
 	}
 
-	convergence := 0.75
-	if component == "unknown" {
-		convergence = 0.40
-	}
+	convergence := a.computeConvergence(text, component, defectType)
 
 	return &orchestrate.InvestigateArtifact{
 		RCAMessage:       rcaMessage,
@@ -413,6 +422,59 @@ func basicMatchCount(text string, keywords []string) int {
 		}
 	}
 	return count
+}
+
+// isHTTPEventsEnvSkip detects C04-style failures: "http events using consumer"
+// with a Jenkins file path but no Jira reference or Ginkgo run summary.
+func isHTTPEventsEnvSkip(text string) bool {
+	if !strings.Contains(text, "http events using consumer") {
+		return false
+	}
+	if !strings.Contains(text, "/var/lib/jenkins") {
+		return false
+	}
+	noJira := !strings.Contains(text, "ocpbugs-") && !regexp.MustCompile(`cnf-\d`).MatchString(text)
+	noGinkgo := !strings.Contains(text, "ran ") || !strings.Contains(text, " specs ")
+	noSubscription := !strings.Contains(text, "losing subscription")
+	return noJira && noGinkgo && noSubscription
+}
+
+// isBareEventsMetricsPath returns true when the text is essentially just a
+// file path to ptp_events_and_metrics.go — automation framework captured only
+// the assertion location, not a real error.
+func isBareEventsMetricsPath(text string) bool {
+	stripped := strings.TrimSpace(text)
+	if stripped == "" {
+		return false
+	}
+	if !strings.Contains(stripped, "ptp_events_and_metrics.go") {
+		return false
+	}
+	words := strings.Fields(stripped)
+	return len(words) <= 2
+}
+
+func (a *BasicAdapter) computeConvergence(text, component, defectType string) float64 {
+	if component == "unknown" {
+		return 0.70 // BasicAdapter can't iterate; signal "done" to prevent useless loops
+	}
+	score := 0.70
+	jiraKW := []string{"ocpbugs-", "cnf-"}
+	if basicMatchCount(text, jiraKW) > 0 {
+		score += 0.10
+	}
+	descriptiveKW := []string{"phc2sys", "ptp4l", "clock", "gnss", "holdover",
+		"offset", "broken pipe", "configmap", "sidecar"}
+	matches := basicMatchCount(text, descriptiveKW)
+	if matches >= 2 {
+		score += 0.10
+	} else if matches == 1 {
+		score += 0.05
+	}
+	if score > 0.95 {
+		score = 0.95
+	}
+	return score
 }
 
 // jiraIDPattern matches OCPBUGS-NNNNN and CNF-NNNNN Jira IDs.
