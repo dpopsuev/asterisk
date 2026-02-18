@@ -67,7 +67,7 @@ func FormatReport(report *CalibrationReport) string {
 	// Per-case breakdown
 	b.WriteString("--- Per-case breakdown ---\n")
 	caseTbl := format.NewTable(format.ASCII)
-	caseTbl.Header("Case", "Test", "Ver/Job", "Defect", "DT", "Comp", "Path", "Path✓")
+	caseTbl.Header("Case", "Test", "Ver/Job", "Defect", "DT", "RP", "Comp", "Path", "Path✓")
 	caseTbl.Columns(
 		format.ColumnConfig{Number: 2, MaxWidth: 40},
 	)
@@ -76,12 +76,17 @@ func FormatReport(report *CalibrationReport) string {
 		if path == "" {
 			path = "(no steps)"
 		}
+		rpTag := display.RPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
+		if rpTag == "" {
+			rpTag = "-"
+		}
 		caseTbl.Row(
 			cr.CaseID,
 			format.Truncate(cr.TestName, 40),
 			fmt.Sprintf("%s/%s", cr.Version, cr.Job),
 			display.DefectTypeWithCode(cr.ActualDefectType),
 			format.BoolMark(cr.DefectTypeCorrect),
+			rpTag,
 			format.BoolMark(cr.ComponentCorrect),
 			path,
 			format.BoolMark(cr.PathCorrect),

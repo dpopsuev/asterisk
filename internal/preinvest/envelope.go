@@ -22,6 +22,7 @@ type FailureItem struct {
 	CodeRef      string `json:"code_ref,omitempty"`
 	Description  string `json:"description,omitempty"`
 	ParentID     int    `json:"parent_id,omitempty"`
-	IssueType    string `json:"issue_type,omitempty"`
-	IssueComment string `json:"issue_comment,omitempty"`
+	IssueType      string `json:"issue_type,omitempty"`
+	IssueComment   string `json:"issue_comment,omitempty"`
+	AutoAnalyzed   bool   `json:"auto_analyzed,omitempty"`
 }

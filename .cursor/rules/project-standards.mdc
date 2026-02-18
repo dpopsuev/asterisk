@@ -37,6 +37,7 @@ alwaysApply: true
 - Treat external data (RP, CI, repos) as partial and potentially absent. Return partial results with clear errors.
 - Redact secrets and PII in all outputs by default.
 - All external calls require timeouts and retry with exponential backoff (see `rules/agent-operations.mdc`).
+- **RP auto-analyzed classifications are low-accuracy data.** When `autoAnalyzed=true` on an RP issue, the defect type was set by RP's built-in ML — not by a human. These classifications must never be used as ground truth, metric baselines, or accuracy benchmarks. Only evidence-backed human assessment is authoritative. Asterisk surfaces this flag as `[auto]` in output so readers can gauge trust.
 
 ## Persistence
 

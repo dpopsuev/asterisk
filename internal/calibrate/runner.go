@@ -287,11 +287,13 @@ func runCasePipeline(
 	cfg RunConfig,
 ) (*CaseResult, error) {
 	result := &CaseResult{
-		CaseID:      gtCase.ID,
-		TestName:    gtCase.TestName,
-		Version:     gtCase.Version,
-		Job:         gtCase.Job,
-		StoreCaseID: caseData.ID,
+		CaseID:         gtCase.ID,
+		TestName:       gtCase.TestName,
+		Version:        gtCase.Version,
+		Job:            gtCase.Job,
+		StoreCaseID:    caseData.ID,
+		RPIssueType:    gtCase.RPIssueType,
+		RPAutoAnalyzed: gtCase.RPAutoAnalyzed,
 	}
 
 	caseDir, err := orchestrate.EnsureCaseDir(cfg.BasePath, suiteID, caseData.ID)

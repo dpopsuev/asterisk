@@ -42,8 +42,10 @@ type AnalysisCaseResult struct {
 	Cascade       bool     `json:"cascade"`
 	EvidenceRefs  []string `json:"evidence_refs"`
 	SelectedRepos []string `json:"selected_repos"`
-	Convergence   float64  `json:"convergence"`
-	RCAID         int64    `json:"rca_id"`
+	Convergence    float64  `json:"convergence"`
+	RCAID          int64    `json:"rca_id"`
+	RPIssueType    string   `json:"rp_issue_type,omitempty"`
+	RPAutoAnalyzed bool     `json:"rp_auto_analyzed,omitempty"`
 }
 
 // RunAnalysis drives the F0–F6 pipeline for a set of cases using the provided adapter.
@@ -257,10 +259,10 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 
 	b.WriteString("--- Per-case breakdown ---\n")
 	tbl := format.NewTable(format.ASCII)
-	tbl.Header("Case", "Test", "Defect", "Category", "Conv", "Path", "Flags")
+	tbl.Header("Case", "Test", "Defect", "RP", "Category", "Conv", "Path", "Flags")
 	tbl.Columns(
 		format.ColumnConfig{Number: 2, MaxWidth: 50},
-		format.ColumnConfig{Number: 5, Align: format.AlignRight},
+		format.ColumnConfig{Number: 6, Align: format.AlignRight},
 	)
 	for _, cr := range report.CaseResults {
 		path := display.StagePath(cr.Path)
@@ -283,10 +285,15 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 			}
 			flags += "[cascade]"
 		}
+		rpTag := display.RPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
+		if rpTag == "" {
+			rpTag = "-"
+		}
 		tbl.Row(
 			cr.CaseLabel,
 			format.Truncate(cr.TestName, 50),
 			display.DefectTypeWithCode(cr.DefectType),
+			rpTag,
 			cr.Category,
 			fmt.Sprintf("%.2f", cr.Convergence),
 			path,

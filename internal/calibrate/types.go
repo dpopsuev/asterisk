@@ -71,8 +71,10 @@ type GroundTruthCase struct {
 	// RP source fields (optional). When RPLaunchID > 0, the calibration runner
 	// fetches real failure data from RP at runtime instead of using the embedded
 	// ErrorMessage/LogSnippet. Ground truth expectations remain embedded.
-	RPLaunchID int `json:"rp_launch_id,omitempty"`
-	RPItemID   int `json:"rp_item_id,omitempty"`
+	RPLaunchID     int    `json:"rp_launch_id,omitempty"`
+	RPItemID       int    `json:"rp_item_id,omitempty"`
+	RPIssueType    string `json:"rp_issue_type,omitempty"`    // populated at runtime by ResolveRPCases
+	RPAutoAnalyzed bool   `json:"rp_auto_analyzed,omitempty"` // populated at runtime by ResolveRPCases
 }
 
 // ExpectedRecall defines the ideal F0 output for a case.
@@ -224,6 +226,10 @@ type CaseResult struct {
 	ActualSelectedRepos []string `json:"actual_selected_repos"`
 	ActualRCAID       int64    `json:"actual_rca_id"`
 	ActualConvergence float64  `json:"actual_convergence"`
+
+	// RP-provided classification (populated for RP-sourced cases)
+	RPIssueType    string `json:"rp_issue_type,omitempty"`
+	RPAutoAnalyzed bool   `json:"rp_auto_analyzed,omitempty"`
 
 	// Token tracking (populated when dispatch.TokenTracker is present)
 	PromptTokensTotal   int   `json:"prompt_tokens_total,omitempty"`

@@ -38,6 +38,20 @@ func DefectTypeWithCode(code string) string {
 	return code
 }
 
+// RPIssueTag formats an RP-provided issue type with a trust indicator.
+// autoAnalyzed=true → "[auto]" (ML-assigned, low trust); false → "[human]".
+// Returns "" when issueType is empty.
+func RPIssueTag(issueType string, autoAnalyzed bool) string {
+	if issueType == "" {
+		return ""
+	}
+	tag := "[human]"
+	if autoAnalyzed {
+		tag = "[auto]"
+	}
+	return DefectType(issueType) + " " + tag
+}
+
 // --- Pipeline Stages ---
 
 var stages = map[string]string{

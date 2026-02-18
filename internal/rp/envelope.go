@@ -54,6 +54,7 @@ func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*preinv
 		if it.Issue != nil {
 			fi.IssueType = it.Issue.IssueType
 			fi.IssueComment = it.Issue.Comment
+			fi.AutoAnalyzed = it.Issue.AutoAnalyzed
 		}
 
 		env.FailureList = append(env.FailureList, fi)

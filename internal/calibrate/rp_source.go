@@ -47,6 +47,8 @@ func ResolveRPCases(fetcher preinvest.Fetcher, scenario *Scenario) error {
 		if c.LogSnippet == "" && item.IssueComment != "" {
 			c.LogSnippet = item.IssueComment
 		}
+		c.RPIssueType = item.IssueType
+		c.RPAutoAnalyzed = item.AutoAnalyzed
 	}
 
 	return nil
