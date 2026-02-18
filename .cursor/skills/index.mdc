@@ -4,6 +4,8 @@ Project-specific skill definitions.
 
 ## Files
 - `index.mdc` — index for this directory.
+- `asterisk-analyze/` — skill folder containing `SKILL.md`; run `asterisk analyze` on an RP launch and present results.
+- `asterisk-investigate/` — skill folder containing `SKILL.md`; investigate CI test failures using the F0-F6 pipeline.
 - `bootstrap/` — skill folder containing `SKILL.md`.
 - `index-integrity/` — skill folder containing `SKILL.md`; scan and enforce index.mdc compliance.
 - `onboard/` — skill folder containing `SKILL.md`.

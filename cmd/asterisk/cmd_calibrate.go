@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -84,7 +85,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("read RP API key from %s: %w", calibrateFlags.rpKeyPath, err)
 		}
-		client, err := rp.New(calibrateFlags.rpBase, key)
+		client, err := rp.New(calibrateFlags.rpBase, key, rp.WithTimeout(30*time.Second))
 		if err != nil {
 			return fmt.Errorf("create RP client: %w", err)
 		}
@@ -234,7 +235,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		fmt.Fprint(out, md)
 
 		tokiPath := calibDir + "/tokimeter.md"
-		if err := os.WriteFile(tokiPath, []byte(md), 0644); err != nil {
+		if err := os.WriteFile(tokiPath, []byte(md), 0600); err != nil {
 			fmt.Fprintf(os.Stderr, "write tokimeter bill: %v\n", err)
 		} else {
 			fmt.Fprintf(out, "\nTokiMeter bill: %s\n", tokiPath)
@@ -245,7 +246,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		tokenReportPath := calibDir + "/token-report.json"
 		data, err := json.MarshalIndent(report.Tokens, "", "  ")
 		if err == nil {
-			if err := os.WriteFile(tokenReportPath, data, 0644); err != nil {
+			if err := os.WriteFile(tokenReportPath, data, 0600); err != nil {
 				fmt.Fprintf(os.Stderr, "write token report: %v\n", err)
 			} else {
 				fmt.Fprintf(out, "\nToken report: %s\n", tokenReportPath)
@@ -266,7 +267,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 					slug := calibrate.TranscriptSlug(&transcripts[i])
 					md := calibrate.RenderRCATranscript(&transcripts[i])
 					tPath := filepath.Join(transcriptDir, slug+".md")
-					if err := os.WriteFile(tPath, []byte(md), 0644); err != nil {
+					if err := os.WriteFile(tPath, []byte(md), 0600); err != nil {
 						fmt.Fprintf(os.Stderr, "write transcript %s: %v\n", slug, err)
 					}
 				}

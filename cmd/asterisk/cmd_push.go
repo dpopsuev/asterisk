@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -39,7 +40,7 @@ func runPush(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("read API key: %w", err)
 		}
-		client, err := rp.New(pushFlags.rpBase, key)
+		client, err := rp.New(pushFlags.rpBase, key, rp.WithTimeout(30*time.Second))
 		if err != nil {
 			return fmt.Errorf("create RP client: %w", err)
 		}

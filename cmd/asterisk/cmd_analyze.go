@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"strconv"
 
 	"github.com/spf13/cobra"
 
@@ -25,30 +27,79 @@ var analyzeFlags struct {
 }
 
 var analyzeCmd = &cobra.Command{
-	Use:   "analyze",
+	Use:   "analyze [launch-id]",
 	Short: "Run evidence-based RCA on a ReportPortal launch",
-	Long:  "Analyze failures from a ReportPortal launch envelope and produce\nan RCA artifact with defect classifications and confidence scores.",
-	RunE:  runAnalyze,
+	Long: `Analyze failures from a ReportPortal launch and produce an RCA artifact
+with defect classifications and confidence scores.
+
+Usage:
+  asterisk analyze 33195                    # Launch ID as positional arg
+  asterisk analyze --launch=33195           # Launch ID as flag
+  asterisk analyze path/to/envelope.json    # Local envelope file
+
+The RP base URL is read from the ASTERISK_RP_URL environment variable,
+or can be set with --rp-base-url. If neither is set, the tool will
+prompt you to configure it.
+
+The RP API token is read from .rp-api-key (first line). If the file
+does not exist, the tool will show you how to get and save the token.`,
+	Args: cobra.MaximumNArgs(1),
+	RunE: runAnalyze,
 }
 
 func init() {
 	f := analyzeCmd.Flags()
-	f.StringVar(&analyzeFlags.launch, "launch", "", "Path to envelope JSON or launch ID (required)")
+	f.StringVar(&analyzeFlags.launch, "launch", "", "Path to envelope JSON or launch ID")
 	f.StringVar(&analyzeFlags.workspacePath, "workspace", "", "Path to context workspace file (YAML/JSON)")
-	f.StringVarP(&analyzeFlags.artifactPath, "output", "o", "", "Output artifact path (required)")
+	f.StringVarP(&analyzeFlags.artifactPath, "output", "o", "", "Output artifact path (default: .asterisk/output/rca-<launch>.json)")
 	f.StringVar(&analyzeFlags.dbPath, "db", store.DefaultDBPath, "Store DB path")
 	f.StringVar(&analyzeFlags.adapterName, "adapter", "basic", "Adapter: basic (heuristic, default)")
-	f.StringVar(&analyzeFlags.rpBase, "rp-base-url", "", "RP base URL (optional; for fetch by launch ID)")
+	f.StringVar(&analyzeFlags.rpBase, "rp-base-url", "", "RP base URL (default: $ASTERISK_RP_URL)")
 	f.StringVar(&analyzeFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
-
-	_ = analyzeCmd.MarkFlagRequired("launch")
-	_ = analyzeCmd.MarkFlagRequired("output")
 }
 
-func runAnalyze(cmd *cobra.Command, _ []string) error {
-	env := loadEnvelopeForAnalyze(analyzeFlags.launch, analyzeFlags.dbPath, analyzeFlags.rpBase, analyzeFlags.rpKeyPath)
+func runAnalyze(cmd *cobra.Command, args []string) error {
+	launch := analyzeFlags.launch
+	if launch == "" && len(args) > 0 {
+		launch = args[0]
+	}
+	if launch == "" {
+		return fmt.Errorf("launch ID or envelope path is required\n\nUsage: asterisk analyze <launch-id>\n       asterisk analyze path/to/envelope.json")
+	}
+
+	rpBase := analyzeFlags.rpBase
+	if rpBase == "" {
+		rpBase = os.Getenv("ASTERISK_RP_URL")
+	}
+
+	if _, err := strconv.Atoi(launch); err == nil && rpBase == "" {
+		return fmt.Errorf("RP base URL is required when using a launch ID\n\nSet it via environment variable:\n  export ASTERISK_RP_URL=https://your-rp-instance.example.com\n\nOr use the --rp-base-url flag:\n  asterisk analyze %s --rp-base-url https://your-rp-instance.example.com", launch)
+	}
+
+	if rpBase != "" {
+		if err := checkTokenFile(analyzeFlags.rpKeyPath); err != nil {
+			return err
+		}
+	}
+
+	artifactPath := analyzeFlags.artifactPath
+	if artifactPath == "" {
+		safeName := launch
+		if id, err := strconv.Atoi(launch); err == nil {
+			safeName = strconv.Itoa(id)
+		} else {
+			safeName = filepath.Base(launch)
+		}
+		outputDir := filepath.Join(".asterisk", "output")
+		if err := os.MkdirAll(outputDir, 0700); err != nil {
+			return fmt.Errorf("create output dir: %w", err)
+		}
+		artifactPath = filepath.Join(outputDir, fmt.Sprintf("rca-%s.json", safeName))
+	}
+
+	env := loadEnvelopeForAnalyze(launch, analyzeFlags.dbPath, rpBase, analyzeFlags.rpKeyPath)
 	if env == nil {
-		return fmt.Errorf("could not load envelope for launch %q", analyzeFlags.launch)
+		return fmt.Errorf("could not load envelope for launch %q", launch)
 	}
 	if len(env.FailureList) == 0 {
 		return fmt.Errorf("envelope has no failures")
@@ -69,6 +120,8 @@ func runAnalyze(cmd *cobra.Command, _ []string) error {
 		for _, r := range ws.Repos {
 			repoNames = append(repoNames, r.Name)
 		}
+	} else {
+		repoNames = defaultWorkspaceRepos()
 	}
 
 	suiteID, cases := createAnalysisScaffolding(st, env)
@@ -105,11 +158,11 @@ func runAnalyze(cmd *cobra.Command, _ []string) error {
 	if err != nil {
 		return fmt.Errorf("marshal report: %w", err)
 	}
-	if err := os.WriteFile(analyzeFlags.artifactPath, data, 0644); err != nil {
+	if err := os.WriteFile(artifactPath, data, 0600); err != nil {
 		return fmt.Errorf("write report: %w", err)
 	}
 
 	fmt.Fprint(cmd.OutOrStdout(), calibrate.FormatAnalysisReport(report))
-	fmt.Fprintf(cmd.OutOrStdout(), "\nReport written to: %s\n", analyzeFlags.artifactPath)
+	fmt.Fprintf(cmd.OutOrStdout(), "\nReport written to: %s\n", artifactPath)
 	return nil
 }

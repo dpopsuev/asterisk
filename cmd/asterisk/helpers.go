@@ -5,11 +5,42 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"time"
 
 	"asterisk/internal/preinvest"
 	"asterisk/internal/rp"
 	"asterisk/internal/store"
 )
+
+func checkTokenFile(path string) error {
+	info, err := os.Stat(path)
+	if os.IsNotExist(err) {
+		return fmt.Errorf("RP API token file not found: %s\n\n"+
+			"To get your RP API token:\n"+
+			"  1. Log in to your ReportPortal instance\n"+
+			"  2. Go to User Profile (top-right icon)\n"+
+			"  3. Copy the API token (UUID format)\n"+
+			"  4. Save it:  echo '<YOUR_TOKEN>' > .rp-api-key && chmod 600 .rp-api-key\n", path)
+	}
+	if err != nil {
+		return fmt.Errorf("check token file: %w", err)
+	}
+	if perm := info.Mode().Perm(); perm&0044 != 0 {
+		fmt.Fprintf(os.Stderr, "WARNING: %s is readable by group/others (mode %04o). Run: chmod 600 %s\n", path, perm, path)
+	}
+	return nil
+}
+
+func defaultWorkspaceRepos() []string {
+	return []string{
+		"ptp-operator",
+		"linuxptp-daemon",
+		"linuxptp-daemon-v2",
+		"cloud-event-proxy",
+		"ptp-operator-must-gather",
+		"cluster-etcd-operator",
+	}
+}
 
 // loadEnvelopeForAnalyze resolves the envelope from a file path or launch ID.
 func loadEnvelopeForAnalyze(launch, dbPath, rpBase, rpKeyPath string) *preinvest.Envelope {
@@ -38,7 +69,7 @@ func loadEnvelopeForAnalyze(launch, dbPath, rpBase, rpKeyPath string) *preinvest
 	env, _ := st.GetEnvelope(launchID)
 	if env == nil && rpBase != "" {
 		key, _ := rp.ReadAPIKey(rpKeyPath)
-		client, err := rp.New(rpBase, key)
+		client, err := rp.New(rpBase, key, rp.WithTimeout(30*time.Second))
 		if err != nil {
 			return nil
 		}
