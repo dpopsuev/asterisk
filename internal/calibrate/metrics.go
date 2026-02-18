@@ -46,9 +46,10 @@ func computeMetrics(scenario *Scenario, results []CaseResult) MetricSet {
 		scoreEvidencePrecision(results, caseMap),
 	}
 
-	// --- M14-M15: Semantic metrics ---
+	// --- M14-M15 + smoking gun: Semantic metrics ---
 	ms.Semantic = []Metric{
 		scoreRCAMessageRelevance(results, caseMap, rcaMap),
+		scoreSmokingGunHitRate(results, caseMap, rcaMap),
 		scoreComponentIdentification(results, caseMap, rcaMap),
 	}
 
@@ -420,6 +421,53 @@ func scoreRCAMessageRelevance(results []CaseResult, caseMap map[string]*GroundTr
 		Value: val, Threshold: 0.60,
 		Pass: val >= 0.60, Detail: fmt.Sprintf("avg over %d cases", count),
 	}
+}
+
+// --- M14b: Smoking gun hit rate ---
+// Checks if the adapter's RCA message textually reaches the same core conclusion
+// as the PR-proven "smoking gun" phrase. A hit requires ≥50% of the phrase's
+// significant words (>3 chars) to appear in the RCA message.
+func scoreSmokingGunHitRate(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) Metric {
+	hits, eligible := 0, 0
+	for _, r := range results {
+		if r.ActualRCAMessage == "" {
+			continue
+		}
+		gt := caseMap[r.CaseID]
+		if gt == nil || gt.RCAID == "" {
+			continue
+		}
+		rca := rcaMap[gt.RCAID]
+		if rca == nil || rca.SmokingGun == "" {
+			continue
+		}
+		eligible++
+		words := smokingGunWords(rca.SmokingGun)
+		if len(words) == 0 {
+			continue
+		}
+		matched := keywordMatch(r.ActualRCAMessage, words)
+		if float64(matched) >= float64(len(words))*0.5 {
+			hits++
+		}
+	}
+	val := safeDiv(hits, eligible)
+	return Metric{
+		ID: "M14b", Name: "smoking_gun_hit_rate",
+		Value: val, Threshold: 0.0,
+		Pass: true, Detail: fmt.Sprintf("%d/%d", hits, eligible),
+	}
+}
+
+// smokingGunWords tokenizes a smoking gun phrase into significant lowercase words (>3 chars).
+func smokingGunWords(phrase string) []string {
+	var words []string
+	for _, w := range strings.Fields(strings.ToLower(phrase)) {
+		if len(w) > 3 {
+			words = append(words, w)
+		}
+	}
+	return words
 }
 
 // --- M15: Component identification ---

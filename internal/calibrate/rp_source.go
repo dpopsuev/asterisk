@@ -55,7 +55,7 @@ func ResolveRPCases(fetcher preinvest.Fetcher, scenario *Scenario) error {
 }
 
 // matchFailureItem finds the FailureItem that corresponds to a GroundTruthCase.
-// Matching priority: exact RPItemID > test name substring match.
+// Matching priority: exact RPItemID > test_id tag in name > test name substring.
 func matchFailureItem(env *preinvest.Envelope, c *GroundTruthCase) *preinvest.FailureItem {
 	if c.RPItemID > 0 {
 		for i := range env.FailureList {
@@ -65,13 +65,25 @@ func matchFailureItem(env *preinvest.Envelope, c *GroundTruthCase) *preinvest.Fa
 		}
 	}
 
-	testLower := strings.ToLower(c.TestName)
-	for i := range env.FailureList {
-		if strings.Contains(strings.ToLower(env.FailureList[i].Name), testLower) {
-			return &env.FailureList[i]
+	if c.TestID != "" {
+		tag := "test_id:" + c.TestID
+		for i := range env.FailureList {
+			if strings.Contains(env.FailureList[i].Name, tag) {
+				return &env.FailureList[i]
+			}
 		}
-		if testLower != "" && strings.Contains(testLower, strings.ToLower(env.FailureList[i].Name)) {
-			return &env.FailureList[i]
+	}
+
+	testLower := strings.ToLower(c.TestName)
+	if testLower != "" {
+		for i := range env.FailureList {
+			nameLower := strings.ToLower(env.FailureList[i].Name)
+			if strings.Contains(nameLower, testLower) {
+				return &env.FailureList[i]
+			}
+			if strings.Contains(testLower, nameLower) {
+				return &env.FailureList[i]
+			}
 		}
 	}
 

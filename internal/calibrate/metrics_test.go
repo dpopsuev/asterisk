@@ -1069,7 +1069,7 @@ func TestComputeMetrics_EmptyResults(t *testing.T) {
 	}
 	ms := computeMetrics(scenario, nil)
 	all := ms.AllMetrics()
-	if len(all) != 20 {
-		t.Errorf("expected 20 metrics, got %d", len(all))
+	if len(all) != 21 {
+		t.Errorf("expected 21 metrics, got %d", len(all))
 	}
 }

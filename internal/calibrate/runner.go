@@ -218,11 +218,12 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		if err != nil {
 			log.Printf("[calibrate] ERROR on case %s: %v", gtCase.ID, err)
 			result = &CaseResult{
-				CaseID:      gtCase.ID,
-				TestName:    gtCase.TestName,
-				Version:     gtCase.Version,
-				Job:         gtCase.Job,
-				StoreCaseID: caseID,
+				CaseID:        gtCase.ID,
+				TestName:      gtCase.TestName,
+				Version:       gtCase.Version,
+				Job:           gtCase.Job,
+				StoreCaseID:   caseID,
+				PipelineError: err.Error(),
 			}
 		}
 

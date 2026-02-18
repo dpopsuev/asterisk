@@ -30,6 +30,9 @@ type GroundTruthRCA struct {
 	RequiredKeywords []string `json:"required_keywords"`  // for stub-mode semantic match
 	KeywordThreshold int      `json:"keyword_threshold"`  // min keywords needed
 	RelevantRepos    []string `json:"relevant_repos"`     // repos that should be selected for this RCA
+	FixPRs           []string `json:"fix_prs,omitempty"`
+	EvidenceGrade    string   `json:"evidence_grade,omitempty"` // A=PR-proven, B=Jira-only, C=disputed/unverified
+	SmokingGun       string   `json:"smoking_gun,omitempty"`    // key phrase from the fix PR proving the root cause
 }
 
 // GroundTruthSymptom is a known symptom pattern.
@@ -243,4 +246,7 @@ type CaseResult struct {
 	PathCorrect        bool    `json:"path_correct"`
 	ComponentCorrect   bool    `json:"component_correct"`
 	SemanticScore      float64 `json:"semantic_score"` // 0-1
+
+	// Pipeline error (non-empty when the case failed during execution)
+	PipelineError string `json:"pipeline_error,omitempty"`
 }
