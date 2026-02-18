@@ -168,6 +168,12 @@ Execute **in order**; each contract depends on the previous.
 |----------|------|------------|
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, compare against Jira-verified ground truth, push at least 1 result back to RP. Final PoC success criterion #2. | rp-adapter-v2 (complete), real-calibration-ingest (complete), ground-truth-v2 (complete), true-wet-calibration (complete) |
 
+## Adversarial RCA (future phase)
+
+| Contract | Goal | Depends on |
+|----------|------|------------|
+| `defect-court.md` | Adversarial "Defect Court" phase (D0-D4): prosecution brief, defense consul, judicial verdict. Extends F0-F6 with structured adversarial review and remand-for-reinvestigation feedback. **Draft.** | mcp-server-foundation, mcp-pipeline-tools, rp-e2e-launch |
+
 ## Directories
 
 ## Files
@@ -221,3 +227,4 @@ Execute **in order**; each contract depends on the previous.
 - `mcp-pipeline-tools.md` — **MCP Pipeline Tools:** Investigation pipeline MCP tools (`start_investigation`, `get_prompt`, `submit_artifact`, `get_status`, `get_report`); stateful server; reuses orchestrate + calibrate.
 - `mcp-calibration-mode.md` — **MCP Calibration Mode:** Calibration-specific MCP tools (`start_calibration`, `get_calibration_report`, `get_transcripts`, `get_cost_report`); ground truth scoring, preamble injection, TokiMeter.
 - `rp-e2e-launch.md` — **RP E2E Launch:** Real blind end-to-end run against ReportPortal — fetch 4 RP-linked launches, analyze with BasicAdapter, blind-score against Jira-verified ground truth, push to RP. Final PoC gate.
+- `defect-court.md` — **Defect Court:** Adversarial RCA pipeline extension (D0-D4) — prosecution brief, defense consul, judicial verdict with remand-for-reinvestigation feedback. Post-MCP future phase. **Draft.**
