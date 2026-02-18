@@ -60,7 +60,7 @@ The `SmokingGun` is tokenized (words > 3 chars); a case "hits" if >= 50% of thos
 | **Post-tightening baseline** | basic | ptp-real-ingest | 18 | **verified** | **0.83** | **0.13** | 19/21 pass, M12/M13 expected fail |
 | `analyze 31356` sanity check | basic | single launch | 1 | — | n/a | n/a | Confirmed correct defect types |
 | **Phase 4** | cursor | ptp-mock | 12 | all | — | — | Mechanical validation (DONE) |
-| **Phase 5a** | cursor (MCP) | ptp-real-ingest | 18 | **verified** | ? | ? | AI accuracy — verified only |
+| **Phase 5a** | cursor (MCP) | ptp-real-ingest | 18 | **verified** | **0.50** | **0.22** | FAIL 8/21, 24m56s $0.63, 130 steps |
 | **Phase 5b** | cursor (MCP) | ptp-real-ingest | 30 | all | ? | ? | AI accuracy — full scenario |
 
 ### Verified cases (18 — blind test population)
@@ -310,7 +310,7 @@ asterisk push \
 
 ### CursorAdapter (Phases 4-5)
 - [x] **Mechanical validation (ptp-mock)** — Phase 4, signal loop proven (1 case, all 6 steps)
-- [ ] **Grade-A blind test (ptp-real-ingest)** — Phase 5a, 18 cases, PRIMARY GATE
+- [x] **Grade-A blind test (ptp-real-ingest)** — Phase 5a, 18 cases, **FAIL** M19=0.50 (target ≥0.85)
 - [ ] **Full scenario (ptp-real-ingest)** — Phase 5b, 30 cases, completeness
 - [ ] **Head-to-head comparison** — fill comparison table, analyze smoking-gun hits
 
@@ -413,6 +413,7 @@ Implement these mitigations when executing this contract.
 
 (Running log, newest first.)
 
+- 2026-02-18 — **Phase 5a complete: CursorAdapter blind test FAIL.** M19=0.50 (threshold ≥0.65, BasicAdapter=0.83). 18 verified cases, 130 steps, 24m56s, $0.63 (149K prompt + 12K artifact tokens). Key findings: (1) **M14b=0.22 > Basic's 0.13** — cursor finds smoking-gun phrases more often (4/18 vs ~2/18). (2) **M2=0.00** — all symptom categories wrong; prompts use category taxonomy but cursor consistently chose "assertion" ignoring the ground truth labels. (3) **M15=0.44** (8/18 components) — most ground truth is linuxptp-daemon, cursor often guessed ptp-operator or cloud-event-proxy. (4) **M12/M13=0.00** — cursor didn't produce PR-level evidence refs (same as BasicAdapter). (5) **M18=149K >> 60K budget** — 2.5x over, primarily from convergence loops (5 actual, 0 expected). (6) **M8=-0.16** — convergence scores negatively correlated with actual correctness. Recommendation: improve prompt template to guide category selection, add component frequency heuristics, tune convergence thresholds, reduce token waste via tighter prompts.
 - 2026-02-18 — **Contract review: align with Verified model.** Replaced all `EvidenceGrade` A/B/C references with `Verified` bool. Removed `--grade` flag references (flag deleted). Updated `MCPDispatcher` → `MuxDispatcher`, `dispatch/mcp.go` → `dispatch/mux.go`. Updated `current-goal.mdc` summary (both adapters, 20 RP-sourced cases).
 - 2026-02-18 — **MCP replaces file dispatch.** Cursor adapter now uses MCP tool calls (`asterisk serve`) instead of `signal.json` + `FileDispatcher`. Zero manual approval gates. ROGYB fixes applied: goroutine leak prevention, session cancel, server shutdown hook.
 - 2026-02-18 — **Deferred push to Phase 6.** Moved RP push from Phase 3 (between BasicAdapter phases) to Phase 6 (after cursor adapter confidence). No value in pushing overfit heuristic results. Push is now gated on cursor adapter Phase 5a passing. Renumbered phases: 1→1, 1a→1a, 2→2, (old 3 removed), 4→3, 5→4, 6a→5a, 6b→5b, (new 6=push), 7→7. Marked completed BasicAdapter tasks.
