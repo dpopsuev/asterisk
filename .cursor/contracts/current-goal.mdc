@@ -6,7 +6,7 @@ description: Active goal manifest — single-read orientation for agents to know
 
 **Goal:** PoC completion  
 **Reference:** `goals/poc.mdc`  
-**Summary:** Prove Asterisk can do real blind RCA on RP data with BasicAdapter, push results back to ReportPortal, then tune accuracy through targeted quick wins.
+**Summary:** Prove Asterisk can do real blind RCA on RP data with both BasicAdapter (heuristic) and CursorAdapter (AI via MCP), push results back to ReportPortal, then tune accuracy through targeted quick wins.
 
 ## Urgency Map
 
@@ -14,7 +14,7 @@ Ordered by priority. Agents should work top-down: complete the gate before touch
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| **gate** | `rp-e2e-launch` | active | Final PoC gate. Fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back. All deps met. |
+| **gate** | `rp-e2e-launch` | active | Final PoC gate. 20 RP-sourced cases (of 30 total), 18 verified ground truth. BasicAdapter phases complete (M19=0.83). CursorAdapter blind test via MCP in progress. Push gated on cursor adapter confidence. |
 | **quick-win** | `poc-tuning-loop` | draft | Activates after rp-e2e-launch. Surface RP attributes, wire Jira links, tune keyword maps. Tight calibrate-measure-commit loop. |
 | **quick-win** | `evidence-gap-brief` | draft | Structured "what's missing" output when confidence is low. Feeds tuning loop priorities and Defect Court mistrial. |
 | **gate** | `poc-scope-precision` | draft | Zero-friction packaging: simplified CLI, Cursor skill, CEO-ready README. Required for external demo. |

@@ -12,7 +12,7 @@
 - API key must not be committed (`.rp-api-key` is in `.gitignore`).
 - Push to RP only after manual review of the calibration report — never auto-push.
 - Cursor adapter calibration uses **MCP**: the Go binary runs as an MCP server (`asterisk serve`); the Cursor agent drives calibration via tool calls (`start_calibration`, `get_next_step`, `submit_artifact`, `get_report`). No file-based signal protocol.
-- **Evidence grading is mandatory**: every `GroundTruthRCA` must have an `EvidenceGrade` (A/B/C). The cursor adapter blind test runs **grade-A cases only** (`--grade=A`) to ensure calibration against hard facts.
+- **Verified ground truth only for blind tests**: every `GroundTruthRCA` has a `Verified` flag. Only verified cases (PR-proven, 18 total) are used for scoring. Candidates (12 unverified) are tracked for dataset growth but never scored.
 
 ## Context
 
@@ -22,22 +22,21 @@
 - **Ground truth source:** `internal/calibrate/scenarios/ptp_real_ingest.go` + `.cursor/notes/jira-audit-report.md`
 - **Evidence scorecard:** `.dev/calibration-data/ground-truth-evidence-scorecard.md`
 
-### Ground truth grading
+### Ground truth verification
 
-Every `GroundTruthRCA` is graded by evidence strength. The `--grade` CLI flag filters cases at calibration time.
+Every `GroundTruthRCA` has a `Verified` flag. Only verified cases are scored; unverified candidates are tracked for dataset growth via `Scenario.Candidates`.
 
-| Grade | Meaning | Grounding | Count |
-|-------|---------|-----------|-------|
-| **A** | PR-proven | Merged fix PR + Jira ticket + SmokingGun phrase | **18 cases** |
-| **B** | Jira-only | Jira ticket exists but no merged fix PR found | 5 cases |
-| **C** | Disputed/unverified | Ground truth disputed, incomplete, or no external evidence | 7 cases |
+| Status | Meaning | Grounding | Count |
+|--------|---------|-----------|-------|
+| **Verified** | PR-proven | Merged fix PR + Jira ticket + SmokingGun phrase | **18 cases** |
+| **Candidate** | Unverified | Jira-only, disputed, or incomplete evidence | **12 cases** |
 
-**New fields on `GroundTruthRCA`:**
+**Key fields on `GroundTruthRCA`:**
 
 | Field | Type | Purpose |
 |-------|------|---------|
-| `EvidenceGrade` | `string` | "A", "B", or "C" — evidence tier |
-| `FixPRs` | `[]string` | GitHub PR URLs/shorthand for the merged fix (grade A) |
+| `Verified` | `bool` | true = PR-proven ground truth; false = candidate (not scored) |
+| `FixPRs` | `[]string` | GitHub PR URLs/shorthand for the merged fix (verified cases) |
 | `SmokingGun` | `string` | Key phrase from the fix PR that proves the root cause |
 
 The `SmokingGun` is tokenized (words > 3 chars); a case "hits" if >= 50% of those words appear in the adapter's `ActualRCAMessage`. This measures whether the adapter reaches the same conclusion as the actual fix.
@@ -46,27 +45,27 @@ The `SmokingGun` is tokenized (words > 3 chars); a case "hits" if >= 50% of thos
 
 | Adapter | Description | Known baselines (post-tightening) |
 |---------|-------------|-----------------------------------|
-| `basic` | Zero-LLM Go heuristic (regex, keyword matching) | M19=0.88 (all 30), M19=0.83 (grade-A 18) |
+| `basic` | Zero-LLM Go heuristic (regex, keyword matching) | M19=0.88 (all 30), M19=0.83 (verified 18) |
 | `cursor` | Cursor agent as F0-F6 reasoning engine via signal.json | **Not yet measured** — this contract establishes the baseline |
 
 **Note on M12/M13:** After ground truth tightening, `ExpectedInvest.EvidenceRefs` contain precise PR URLs (e.g. `redhat-cne/cloud-event-proxy#632`). The BasicAdapter outputs repo-level references only, so M12 (Evidence Recall) and M13 (Evidence Precision) score 0.00 for the BasicAdapter. This is **expected and by design** — these metrics are meaningful only for the cursor adapter, which can discover actual PRs.
 
 ### Existing baselines (comparison cards)
 
-| Source | Adapter | Scenario | Cases | Grade | M19 | M14b | Notes |
-|--------|---------|----------|-------|-------|-----|------|-------|
+| Source | Adapter | Scenario | Cases | Population | M19 | M14b | Notes |
+|--------|---------|----------|-------|------------|-----|------|-------|
 | `calibration-victory.md` | basic | ptp-real-ingest | 30 | all | 0.96 | n/a | Pre-tightening, 20/20 metrics |
 | `true-wet-calibration.md` | basic | ptp-real-ingest | 30 | all | 0.93 | n/a | Pre-tightening baseline |
 | Blind E2E (Phase 1) | basic | ptp-real-ingest | 30 | all | 0.88 | n/a | Post-tightening, M12/M13 fail (expected) |
-| **Post-tightening baseline** | basic | ptp-real-ingest | 18 | **A** | **0.83** | **0.13** | 19/21 pass, M12/M13 expected fail |
+| **Post-tightening baseline** | basic | ptp-real-ingest | 18 | **verified** | **0.83** | **0.13** | 19/21 pass, M12/M13 expected fail |
 | `analyze 31356` sanity check | basic | single launch | 1 | — | n/a | n/a | Confirmed correct defect types |
 | **Phase 4** | cursor | ptp-mock | 12 | all | — | — | Mechanical validation (DONE) |
-| **Phase 5a** | cursor (MCP) | ptp-real-ingest | 18 | **A** | ? | ? | AI accuracy — grade-A only |
+| **Phase 5a** | cursor (MCP) | ptp-real-ingest | 18 | **verified** | ? | ? | AI accuracy — verified only |
 | **Phase 5b** | cursor (MCP) | ptp-real-ingest | 30 | all | ? | ? | AI accuracy — full scenario |
 
-### Grade-A cases (18 — blind test population)
+### Verified cases (18 — blind test population)
 
-These 18 cases have `EvidenceGrade="A"` — each is backed by a merged fix PR, a Jira ticket, and a smoking-gun phrase. This is the primary calibration population for the cursor adapter.
+These 18 cases have `Verified=true` — each is backed by a merged fix PR, a Jira ticket, and a smoking-gun phrase. This is the primary calibration population for the cursor adapter.
 
 | Case | Jira | OCP | Component | FixPR | SmokingGun (abbreviated) |
 |------|------|-----|-----------|-------|--------------------------|
@@ -95,37 +94,37 @@ These 18 cases have `EvidenceGrade="A"` — each is backed by a merged fix PR, a
 
 **Version-matched (12 cases — same OCP version):**
 
-| Case | Jira | OCP | RPLaunchID | Launch Ver | Ground Truth | Grade |
-|------|------|-----|------------|------------|--------------|-------|
-| C01 | OCPBUGS-70233 | 4.20 | 31356 | 4.20 | pb001 / linuxptp-daemon | B |
-| C02 | OCPBUGS-74939 | 4.21 | 32799 | 4.21 | au001 / cnf-gotests | B |
-| C03 | OCPBUGS-64567 | 4.19 | 31278 | 4.19 | fw001 / linuxptp-daemon | B |
-| C05 | OCPBUGS-74342 | 4.17 | 32292 | 4.17 | pb001 / cloud-event-proxy | **A** |
-| C06 | OCPBUGS-65911 | 4.14 | 33179 | 4.14 | pb001 / linuxptp-daemon | **A** |
-| C07 | OCPBUGS-44530 | 4.16 | 33166 | 4.16 | pb001 / WLP | C |
-| C10 | OCPBUGS-73627 | 4.21 | 33000 | 4.21 | pb001 / linuxptp-daemon | **A** |
-| C11 | CNF-21588 | 4.21 | 33000 | 4.21 | pb001 / cnf-gotests | C |
-| C13 | CNF-21102 | 4.20 | 31362 | 4.20 | pb001 / cloud-event-proxy | **A** |
-| C20 | OCPBUGS-66413 | 4.20 | 31356 | 4.20 | pb001 / linuxptp-daemon | B |
-| C23 | OCPBUGS-53247 | 4.16 | 32295 | 4.16 | pb001 / linuxptp-daemon | **A** |
-| C28 | OCPBUGS-72558 | 4.17 | 32292 | 4.17 | pb001 / linuxptp-daemon | **A** |
+| Case | Jira | OCP | RPLaunchID | Launch Ver | Ground Truth | Verified |
+|------|------|-----|------------|------------|--------------|----------|
+| C01 | OCPBUGS-70233 | 4.20 | 31356 | 4.20 | pb001 / linuxptp-daemon | no |
+| C02 | OCPBUGS-74939 | 4.21 | 32799 | 4.21 | au001 / cnf-gotests | no |
+| C03 | OCPBUGS-64567 | 4.19 | 31278 | 4.19 | fw001 / linuxptp-daemon | no |
+| C05 | OCPBUGS-74342 | 4.17 | 32292 | 4.17 | pb001 / cloud-event-proxy | **yes** |
+| C06 | OCPBUGS-65911 | 4.14 | 33179 | 4.14 | pb001 / linuxptp-daemon | **yes** |
+| C07 | OCPBUGS-44530 | 4.16 | 33166 | 4.16 | pb001 / WLP | no |
+| C10 | OCPBUGS-73627 | 4.21 | 33000 | 4.21 | pb001 / linuxptp-daemon | **yes** |
+| C11 | CNF-21588 | 4.21 | 33000 | 4.21 | pb001 / cnf-gotests | no |
+| C13 | CNF-21102 | 4.20 | 31362 | 4.20 | pb001 / cloud-event-proxy | **yes** |
+| C20 | OCPBUGS-66413 | 4.20 | 31356 | 4.20 | pb001 / linuxptp-daemon | no |
+| C23 | OCPBUGS-53247 | 4.16 | 32295 | 4.16 | pb001 / linuxptp-daemon | **yes** |
+| C28 | OCPBUGS-72558 | 4.17 | 32292 | 4.17 | pb001 / linuxptp-daemon | **yes** |
 
 **Cross-version (8 cases — nearest available launch):**
 
-| Case | Jira | OCP | RPLaunchID | Launch Ver | Ground Truth | Grade |
-|------|------|-----|------------|------------|--------------|-------|
-| C08 | OCPBUGS-65543 | 4.15 | 32538 | 4.21 | pb001 / linuxptp-daemon | **A** |
-| C14 | OCPBUGS-71204 | 4.21 | 31362 | 4.20 | pb001 / linuxptp-daemon | **A** |
-| C15 | OCPBUGS-70178 | 4.21 | 31362 | 4.20 | pb001 / linuxptp-daemon | **A** |
-| C16 | OCPBUGS-74904 | 4.18 | 32538 | 4.21 | pb001 / linuxptp-daemon | B |
-| C19 | CNF-20071 | 4.21 | 31362 | 4.20 | pb001 / linuxptp-daemon | C |
-| C26 | OCPBUGS-47685 | 4.16 | 31356 | 4.20 | pb001 / linuxptp-daemon | **A** |
-| C29 | OCPBUGS-49372 | 4.17 | 33179 | 4.14 | pb001 / linuxptp-daemon | **A** |
-| C30 | OCPBUGS-59849 | 4.19 | 31356 | 4.20 | pb001 / linuxptp-daemon | C |
+| Case | Jira | OCP | RPLaunchID | Launch Ver | Ground Truth | Verified |
+|------|------|-----|------------|------------|--------------|----------|
+| C08 | OCPBUGS-65543 | 4.15 | 32538 | 4.21 | pb001 / linuxptp-daemon | **yes** |
+| C14 | OCPBUGS-71204 | 4.21 | 31362 | 4.20 | pb001 / linuxptp-daemon | **yes** |
+| C15 | OCPBUGS-70178 | 4.21 | 31362 | 4.20 | pb001 / linuxptp-daemon | **yes** |
+| C16 | OCPBUGS-74904 | 4.18 | 32538 | 4.21 | pb001 / linuxptp-daemon | no |
+| C19 | CNF-20071 | 4.21 | 31362 | 4.20 | pb001 / linuxptp-daemon | no |
+| C26 | OCPBUGS-47685 | 4.16 | 31356 | 4.20 | pb001 / linuxptp-daemon | **yes** |
+| C29 | OCPBUGS-49372 | 4.17 | 33179 | 4.14 | pb001 / linuxptp-daemon | **yes** |
+| C30 | OCPBUGS-59849 | 4.19 | 31356 | 4.20 | pb001 / linuxptp-daemon | no |
 
 **No RP data (10 cases — test_id not in any available RP launch):**
 
-C04(A), C09(A), C12(C), C17(A), C18(C), C21(A), C22(A), C24(A), C25(C), C27(A)
+C04(yes), C09(yes), C12(no), C17(yes), C18(no), C21(yes), C22(yes), C24(yes), C25(no), C27(yes)
 
 Full mapping: `.dev/calibration-data/rp-launch-mapping.md`
 
@@ -157,15 +156,14 @@ just calibrate-e2e
 - [ ] Run calibration, capture M1-M20+M14b scorecard
 - [ ] Record the full report in `.dev/e2e-results/scorecard.md`
 
-### Phase 1a — BasicAdapter grade-A baseline
+### Phase 1a — BasicAdapter verified-only baseline
 
-Run grade-A only to establish the tight baseline (18 cases, PR-proven ground truth):
+Run verified cases only to establish the tight baseline (18 cases, PR-proven ground truth). The scenario constructor automatically separates verified from candidate cases — no CLI flag needed.
 
 ```bash
 asterisk calibrate \
     --scenario=ptp-real-ingest \
     --adapter=basic \
-    --grade=A \
     --rp-base-url https://your-reportportal.example.com \
     --rp-api-key .rp-api-key
 ```
@@ -181,9 +179,9 @@ asterisk calibrate \
 | M14 (RCA relevance) | 0.93 | High |
 | M14b (smoking gun) | 0.13 (2/15) | Low — heuristic doesn't reason about fix PRs |
 | M15 (component) | 0.72 (13/18) | Acceptable |
-| M19 (overall) | 0.83 | Baseline for grade-A |
+| M19 (overall) | 0.83 | Baseline for verified cases |
 
-- [ ] Run grade-A calibration, record as `.dev/e2e-results/scorecard-basic-gradeA.md`
+- [ ] Run verified-only calibration, record as `.dev/e2e-results/scorecard-basic-gradeA.md`
 - [ ] Confirm M12/M13 = 0.00 (expected for BasicAdapter)
 - [ ] Record M14b baseline (smoking gun hit rate)
 
@@ -214,12 +212,12 @@ The calibration report already contains M1-M20+M14b metrics computed against gro
 
 Signal loop proven with 1 case (C1, all 6 pipeline steps: F0→F1→F3→F4→F5→F6→DONE). Full 12-case run skipped — synthetic data with a scripted agent doesn't test AI reasoning. The real test is Phase 5a.
 
-### Phase 5a — Cursor adapter blind test (grade-A only)
+### Phase 5a — Cursor adapter blind test (verified only)
 
-**Primary calibration gate.** Run the cursor adapter against **only the 18 grade-A cases** — every case is backed by a merged fix PR and a smoking-gun phrase. This is the highest-confidence calibration subset.
+**Primary calibration gate.** Run the cursor adapter against **only the 18 verified cases** — every case is backed by a merged fix PR and a smoking-gun phrase. This is the highest-confidence calibration subset.
 
 **Via MCP (preferred):** Use the `asterisk` MCP server tools directly from Cursor:
-1. `start_calibration(scenario=ptp-real-ingest, adapter=cursor, grade=A, rp_base_url=<URL>, rp_project=ecosystem-qe)`
+1. `start_calibration(scenario=ptp-real-ingest, adapter=cursor, rp_base_url=<URL>, rp_project=ecosystem-qe)`
 2. Loop: `get_next_step` → read prompt → investigate → `submit_artifact`
 3. `get_report` when done
 
@@ -227,19 +225,19 @@ Signal loop proven with 1 case (C1, all 6 pipeline steps: F0→F1→F3→F4→F5
 
 | Check | Condition | Rationale |
 |-------|-----------|-----------|
-| Mechanical | All 18 grade-A cases complete | No timeouts, no dispatch errors |
+| Mechanical | All 18 verified cases complete | No timeouts, no dispatch errors |
 | M1 (defect type) | >= 0.90 | Must match BasicAdapter's 1.00 or be close |
 | M12 (evidence recall) | >= 0.50 | Cursor adapter must find actual PRs — BasicAdapter scores 0.00 here |
 | M14b (smoking gun) | >= 0.40 | Must significantly exceed BasicAdapter's 0.13 baseline |
 | M15 (component) | >= 0.70 | Must match or exceed BasicAdapter's 0.72 |
-| M19 (overall) | >= 0.85 | Must exceed BasicAdapter's 0.83 grade-A baseline |
+| M19 (overall) | >= 0.85 | Must exceed BasicAdapter's 0.83 verified baseline |
 
-- [ ] Run cursor adapter calibration via MCP tools (grade-A, 18 cases)
-- [ ] Verify all 18 grade-A cases complete
+- [ ] Run cursor adapter calibration via MCP tools (verified, 18 cases)
+- [ ] Verify all 18 verified cases complete
 - [ ] Record M1-M20+M14b scorecard in `.dev/e2e-results/scorecard-cursor-gradeA.md`
-- [ ] **Head-to-head comparison (grade-A)** — fill in the comparison table:
+- [ ] **Head-to-head comparison (verified)** — fill in the comparison table:
 
-| Metric | BasicAdapter (grade-A) | CursorAdapter (grade-A) | Delta | Winner |
+| Metric | BasicAdapter (verified) | CursorAdapter (verified) | Delta | Winner |
 |--------|------------------------|-------------------------|-------|--------|
 | M1 (defect type accuracy) | 1.00 | ? | ? | ? |
 | M2 (category accuracy) | 1.00 | ? | ? | ? |
@@ -253,14 +251,14 @@ Signal loop proven with 1 case (C1, all 6 pipeline steps: F0→F1→F3→F4→F5
 | M15 (component identification) | 0.72 | ? | ? | ? |
 | M19 (overall accuracy) | 0.83 | ? | ? | ? |
 
-- [ ] Inspect per-case verdicts — compare cursor vs basic for each grade-A case
+- [ ] Inspect per-case verdicts — compare cursor vs basic for each verified case
 - [ ] Analyze smoking-gun hits — which cases did the cursor adapter's RCA message match the fix PR's key phrase?
 
 ### Phase 5b — Cursor adapter full scenario (all 30 cases)
 
-Run the full scenario for completeness. This includes B/C grade cases where ground truth is softer.
+Run the full scenario for completeness. This includes candidate cases where ground truth is softer. Note: only the 18 verified cases are scored; candidates are tracked but not scored.
 
-**Via MCP:** Same tools as Phase 5a, without `--grade` filter (all 30 cases).
+**Via MCP:** Same tools as Phase 5a (all verified cases are included by default).
 
 **Pass criteria:**
 
@@ -306,7 +304,7 @@ asterisk push \
 ### BasicAdapter (Phases 1-3)
 - [x] **Prerequisites** — verify RP reachable, API key present
 - [x] **Calibrate (basic, all 30)** — Phase 1
-- [x] **Calibrate (basic, grade-A 18)** — Phase 1a
+- [x] **Calibrate (basic, verified 18)** — Phase 1a
 - [x] **Evaluate RP-sourced cases** — Phase 2, evidence gaps recorded
 - [x] **Document basic results** — Phase 3, scorecards in `.dev/e2e-results/`
 
@@ -337,9 +335,9 @@ asterisk push \
 - **When** the 20 RP-sourced cases are inspected,
 - **Then** each has a non-empty defect type, component, and evidence refs derived from real RP data.
 
-- **Given** `--grade=A` is specified,
-- **When** calibration runs on grade-A cases only,
-- **Then** 18 cases are selected, M12/M13 = 0.00 (expected — BasicAdapter cannot produce PR URLs), and M14b is recorded as a baseline.
+- **Given** the scenario has 18 verified cases and 12 candidates,
+- **When** calibration runs (only verified cases are scored),
+- **Then** 18 cases are scored, M12/M13 = 0.00 (expected — BasicAdapter cannot produce PR URLs), and M14b is recorded as a baseline.
 
 ### CursorAdapter (SC#6)
 
@@ -348,8 +346,8 @@ asterisk push \
 - **Then** all 12 cases complete without timeout or dispatch_id errors, and M19 >= 0.80.
 
 - **Given** the RP instance is reachable with a valid API key,
-- **When** `asterisk calibrate --scenario=ptp-real-ingest --adapter=cursor --dispatch=file --grade=A --rp-base-url <URL> --rp-api-key .rp-api-key` is run,
-- **Then** all 18 grade-A cases are processed, M19 >= 0.85, M12 >= 0.50, and M14b >= 0.40.
+- **When** `asterisk calibrate --scenario=ptp-real-ingest --adapter=cursor --dispatch=file --rp-base-url <URL> --rp-api-key .rp-api-key` is run,
+- **Then** all 18 verified cases are processed, M19 >= 0.85, M12 >= 0.50, and M14b >= 0.40.
 
 - **Given** the RP instance is reachable with a valid API key,
 - **When** `asterisk calibrate --scenario=ptp-real-ingest --adapter=cursor --dispatch=file --rp-base-url <URL> --rp-api-key .rp-api-key` is run (full scenario),
@@ -375,7 +373,7 @@ asterisk push \
 | `true-wet-calibration.md` | Complete | BasicAdapter baseline (M19=0.93 pre-tightening) |
 | `calibration-victory.md` | Complete | BasicAdapter tuned baseline (M19=0.96 pre-tightening, 20/20) |
 | `cursor-skill.md` | Complete | CursorAdapter + FileDispatcher + signal protocol |
-| `tighten_ground_truth_*.plan.md` | Complete | Evidence grading (A/B/C), FixPRs, SmokingGun |
+| `tighten_ground_truth_*.plan.md` | Complete | FixPRs, SmokingGun, Verified flag (replaced A/B/C grading) |
 
 ## Architecture notes
 
@@ -386,18 +384,18 @@ This contract uses the **RP-sourced calibration** approach: extending `GroundTru
 The cursor adapter (`--adapter=cursor`) now uses MCP tool calls instead of the file-based signal protocol:
 1. `asterisk serve` starts as an MCP server over stdio (configured in `.cursor/mcp.json`)
 2. Cursor calls `start_calibration` → spawns runner goroutine, returns session ID
-3. Runner blocks on `MCPDispatcher.Dispatch()` at each pipeline step
-4. Cursor calls `get_next_step` → receives prompt path + artifact path
+3. Runner blocks on `MuxDispatcher.Dispatch()` at each pipeline step
+4. Cursor calls `get_next_step` → receives prompt path, artifact path, and dispatch ID
 5. Cursor reads the prompt, investigates, calls `submit_artifact` with JSON
 6. Runner scores the artifact, advances to the next step
 7. When all cases complete, `get_next_step` returns `done=true`
 8. Cursor calls `get_report` → receives M1-M20+M14b scorecard
 
-Key files: `internal/calibrate/adapt/cursor.go`, `internal/calibrate/dispatch/mcp.go`, `internal/mcp/server.go`, `internal/mcp/session.go`.
+Key files: `internal/calibrate/adapt/cursor.go`, `internal/calibrate/dispatch/mux.go`, `internal/mcp/server.go`, `internal/mcp/session.go`.
 MCP config: `.cursor/mcp.json`.
 
-### Evidence grading & filtering
-Ground truth cases are graded A/B/C based on evidence strength. The `--grade` CLI flag (in `cmd/asterisk/cmd_calibrate.go`) calls `calibrate.FilterByGrade()` (in `internal/calibrate/filter.go`) to prune the scenario before calibration runs.
+### Ground truth verification model
+Ground truth cases use a `Verified` bool instead of a grading system. The scenario constructor (`PTPRealIngestScenario()`) automatically separates verified cases (18) into `Scenario.Cases` and unverified candidates (12) into `Scenario.Candidates`. Only verified cases are scored during calibration.
 
 The `SmokingGun` field enables a new metric **M14b (Smoking Gun Hit Rate)** in `internal/calibrate/metrics.go`. It tokenizes the phrase (words > 3 chars), counts keyword matches in `ActualRCAMessage`, and scores a hit if >= 50% of words match. This directly measures whether the adapter reaches the same root-cause conclusion as the actual fix PR — the hardest possible accuracy test.
 
@@ -415,6 +413,7 @@ Implement these mitigations when executing this contract.
 
 (Running log, newest first.)
 
+- 2026-02-18 — **Contract review: align with Verified model.** Replaced all `EvidenceGrade` A/B/C references with `Verified` bool. Removed `--grade` flag references (flag deleted). Updated `MCPDispatcher` → `MuxDispatcher`, `dispatch/mcp.go` → `dispatch/mux.go`. Updated `current-goal.mdc` summary (both adapters, 20 RP-sourced cases).
 - 2026-02-18 — **MCP replaces file dispatch.** Cursor adapter now uses MCP tool calls (`asterisk serve`) instead of `signal.json` + `FileDispatcher`. Zero manual approval gates. ROGYB fixes applied: goroutine leak prevention, session cancel, server shutdown hook.
 - 2026-02-18 — **Deferred push to Phase 6.** Moved RP push from Phase 3 (between BasicAdapter phases) to Phase 6 (after cursor adapter confidence). No value in pushing overfit heuristic results. Push is now gated on cursor adapter Phase 5a passing. Renumbered phases: 1→1, 1a→1a, 2→2, (old 3 removed), 4→3, 5→4, 6a→5a, 6b→5b, (new 6=push), 7→7. Marked completed BasicAdapter tasks.
 - 2026-02-18 — **Major rewrite for tight ground truth.** Added evidence grading (A/B/C), `--grade` flag, M14b (Smoking Gun Hit Rate), and split Phase 6 into 6a (grade-A blind test, primary gate) and 6b (full scenario). Updated all baselines to post-tightening values (M19=0.88 all-30, M19=0.83 grade-A-18). Added grade-A case table with FixPRs and SmokingGun phrases. Noted M12/M13 expected failures for BasicAdapter (cannot produce PR-level evidence refs). Added `tighten_ground_truth` plan as dependency.
