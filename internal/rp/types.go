@@ -149,6 +149,14 @@ type PageInfo struct {
 	TotalPages    int `json:"totalPages"`
 }
 
+// UserResource is the response from GET /users (current authenticated user).
+type UserResource struct {
+	UserID   string `json:"userId"`
+	Email    string `json:"email"`
+	FullName string `json:"fullName"`
+	UserRole string `json:"userRole"`
+}
+
 // ErrorRS is the standard RP error response shape.
 type ErrorRS struct {
 	ErrorCode int    `json:"errorCode"`

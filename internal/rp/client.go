@@ -134,6 +134,17 @@ func (c *Client) doJSON(ctx context.Context, method, url, operation string, body
 	return nil
 }
 
+// GetCurrentUser returns the authenticated user's profile based on the bearer token.
+// Uses GET /users which resolves the user from the token.
+func (c *Client) GetCurrentUser(ctx context.Context) (*UserResource, error) {
+	u := fmt.Sprintf("%s/users", c.baseURL)
+	var user UserResource
+	if err := c.doJSON(ctx, "GET", u, "get current user", nil, &user); err != nil {
+		return nil, err
+	}
+	return &user, nil
+}
+
 // ReadAPIKey reads the first line of a file (e.g. .rp-api-key) and returns it trimmed.
 func ReadAPIKey(path string) (string, error) {
 	data, err := os.ReadFile(path)
