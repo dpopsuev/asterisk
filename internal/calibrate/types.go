@@ -67,6 +67,12 @@ type GroundTruthCase struct {
 	ExpectSkip        bool `json:"expect_skip"`         // infra/flake skip
 	ExpectCascade     bool `json:"expect_cascade"`
 	ExpectedLoops     int  `json:"expected_loops"`       // expected F3→F2→F3 loops
+
+	// RP source fields (optional). When RPLaunchID > 0, the calibration runner
+	// fetches real failure data from RP at runtime instead of using the embedded
+	// ErrorMessage/LogSnippet. Ground truth expectations remain embedded.
+	RPLaunchID int `json:"rp_launch_id,omitempty"`
+	RPItemID   int `json:"rp_item_id,omitempty"`
 }
 
 // ExpectedRecall defines the ideal F0 output for a case.

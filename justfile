@@ -132,6 +132,14 @@ calibrate-save scenario="ptp-real-ingest" round="":
         echo "--- Saved to $dest ---"
     fi
 
+# Run E2E calibration with RP-sourced cases (4 live from RP, 26 embedded)
+calibrate-e2e scenario="ptp-real-ingest":
+    go run {{ cmd_asterisk }} calibrate \
+        --scenario={{ scenario }} \
+        --adapter=basic \
+        --rp-base-url https://your-reportportal.example.com \
+        --rp-api-key .rp-api-key
+
 # ─── Clean ────────────────────────────────────────────────
 
 # Remove build artifacts

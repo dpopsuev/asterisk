@@ -14,6 +14,8 @@ import (
 	"asterisk/internal/calibrate/dispatch"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
+	"asterisk/internal/preinvest"
+	"asterisk/internal/rp"
 	"asterisk/internal/store"
 )
 
@@ -25,11 +27,13 @@ var calibrateFlags struct {
 	runs          int
 	promptDir     string
 	clean         bool
-	costReport bool
+	costReport    bool
 	parallel      int
 	tokenBudget   int
 	batchSize     int
 	transcript    bool
+	rpBase        string
+	rpKeyPath     string
 }
 
 var calibrateCmd = &cobra.Command{
@@ -54,6 +58,8 @@ func init() {
 	f.IntVar(&calibrateFlags.tokenBudget, "token-budget", 0, "Max concurrent dispatches (0 = same as --parallel)")
 	f.IntVar(&calibrateFlags.batchSize, "batch-size", 4, "Max signals per batch for batch-file dispatch mode")
 	f.BoolVar(&calibrateFlags.transcript, "transcript", false, "Write per-RCA transcript files after calibration")
+	f.StringVar(&calibrateFlags.rpBase, "rp-base-url", "", "RP base URL for RP-sourced scenario cases")
+	f.StringVar(&calibrateFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
@@ -69,6 +75,23 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		scenario = scenarios.PTPRealIngestScenario()
 	default:
 		return fmt.Errorf("unknown scenario: %s (available: ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)", calibrateFlags.scenario)
+	}
+
+	// Resolve RP-sourced cases before adapter creation so adapters see real data.
+	var rpFetcher preinvest.Fetcher
+	if calibrateFlags.rpBase != "" {
+		key, err := rp.ReadAPIKey(calibrateFlags.rpKeyPath)
+		if err != nil {
+			return fmt.Errorf("read RP API key from %s: %w", calibrateFlags.rpKeyPath, err)
+		}
+		client, err := rp.New(calibrateFlags.rpBase, key)
+		if err != nil {
+			return fmt.Errorf("create RP client: %w", err)
+		}
+		rpFetcher = rp.NewFetcher(client, "ecosystem-qe")
+		if err := calibrate.ResolveRPCases(rpFetcher, scenario); err != nil {
+			return fmt.Errorf("resolve RP-sourced cases: %w", err)
+		}
 	}
 
 	calibDir := ".asterisk/calibrate"
@@ -189,6 +212,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		Parallel:     parallelN,
 		TokenBudget:  budgetN,
 		BasePath:     basePath,
+		RPFetcher:    rpFetcher,
 	}
 
 	report, err := calibrate.RunCalibration(cmd.Context(), cfg)

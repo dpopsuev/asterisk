@@ -2,6 +2,7 @@ package calibrate
 
 import (
 	"asterisk/internal/calibrate/dispatch"
+	"asterisk/internal/preinvest"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -25,6 +26,7 @@ type RunConfig struct {
 	TokenBudget  int          // max concurrent dispatches (token semaphore); 0 = Parallel
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
 	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
+	RPFetcher    preinvest.Fetcher // optional; when set, RP-sourced cases fetch real failure data
 }
 
 // DefaultRunConfig returns defaults for calibration.
