@@ -1,0 +1,88 @@
+---
+description: Agent message bus — mandatory signaling protocol for agent/subagent coordination during MCP calibration
+alwaysApply: true
+---
+
+# Agent Message Bus
+
+During MCP calibration, the main agent and subagents coordinate through the **signal bus** exposed by `emit_signal` and `get_signals` MCP tools.
+
+## Delegation mandate
+
+Every calibration pipeline step MUST be delegated to a subagent. The main agent acts as a **dispatcher**, not an executor.
+
+| Responsibility | Owner |
+|----------------|-------|
+| `get_next_step`, `submit_artifact`, `get_report` | Main agent |
+| Read prompt, generate artifact JSON | Subagent |
+| `emit_signal` (dispatch) | Main agent |
+| `emit_signal` (start, done, error) | Subagent |
+
+Processing a step inline (no subagent) without explicit justification is a violation.
+
+## Signal protocol
+
+### Required signals
+
+| Event | Emitter | When | Required meta |
+|-------|---------|------|---------------|
+| `dispatch` | Main agent | Before launching subagent | — |
+| `start` | Subagent | First action in subagent | — |
+| `done` | Subagent | Artifact ready, before returning | `bytes` (artifact size) |
+| `error` | Subagent | On failure | `error` (message) |
+
+### Auto-emitted signals (server-side, do not duplicate)
+
+| Event | Emitter | When |
+|-------|---------|------|
+| `session_started` | Server | `start_calibration` |
+| `step_ready` | Server | `get_next_step` returns a step |
+| `artifact_submitted` | Server | `submit_artifact` succeeds |
+| `pipeline_done` | Server | `get_next_step` returns `done=true` |
+| `session_done` | Server | Calibration run completes |
+| `session_error` | Server | Calibration run fails |
+
+### Tool signatures
+
+```
+emit_signal(session_id, event, agent, case_id?, step?, meta?)
+get_signals(session_id, since?)
+```
+
+`since` is a 0-based index; omit to get all signals. Use `since` for polling.
+
+## Main agent loop
+
+```
+session = start_calibration(...)
+emit_signal(session_id, "loop", "main")
+while true:
+    step = get_next_step(session_id)
+    if step.done: break
+    emit_signal(session_id, "dispatch", "main", step.case_id, step.step)
+    artifact = launch_subagent(step)
+    submit_artifact(session_id, artifact)
+signals = get_signals(session_id)
+report = get_report(session_id)
+```
+
+## Subagent contract
+
+The subagent receives: `session_id`, `case_id`, `step`, `prompt_path`, `artifact_path`.
+
+```
+emit_signal(session_id, "start", "sub", case_id, step)
+prompt = read(prompt_path)
+artifact = generate_artifact(prompt)
+emit_signal(session_id, "done", "sub", case_id, step, {bytes: len(artifact)})
+return artifact
+```
+
+On error, emit `error` instead of `done` and return the error to the main agent.
+
+## Observability alignment
+
+- **Orange signals** (problem): `error` events, missing templates, low confidence scores in meta.
+- **Yellow signals** (success): `done` events with `bytes`, convergence scores, elapsed time in meta.
+
+Both map to the Orange/Yellow phases in `testing-methodology.mdc`.

@@ -3,7 +3,7 @@
 **Date:** 2026-02-17  
 **Scope:** 30 PTP calibration cases in `internal/calibrate/scenarios/ptp_real_ingest.go`  
 **Sources:** Red Hat Jira (public WebFetch), user-exported HTML (private CNF project), GitHub PRs  
-**Coverage:** 28/30 Jira tickets fetched; 2 inaccessible (OCPBUGS-55838, OCPBUGS-65911)
+**Coverage:** 30/30 Jira tickets fetched (28 public + 2 user-exported HTML)
 
 ---
 
@@ -12,8 +12,8 @@
 | Access Method | Count | Jira IDs |
 |---------------|-------|----------|
 | Public (WebFetch) | 23 | OCPBUGS-70233, -74939, -64567, -70327, -74342, -63435, -55121, -68352, -71204, -70178, -74904, -74377, -75899, -66413, -49373, -45680, -53247, -54967, -45674, -47685, -72558, -49372, -59849 |
-| User export (HTML) | 5 | CNF-21408, CNF-21588, CNF-21102, CNF-20071, CNF-17776 |
-| Inaccessible | 2 | OCPBUGS-55838 (RCA-7), OCPBUGS-65911 (RCA-12) |
+| User export (HTML) | 7 | CNF-21408, CNF-21588, CNF-21102, CNF-20071, CNF-17776, OCPBUGS-55838, OCPBUGS-65911 |
+| Inaccessible | 0 | — |
 
 ---
 
@@ -85,10 +85,17 @@
 
 ### OCPBUGS-55838 (RCA-7 / Case-07)
 
-- **Status:** INACCESSIBLE (3 fetch attempts failed)
+- **Resolution:** Not a Bug
+- **Jira Component:** Networking / ptp
+- **Title:** "leap-configmap is not updating after a leap announcement"
+- **Root Cause:** Test timeout too short (5 min -> 10 min needed). Not a product defect.
+- **Related:** CNF-17872
+- **QE Note:** "After increasing the timeout in automation test, the issue solved"
+- **GitHub PRs:** None (timeout increase, not a code fix)
 - **Ground Truth:** defect=Product Bug (pb001), component=linuxptp-daemon
 - **Description from scenario:** "SNO management workload partitioning"
-- **Verdict:** NO DATA. User export needed to verify.
+- **Verdict:** DISPUTED. The Jira topic (leap-configmap) does not match C07's test (SNO management workload partitioning, test_id:77705). JiraID mapping appears incorrect. Marked EvidenceGrade C pending user confirmation.
+- **Source:** User-provided HTML export (`.jira/[#OCPBUGS-55838]...html`)
 
 ### OCPBUGS-55121 (RCA-8 / Case-08)
 
@@ -130,10 +137,17 @@
 
 ### OCPBUGS-65911 (RCA-12 / Case-12)
 
-- **Status:** INACCESSIBLE (2 fetch attempts failed)
+- **Resolution:** ASSIGNED (unresolved)
+- **Jira Component:** Cloud Native Events / Cloud Event Proxy
+- **Title:** "Cloud event proxy doesn't publish events in 2-PHC hardware"
+- **Fix Version:** 4.22
+- **Related:** OCPBUGS-70221 (race condition with two PHCs)
+- **Latest (2026-Feb-16):** POC up for review
+- **GitHub PRs:** None (POC in review, not yet merged)
 - **Ground Truth:** defect=Product Bug (pb001), component=linuxptp-daemon
-- **Description from scenario:** "Basic PTP Configs should have LOCKED clock state in PTP metrics"
-- **Verdict:** NO DATA. User export needed to verify.
+- **Description from scenario:** "Basic PTP Configs [BeforeAll] should have [LOCKED] clock state in PTP metrics"
+- **Verdict:** DISPUTED. The Jira topic (event publishing in 2-PHC hardware) does not clearly match C12's test (LOCKED clock state in PTP metrics). JiraID mapping may be incorrect. Marked EvidenceGrade C pending user confirmation.
+- **Source:** User-provided HTML export (`.jira/[#OCPBUGS-65911]...html`)
 
 ### CNF-21102 (RCA-13 / Case-13, private, from export)
 
@@ -367,12 +381,12 @@
 | CNF-20071 (RCA-19) | Possibly "As Designed" | Dev says ts2phc behavior is expected; may be au001 or en001 |
 | OCPBUGS-59849 (RCA-30) | Cannot Reproduce | Issue not seen in newer versions |
 
-### Inaccessible (2 cases)
+### Previously Inaccessible — Now Resolved (2 cases)
 
-| Case | Jira ID | Notes |
-|------|---------|-------|
-| OCPBUGS-55838 (RCA-7) | OCPBUGS-55838 | 3 fetch attempts failed. Description: "SNO management workload partitioning" |
-| OCPBUGS-65911 (RCA-12) | OCPBUGS-65911 | 2 fetch attempts failed. Description: "Basic PTP Configs LOCKED clock state" |
+| Case | Jira ID | Status | Notes |
+|------|---------|--------|-------|
+| OCPBUGS-55838 (RCA-7) | OCPBUGS-55838 | Resolved via user HTML export | Not a Bug. Leap-configmap timeout issue. JiraID mapping to C07 (workload partitioning) is disputed. |
+| OCPBUGS-65911 (RCA-12) | OCPBUGS-65911 | Resolved via user HTML export | ASSIGNED (unresolved). Cloud event proxy 2-PHC. JiraID mapping to C12 (LOCKED clock state) is disputed. |
 
 ---
 

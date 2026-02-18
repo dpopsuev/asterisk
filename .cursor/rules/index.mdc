@@ -14,3 +14,4 @@
 - `knowledge-store.mdc` — `.cursor/` directory structure, index integrity protocol, persistence triggers, and work contract conventions (status-based directories, goal manifest).
 - `contract-iteration.mdc` — monitor active and goal-mapped contracts for insights from discussions, field results, and calibration runs; cross-contract feedback; lifecycle transitions.
 - `off-the-shelf.mdc` — prefer mature, community-backed Go modules over bespoke implementations when justified; maturity gate and decision matrix. File-scoped to `**/*.go`.
+- `agent-bus.mdc` — mandatory signaling protocol for agent/subagent coordination during MCP calibration; delegation mandate, signal events, and observability alignment.

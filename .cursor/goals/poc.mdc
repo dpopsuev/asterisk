@@ -1,55 +1,75 @@
 ---
-description: PoC goal statement and success criteria (CLI-first)
+description: PoC goal statement and success criteria
 ---
 
-# PoC — CLI
+# PoC — CLI + MCP
+
+## CRISIS: Agentic flow broken
+
+The file-based signal protocol (`signal.json` / `FileDispatcher`) is a dead end. Every artifact write requires Cursor user-approval, making the cursor adapter calibration loop (18 cases x ~5 steps = ~90 approvals) unusable in practice. The PoC cannot validate AI-driven RCA without a working agentic flow.
+
+**Decision:** Pull MCP into the PoC scope. Implement the thinnest viable `asterisk serve` MCP server so the Cursor agent can drive calibration via tool calls with zero approval gates. This is no longer post-PoC — it is the PoC.
 
 ## Goal statement
 
-Asterisk PoC is a **standalone CLI** (**Go**) that proves real-world RCA capability: fetch live failure data from ReportPortal, run the F0-F6 pipeline with BasicAdapter (zero-LLM heuristic), score results against Jira-verified ground truth, and push defect-type updates back to RP. The PoC also validates a **tuning loop** — targeted prompt and pipeline improvements measured by M1-M20 calibration metrics.
+Asterisk PoC is a **Go CLI + MCP server** that proves real-world RCA capability:
+1. **BasicAdapter (heuristic):** fetch live RP data, score against Jira-verified ground truth. **Done.**
+2. **CursorAdapter (AI via MCP):** Cursor agent drives investigation via MCP tool calls, scores against same ground truth. **Blocked on MCP.**
+3. **Push verified** results to RP after cursor adapter demonstrates genuine reasoning.
 
 ## Scope (in)
 
-- **CLI commands:** `analyze`, `calibrate`, `push`, `cursor`, `save`, `status`. Cobra-based with subcommands.
-- **analyze** — Input: RP launch by ID or from-file envelope + context workspace. Output: artifact on FS (RCA message, convergence score, suggested defect type, evidence refs). No RP write during analyze.
-- **calibrate** — Input: scenario name + adapter + optional `--rp-base-url` for RP-sourced cases. Runs the full pipeline against all cases in the scenario, computes M1-M20 metrics, produces a calibration report. Primary validation tool.
-- **push** — Input: path to artifact (`push -f <path>`). Reads artifact and pushes defect type to RP. Explicit; no automatic push.
-- **Adapters:** `StubAdapter` (deterministic ground truth), `BasicAdapter` (heuristic, zero-LLM), `CursorAdapter` (interactive LLM via dispatchers).
-- **Dispatchers:** `StdinDispatcher`, `FileDispatcher`, `BatchFileDispatcher`. Strategy pattern for communication channels.
-- **Calibration scenarios:** `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest` (30 cases, 4 RP-sourced with `RPLaunchID`).
-- **Metrics:** M1-M20 calibration metrics covering defect type accuracy, component identification, evidence quality, convergence, repo selection precision/recall, and cost.
-- **Context Workspace** = config on FS defining context sources (repos with name, purpose, branch); versionable, shareable.
-- **Prompts** — File-based templates in `.cursor/prompts/`. Development loop: red-green-blue (experiment, observe results, iterate).
-- **First scenario:** PTP test cases CI — weekly flow (assessment, RCA, human review, Jira, report).
-- **CLI data model:** Persistence via storage adapter (SQLite); investigation case per failure per envelope; hierarchy failure < job < pipeline. See `docs/cli-data-model.mdc`.
+- **CLI commands:** `analyze`, `calibrate`, `push`, **`serve`**. Cobra-based.
+- **`serve`** — Starts an MCP server over stdio. Cursor calls tools directly. Replaces file-based signal protocol for cursor adapter.
+- **`calibrate`** — Unchanged. Runs pipeline against scenario, computes M1-M20+M14b. Works with `--adapter=basic` (CLI) and `--adapter=cursor` (via MCP).
+- **`analyze`** — Single-launch RCA. Output: artifact on FS.
+- **`push`** — Push artifact to RP. Explicit; no auto-push.
+- **Adapters:** `StubAdapter`, `BasicAdapter`, `CursorAdapter`.
+- **Dispatchers:** `StdinDispatcher`, `FileDispatcher`, **`MCPDispatcher`** (channel bridge to MCP tools).
+- **Scenarios:** `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest` (30 cases, 20 RP-sourced).
+- **Metrics:** M1-M20+M14b. Ground truth: 18 grade-A cases with FixPRs, SmokingGun, EvidenceGrade.
+- **MCP tools (minimum):** `start_calibration`, `get_next_step`, `submit_artifact`, `get_report`.
 
 ## Out of scope (for PoC)
 
 - Standalone service (MVP).
-- MCP server integration (near-term, post-PoC).
 - Adversarial RCA / Defect Court (future).
 - Universal artifact workspace (future).
 - Persona system (future).
+- Full MCP tool suite (analyze, push via MCP — post-PoC).
 
 ## Success criteria
 
-1. **CLI complete:** `analyze`, `calibrate`, and `push -f` implemented; artifact format stable.
-2. **Real blind E2E:** At least 4 RP-sourced cases (live data from RP) processed end-to-end via `calibrate --scenario=ptp-real-ingest --rp-base-url`. Scored against Jira-verified ground truth. _(Contract: `rp-e2e-launch`)_
-3. **Push verified:** At least 1 artifact pushed to RP via `push -f`; defect type visible in RP UI.
-4. **Tuning loop validated:** At least 2 quick wins implemented and measured via the calibrate-measure-commit loop. M19 on blind cases does not fall below M19 on synthetic cases. _(Contract: `poc-tuning-loop`)_
-5. **No regression:** Full 30-case calibration shows no M19 regression after tuning.
+1. **CLI complete:** ✅ `analyze`, `calibrate`, `push -f` implemented; artifact format stable.
+2. **Real blind E2E (BasicAdapter):** ✅ 20 RP-sourced cases processed. Post-tightening baselines: M19=0.88 (all 30), M19=0.83 (grade-A 18). M14b=0.13 (smoking gun baseline). _(Contract: `rp-e2e-launch`, Phases 1-3)_
+3. **MCP server operational:** `asterisk serve` starts, Cursor connects via `.cursor/mcp.json`, `start_calibration` + `get_next_step` + `submit_artifact` + `get_report` tools work end-to-end. _(Plan: `mcp_calibration_integration`)_
+4. **Cursor adapter baseline (via MCP):** Grade-A blind test (18 cases) completes via MCP tool loop. M19 >= 0.85, M12 >= 0.50, M14b >= 0.40. Head-to-head comparison with BasicAdapter documented. _(Contract: `rp-e2e-launch`, Phase 5a)_
+5. **Push verified:** Push best-quality artifact to RP after cursor adapter demonstrates genuine reasoning. _(Contract: `rp-e2e-launch`, Phase 6)_
+6. **No regression:** BasicAdapter calibration unchanged by MCP addition.
 
-## Tuning loop
+## What is done
 
-After the E2E gate passes, a tight improvement loop targets quick wins:
+| Item | Status | Result |
+|------|--------|--------|
+| CLI commands | Done | analyze, calibrate, push, cursor, save, status |
+| BasicAdapter E2E (all 30) | Done | M19=0.88, 18/21 pass |
+| BasicAdapter E2E (grade-A 18) | Done | M19=0.83, 19/21 pass, M14b=0.13 |
+| Ground truth tightening | Done | 18 grade-A cases with FixPRs, SmokingGun, EvidenceGrade |
+| Signal protocol mechanical test | Done | 1 case through all 6 pipeline steps via FileDispatcher |
+| Evidence gap brief | Done | BasicAdapter limitations documented |
 
-1. Implement a targeted change (prompt enrichment, keyword tuning, data wiring)
-2. Run `asterisk calibrate --scenario=ptp-real-ingest --adapter=basic --rp-base-url <URL>`
-3. Compare M19 and per-case metrics against the E2E baseline
-4. Commit if improved; revert if regressed
+## What is blocked
 
-**Stop conditions:** M19 on blind cases >= 0.90, or 3 attempts with no improvement, or all candidates exhausted. See `contracts/draft/poc-tuning-loop.md`.
+| Item | Blocker | Resolution |
+|------|---------|------------|
+| Cursor adapter calibration | FileDispatcher requires Cursor approval per artifact write (~90 clicks) | Implement MCP server |
+| Push to RP | No cursor adapter results yet | Depends on MCP |
+| Head-to-head comparison | No cursor adapter results yet | Depends on MCP |
 
-## Next (post-PoC)
+## Next steps (in order)
 
-**MCP integration** — `asterisk serve` starts a stateful MCP server over stdio. Cursor calls tools directly instead of file polling. Three sequential contracts: `mcp-server-foundation` -> `mcp-pipeline-tools` -> `mcp-calibration-mode`. See `contracts/current-goal.mdc` for the full urgency map.
+1. **Implement MCP server** — thinnest viable `asterisk serve` with 4 tools. Channel bridge to existing runner. No refactoring of calibration logic.
+2. **Run Phase 5a via MCP** — 18 grade-A cases, cursor adapter, score against ground truth.
+3. **Head-to-head comparison** — fill comparison table, document findings.
+4. **Push to RP** — best-quality artifact after confidence gained.
+5. **Document and close PoC.**
