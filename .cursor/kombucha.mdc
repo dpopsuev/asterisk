@@ -117,7 +117,7 @@ Binding structure contract for the FSC. All rules in `.cursor/rules/` reference 
 | `guide/` | Software development workflows and process guidance. |
 | `docs/` | Deep library — long-form references, design documents, case studies. |
 | `notes/` | Short summaries and quick references. |
-| `contracts/` | Work contracts — session-independent execution plans with state, tasks, and completion criteria. |
+| `contracts/` | Work contracts by lifecycle status: `draft/`, `active/`, `completed/{phase}/`. Urgency via `current-goal.mdc` manifest. |
 | `security-cases/` | Security bug post-mortems — RCA, severity score, OWASP category, and mitigation. |
 | `skills/` | Project-specific skill definitions. |
 
@@ -251,21 +251,39 @@ Contracts are the **core unit of work** in agentic development. Any agent, in an
 - **Accountability.** Binary goal — either the acceptance criteria are met or they aren't.
 - **Reconstruction.** Timestamped notes let any future reader reconstruct *what happened and why*.
 
+### Directory organization
+
+Contracts are organized by **lifecycle status** (directory) with **urgency** managed by a goal manifest:
+
+| Directory | Purpose |
+|-----------|---------|
+| `draft/` | Planned contracts not yet being executed. |
+| `active/` | Contracts currently being executed. |
+| `completed/{phase}/` | Finished contracts grouped by original development phase (e.g. `mock/`, `poc/`, `calibration/`). |
+
+Root files: `_TEMPLATE.md` (contract template), `index.mdc` (master index), and `current-goal.mdc` (goal manifest with urgency map).
+
+### Goal manifest
+
+`contracts/current-goal.mdc` declares the active goal and maps all non-completed contracts to urgency tiers: **gate** (blocking), **quick-win** (fast improvements), **next-milestone** (follow-on), **vision** (no timeline). Agents read this file first for orientation. When the goal changes: update the manifest. Contracts move directories only when their lifecycle status changes.
+
 ### Contract structure
 
 Every contract has:
 
 1. **Status** — `draft` | `active` | `complete` | `abandoned`
 2. **Goal** — One sentence. Binary — true or false.
+3. **Serves** — Goal name from `current-goal.mdc` (e.g. "PoC completion").
 3. **Contract Rules** — Additions to global rules for this specific work. "Global rules only" if none.
-4. **Context** — Links to notes, docs, design decisions.
-5. **Execution Strategy** — Approach and ordering.
-6. **Tasks** — Ordered checklist. Must always end with:
+4. **Contract Rules** — Additions to global rules for this specific work. "Global rules only" if none.
+5. **Context** — Links to notes, docs, design decisions.
+6. **Execution Strategy** — Approach and ordering.
+7. **Tasks** — Ordered checklist. Must always end with:
    - `[ ] Validate (green)` — all tests pass, acceptance criteria met.
    - `[ ] Tune (blue)` — refactor for quality. No behavior changes.
    - `[ ] Validate (green)` — all tests still pass after tuning.
-7. **Acceptance Criteria** — Given/When/Then or structural invariants.
-8. **Notes** — Running log (newest first). **Always include hour:minute** — format `YYYY-MM-DD HH:MM`. Decisions, bugs found, course corrections.
+8. **Acceptance Criteria** — Given/When/Then or structural invariants.
+9. **Notes** — Running log (newest first). **Always include hour:minute** — format `YYYY-MM-DD HH:MM`. Decisions, bugs found, course corrections.
 
 ### Note timestamp convention
 
@@ -312,7 +330,7 @@ The canonical template lives at `.cursor/contracts/_TEMPLATE.md`. Copy it to cre
 |----------|------|
 | Contract template | `.cursor/contracts/_TEMPLATE.md` |
 | Contract trigger rule | `.cursor/rules/knowledge-store.mdc` |
-| Contract directory index | `.cursor/contracts/.index.mdc` |
+| Contract master index | `.cursor/contracts/index.mdc` |
 
 ---
 
@@ -556,7 +574,7 @@ Purpose: agentic directory listing — locate guidance without re-scanning.
 - `guide/` — software development workflows and process guidance.
 - `docs/` — deep library (long-form references).
 - `notes/` — short summaries and quick references.
-- `contracts/` — work contracts with state, tasks, and completion criteria.
+- `contracts/` — work contracts by lifecycle status (`draft/`, `active/`, `completed/`); urgency via `current-goal.mdc`.
 - `security-cases/` — security bug post-mortems with RCA, severity, and mitigation.
 - `skills/` — project-specific skill definitions.
 

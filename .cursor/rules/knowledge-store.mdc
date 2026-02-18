@@ -12,7 +12,7 @@ The `.cursor/` directory is the project's structured knowledge store. All reusab
 | Path | Purpose |
 |------|---------|
 | `rules/` | Persistent agent constraints and conventions (this directory) |
-| `contracts/` | Work contracts — session-independent execution plans with state and tasks |
+| `contracts/` | Work contracts organized by lifecycle status: `draft/`, `active/`, `completed/{phase}/`. Urgency via `current-goal.mdc` manifest. |
 | `docs/` | Deep references and long-form analysis |
 | `notes/` | Short summaries and quick references |
 | `guide/` | Software development process guidance |
@@ -62,3 +62,30 @@ Contracts are session-independent execution plans. Any agent can pick up a contr
 - **Structure:** Status, Goal, Rules, Context, Execution strategy, Tasks (always end with Validate → Tune → Validate), Acceptance criteria, Notes (`YYYY-MM-DD HH:MM`).
 - **Commit convention:** `Contract: {slug} {step}/{total}`. Test suite must be green before every commit.
 - **Index:** Update `.cursor/contracts/index.mdc` on add/remove.
+
+### Directory organization
+
+Contracts are organized by **lifecycle status** (directory) with **urgency** managed by a goal manifest:
+
+| Directory | Contents |
+|-----------|----------|
+| `draft/` | Planned contracts not yet being executed. |
+| `active/` | Contracts currently being executed. |
+| `completed/{phase}/` | Finished contracts grouped by original development phase. |
+
+### Goal manifest
+
+`contracts/current-goal.mdc` declares the active goal and maps all non-completed contracts to urgency tiers:
+
+| Tier | Meaning |
+|------|---------|
+| **gate** | Blocking the current goal; must complete first. |
+| **quick-win** | Low-effort, high-impact improvements after the gate passes. |
+| **next-milestone** | Next goal after the current one is met. |
+| **vision** | Architectural ideas; no timeline. |
+
+Agents read `current-goal.mdc` first for orientation. When the goal changes: update the manifest (re-tier), update `goals/`. Contracts move directories only when their lifecycle status changes (draft -> active, active -> completed).
+
+### Contract fields
+
+Each contract has: `Status` (draft/active/complete/abandoned), `Goal` (binary), `Serves` (goal name from manifest). See `contracts/_TEMPLATE.md`.

@@ -11,5 +11,6 @@
 - `security-analysis.mdc` — OWASP Top 10 checklist applied to every feature and trust-boundary change; security case filing protocol.
 - `workspace-context.mdc` — local-first workspace: cloned repos as source of truth, version alignment (RP 5.11.x), read from disk instead of guessing.
 - `human-readable-output.mdc` — "Code for machines, words for humans": machine codes stay in machine contexts; human-facing output uses readable names via `internal/display` registry.
-- `knowledge-store.mdc` — `.cursor/` directory structure, index integrity protocol, persistence triggers, and work contract conventions.
+- `knowledge-store.mdc` — `.cursor/` directory structure, index integrity protocol, persistence triggers, and work contract conventions (status-based directories, goal manifest).
+- `contract-iteration.mdc` — monitor active and goal-mapped contracts for insights from discussions, field results, and calibration runs; cross-contract feedback; lifecycle transitions.
 - `off-the-shelf.mdc` — prefer mature, community-backed Go modules over bespoke implementations when justified; maturity gate and decision matrix. File-scoped to `**/*.go`.

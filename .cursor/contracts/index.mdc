@@ -1,230 +1,137 @@
 # .cursor/contracts Index
 
-Work contracts — session-independent execution plans with state, tasks, and completion criteria.
+Work contracts -- session-independent execution plans with state, tasks, and completion criteria.
 
-## Mock implementation & wiring (BDD/TDD, red–green–blue)
+**Organization:** Directories reflect lifecycle status (`draft/`, `active/`, `completed/`). Urgency relative to the current goal is defined in `current-goal.mdc`. Read the goal manifest first to know what matters now.
 
-Execute **in order**; each contract depends on the previous.
+---
 
-| Order | Contract | Goal |
-|-------|----------|------|
-| **1** | `mock-pre-investigation.md` | Mock fetch + save envelope to store (fixture; no RP). **Complete.** |
-| **2** | `mock-investigation.md` | Mock analyze: read from store → cases + artifact (no real AI). **Complete.** |
-| **3** | `mock-post-investigation.md` | Mock push: read artifact → defect type + RCA to mock (no RP/Jira). **Complete.** |
-| **4** | `mock-wiring.md` | Wire 1→2→3: one runnable flow (fetch → analyze → push) with mocks. **Complete.** |
+## active/ -- Contracts being executed
 
-**Execution order:** 1 → 2 → 3 → 4. Complete all tasks (Red → Green → Blue → Validate) in contract 1 before starting 2; same for 2→3, 3→4.
+| Contract | Goal | Serves |
+|----------|------|--------|
+| `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
 
-## PoC implementation (from assessment)
+## draft/ -- Planned, not yet being executed
 
-Contracts created from the PoC assessment. Dependencies: complete **rp-api-completion** before **rp-fetch** and **rp-push**; complete **storage-adapter**, **context-workspace**, **artifact-schema** before **asterisk-cli**; complete **asterisk-cli** and **prompts** before **cursor-handoff**. Others can run in parallel where no dep is listed.
+| Contract | Goal | Serves |
+|----------|------|--------|
+| `poc-tuning-loop.md` | Improve BasicAdapter accuracy on blind cases via targeted prompt/pipeline improvements. Activates after rp-e2e-launch. | PoC completion |
+| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Court mistrial. | PoC completion |
+| `poc-scope-precision.md` | Zero-friction PoC packaging: simplified CLI (`analyze <ID>`), `/asterisk-analyze` Cursor skill, CEO-ready README. | PoC completion |
+| `mcp-server-foundation.md` | `asterisk serve` starts a stateful MCP server over stdio; placeholder tools. | MCP integration |
+| `mcp-pipeline-tools.md` | MCP tools driving F0-F6 pipeline. Depends on mcp-server-foundation. | MCP integration |
+| `mcp-calibration-mode.md` | Calibration-specific MCP tools. Depends on mcp-pipeline-tools. | MCP integration |
+| `defect-court.md` | Adversarial "Defect Court" phase (D0-D4): prosecution, defense, judicial verdict. | Architecture evolution |
+| `workspace-revisited.md` | Universal artifact reference system: taxonomy, format learning, local catalog/cache. | Architecture evolution |
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `rp-api-completion.md` | Finish RP API research; document launch, test-item, defect-type in FSC (`notes/rp-api-usage.mdc`). **Complete.** | — |
-| `storage-adapter.md` | SQLite + Store facade (cases, RCAs); per-workspace DB; wire into flow. **Complete.** | — |
-| `context-workspace.md` | Load workspace from FS (YAML/JSON/TOML); pass into analyze. **Complete.** | — |
-| `artifact-schema.md` | Add `rca_message` to artifact; document schema in FSC. **Complete.** | — |
-| `prompts.md` | Prompt templates in `.cursor/prompts/`; params doc in `docs/prompts.mdc`. **Complete.** | — |
-| `rp-fetch.md` | Real fetch from RP (launch by ID); produce envelope; persist to store/path. **Complete.** | rp-api-completion |
-| `rp-push.md` | Real push to RP (defect-type update); read artifact, call RP API. **Complete.** | rp-api-completion |
-| `asterisk-cli.md` | `asterisk` binary with `analyze` and `push -f`; envelope, workspace, storage, artifact. **Complete.** | storage-adapter, context-workspace, artifact-schema |
-| `cursor-handoff.md` | Minimal `asterisk --cursor`: prompt output, save/ingest, document flow. **Complete.** | asterisk-cli, prompts |
+_(Not yet written: persona-system -- specialized prompt preambles with workspace binding.)_
 
-## Prompt system (design)
+## completed/ -- Historical record (46 contracts)
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `prompt-families.md` | Design prompt family taxonomy, pipelines (with loops), and routing heuristics for layered investigation. **Complete.** | prompts, storage-adapter, context-workspace |
+Grouped by original development phase. All contracts below are **complete** (or closed).
 
-## Data model (design)
+### completed/mock/ (4)
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `investigation-context.md` | Two-tier data model: investigation-scoped execution tree + global cross-version knowledge (symptoms, RCAs) with temporal context. **Complete.** | storage-adapter, prompt-families |
+| Contract | Goal |
+|----------|------|
+| `mock-pre-investigation.md` | Mock fetch + save envelope to store. |
+| `mock-investigation.md` | Mock analyze: read from store, produce cases + artifact. |
+| `mock-post-investigation.md` | Mock push: read artifact, write defect type + RCA. |
+| `mock-wiring.md` | Wire fetch, analyze, push into one runnable flow. |
 
-## PoC v2 implementation (from design contracts)
+### completed/poc/ (11)
 
-Build order: complete **storage-adapter-v2** before **prompt-orchestrator** (orchestrator depends on v2 Store). Design contracts (prompt-families, investigation-context) must be finalized before starting these. **Real calibration (Scenario B)** is the absolute last step — only after all contracts are complete, the code is refactored/decoupled, and mock calibration (Scenario A) passes. See `rules/project-standards.mdc` § Calibration ordering.
+| Contract | Goal |
+|----------|------|
+| `rp-api-completion.md` | RP API research; document launch, test-item, defect-type. |
+| `rp-api-research.md` | RP API deep research (5.11); endpoints, usage, example launch 33195. |
+| `storage-adapter.md` | SQLite + Store facade (cases, RCAs); per-workspace DB. |
+| `context-workspace.md` | Load workspace from FS (YAML/JSON); pass into analyze. |
+| `artifact-schema.md` | Add `rca_message` to artifact; document schema. |
+| `prompts.md` | Prompt templates in `.cursor/prompts/`; params doc. |
+| `rp-fetch.md` | Real fetch from RP (launch by ID); produce envelope. |
+| `rp-push.md` | Real push to RP (defect-type update from artifact). |
+| `asterisk-cli.md` | `asterisk` binary with `analyze` and `push -f`. |
+| `cursor-handoff.md` | Minimal `asterisk --cursor`; prompt output, save/ingest. |
+| `pre-dev-questions.md` | Pre-development question bank; answers and deferrals. |
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `storage-adapter-v2.md` | Migrate Store interface and SQLite schema from v1 (flat) to v2 (two-tier: execution tree + symptoms + RCAs). **Complete.** | storage-adapter (v1 complete), investigation-context (design) |
-| `prompt-orchestrator.md` | Implement Recall–Report (F0–F6) pipeline engine: heuristic engine, artifact I/O, per-case state, template filler, pipeline runner, CLI integration. **Complete.** | storage-adapter-v2, prompt-families (design), prompts, cursor-handoff |
-| `e2e-calibration.md` | Closed-world E2E test: 20 instrumented metrics. **Mock A (ptp-mock 12 cases): 20/20. Mock B (daemon-mock 8 cases): 20/20. Real (ptp-real 8 cases): 20/20. All stub-passing.** **Complete.** | storage-adapter-v2, prompt-orchestrator |
+### completed/design/ (2)
 
-## RP adapter v2 (quality upgrade)
+| Contract | Goal |
+|----------|------|
+| `prompt-families.md` | Prompt family taxonomy (F0-F6), pipelines, loops, routing heuristics. |
+| `investigation-context.md` | Two-tier data model: investigation tree + global knowledge. |
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `rp-adapter-v2.md` | Unify `rpfetch` + `rppush` into single `internal/rp` package. Scope-based client (`Client → ProjectScope → LaunchScope → ItemScope`), functional options, `APIError` type with predicates, `context.Context`, structured logging, enriched `FailureItem`, bulk defect update. Patterns adapted from `report-portal-cli` (read-only reference, no module dependency). **Complete.** | rp-fetch (complete), rp-push (complete), rp-api-completion (complete) |
+### completed/poc-v2/ (3)
 
-## Dispatcher (transport layer)
+| Contract | Goal |
+|----------|------|
+| `storage-adapter-v2.md` | Migrate Store to two-tier schema (execution tree + symptoms + RCAs). |
+| `prompt-orchestrator.md` | F0-F6 pipeline engine: heuristics, artifact I/O, template filler, CLI. |
+| `e2e-calibration.md` | Closed-world E2E test: 20 metrics, 3 scenarios, all stub-passing. |
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `fs-dispatcher.md` | Extract `Dispatcher` interface (Strategy pattern) from `CursorAdapter`; implement `StdinDispatcher` (current stdin) + `FileDispatcher` (signal file polling for auto-mode); wire `--dispatch` CLI flag. Future: HTTP, MCP, Harness dispatchers via same interface. **Complete.** | e2e-calibration (CursorAdapter exists), prompt-orchestrator |
+### completed/pipeline/ (5)
 
-## Cursor skill (agent-side integration)
+| Contract | Goal |
+|----------|------|
+| `rp-adapter-v2.md` | Unified `internal/rp` package; scope-based client, APIError, context. |
+| `fs-dispatcher.md` | Dispatcher interface; StdinDispatcher + FileDispatcher; `--dispatch` flag. |
+| `cursor-skill.md` | `asterisk-investigate` Cursor skill; signal-based F0-F6 artifact production. |
+| `wet-calibration.md` | Dry/wet calibration taxonomy, 28 Test Cards, victory loop. **Closed.** |
+| `cleanup-lifecycle.md` | Automated pre-run cleanup, subprocess management, signal finalization. |
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `cursor-skill.md` | Create `.cursor/skills/asterisk-investigate/` — Cursor agent skill that responds to FileDispatcher signal files, reads prompts, produces Recall–Report (F0–F6) JSON artifacts, and writes them back. Dual mode: calibration (blind, scored against ground truth) and investigation (free, real analysis). 4 files: SKILL.md, signal-protocol.md, artifact-schemas.md, examples.md. **Complete.** | fs-dispatcher (signal protocol), e2e-calibration (scoring), prompt-orchestrator (pipeline/schemas) |
+### completed/calibration/ (7)
 
-## Calibration victory (wet calibration)
+| Contract | Goal |
+|----------|------|
+| `real-calibration-ingest.md` | Ingest real CI data into 30-case `ptp-real-ingest` scenario. |
+| `calibration-bugfix-r5.md` | Fix 5 blocking bugs. M19: 0.58 to 0.65+. |
+| `responder-classification-v2.md` | Scored multi-signal classifier. M19: 0.65 to 0.80+. |
+| `calibration-victory.md` | Evidence quality, convergence calibration. M19: 0.80 to 0.95+. |
+| `parallel-investigation.md` | Fan-out F0-F1, symptom clustering, 3x speedup. |
+| `ground-truth-v2.md` | Correct scenario data to match Jira audit. |
+| `true-wet-calibration.md` | Blind calibration against Jira-verified truth. M19 = 0.93 achieved. |
 
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `wet-calibration.md` | Formalize dry/wet calibration taxonomy, 28 per-case Test Cards across 3 scenarios, and an iterative "victory loop" (run wet → diagnose → tune → dry check → repeat) until all scenarios pass 20/20 metrics with `--adapter=cursor`. **Closed.** BasicAdapter M19=0.93 baseline; mock-calibration-agent retired; Cursor adapter deferred to MCP path. | fs-dispatcher (auto dispatch), cursor-skill (agent responds to signals), e2e-calibration (dry baseline) |
+### completed/multi-subagent/ (4)
 
-## Real calibration ingest (data pipeline)
+| Contract | Goal |
+|----------|------|
+| `batch-dispatch-protocol.md` | Batch signal protocol: manifest, briefing, concurrent semantics. |
+| `batch-file-dispatcher.md` | Go implementation: `BatchFileDispatcher`, `ManifestWriter`, `--dispatch=batch-file`. |
+| `multi-subagent-skill.md` | Parent-child skill: Task subagent spawning (up to 4), batch lifecycle. |
+| `adaptive-subagent-scheduler.md` | Quality-driven batch sizing, token budget enforcement, cost model. |
 
-|| Contract | Goal | Depends on |
-||----------|------|------------|
-|| `real-calibration-ingest.md` | Ingest real CI data (`.maildump/` email dump + CI results spreadsheet) into calibration `Scenario` definitions with annotated ground truth, producing ≤30 real-world test cases. Phases: email triage → CI results parse → case selection → ground truth annotation → scenario generation. **Complete.** | e2e-calibration (scenario format), wet-calibration (calibration loop) |
+### completed/architecture/ (4)
 
-## Calibration improvement loop (Overall Accuracy M19: 0.58 → 0.95+)
+| Contract | Goal |
+|----------|------|
+| `calibrate-decomposition.md` | Split `calibrate` into `dispatch/`, `adapt/` sub-packages. |
+| `cobra-cli.md` | Cobra CLI migration; subcommands, help, shell completion. |
+| `critical-test-coverage.md` | Close 8 test gaps; 80%+ critical, 70%+ high, 60%+ medium. |
+| `concurrency-modernization.md` | errgroup + context.Context propagation; eliminate mutable globals. |
 
-Execute **in order**; each contract depends on the previous. Gate: the preceding contract's Overall Accuracy (M19) target must be met before starting the next.
+### completed/output/ (6)
 
-| Order | Contract | Goal | Entry M19 | Exit M19 |
-|-------|----------|------|-----------|----------|
-| **1** | `calibration-bugfix-r5.md` | Fix 5 known blocking bugs (Correlate Duplicate H15 false-dup, skip path, repo names, JSON error, component ID). **Complete.** | 0.58 | >= 0.65 |
-| **2** | `responder-classification-v2.md` | Systematic classification overhaul: ground-truth test fixture, scored multi-signal classifier, token optimization. **Complete.** | >= 0.65 | >= 0.80 |
-| **3** | `calibration-victory.md` | Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. All 20/20 metrics. **Complete.** | >= 0.80 | >= 0.95 |
-| **4** | `parallel-investigation.md` | Parallel case processing: fan-out Recall–Triage (F0–F1), symptom clustering, on-demand RCA agents, token ceiling. **Complete.** | >= 0.95 | >= 0.95 + 3x speedup |
+| Contract | Goal |
+|----------|------|
+| `human-readable-output.md` | Replace machine codes with human-readable names; `internal/display` registry. |
+| `unified-formatter.md` | `go-pretty/v6` adapter; `internal/format` with ASCII + Markdown modes. |
+| `token-perf-tracking.md` | Instrument real token usage; compute cost; upgrade M18. |
+| `tokimeter.md` | Markdown-formatted cost bill per case/step/total. |
+| `transcript-weaver.md` | Post-hoc Markdown transcript per Root Cause; flag-gated, adapter-agnostic. |
+| `go-testing-preferences.md` | Go testing: stdlib vs Ginkgo; rules in `rules/go-test-conventions.mdc`. |
 
-## Token performance tracking (cost observability)
-
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `token-perf-tracking.md` | Instrument real token usage per step/case/run; compute cost per calibration run; upgrade M18 from estimate to actual measurement. **Complete.** | e2e-calibration (M18 metric), fs-dispatcher (instrument dispatch) |
-| `tokimeter.md` | Markdown-formatted cost bill ("TokiMeter") printed at end of every run with per-case cost, per-step cost, and total launch cost. **Complete.** | token-perf-tracking (complete) |
-
-## Multi-subagent path (parallel Cursor skill)
-
-Execute **in order**; each contract depends on the previous. The multi-subagent path is **independent** of the calibration improvement loop and can proceed in parallel. Both chains merge when wet calibration uses the multi-subagent skill with the improved mock agent.
-
-| Order | Contract | Goal | Depends on |
-|-------|----------|------|------------|
-| **1** | `batch-dispatch-protocol.md` | Define batch signal protocol: manifest schema, briefing file, concurrent semantics, subagent response contract. Design-only. **Complete.** | fs-dispatcher (complete), parallel-investigation (complete) |
-| **2** | `batch-file-dispatcher.md` | Go implementation: `BatchFileDispatcher`, `ManifestWriter`, `BriefingGenerator`, concurrent polling, `--dispatch=batch-file` CLI flag. **Complete.** | batch-dispatch-protocol (complete) |
-| **3** | `multi-subagent-skill.md` | Rewrite `asterisk-investigate` skill: parent agent loop, Task subagent spawning (up to 4), briefing consumption, batch lifecycle, fallback to single-signal mode. **Complete.** | batch-dispatch-protocol (complete), batch-file-dispatcher (complete) |
-| **4** | `adaptive-subagent-scheduler.md` | Optimize: quality-driven batch sizing, cluster-aware routing, token budget enforcement, progressive briefing enrichment, cost model documentation. **Complete.** | multi-subagent-skill (complete), token-perf-tracking (complete) |
-
-## Cleanup lifecycle (operational hygiene)
-
-|| Contract | Goal | Depends on |
-||----------|------|------------|
-|| `cleanup-lifecycle.md` | Automated pre-run cleanup (`--clean`), mock-calibration-agent subprocess management (`--responder=auto`), `.tmp` orphan fix, post-run signal finalization. No manual cleanup between wet calibration iterations. **Complete.** | fs-dispatcher, wet-calibration |
-
-## Human-readable output (display quality)
-
-|| Contract | Goal | Depends on |
-||----------|------|------------|
-|| `human-readable-output.md` | Replace opaque machine codes with human-readable names in all CLI output, reports, logs, and docs. Central `internal/display` registry. Rule: `.cursor/rules/human-readable-output.mdc`. **Complete.** | — |
-
-## Unified table formatter (output consistency)
-
-||| Contract | Goal | Depends on |
-|||----------|------|------------|
-||| `unified-formatter.md` | Unified table formatter via adapter pattern over `go-pretty/v6`. `internal/format` package with `TableBuilder` interface, ASCII + Markdown modes. Replaced all bespoke `strings.Builder` table construction. **Complete.** | human-readable-output |
-
-## Architecture & refactoring
-
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `calibrate-decomposition.md` | Split `calibrate` God package into focused sub-packages: `dispatch/`, `metrics/`, `adapt/`. Root orchestration-only, target <= 2,500 LOC. **Complete.** dispatch/ + adapt/ extracted; root 2,926 LOC (metrics/ deferred: circular dep). | — |
-| `cobra-cli.md` | Replace hand-rolled main.go with Cobra for subcommands, help, shell completion. Eliminate `orchestrate.BasePath` global. **Complete.** | — (ideally after calibrate-decomposition) |
-| `critical-test-coverage.md` | Close 8 test coverage gaps (3 critical, 3 high, 2 medium). Target 80%+ critical, 70%+ high, 60%+ medium. **Complete.** | Ideally after calibrate-decomposition |
-| `concurrency-modernization.md` | Replace hand-rolled goroutine pools with `errgroup`; optional fsnotify for FileDispatcher; eliminate mutable globals. **Complete.** errgroup + context.Context propagation. | calibrate-decomposition |
-
-## True calibration (Jira-verified ground truth)
-
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `ground-truth-v2.md` | Correct scenario data to match Jira audit, add M15+M9 to M19, add cnf-features-deploy to workspace. **Complete.** | jira-audit-report (complete) |
-| `true-wet-calibration.md` | Blind calibration against Jira-verified truth. Iterate until M19 >= 0.90, M15 >= 0.70, M9 >= 0.70. **Complete.** M19 = 0.93 achieved with BasicAdapter. | ground-truth-v2 (complete) |
-
-## MCP Dispatcher (Cursor-native transport)
-
-Execute **in order**; each contract depends on the previous.
-
-| Order | Contract | Goal | Depends on |
-|-------|----------|------|------------|
-| **1** | `mcp-server-foundation.md` | `asterisk serve` starts a stateful MCP server over stdio; placeholder tools (`ping`, `list_scenarios`); `.cursor/mcp.json` config. | — |
-| **2** | `mcp-pipeline-tools.md` | MCP tools driving F0–F6 pipeline: `start_investigation`, `get_prompt`, `submit_artifact`, `get_status`, `get_report`. Cursor calls tools directly instead of file polling. | mcp-server-foundation |
-| **3** | `mcp-calibration-mode.md` | Calibration-specific MCP tools: `start_calibration`, `get_calibration_report`, `get_transcripts`, `get_cost_report`. Ground truth scoring, preamble injection, transcript weaving, TokiMeter. | mcp-pipeline-tools |
-
-## Observability (investigation output)
-
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `transcript-weaver.md` | Post-hoc weaver: consolidate per-step prompt/response artifacts into one Markdown transcript per Root Cause. Flag-gated (`--transcript`), adapter-agnostic (works with stubs). | e2e-calibration (artifacts on disk), unified-formatter (Markdown tables) |
-
-## PoC E2E (final gate)
-
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, compare against Jira-verified ground truth, push at least 1 result back to RP. Final PoC success criterion #2. | rp-adapter-v2 (complete), real-calibration-ingest (complete), ground-truth-v2 (complete), true-wet-calibration (complete) |
-
-## Adversarial RCA (future phase)
-
-| Contract | Goal | Depends on |
-|----------|------|------------|
-| `defect-court.md` | Adversarial "Defect Court" phase (D0-D4): prosecution brief, defense consul, judicial verdict. Extends F0-F6 with structured adversarial review and remand-for-reinvestigation feedback. **Draft.** | mcp-server-foundation, mcp-pipeline-tools, rp-e2e-launch |
+---
 
 ## Directories
 
-## Files
-- `index.mdc` — index for this directory.
-- `_TEMPLATE.md` — contract template; copy to create new contracts (do not edit template).
-- `prompt-families.md` — **Prompt families:** taxonomy (Recall–Report F0–F6), pipelines, loops, routing heuristics; replaces single-shot rca.md with layered system.
-- `investigation-context.md` — **Investigation context data model:** two-tier (investigation-scoped tree + global knowledge); symptoms, RCAs, temporal context; schema v2; prompt injection mapping.
-- `artifact-schema.md` — **Artifact schema:** add rca_message; document in FSC; align with pre-dev.
-- `asterisk-cli.md` — **asterisk CLI:** analyze and push -f subcommands; envelope, workspace, storage.
-- `context-workspace.md` — **Context workspace:** load from FS (YAML/JSON/TOML); use in analyze.
-- `cursor-handoff.md` — **Cursor handoff:** minimal asterisk --cursor; prompt output; save/ingest; document flow.
-- `go-testing-preferences.md` — **Go testing preferences:** when to use standard library vs framework; rules in `rules/go-test-conventions.mdc`.
-- `mock-pre-investigation.md` — **Mock Pre-investigation:** fetch (stub) + save envelope to DB/workspace; BDD/TDD, red-green-blue.
-- `mock-investigation.md` — **Mock Investigation:** analyze from store → cases + artifact; BDD/TDD, red-green-blue.
-- `mock-post-investigation.md` — **Mock Post-investigation:** push artifact to mock RP/RCA store; BDD/TDD, red-green-blue.
-- `mock-wiring.md` — **Mock Wiring:** wire pre-inv → investigation → post-inv into one flow; BDD/TDD, red-green-blue.
-- `pre-dev-questions.md` — Pre-development questions: make question bank (envelope, storage, Cursor, artifact, RP, prompts, lifecycle); answer or defer each; record outcomes before starting implementation.
-- `prompts.md` — **Prompts:** templates in .cursor/prompts/; params in docs/prompts.mdc.
-- `rp-api-completion.md` — **RP API completion:** finish research; document launch, test-item, defect-type; FSC doc.
-- `rp-api-research.md` — **RP API deep research (5.11):** learn to interact with API at locked version; document endpoints and usage for FSC; add rules if needed; example launch 33195. **Complete.**
-- `rp-fetch.md` — **Real fetch from RP:** launch by ID; produce envelope; persist.
-- `rp-push.md` — **Real push to RP:** defect-type update from artifact.
-- `storage-adapter.md` — **Storage adapter:** SQLite + Store facade; per-workspace DB.
-- `storage-adapter-v2.md` — **Storage adapter v2:** Migrate Store to two-tier schema (investigation tree + symptoms + RCAs); v1→v2 migration; expanded CRUD.
-- `prompt-orchestrator.md` — **Prompt orchestrator:** Recall–Report (F0–F6) pipeline engine; heuristic engine, artifact I/O, per-case state, template filler, CLI integration.
-- `e2e-calibration.md` — **E2E calibration test:** closed-world scenario with synthetic ground truth, fake RP API, synthetic workspace (5 repos + red herring), blindfolded investigation, 20 metrics (structured, workspace, evidence, semantic, pipeline, aggregate), stub + cursor adapters.
-- `fs-dispatcher.md` — **FS Dispatcher:** Strategy-pattern transport layer for CursorAdapter; StdinDispatcher (extract current interactive), FileDispatcher (auto signal-file polling); `--dispatch` CLI flag; extensible to HTTP/MCP/Harness.
-- `rp-adapter-v2.md` — **RP adapter v2:** Unify rpfetch + rppush into `internal/rp`; scope-based client, functional options, APIError + predicates, context.Context, enriched FailureItem, bulk defect update. Patterns from `report-portal-cli` (read-only reference).
-- `cursor-skill.md` — **Cursor skill:** `asterisk-investigate` agent skill; responds to FileDispatcher signals, reads Recall–Report (F0–F6) prompts, produces structured JSON artifacts; calibration (blind) and investigation (free) modes; 4 files (SKILL.md, signal-protocol, artifact-schemas, examples).
-- `wet-calibration.md` — **Wet calibration victory:** Dry/wet taxonomy, 28 Test Cards (ptp-mock 12 + daemon-mock 8 + ptp-real 8), victory loop (run wet → diagnose → tune → dry check → repeat), iteration log. Target: all 3 scenarios 20/20 with `--adapter=cursor --dispatch=file`.
-- `cleanup-lifecycle.md` — **Cleanup lifecycle:** Automated pre-run cleanup, mock-calibration-agent subprocess management, `.tmp` orphan fix, post-run signal finalization. Eliminates manual cleanup between wet calibration iterations.
-- `real-calibration-ingest.md` — **Real calibration ingest:** Parse `.maildump/` emails + CI results spreadsheet → cross-reference → select ≤30 diverse cases → annotate ground truth → generate `ptp_real_ingest.go` scenario for wet calibration with real data.
-- `calibration-bugfix-r5.md` — **Calibration bugfix R5:** Fix 5 known blocking bugs from Round 4 (Correlate Duplicate H15 false-dup, skip path, repo names, JSON error, component ID). Target: Overall Accuracy (M19) >= 0.65.
-- `responder-classification-v2.md` — **Responder classification v2:** Ground-truth test fixture, scored multi-signal classifier, token optimization. Target: M19 >= 0.80.
-- `calibration-victory.md` — **Calibration victory:** Evidence quality, RCA relevance, convergence calibration, cross-scenario regression. Target: M19 >= 0.95, 20/20 metrics.
-- `parallel-investigation.md` — **Parallel investigation:** Fan-out Recall–Triage (F0–F1), symptom clustering, on-demand RCA agents, token ceiling. **Complete.** Target: >= 3x speedup.
-- `token-perf-tracking.md` — **Token perf tracking:** Instrument real token usage per step/case/run; compute estimated USD cost; upgrade M18 from `steps*1000` to actual measurement; per-case and per-step breakdowns in calibration report. **Complete.**
-- `tokimeter.md` — **TokiMeter:** Markdown-formatted cost bill (per-case, per-step, total) printed at end of every calibration run. **Complete.**
-- `batch-dispatch-protocol.md` — **Batch dispatch protocol:** Define batch signal protocol (manifest schema, briefing file, concurrent semantics, subagent response contract) for multi-subagent Cursor skill communication. **Complete.**
-- `batch-file-dispatcher.md` — **Batch file dispatcher:** Go implementation of batch dispatch — `BatchFileDispatcher`, `ManifestWriter`, `BriefingGenerator`, concurrent polling, `--dispatch=batch-file` CLI flag. **Complete.**
-- `multi-subagent-skill.md` — **Multi-subagent skill:** Rewrite `asterisk-investigate` skill for parent-child architecture — parent loop discovers batch manifests, spawns up to 4 Task subagents, collects artifacts, manages lifecycle. Backward-compatible with single-signal mode. **Complete.**
-- `adaptive-subagent-scheduler.md` — **Adaptive subagent scheduler:** Quality-driven batch sizing, cluster-aware routing, token budget enforcement, progressive briefing enrichment, cost model documentation. **Complete.**
-- `human-readable-output.md` — **Human-readable output:** Replace opaque machine codes (`pb001`, `F0_RECALL`, `R21`, `M9`) with human-readable names in all human-facing surfaces; central `internal/display` registry.
-- `unified-formatter.md` — **Unified table formatter:** Adapter pattern over `go-pretty/v6`; `internal/format` package with `TableBuilder` (ASCII + Markdown); replaced bespoke `strings.Builder` tables in calibrate package. **Complete.**
-- `calibrate-decomposition.md` — **Calibrate package decomposition:** Split `calibrate` God package into `dispatch/`, `metrics/`, `adapt/` sub-packages; root orchestration-only, target <= 2,500 LOC.
-- `cobra-cli.md` — **Cobra CLI migration:** Replace hand-rolled main.go with Cobra; subcommands, help, shell completion; eliminate `orchestrate.BasePath` global.
-- `concurrency-modernization.md` — **Concurrency modernization:** Replace goroutine pools with errgroup; optional fsnotify for FileDispatcher; eliminate mutable globals.
-- `critical-test-coverage.md` — **Critical test coverage:** Close 8 test gaps (3 critical, 3 high, 2 medium); target 80%+ critical, 70%+ high, 60%+ medium.
-- `transcript-weaver.md` — **Transcript weaver:** Post-hoc weaver consolidating per-step artifacts into one Markdown transcript per Root Cause. Flag-gated, adapter-agnostic, reverse-chronological.
-- `mcp-server-foundation.md` — **MCP Server Foundation:** `asterisk serve` command; official `go-sdk` dependency; placeholder tools (`ping`, `list_scenarios`); `.cursor/mcp.json`; stdio transport.
-- `mcp-pipeline-tools.md` — **MCP Pipeline Tools:** Investigation pipeline MCP tools (`start_investigation`, `get_prompt`, `submit_artifact`, `get_status`, `get_report`); stateful server; reuses orchestrate + calibrate.
-- `mcp-calibration-mode.md` — **MCP Calibration Mode:** Calibration-specific MCP tools (`start_calibration`, `get_calibration_report`, `get_transcripts`, `get_cost_report`); ground truth scoring, preamble injection, TokiMeter.
-- `rp-e2e-launch.md` — **RP E2E Launch:** Real blind end-to-end run against ReportPortal — fetch 4 RP-linked launches, analyze with BasicAdapter, blind-score against Jira-verified ground truth, push to RP. Final PoC gate.
-- `defect-court.md` — **Defect Court:** Adversarial RCA pipeline extension (D0-D4) — prosecution brief, defense consul, judicial verdict with remand-for-reinvestigation feedback. Post-MCP future phase. **Draft.**
+- `active/` -- Contracts currently being executed.
+- `draft/` -- Planned contracts not yet being executed.
+- `completed/` -- Finished contracts grouped by original development phase.
+
+## Files (root)
+
+- `index.mdc` -- This file.
+- `current-goal.mdc` -- Goal manifest: declares active goal and urgency map for all non-completed contracts.
+- `_TEMPLATE.md` -- Contract template; copy to create new contracts.

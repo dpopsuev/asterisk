@@ -13,7 +13,7 @@ This file is the binding structure contract. `.cursor/rules` must reference it.
 - `guide/` — software development workflows and process guidance.
 - `docs/` — deep library (long-form references and tomes).
 - `notes/` — short summaries and quick references.
-- `contracts/` — work contracts (session-independent execution plans with state, tasks, completion criteria).
+- `contracts/` — work contracts by lifecycle status: `draft/`, `active/`, `completed/{phase}/`. Urgency via `current-goal.mdc` manifest.
 - `security-cases/` — security bug post-mortems (RCA, severity, OWASP category, mitigation).
 - `prompts/` — RCA prompt templates (file-based); **development** location — iterate here, then move to CLI prompt directory for shipment.
 - `strategy/` — long-term objectives and invariants.

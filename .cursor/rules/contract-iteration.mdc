@@ -1,0 +1,63 @@
+---
+description: Contract iteration — monitor active and goal-mapped contracts for insights from discussions, field results, and calibration runs
+alwaysApply: true
+---
+
+# Contract Iteration
+
+Active and goal-mapped contracts are living documents. They accumulate insights not just during explicit execution sessions, but from any discussion, calibration run, or field observation that touches their domain.
+
+## Scope
+
+Read `contracts/current-goal.mdc` to determine which contracts are in scope. Monitored tiers:
+
+- **gate** — always monitored
+- **quick-win** — always monitored
+- **next-milestone** — monitored for architectural insights and assumption validation
+
+**vision** tier is excluded from active monitoring. Vision contracts receive insights only when explicitly discussed.
+
+## Behaviors
+
+### After calibration or E2E runs
+
+When a calibration or E2E run produces results:
+
+1. Check per-case results for misclassification patterns, unexpected scores, or anomalies.
+2. If a pattern maps to a candidate quick win or active contract task: propose logging it in that contract's Notes section with a timestamp.
+3. If a new quick-win opportunity is discovered: propose adding it as a candidate in the relevant contract.
+
+### During discussions
+
+When a conversation touches a topic relevant to a monitored contract:
+
+1. Propose adding the insight to the contract's Notes section (format: `YYYY-MM-DD HH:MM — insight`).
+2. If the insight is a concrete improvement idea: propose promoting it to a task in the contract.
+3. If the insight contradicts an assumption in a draft contract: flag it explicitly.
+
+### Cross-contract feedback
+
+When an active contract's results or findings affect a draft contract:
+
+1. Log the finding in the draft contract's Notes.
+2. If the finding invalidates part of the draft's approach: flag for reassessment.
+3. If the finding strengthens the draft's approach: note it as supporting evidence.
+
+## Goal manifest as routing table
+
+The urgency map in `contracts/current-goal.mdc` serves as the routing table. When deciding which contract an insight belongs to:
+
+1. Read the urgency map to identify relevant contracts by tier.
+2. Match the insight's domain to the contract's Goal and Context.
+3. Prefer the highest-urgency matching contract (gate > quick-win > next-milestone).
+4. If no existing contract matches: propose creating a new contract or adding the insight to a note.
+
+## Contract lifecycle transitions
+
+When monitoring reveals that a draft contract should become active:
+
+1. Verify all dependencies (listed in the contract) are met.
+2. Verify the gate contract is complete (or the goal manifest permits parallel work).
+3. Propose moving the contract: `git mv contracts/draft/{slug}.md contracts/active/`
+4. Update the contract's `Status:` field to `active`.
+5. Update `contracts/current-goal.mdc` to reflect the new status.

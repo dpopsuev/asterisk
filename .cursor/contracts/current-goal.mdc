@@ -1,0 +1,35 @@
+---
+description: Active goal manifest — single-read orientation for agents to know what matters now
+---
+
+# Current Goal
+
+**Goal:** PoC completion  
+**Reference:** `goals/poc.mdc`  
+**Summary:** Prove Asterisk can do real blind RCA on RP data with BasicAdapter, push results back to ReportPortal, then tune accuracy through targeted quick wins.
+
+## Urgency Map
+
+Ordered by priority. Agents should work top-down: complete the gate before touching quick-wins; complete quick-wins before next-milestone.
+
+| Tier | Contract | Status | Notes |
+|------|----------|--------|-------|
+| **gate** | `rp-e2e-launch` | active | Final PoC gate. Fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back. All deps met. |
+| **quick-win** | `poc-tuning-loop` | draft | Activates after rp-e2e-launch. Surface RP attributes, wire Jira links, tune keyword maps. Tight calibrate-measure-commit loop. |
+| **quick-win** | `evidence-gap-brief` | draft | Structured "what's missing" output when confidence is low. Feeds tuning loop priorities and Defect Court mistrial. |
+| **gate** | `poc-scope-precision` | draft | Zero-friction packaging: simplified CLI, Cursor skill, CEO-ready README. Required for external demo. |
+| **next-milestone** | `mcp-server-foundation` | draft | MCP chain step 1. `asterisk serve` over stdio; placeholder tools. Post-PoC. |
+| **next-milestone** | `mcp-pipeline-tools` | draft | MCP chain step 2. F0-F6 pipeline tools. Depends on mcp-server-foundation. |
+| **next-milestone** | `mcp-calibration-mode` | draft | MCP chain step 3. Calibration-specific MCP tools. Depends on mcp-pipeline-tools. |
+| **vision** | `defect-court` | draft | Adversarial RCA (D0-D4). No timeline. |
+| **vision** | `workspace-revisited` | draft | Universal artifact reference system. No timeline. |
+| **vision** | _(persona-system)_ | not yet written | Specialized prompt preambles with workspace binding. No timeline. |
+
+## Goal Transition Protocol
+
+When this goal is met (rp-e2e-launch complete + tuning loop stop condition reached):
+
+1. Archive this manifest in `notes/` as `goal-history-poc.md`
+2. Create a new `current-goal.mdc` for the next goal (likely: MCP integration)
+3. Reassess all draft contracts — re-tier relative to the new goal
+4. Move completed contracts to `completed/` with appropriate phase subdirectory

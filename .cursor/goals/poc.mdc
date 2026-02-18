@@ -5,29 +5,51 @@ description: PoC goal statement and success criteria (CLI-first)
 # PoC — CLI
 
 ## Goal statement
-Asterik PoC is a **standalone CLI** (**Go**) that works **only with `asterisk --cursor`**: Cursor is the model. Asterik acts as a prompt injector and conducts a dialog with Cursor, persisting investigation data to the Asterik DB. It consumes an Execution Envelope (launch) and a context workspace (config on FS), runs RCA analysis with one external context source, and writes an **artifact** to FS; a separate **push** command sends that artifact to RP when the user chooses. PoC interacts with ReportPortal via the **RP API** (client, not an RP plugin).
+
+Asterisk PoC is a **standalone CLI** (**Go**) that proves real-world RCA capability: fetch live failure data from ReportPortal, run the F0-F6 pipeline with BasicAdapter (zero-LLM heuristic), score results against Jira-verified ground truth, and push defect-type updates back to RP. The PoC also validates a **tuning loop** — targeted prompt and pipeline improvements measured by M1-M20 calibration metrics.
 
 ## Scope (in)
-- **PoC = `asterisk --cursor` only.** No other invocation mode is in scope for PoC. Symbiotic flow: Asterik injects prompts, dialog with Cursor; cases, RCAs, assessment saved to Asterik DB.
-- **analyze** — Input: **RP launch by ID** (Execution DB; from-file envelope only for tests/fixture), context workspace (YAML/JSON/TOML on FS defining context sources). One external source (e.g. GitHub) for PoC. Output: **artifact on FS** (RCA message, convergence score, suggested defect type, evidence refs). No RP write during analyze.
-- **push** — Input: path to artifact (`push -f <path>`). Reads artifact and pushes defect type (and related fields) to RP. Explicit; no automatic push from analyze.
-- Pulling launches from RP (Execution DB) and pushing to RP are **manual** in PoC (user/agent invokes CLI).
-- Context Workspace = config on FS defining context sources; versionable, shareable.
-- **Prompts** — File-based prompt templates. During development: live in **`.cursor/prompts/`** (experiment, iterate in Cursor). When stable: move to the **CLI’s prompt directory** for shipment. Development loop: **red–green–blue** (experiment → observe results → iterate).
-- **First scenario:** PTP test cases CI — weekly flow (assessment → RCA → human review → Jira → report). See `notes/ci-analysis-flow.mdc` for current Cursor flow, contract of work, and limitations (repetition, human error, context loss, over-scoped vs repetitive scoping). PoC addresses these via templates, persisted artifacts, and scoped steps with orchestration.
-- **CLI data model:** Persistence via **storage adapter** (SQLite for now); one **investigation case** per failure per **investigation envelope**; hierarchy failure ⊂ job ⊂ pipeline; many cases can share one **RCA** (pattern/dedup); RCA stores optional Jira ticket ID + link. See `docs/cli-data-model.mdc`.
+
+- **CLI commands:** `analyze`, `calibrate`, `push`, `cursor`, `save`, `status`. Cobra-based with subcommands.
+- **analyze** — Input: RP launch by ID or from-file envelope + context workspace. Output: artifact on FS (RCA message, convergence score, suggested defect type, evidence refs). No RP write during analyze.
+- **calibrate** — Input: scenario name + adapter + optional `--rp-base-url` for RP-sourced cases. Runs the full pipeline against all cases in the scenario, computes M1-M20 metrics, produces a calibration report. Primary validation tool.
+- **push** — Input: path to artifact (`push -f <path>`). Reads artifact and pushes defect type to RP. Explicit; no automatic push.
+- **Adapters:** `StubAdapter` (deterministic ground truth), `BasicAdapter` (heuristic, zero-LLM), `CursorAdapter` (interactive LLM via dispatchers).
+- **Dispatchers:** `StdinDispatcher`, `FileDispatcher`, `BatchFileDispatcher`. Strategy pattern for communication channels.
+- **Calibration scenarios:** `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest` (30 cases, 4 RP-sourced with `RPLaunchID`).
+- **Metrics:** M1-M20 calibration metrics covering defect type accuracy, component identification, evidence quality, convergence, repo selection precision/recall, and cost.
+- **Context Workspace** = config on FS defining context sources (repos with name, purpose, branch); versionable, shareable.
+- **Prompts** — File-based templates in `.cursor/prompts/`. Development loop: red-green-blue (experiment, observe results, iterate).
+- **First scenario:** PTP test cases CI — weekly flow (assessment, RCA, human review, Jira, report).
+- **CLI data model:** Persistence via storage adapter (SQLite); investigation case per failure per envelope; hierarchy failure < job < pipeline. See `docs/cli-data-model.mdc`.
 
 ## Out of scope (for PoC)
-- **`asterisk` without `--cursor`** (e.g. TUI with another model, or subcommands from shell only). PoC is Cursor-only.
+
 - Standalone service (MVP).
-- RP adapter / automatic fetch from RP (manual fetch by launch ID).
-- Multi-round carousel; full UI parity with RP.
+- MCP server integration (near-term, post-PoC).
+- Adversarial RCA / Defect Court (future).
+- Universal artifact workspace (future).
+- Persona system (future).
 
 ## Success criteria
-- CLI: `analyze` and `push -f` implemented; artifact format stable.
-- At least one real launch (envelope) + one context workspace processed end-to-end.
-- Artifact contains RCA message, convergence score, suggested defect type, evidence refs.
-- Push to RP via `push -f` when user/agent decides; convergence score in artifact guides decision.
 
-## Next (MVP)
-Standalone CLI may evolve into a side-car service (Go); CLI becomes thin client. RP API client for fetch/write; same commands, execution optionally on server.
+1. **CLI complete:** `analyze`, `calibrate`, and `push -f` implemented; artifact format stable.
+2. **Real blind E2E:** At least 4 RP-sourced cases (live data from RP) processed end-to-end via `calibrate --scenario=ptp-real-ingest --rp-base-url`. Scored against Jira-verified ground truth. _(Contract: `rp-e2e-launch`)_
+3. **Push verified:** At least 1 artifact pushed to RP via `push -f`; defect type visible in RP UI.
+4. **Tuning loop validated:** At least 2 quick wins implemented and measured via the calibrate-measure-commit loop. M19 on blind cases does not fall below M19 on synthetic cases. _(Contract: `poc-tuning-loop`)_
+5. **No regression:** Full 30-case calibration shows no M19 regression after tuning.
+
+## Tuning loop
+
+After the E2E gate passes, a tight improvement loop targets quick wins:
+
+1. Implement a targeted change (prompt enrichment, keyword tuning, data wiring)
+2. Run `asterisk calibrate --scenario=ptp-real-ingest --adapter=basic --rp-base-url <URL>`
+3. Compare M19 and per-case metrics against the E2E baseline
+4. Commit if improved; revert if regressed
+
+**Stop conditions:** M19 on blind cases >= 0.90, or 3 attempts with no improvement, or all candidates exhausted. See `contracts/draft/poc-tuning-loop.md`.
+
+## Next (post-PoC)
+
+**MCP integration** — `asterisk serve` starts a stateful MCP server over stdio. Cursor calls tools directly instead of file polling. Three sequential contracts: `mcp-server-foundation` -> `mcp-pipeline-tools` -> `mcp-calibration-mode`. See `contracts/current-goal.mdc` for the full urgency map.

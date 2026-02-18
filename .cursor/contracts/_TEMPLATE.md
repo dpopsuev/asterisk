@@ -1,7 +1,8 @@
 # Contract — {slug}
 
 **Status:** draft | active | complete | abandoned  
-**Goal:** (One sentence. Binary — true or false.)
+**Goal:** (One sentence. Binary — true or false.)  
+**Serves:** (Goal name from current-goal.mdc, e.g. "PoC completion")
 
 ## Contract rules
 
