@@ -1,0 +1,36 @@
+---
+description: Reviewability-first design principle — prefer observable, git-diffable formats over opaque binary stores in agentic workflows
+alwaysApply: true
+---
+
+# Reviewability First
+
+Reviewability is preferable to performance. Every data mutation by an agent must be observable by humans and other agents.
+
+## Self-reinforcement loop
+
+Agentic workflows improve through a feedback cycle: **mutate → review → feedback → improve**. This loop requires that every change is visible — in a PR diff, in a commit log, in a terminal. Binary formats break the loop because their diffs are opaque.
+
+## Rules
+
+1. **Prefer git-diffable text formats** (JSON, YAML, Go source) over binary stores (SQLite, protobuf, msgpack) for any data that agents read or write.
+2. **The canonical source of truth must be reviewable.** If a binary store is needed for query performance at scale (millions of records, complex joins), the reviewable text format remains canonical and the binary store is a derived cache.
+3. **Performance tradeoffs are acceptable** when the dataset fits in memory (hundreds to low thousands of records). For ground truth datasets, calibration scenarios, and configuration: JSON file I/O is negligible.
+4. **Generated artifacts belong in version control** when they influence scoring, classification, or agent behavior. A dataset change that no one can review is a dataset change that no one can trust.
+
+## Application
+
+| Data type | Reviewable format | When binary is justified |
+|-----------|-------------------|--------------------------|
+| Ground truth datasets | JSON files in `datasets/` | Never at current scale (~30–100 cases) |
+| Calibration scenarios | Go structs or JSON | Never at current scale |
+| Agent configuration | YAML / JSON | Never |
+| Large telemetry / logs | Text logs, JSONL | Archival compression only |
+| Intermediate caches | Not persisted or `.gitignore`d | Always (caches are ephemeral) |
+
+## Anti-patterns
+
+- Storing agent-curated data in SQLite and calling it the source of truth.
+- Binary serialization of configuration or small datasets for "performance".
+- Generated files excluded from version control that affect scoring or behavior.
+- Mutations that bypass review (direct DB writes with no diff trail).
