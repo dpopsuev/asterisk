@@ -35,6 +35,7 @@ var calibrateFlags struct {
 	transcript    bool
 	rpBase        string
 	rpKeyPath     string
+	rpProject     string
 }
 
 var calibrateCmd = &cobra.Command{
@@ -61,6 +62,7 @@ func init() {
 	f.BoolVar(&calibrateFlags.transcript, "transcript", false, "Write per-RCA transcript files after calibration")
 	f.StringVar(&calibrateFlags.rpBase, "rp-base-url", "", "RP base URL for RP-sourced scenario cases")
 	f.StringVar(&calibrateFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
+	f.StringVar(&calibrateFlags.rpProject, "rp-project", "", "RP project name (default: $ASTERISK_RP_PROJECT)")
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
@@ -81,6 +83,10 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	// Resolve RP-sourced cases before adapter creation so adapters see real data.
 	var rpFetcher preinvest.Fetcher
 	if calibrateFlags.rpBase != "" {
+		rpProject := resolveRPProject(calibrateFlags.rpProject)
+		if rpProject == "" {
+			return fmt.Errorf("RP project name is required when using RP API\n\nSet it via environment variable:\n  export ASTERISK_RP_PROJECT=your-project-name\n\nOr use the --rp-project flag:\n  asterisk calibrate --rp-base-url ... --rp-project your-project-name")
+		}
 		key, err := rp.ReadAPIKey(calibrateFlags.rpKeyPath)
 		if err != nil {
 			return fmt.Errorf("read RP API key from %s: %w", calibrateFlags.rpKeyPath, err)
@@ -89,7 +95,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		if err != nil {
 			return fmt.Errorf("create RP client: %w", err)
 		}
-		rpFetcher = rp.NewFetcher(client, "ecosystem-qe")
+		rpFetcher = rp.NewFetcher(client, rpProject)
 		if err := calibrate.ResolveRPCases(rpFetcher, scenario); err != nil {
 			return fmt.Errorf("resolve RP-sourced cases: %w", err)
 		}

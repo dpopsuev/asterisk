@@ -24,6 +24,7 @@ var analyzeFlags struct {
 	adapterName   string
 	rpBase        string
 	rpKeyPath     string
+	rpProject     string
 }
 
 var analyzeCmd = &cobra.Command{
@@ -56,6 +57,7 @@ func init() {
 	f.StringVar(&analyzeFlags.adapterName, "adapter", "basic", "Adapter: basic (heuristic, default)")
 	f.StringVar(&analyzeFlags.rpBase, "rp-base-url", "", "RP base URL (default: $ASTERISK_RP_URL)")
 	f.StringVar(&analyzeFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
+	f.StringVar(&analyzeFlags.rpProject, "rp-project", "", "RP project name (default: $ASTERISK_RP_PROJECT)")
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
@@ -97,7 +99,12 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		artifactPath = filepath.Join(outputDir, fmt.Sprintf("rca-%s.json", safeName))
 	}
 
-	env := loadEnvelopeForAnalyze(launch, analyzeFlags.dbPath, rpBase, analyzeFlags.rpKeyPath)
+	rpProject := resolveRPProject(analyzeFlags.rpProject)
+	if rpBase != "" && rpProject == "" {
+		return fmt.Errorf("RP project name is required when using RP API\n\nSet it via environment variable:\n  export ASTERISK_RP_PROJECT=your-project-name\n\nOr use the --rp-project flag:\n  asterisk analyze %s --rp-project your-project-name", launch)
+	}
+
+	env := loadEnvelopeForAnalyze(launch, analyzeFlags.dbPath, rpBase, analyzeFlags.rpKeyPath, rpProject)
 	if env == nil {
 		return fmt.Errorf("could not load envelope for launch %q", launch)
 	}
@@ -153,6 +160,13 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("analyze: %w", err)
 	}
 	report.LaunchName = env.Name
+
+	for i := range report.CaseResults {
+		if i < len(env.FailureList) {
+			report.CaseResults[i].RPIssueType = env.FailureList[i].IssueType
+			report.CaseResults[i].RPAutoAnalyzed = env.FailureList[i].AutoAnalyzed
+		}
+	}
 
 	data, err := json.MarshalIndent(report, "", "  ")
 	if err != nil {

@@ -42,8 +42,17 @@ func defaultWorkspaceRepos() []string {
 	}
 }
 
+// resolveRPProject returns the RP project name from the given flag value,
+// falling back to $ASTERISK_RP_PROJECT. Returns "" if neither is set.
+func resolveRPProject(flagValue string) string {
+	if flagValue != "" {
+		return flagValue
+	}
+	return os.Getenv("ASTERISK_RP_PROJECT")
+}
+
 // loadEnvelopeForAnalyze resolves the envelope from a file path or launch ID.
-func loadEnvelopeForAnalyze(launch, dbPath, rpBase, rpKeyPath string) *preinvest.Envelope {
+func loadEnvelopeForAnalyze(launch, dbPath, rpBase, rpKeyPath, rpProject string) *preinvest.Envelope {
 	if _, err := os.Stat(launch); err == nil {
 		data, err := os.ReadFile(launch)
 		if err != nil {
@@ -73,7 +82,7 @@ func loadEnvelopeForAnalyze(launch, dbPath, rpBase, rpKeyPath string) *preinvest
 		if err != nil {
 			return nil
 		}
-		fetcher := rp.NewFetcher(client, "ecosystem-qe")
+		fetcher := rp.NewFetcher(client, rpProject)
 		adapter := &store.PreinvestStoreAdapter{Store: st}
 		if err := preinvest.FetchAndSave(fetcher, adapter, launchID); err != nil {
 			return nil
