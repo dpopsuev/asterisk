@@ -1,7 +1,8 @@
 # Contract — Workspace Revisited
 
 **Status:** draft  
-**Goal:** Redefine the workspace from a repo-name catalog into a universal artifact reference system with content resolution, format learning, graceful degradation, and a local artifact catalog/cache. Future phase — aligns with persona system, MCP integration, and Defect Court.
+**Goal:** Redefine the workspace from a repo-name catalog into a universal artifact reference system with content resolution, format learning, graceful degradation, and a local artifact catalog/cache. Future phase — aligns with persona system, MCP integration, and Defect Court.  
+**Serves:** Architecture evolution
 
 ## Contract rules
 
@@ -21,6 +22,10 @@
 - **RP data not surfaced:** `LaunchResource.Attributes` (OCP version, operator versions, cluster name, CI lane), `ExternalSystemIssues` (Jira links), RP logs, RP attachments — all parsed or parseable but not reaching prompts.
 - **CI notification email:** Contains RP launch URL, Jenkins URL, S3 collect URL, Polarion URL. Documented in `notes/ci-notification-and-fetch.mdc`.
 - **Related contracts:** `defect-court.md` (prosecution and defense share an artifact pool), `persona-system.md` (workspace-bound personas), `rp-adapter-v2.md` (LogScope stretch goal), `mcp-pipeline-tools.md` (MCP tools for artifact access).
+
+## Connection to Evidence Gap Brief
+
+The `evidence-gap-brief.md` contract defines an Evidence Gap Brief system that identifies what artifact types are missing during an investigation. The gap categories (`log_depth`, `source_code`, `ci_context`, `cluster_state`, `version_info`, `historical`, `jira_context`, `human_input`) map 1:1 to the artifact taxonomy domains below. This makes the gap brief a **demand signal** for workspace expansion: when the system repeatedly reports `log_depth` gaps, it means the workspace should prioritize wiring CI job logs (domain C). When it reports `version_info` gaps, RP launch attributes need surfacing (domain B). The gap brief tells us *what to build next* in the workspace, ordered by real investigation need rather than speculation.
 
 ## Part 1: Artifact taxonomy
 
@@ -391,6 +396,18 @@ This is a design-and-prototype contract. Implementation is incremental:
 - Existing `internal/workspace.Workspace` consumers are not broken by the new design
 - Degradation behavior is defined: missing artifacts lower confidence, never cause hallucination
 
+## Security assessment
+
+Implement these mitigations when executing this contract.
+
+| OWASP | Finding | Mitigation |
+|-------|---------|------------|
+| A10 | Artifact catalog fetches from arbitrary URLs (RP API, S3, Jenkins, docs.redhat.com). URL injection via workspace config could redirect fetches to attacker-controlled servers. | URL allowlist by domain. Default: `*.redhat.com`, `*.apps.your-ocp-cluster.example.com`, `github.com`. Reject other domains unless explicitly added to workspace config. |
+| A01 | Format learning reads archive files (ZIP, TGZ). Malicious archives could contain path traversal entries or symlinks escaping the catalog directory. | Use `archive/zip` with path validation: reject entries with `..` components. Resolve symlinks within catalog boundary. Limit extracted file size. |
+| A02 | Catalog stores RP API responses, Jira data, CI logs on disk in `.asterisk/catalog/`. This is a persistent store of sensitive data. | Catalog directory permissions: `0700`. Individual files: `0600`. Add TTL-based eviction. Catalog contents are sensitive and must not be committed. |
+| A06 | Fetched artifacts could contain known-malicious payloads (e.g., log4j strings in Jenkins logs). Readers must not evaluate content as code. | Readers are parse-only (JSON, XML, YAML, plain text). Never `eval` or `exec` content. Validate parsed structures against expected schemas. |
+
 ## Notes
 
+2026-02-18 — Added connection to `evidence-gap-brief.md`: gap categories map 1:1 to artifact taxonomy domains, making gap briefs a demand signal for workspace expansion priorities.
 2026-02-18 — Contract drafted from brainstorming session. Grounded in exploration of current codebase (`internal/workspace/`, `internal/calibrate/`, `internal/rp/`, `internal/orchestrate/`, `.cursor/prompts/`, `archive/ci/`). Key finding: the workspace is purely declarative metadata today — never clones, reads, or indexes any content. Real CI archives on disk (`#5400.txt`, `failed_ptp_suite_test.zip`) and RP data fields (`Attributes`, `ExternalSystemIssues`, logs) are available but not consumed by the pipeline.

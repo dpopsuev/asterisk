@@ -1,7 +1,8 @@
 # Contract — MCP Pipeline Investigation Tools
 
-**Status:** active  
-**Goal:** MCP tools drive the F0–F6 investigation pipeline, with Asterisk as the stateful server holding the heuristic engine and store.
+**Status:** draft  
+**Goal:** MCP tools drive the F0–F6 investigation pipeline, with Asterisk as the stateful server holding the heuristic engine and store.  
+**Serves:** MCP integration
 
 ## Contract rules
 
@@ -116,6 +117,16 @@ Creates a new investigation session:
 - **Given** the pipeline tools,
 - **When** Cursor uses them to drive investigation,
 - **Then** the result is identical to running `asterisk calibrate --adapter=cursor` (same heuristics, same metrics).
+
+## Security assessment
+
+Implement these mitigations when executing this contract.
+
+| OWASP | Finding | Mitigation |
+|-------|---------|------------|
+| A01 | `get_prompt` and `submit_artifact` tools accept file paths. Path traversal via tool arguments could read/write arbitrary files. Extends SEC-001 to MCP context. | Validate all paths in MCP tool handlers: `filepath.Clean`, ensure paths are under `.asterisk/` or the calibration directory. Reject absolute paths and `..` components. |
+| A03 | `submit_artifact` accepts JSON from the MCP client. Malformed JSON or oversized payloads could cause DoS or unexpected behavior. | Validate JSON schema before processing. Limit payload size (e.g., 1MB per artifact). |
+| A05 | Prompt files written to disk by `get_prompt` use `0644` (SEC-004). Prompts may contain failure data. | Write prompt files with `0600`. |
 
 ## Notes
 

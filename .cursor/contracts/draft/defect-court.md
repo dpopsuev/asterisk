@@ -1,7 +1,8 @@
 # Contract — Defect Court
 
 **Status:** draft  
-**Goal:** Extend the F0-F6 investigation pipeline with an adversarial "Defect Court" phase (D0-D4) where a prosecution brief, defense consul, and judicial verdict replace the single-perspective review, feeding contested findings back to investigation for reassessment. Future phase — post-MCP integration.
+**Goal:** Extend the F0-F6 investigation pipeline with an adversarial "Defect Court" phase (D0-D4) where a prosecution brief, defense consul, and judicial verdict replace the single-perspective review, feeding contested findings back to investigation for reassessment. Future phase — post-MCP integration.  
+**Serves:** Architecture evolution
 
 ## Contract rules
 
@@ -64,6 +65,9 @@ StepD4Verdict  = "D4_VERDICT"
 | HD7 | D4 | Verdict = amend | Done (judge's amended classification) |
 | HD8 | D4 | Verdict = remand | Back to F2/F3 with defense feedback |
 | HD9 | D4 | Verdict = acquit | Done (mark unclassified, needs human) |
+| HD10 | any | Wall-clock TTL exceeded | Mistrial — emit Evidence Gap Brief with "time exhausted" |
+| HD11 | any | Handoff counter exceeded | Mistrial — emit Evidence Gap Brief with "deliberation exhausted" |
+| HD12 | D4 | Verdict = mistrial | Judge explicitly declares unresolvable — emit Evidence Gap Brief |
 
 ### Multi-adapter architecture
 
@@ -85,6 +89,46 @@ The existing F5 reassess loop says "try again." A court remand provides structur
 
 This transforms reinvestigation from blind retry to targeted inquiry.
 
+After the remand limit is reached, the system must produce an Evidence Gap Brief instead of retrying. The gap brief carries the defense's unresolved challenges as structured gap items.
+
+### TTL and handoff limits
+
+The court phase has configurable resource bounds to prevent unbounded deliberation:
+
+- **Wall-clock TTL:** maximum duration for the entire D0-D4 phase per case. Configured via `CourtConfig.TTL`. If exceeded at any stage, the current step is interrupted and the case goes to mistrial (HD10).
+- **Handoff counter:** incremented each time the case moves between roles (prosecution -> defense -> judge -> remand -> prosecution). Maximum configured via `CourtConfig.MaxHandoffs`. Prevents infinite deliberation loops (HD11).
+- **Remand limit:** maximum number of D4-to-F2/F3 remand cycles. Configured via `CourtConfig.MaxRemands`. Default: 2. After exhaustion, the case must reach a final verdict or mistrial. This is a subset of the handoff counter but specifically tracks remand depth.
+
+```go
+type CourtConfig struct {
+    Enabled     bool          `json:"enabled"`
+    TTL         time.Duration `json:"ttl"`
+    MaxHandoffs int           `json:"max_handoffs"`
+    MaxRemands  int           `json:"max_remands"`
+}
+```
+
+### Mistrial outcome
+
+A **mistrial** is not a failure — it is the system's honest declaration that the available evidence is insufficient for a confident verdict. The mistrial artifact is a superset of the Evidence Gap Brief (see `evidence-gap-brief.md`):
+
+- Prosecution's best classification with confidence
+- Defense's challenges and alternative hypotheses
+- Judge's reasoning for why the case is unresolvable
+- Structured `EvidenceGap` items (shared type from `evidence-gap-brief.md`)
+- Court metadata: which role identified each gap, at which stage (D0-D4)
+- Termination reason: `time_exhausted` | `deliberation_exhausted` | `judge_declared`
+
+The `EvidenceGap` type is shared between the pipeline-level gap brief and the court-level mistrial brief. Court extends it with:
+
+```go
+type CourtEvidenceGap struct {
+    EvidenceGap
+    IdentifiedBy string `json:"identified_by"` // prosecution, defense, judge
+    AtStage      string `json:"at_stage"`       // D0-D4
+}
+```
+
 ## Benefit assessment
 
 **Real benefit, not just novelty.** Adversarial systems are proven in AI alignment (Constitutional AI, debate-based reasoning, red-teaming). The ~7% error rate is concentrated in ambiguous cases — exactly where adversarial review helps most. The plea-deal mechanism keeps overhead proportional to difficulty.
@@ -97,10 +141,11 @@ Estimated impact:
 ## Implementation phases
 
 ### Phase 1 — Data structures and plumbing
-- [ ] Add D0-D4 step constants and artifact types to `internal/orchestrate/types.go`
-- [ ] Add court heuristic rules (HD1-HD9) to `internal/orchestrate/heuristics.go`
-- [ ] Extend state machine for D0-D4 transitions and remand paths
-- [ ] Add `CourtConfig` to `internal/calibrate/types.go`
+- [ ] Add D0-D4 step constants and artifact types (including `Mistrial`) to `internal/orchestrate/types.go`
+- [ ] Add court heuristic rules (HD1-HD12) to `internal/orchestrate/heuristics.go`
+- [ ] Extend state machine for D0-D4 transitions, remand paths, and mistrial exits
+- [ ] Add `CourtConfig` (with `TTL`, `MaxHandoffs`, `MaxRemands`) to `internal/calibrate/types.go`
+- [ ] Share `EvidenceGap` type with `evidence-gap-brief.md` — court extends it as `CourtEvidenceGap`
 
 ### Phase 2 — BasicAdapter court roles (heuristic baseline)
 - [ ] Implement `BasicDefenseAdapter` (skeptical keyword rules)
@@ -130,6 +175,10 @@ Estimated impact:
 - **When** the reinvestigation runs with the defense's structured feedback,
 - **Then** the second-pass classification addresses the defense's specific challenges.
 
+- **Given** the court's wall-clock TTL or handoff counter is exceeded,
+- **When** the case cannot reach a verdict within those bounds,
+- **Then** a mistrial is declared with an Evidence Gap Brief that includes the prosecution's best guess, defense challenges, and structured gap items.
+
 ## Dependencies
 
 | Contract | Status | Required for |
@@ -141,16 +190,28 @@ Estimated impact:
 ## Files affected
 
 - `internal/orchestrate/types.go` — new step constants and artifact types
-- `internal/orchestrate/heuristics.go` — new court heuristic rules (HD1-HD9)
+- `internal/orchestrate/heuristics.go` — new court heuristic rules (HD1-HD12)
 - `internal/orchestrate/state.go` — state machine extension for D0-D4
 - `internal/calibrate/types.go` — CourtConfig, court-related CaseResult fields
 - `internal/calibrate/runner.go` — post-F6 court phase execution
 - `internal/calibrate/metrics.go` — new court metrics
 - `internal/calibrate/adapt/` — new defense and judge adapter implementations
 - New: `internal/court/` — court-specific orchestration logic
+- Shared: `EvidenceGap` type from `evidence-gap-brief.md` contract — court extends with `CourtEvidenceGap`
+
+## Security assessment
+
+Implement these mitigations when executing this contract.
+
+| OWASP | Finding | Mitigation |
+|-------|---------|------------|
+| A03 | Prosecution, defense, and judge adapters exchange structured data. If one role's output is injected into another role's prompt without sanitization, prompt injection between roles is possible (SEC-003 extended to court context). | All inter-role data must be treated as untrusted input. Structured JSON exchange only (no raw text injection). Validate schema before injecting into prompts. |
+| A04 | TTL and handoff limits are a DoS mitigation (good). Without them, a malicious or buggy defense adapter could force infinite remand loops. | Already mitigated by HD10-HD12. This is a deliberate security design decision. |
+| A08 | Court artifacts (prosecution brief, defense brief, verdict) are unsigned. A tampered verdict could alter the RCA outcome. | Acceptable risk for PoC (SEC-005 accepted-risk). For MVP: add artifact signing with HMAC or content hash chain. |
 
 ## Notes
 
 (Running log, newest first.)
 
+- 2026-02-18 — Updated: added TTL, handoff limits, remand cap, and mistrial outcome (HD10-HD12). Mistrial artifact is a superset of Evidence Gap Brief (see `evidence-gap-brief.md`). `CourtEvidenceGap` extends shared `EvidenceGap` type with role and stage metadata.
 - 2026-02-16 — Contract drafted. Adversarial RCA inspired by US federal trial process. Assessed as real benefit (not just novelty) based on proven adversarial techniques in AI alignment and the concentration of errors in ambiguous cases. Deferred to post-MCP phase.

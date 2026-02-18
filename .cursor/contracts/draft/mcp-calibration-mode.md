@@ -1,7 +1,8 @@
 # Contract — MCP Calibration Mode
 
-**Status:** active  
-**Goal:** MCP tools for calibration-specific workflows: ground truth scoring, blind evaluation preamble, transcript weaving, TokiMeter.
+**Status:** draft  
+**Goal:** MCP tools for calibration-specific workflows: ground truth scoring, blind evaluation preamble, transcript weaving, TokiMeter.  
+**Serves:** MCP integration
 
 ## Contract rules
 
@@ -104,6 +105,15 @@ Like `start_investigation` but additionally:
 - **Given** a completed calibration session with token tracking enabled,
 - **When** `get_cost_report` is called,
 - **Then** it returns a TokiMeter bill with per-case, per-step, and total cost breakdown.
+
+## Security assessment
+
+Implement these mitigations when executing this contract.
+
+| OWASP | Finding | Mitigation |
+|-------|---------|------------|
+| A05 | `get_ground_truth` tool exposes scenario ground truth data via MCP. If the MCP server is accessible beyond the intended client, ground truth leaks. | Acceptable for stdio transport (Cursor-only). For network transports: require auth. Ground truth tools are calibration-only; disable in production/investigation mode. |
+| A05 | `get_transcripts` returns full RCA transcripts including failure data, error messages, and potentially infrastructure details via MCP. | Same trust model as stdio. For network transports: redact sensitive fields or require auth. |
 
 ## Notes
 

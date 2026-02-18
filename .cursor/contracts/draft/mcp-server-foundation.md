@@ -1,7 +1,8 @@
 # Contract — MCP Server Foundation
 
-**Status:** active  
-**Goal:** `asterisk serve` starts a stateful MCP server over stdio that Cursor can connect to, with placeholder tools proving the integration works.
+**Status:** draft  
+**Goal:** `asterisk serve` starts a stateful MCP server over stdio that Cursor can connect to, with placeholder tools proving the integration works.  
+**Serves:** MCP integration
 
 ## Contract rules
 
@@ -47,6 +48,16 @@
 - **Given** a call to `list_scenarios`,
 - **When** the server is running,
 - **Then** it returns the names of available calibration scenarios (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest).
+
+## Security assessment
+
+Implement these mitigations when executing this contract.
+
+| OWASP | Finding | Mitigation |
+|-------|---------|------------|
+| A01 | MCP server over stdio: any process that can write to stdin can invoke tools. No authentication. | For PoC (stdio transport): acceptable — Cursor IDE is the only client. Document trust model: "MCP server trusts its stdio parent process." For MVP: add tool-level authorization. |
+| A04 | MCP server is a long-running process — conflicts with the "CLI-first, no always-on service" principle from poc-constraints.mdc. | `asterisk serve` runs only during a Cursor session (started by Cursor, dies with the session). Not a persistent service. Document this distinction. |
+| A07 | No session management, no token-based auth for MCP transport. | Acceptable for stdio (inherited trust from parent process). Required for future network transports (SSE, WebSocket). |
 
 ## Notes
 

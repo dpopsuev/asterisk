@@ -1,7 +1,8 @@
 # Contract — Real RP E2E Launch
 
 **Status:** active  
-**Goal:** Execute a real blind end-to-end run against ReportPortal using RP-sourced calibration scenarios. The `calibrate` command fetches live data for RP-linked cases, runs the pipeline, and scores against Jira-verified ground truth with M1-M20 metrics — one command, one scorecard. This is the final PoC gate (success criterion #2).
+**Goal:** Execute a real blind end-to-end run against ReportPortal using RP-sourced calibration scenarios. The `calibrate` command fetches live data for RP-linked cases, runs the pipeline, and scores against Jira-verified ground truth with M1-M20 metrics — one command, one scorecard. This is the final PoC gate (success criterion #2).  
+**Serves:** PoC completion
 
 ## Contract rules
 
@@ -70,6 +71,7 @@ The calibration report already contains M1-M20 metrics computed against ground t
 | Convergence (M8) | `actual_convergence` reasonable | 0.3 <= score <= 1.0 |
 
 - [ ] Inspect per-case results for C01, C02, C11, C12
+- [ ] **Observe evidence gaps** — for any RP-sourced case where the adapter produces low confidence or "unknown", note what evidence gaps the system could identify (e.g. missing version info, unresolved Jira links, shallow log depth). This is observational — no code changes required, just record the gaps for the tuning loop and the `evidence-gap-brief.md` contract.
 
 ### Phase 3 — Push (at least one case)
 
@@ -127,9 +129,20 @@ asterisk push \
 
 This contract uses the **RP-sourced calibration** approach: extending `GroundTruthCase` with `RPLaunchID`/`RPItemID` fields so the calibration runner fetches real data from RP at runtime while keeping ground truth expectations embedded. This eliminates the need for separate `analyze` + manual-compare flows. See the plan: `.cursor/plans/rp-sourced_calibration_scenarios_*.plan.md`.
 
+## Security assessment
+
+Implement these mitigations when executing this contract.
+
+| OWASP | Finding | Mitigation |
+|-------|---------|------------|
+| A02 | RP token transmitted as `Bearer` over HTTPS. Token file permissions unchecked (SEC-002). | Check `.rp-api-key` permissions before use. Warn if not `0600`. |
+| A05 | `push` modifies production RP data. Accidental push to wrong project could corrupt defect classifications. | Already mitigated: "Push to RP only after manual review." Verify project name in push output before confirming. |
+| A09 | E2E results contain failure data (error messages, cluster names, versions). If committed, could leak infra details. | `.dev/e2e-results/` is gitignored. Never commit scorecard to public repos. |
+
 ## Notes
 
 (Running log, newest first.)
 
+- 2026-02-18 — Added evidence gap observation step to Phase 2 (Evaluate). Gaps observed here feed `evidence-gap-brief.md` and `poc-tuning-loop.md` QW-4.
 - 2026-02-18 — Rewritten to use RP-sourced calibration scenarios instead of separate analyze + manual compare. Single `calibrate` command with `--rp-base-url`.
 - 2026-02-17 — Contract created. 4 RP-linked cases identified from ptp-real-ingest. This is the final PoC gate.
