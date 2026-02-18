@@ -10,12 +10,16 @@
 /bin/
 /dist/
 /asterisk
+/asterisk-bin
 /mock-calibration-agent
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# Cursor local MCP config (contains machine-specific paths)
+.cursor/mcp.json
 
 # Local runtime directory
 .asterisk/
