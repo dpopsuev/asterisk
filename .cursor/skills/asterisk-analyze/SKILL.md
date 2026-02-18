@@ -87,30 +87,24 @@ If missing, print this guide and **stop**:
 ### 5. Run analysis
 
 ```bash
-bin/asterisk analyze LAUNCH_ID
+bin/asterisk analyze LAUNCH_ID --report
 ```
 
-The command uses `$ASTERISK_RP_URL` automatically and writes the artifact to `.asterisk/output/rca-LAUNCH_ID.json`.
+The command uses `$ASTERISK_RP_URL` automatically and writes:
+- `.asterisk/output/rca-LAUNCH_ID.json` — machine artifact (for `push`)
+- `.asterisk/output/rca-LAUNCH_ID.md` — human-readable RCA report
 
-### 6. Present results
+### 6. Present the RCA report to the user
 
-Read the output artifact:
+The `--report` flag produces a pre-rendered Markdown report. **Read** the `.md` file
+and **present its contents to the user verbatim**. This is the human-facing RCA report.
+Do not summarize or reformat it — relay it as-is.
 
 ```bash
-cat .asterisk/output/rca-LAUNCH_ID.json
+cat .asterisk/output/rca-LAUNCH_ID.md
 ```
 
-Parse the JSON and present a human-friendly summary:
-
-```
-## RCA Summary: Launch LAUNCH_ID
-
-| # | Test | Defect Type | Component | Confidence | RCA |
-|---|------|-------------|-----------|------------|-----|
-| 1 | test_name | PB001 | component | 0.85 | Brief explanation... |
-
-Artifact: .asterisk/output/rca-LAUNCH_ID.json
-```
+Read the file content and present it directly in your response to the user.
 
 ### 7. Offer push (optional)
 

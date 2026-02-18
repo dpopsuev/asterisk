@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/spf13/cobra"
 
@@ -25,6 +27,7 @@ var analyzeFlags struct {
 	rpBase        string
 	rpKeyPath     string
 	rpProject     string
+	report        bool
 }
 
 var analyzeCmd = &cobra.Command{
@@ -58,6 +61,7 @@ func init() {
 	f.StringVar(&analyzeFlags.rpBase, "rp-base-url", "", "RP base URL (default: $ASTERISK_RP_URL)")
 	f.StringVar(&analyzeFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
 	f.StringVar(&analyzeFlags.rpProject, "rp-project", "", "RP project name (default: $ASTERISK_RP_PROJECT)")
+	f.BoolVar(&analyzeFlags.report, "report", false, "Write a human-readable Markdown report (.md) alongside the JSON artifact")
 }
 
 func runAnalyze(cmd *cobra.Command, args []string) error {
@@ -178,5 +182,15 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	fmt.Fprint(cmd.OutOrStdout(), calibrate.FormatAnalysisReport(report))
 	fmt.Fprintf(cmd.OutOrStdout(), "\nReport written to: %s\n", artifactPath)
+
+	if analyzeFlags.report {
+		mdPath := strings.TrimSuffix(artifactPath, ".json") + ".md"
+		mdContent := calibrate.RenderRCAReport(report, time.Now())
+		if err := os.WriteFile(mdPath, []byte(mdContent), 0600); err != nil {
+			return fmt.Errorf("write report markdown: %w", err)
+		}
+		fmt.Fprintf(cmd.OutOrStdout(), "Human-readable report: %s\n", mdPath)
+	}
+
 	return nil
 }
