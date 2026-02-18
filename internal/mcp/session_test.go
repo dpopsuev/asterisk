@@ -89,23 +89,22 @@ func TestNewSession_InvalidScenario(t *testing.T) {
 	}
 }
 
-func TestNewSession_GradeFilter(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+func TestNewSession_RealIngest_VerifiedOnly(t *testing.T) {
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 
 	sess, err := mcpserver.NewSession(ctx, mcpserver.StartCalibrationInput{
 		Scenario: "ptp-real-ingest",
 		Adapter:  "stub",
-		Grade:    "A",
 	})
 	if err != nil {
 		t.Fatalf("NewSession: %v", err)
 	}
 
-	if sess.TotalCases == 0 {
-		t.Fatal("expected at least 1 grade-A case")
+	if sess.TotalCases != 18 {
+		t.Fatalf("expected 18 verified cases, got %d", sess.TotalCases)
 	}
-	t.Logf("grade=A filtered to %d cases", sess.TotalCases)
+	t.Logf("ptp-real-ingest: %d verified cases (candidates excluded from scoring)", sess.TotalCases)
 
 	select {
 	case <-sess.Done():
@@ -116,17 +115,24 @@ func TestNewSession_GradeFilter(t *testing.T) {
 	if sess.Err() != nil {
 		t.Fatalf("session error: %v", sess.Err())
 	}
-}
 
-func TestNewSession_GradeFilter_NoMatch(t *testing.T) {
-	ctx := context.Background()
-	_, err := mcpserver.NewSession(ctx, mcpserver.StartCalibrationInput{
-		Scenario: "ptp-mock",
-		Adapter:  "stub",
-		Grade:    "A",
-	})
-	// ptp-mock cases don't have EvidenceGrade set, so filtering by A yields 0
-	if err == nil {
-		t.Fatal("expected error when grade filter yields 0 cases")
+	report := sess.Report()
+	if report == nil {
+		t.Fatal("expected non-nil report")
+	}
+	if len(report.CaseResults) != 18 {
+		t.Errorf("expected 18 case results (verified only), got %d", len(report.CaseResults))
+	}
+	if report.Dataset == nil {
+		t.Fatal("expected non-nil dataset health")
+	}
+	if report.Dataset.VerifiedCount != 18 {
+		t.Errorf("dataset.verified_count = %d, want 18", report.Dataset.VerifiedCount)
+	}
+	if report.Dataset.CandidateCount != 12 {
+		t.Errorf("dataset.candidate_count = %d, want 12", report.Dataset.CandidateCount)
+	}
+	if len(report.Dataset.Candidates) != 12 {
+		t.Errorf("dataset.candidates length = %d, want 12", len(report.Dataset.Candidates))
 	}
 }

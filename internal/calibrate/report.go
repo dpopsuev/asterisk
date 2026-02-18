@@ -64,6 +64,26 @@ func FormatReport(report *CalibrationReport) string {
 		b.WriteString("\n")
 	}
 
+	// Dataset health
+	if report.Dataset != nil {
+		b.WriteString("--- Dataset Health ---\n")
+		b.WriteString(fmt.Sprintf("Verified cases (scored):   %d\n", report.Dataset.VerifiedCount))
+		b.WriteString(fmt.Sprintf("Candidate cases (tracked): %d\n", report.Dataset.CandidateCount))
+		if len(report.Dataset.Candidates) > 0 {
+			candidateTbl := format.NewTable(format.ASCII)
+			candidateTbl.Header("Case", "RCA", "Jira", "Reason")
+			for _, c := range report.Dataset.Candidates {
+				jira := c.JiraID
+				if jira == "" {
+					jira = "-"
+				}
+				candidateTbl.Row(c.CaseID, c.RCAID, jira, c.Reason)
+			}
+			b.WriteString(candidateTbl.String())
+		}
+		b.WriteString("\n\n")
+	}
+
 	// Per-case breakdown
 	b.WriteString("--- Per-case breakdown ---\n")
 	caseTbl := format.NewTable(format.ASCII)

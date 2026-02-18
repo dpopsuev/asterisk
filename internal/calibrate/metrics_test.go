@@ -1073,3 +1073,91 @@ func TestComputeMetrics_EmptyResults(t *testing.T) {
 		t.Errorf("expected 21 metrics, got %d", len(all))
 	}
 }
+
+func TestComputeMetrics_IgnoresCandidates(t *testing.T) {
+	scenario := &Scenario{
+		RCAs: []GroundTruthRCA{
+			{ID: "R1", DefectType: "pb001", Component: "daemon", Verified: true},
+			{ID: "R2", DefectType: "au001", Component: "tests", Verified: false},
+		},
+		Cases: []GroundTruthCase{
+			{ID: "C1", RCAID: "R1", ExpectedTriage: &ExpectedTriage{SymptomCategory: "product"},
+				ExpectedPath: []string{"F0", "F1"}},
+		},
+		Candidates: []GroundTruthCase{
+			{ID: "C2", RCAID: "R2", ExpectedTriage: &ExpectedTriage{SymptomCategory: "automation"},
+				ExpectedPath: []string{"F0", "F1"}},
+		},
+	}
+
+	results := []CaseResult{
+		{CaseID: "C1", ActualDefectType: "pb001", ActualCategory: "product",
+			ActualPath: []string{"F0", "F1"}},
+	}
+
+	ms := computeMetrics(scenario, results)
+	m1 := ms.Structured[0]
+	if m1.Detail != "1/1" {
+		t.Errorf("M1 detail = %q; candidate case C2 should not be counted", m1.Detail)
+	}
+}
+
+// --- buildDatasetHealth ---
+
+func TestBuildDatasetHealth(t *testing.T) {
+	scenario := &Scenario{
+		RCAs: []GroundTruthRCA{
+			{ID: "R1", DefectType: "pb001", Verified: true, JiraID: "BUG-1", FixPRs: []string{"repo#1"}},
+			{ID: "R2", DefectType: "au001", Verified: false, JiraID: "BUG-2"},
+			{ID: "R3", DefectType: "pb001", Verified: false, JiraID: "BUG-3", FixPRs: []string{"repo#3"}},
+		},
+		Cases: []GroundTruthCase{
+			{ID: "C1", RCAID: "R1"},
+		},
+		Candidates: []GroundTruthCase{
+			{ID: "C2", RCAID: "R2"},
+			{ID: "C3", RCAID: "R3"},
+		},
+	}
+
+	dh := buildDatasetHealth(scenario)
+	if dh.VerifiedCount != 1 {
+		t.Errorf("verified_count = %d, want 1", dh.VerifiedCount)
+	}
+	if dh.CandidateCount != 2 {
+		t.Errorf("candidate_count = %d, want 2", dh.CandidateCount)
+	}
+	if len(dh.Candidates) != 2 {
+		t.Fatalf("candidates length = %d, want 2", len(dh.Candidates))
+	}
+
+	c2 := dh.Candidates[0]
+	if c2.CaseID != "C2" || c2.RCAID != "R2" || c2.JiraID != "BUG-2" {
+		t.Errorf("candidate[0] = %+v, unexpected", c2)
+	}
+	if c2.Reason != "no fix PR" {
+		t.Errorf("candidate[0] reason = %q, want 'no fix PR'", c2.Reason)
+	}
+
+	c3 := dh.Candidates[1]
+	if c3.Reason != "disputed/unverified" {
+		t.Errorf("candidate[1] reason = %q, want 'disputed/unverified'", c3.Reason)
+	}
+}
+
+func TestBuildDatasetHealth_NoCandidates(t *testing.T) {
+	scenario := &Scenario{
+		RCAs:  []GroundTruthRCA{{ID: "R1", Verified: true}},
+		Cases: []GroundTruthCase{{ID: "C1", RCAID: "R1"}},
+	}
+	dh := buildDatasetHealth(scenario)
+	if dh.VerifiedCount != 1 {
+		t.Errorf("verified_count = %d, want 1", dh.VerifiedCount)
+	}
+	if dh.CandidateCount != 0 {
+		t.Errorf("candidate_count = %d, want 0", dh.CandidateCount)
+	}
+	if len(dh.Candidates) != 0 {
+		t.Errorf("candidates length = %d, want 0", len(dh.Candidates))
+	}
+}

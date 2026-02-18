@@ -54,6 +54,7 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 		Adapter:  cfg.Adapter.Name(),
 		Runs:     cfg.Runs,
 		BasePath: cfg.BasePath,
+		Dataset:  buildDatasetHealth(cfg.Scenario),
 	}
 
 	var allRunMetrics []MetricSet
@@ -520,6 +521,35 @@ func keywordMatch(text string, keywords []string) int {
 		}
 	}
 	return count
+}
+
+// buildDatasetHealth creates a dataset health summary from the scenario.
+func buildDatasetHealth(s *Scenario) *DatasetHealth {
+	rcaMap := make(map[string]*GroundTruthRCA, len(s.RCAs))
+	for i := range s.RCAs {
+		rcaMap[s.RCAs[i].ID] = &s.RCAs[i]
+	}
+
+	dh := &DatasetHealth{
+		VerifiedCount:  len(s.Cases),
+		CandidateCount: len(s.Candidates),
+	}
+	for _, c := range s.Candidates {
+		ci := CandidateInfo{
+			CaseID: c.ID,
+			RCAID:  c.RCAID,
+		}
+		if rca, ok := rcaMap[c.RCAID]; ok {
+			ci.JiraID = rca.JiraID
+			if len(rca.FixPRs) == 0 {
+				ci.Reason = "no fix PR"
+			} else {
+				ci.Reason = "disputed/unverified"
+			}
+		}
+		dh.Candidates = append(dh.Candidates, ci)
+	}
+	return dh
 }
 
 // evidenceOverlap computes set overlap between actual and expected evidence refs.
