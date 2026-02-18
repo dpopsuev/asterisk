@@ -1,15 +1,20 @@
 ---
 name: asterisk-analyze
 description: >
-  Run evidence-based RCA on a ReportPortal launch. Accepts a launch ID,
-  builds the binary if needed, checks RP token and URL, runs the analysis,
-  and presents a human-friendly summary. Use when the user types
-  "/asterisk-analyze <LAUNCH_ID>" or asks to analyze an RP launch.
+  Run AI-driven RCA on a ReportPortal launch using the Cursor agent as the
+  reasoning engine (--adapter=cursor). Accepts a launch ID, builds binaries
+  if needed, checks RP token and URL, launches analysis with file-based
+  dispatch, then acts as the AI investigator via the asterisk-investigate
+  protocol. Use when the user types "/asterisk-analyze <LAUNCH_ID>" or asks
+  to analyze an RP launch.
 ---
 
-# Asterisk Analyze
+# Asterisk Analyze (Cursor Adapter)
 
-Run `asterisk analyze` on a ReportPortal launch and present results.
+Run `asterisk-analyze-rp-cursor` on a ReportPortal launch. This binary bakes in
+`--adapter=cursor --dispatch=file --report` with RP configuration from environment
+variables. The Cursor agent IS the reasoning engine — after launching the command,
+you switch to the `asterisk-investigate` signal protocol to produce F0-F6 artifacts.
 
 ## Trigger
 
@@ -28,16 +33,16 @@ Extract `LAUNCH_ID` from the user's input.
 - If the input is empty, "help", or non-numeric → go to **Help mode**.
 - If the input is a positive integer → proceed.
 
-### 2. Check binary
+### 2. Check binaries
 
 ```bash
-ls bin/asterisk
+ls bin/asterisk bin/asterisk-analyze-rp-cursor
 ```
 
-If missing, build it:
+If missing, build both:
 
 ```bash
-go build -o bin/asterisk ./cmd/asterisk/
+go build -o bin/asterisk ./cmd/asterisk/ && go build -o bin/asterisk-analyze-rp-cursor ./cmd/asterisk-analyze-rp-cursor/
 ```
 
 If the build fails, report the error and stop.
@@ -60,7 +65,21 @@ If empty, print this guide and **stop**:
 >
 > Then re-run `/asterisk-analyze <LAUNCH_ID>`.
 
-### 4. Check RP token
+### 4. Check RP project
+
+```bash
+echo $ASTERISK_RP_PROJECT
+```
+
+If empty, print this guide and **stop**:
+
+> **RP project is not configured.**
+>
+> ```bash
+> export ASTERISK_RP_PROJECT=your-project-name
+> ```
+
+### 5. Check RP token
 
 ```bash
 test -f .rp-api-key && echo "exists" || echo "missing"
@@ -84,29 +103,46 @@ If missing, print this guide and **stop**:
 >
 > Then re-run `/asterisk-analyze <LAUNCH_ID>`.
 
-### 5. Run analysis
+### 6. Launch analysis
 
 ```bash
-bin/asterisk analyze LAUNCH_ID --report
+bin/asterisk-analyze-rp-cursor LAUNCH_ID
 ```
 
-The command uses `$ASTERISK_RP_URL` automatically and writes:
-- `.asterisk/output/rca-LAUNCH_ID.json` — machine artifact (for `push`)
-- `.asterisk/output/rca-LAUNCH_ID.md` — human-readable RCA report
+This runs `asterisk analyze LAUNCH_ID --adapter=cursor --dispatch=file --report`
+with RP URL and project from environment. The command:
 
-### 6. Present the RCA report to the user
+- Fetches failures from the RP launch
+- Creates signal.json files in `.asterisk/analyze/` for each pipeline step
+- Waits for the Cursor agent to produce artifacts via the signal protocol
 
-The `--report` flag produces a pre-rendered Markdown report. **Read** the `.md` file
-and **present its contents to the user verbatim**. This is the human-facing RCA report.
-Do not summarize or reformat it — relay it as-is.
+### 7. Act as the AI investigator
+
+Once the command is running and producing signal.json files, follow the
+**asterisk-investigate** skill protocol:
+
+1. Watch for `signal.json` with `status: "waiting"` in `.asterisk/analyze/`
+2. Read the prompt at `prompt_path`
+3. Analyze the failure data
+4. Write the JSON artifact to `artifact_path`
+5. Repeat until the pipeline completes
+
+The asterisk-investigate skill has full details on the signal protocol,
+artifact schemas for each F0-F6 step, and worked examples.
+
+### 8. Present the RCA report
+
+After the pipeline completes, the `--report` flag produces a Markdown report.
+**Read** the `.md` file and **present its contents to the user verbatim**.
 
 ```bash
 cat .asterisk/output/rca-LAUNCH_ID.md
 ```
 
 Read the file content and present it directly in your response to the user.
+Do not summarize or reformat it — relay it as-is.
 
-### 7. Offer push (optional)
+### 9. Offer push (optional)
 
 Ask the user if they want to push the results back to RP:
 
@@ -120,7 +156,7 @@ Ask the user if they want to push the results back to RP:
 
 When triggered with no args, "help", or non-numeric input, print:
 
-> **Asterisk Analyze** — Evidence-based Root Cause Analysis for ReportPortal
+> **Asterisk Analyze** — AI-driven Root Cause Analysis for ReportPortal
 >
 > **Usage:** `/asterisk-analyze <LAUNCH_ID>`
 >
@@ -130,7 +166,8 @@ When triggered with no args, "help", or non-numeric input, print:
 >
 > 1. **Go 1.24+** installed
 > 2. **RP URL** — `export ASTERISK_RP_URL=https://your-rp-instance.example.com`
-> 3. **RP token** — save your API token to `.rp-api-key`:
+> 3. **RP project** — `export ASTERISK_RP_PROJECT=your-project-name`
+> 4. **RP token** — save your API token to `.rp-api-key`:
 >
 >    ```bash
 >    echo 'YOUR_TOKEN' > .rp-api-key && chmod 600 .rp-api-key
@@ -139,8 +176,10 @@ When triggered with no args, "help", or non-numeric input, print:
 > **What it does:**
 >
 > Fetches failures from the specified RP launch, runs the F0-F6 evidence pipeline
-> with the BasicAdapter (heuristic, zero-LLM), and produces a structured RCA
-> artifact with defect classifications, suspected components, and confidence scores.
+> with the Cursor agent as the AI reasoning engine (--adapter=cursor), and produces
+> a structured RCA artifact with defect classifications, suspected components, and
+> confidence scores. The agent reads prompts via signal.json and writes artifacts
+> back — no manual intervention required.
 
 ## Security guardrails
 

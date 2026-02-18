@@ -13,6 +13,7 @@ import (
 
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/adapt"
+	"asterisk/internal/calibrate/dispatch"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
 	"asterisk/internal/workspace"
@@ -24,6 +25,8 @@ var analyzeFlags struct {
 	artifactPath  string
 	dbPath        string
 	adapterName   string
+	dispatchMode  string
+	promptDir     string
 	rpBase        string
 	rpKeyPath     string
 	rpProject     string
@@ -57,7 +60,9 @@ func init() {
 	f.StringVar(&analyzeFlags.workspacePath, "workspace", "", "Path to context workspace file (YAML/JSON)")
 	f.StringVarP(&analyzeFlags.artifactPath, "output", "o", "", "Output artifact path (default: .asterisk/output/rca-<launch>.json)")
 	f.StringVar(&analyzeFlags.dbPath, "db", store.DefaultDBPath, "Store DB path")
-	f.StringVar(&analyzeFlags.adapterName, "adapter", "basic", "Adapter: basic (heuristic, default)")
+	f.StringVar(&analyzeFlags.adapterName, "adapter", "basic", "Adapter: basic (heuristic) or cursor (AI via Cursor agent)")
+	f.StringVar(&analyzeFlags.dispatchMode, "dispatch", "file", "Dispatch mode for cursor adapter (stdin, file)")
+	f.StringVar(&analyzeFlags.promptDir, "prompt-dir", ".cursor/prompts", "Prompt template directory")
 	f.StringVar(&analyzeFlags.rpBase, "rp-base-url", "", "RP base URL (default: $ASTERISK_RP_URL)")
 	f.StringVar(&analyzeFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
 	f.StringVar(&analyzeFlags.rpProject, "rp-project", "", "RP project name (default: $ASTERISK_RP_PROJECT)")
@@ -151,8 +156,26 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 			})
 		}
 		adapter = ba
+	case "cursor":
+		var dispatcher dispatch.Dispatcher
+		switch analyzeFlags.dispatchMode {
+		case "stdin":
+			dispatcher = dispatch.NewStdinDispatcher()
+		case "file":
+			dispatcher = dispatch.NewFileDispatcher(dispatch.DefaultFileDispatcherConfig())
+		default:
+			return fmt.Errorf("unknown dispatch mode: %s (available: stdin, file)", analyzeFlags.dispatchMode)
+		}
+		basePath := filepath.Join(".asterisk", "analyze")
+		if err := os.MkdirAll(basePath, 0755); err != nil {
+			return fmt.Errorf("create analyze dir: %w", err)
+		}
+		adapter = adapt.NewCursorAdapter(analyzeFlags.promptDir,
+			adapt.WithDispatcher(dispatcher),
+			adapt.WithBasePath(basePath),
+		)
 	default:
-		return fmt.Errorf("unknown adapter: %s (supported: basic)", analyzeFlags.adapterName)
+		return fmt.Errorf("unknown adapter: %s (supported: basic, cursor)", analyzeFlags.adapterName)
 	}
 
 	cfg := calibrate.AnalysisConfig{

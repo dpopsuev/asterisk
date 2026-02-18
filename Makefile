@@ -5,6 +5,7 @@
 
 BIN_DIR     := bin
 CMD_ASTERISK := ./cmd/asterisk
+CMD_ANALYZE_RP := ./cmd/asterisk-analyze-rp-cursor
 CMD_MOCK     := ./cmd/run-mock-flow
 
 # Default target
@@ -24,9 +25,11 @@ $(BIN_DIR):
 
 build: $(BIN_DIR)
 	go build -o $(BIN_DIR)/asterisk $(CMD_ASTERISK)
+	go build -o $(BIN_DIR)/asterisk-analyze-rp-cursor $(CMD_ANALYZE_RP)
 
 build-all: $(BIN_DIR)
 	go build -o $(BIN_DIR)/asterisk $(CMD_ASTERISK)
+	go build -o $(BIN_DIR)/asterisk-analyze-rp-cursor $(CMD_ANALYZE_RP)
 	go build -o $(BIN_DIR)/run-mock-flow $(CMD_MOCK)
 
 test:
