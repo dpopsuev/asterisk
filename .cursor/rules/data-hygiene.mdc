@@ -1,0 +1,36 @@
+---
+description: Prevent re-introduction of scrubbed internal hostnames
+---
+
+# Data Hygiene
+
+Internal infrastructure hostnames were scrubbed from the entire git history. They must never be reintroduced.
+
+## Prohibited content
+
+The following categories of internal identifiers must not appear in committed files:
+
+| Category | Example placeholder (what should appear) |
+|---|---|
+| RP instance hostname | `your-reportportal.example.com` |
+| S3/Minio hostname | `your-minio-s3.example.com` |
+| Jenkins CI hostname | `your-jenkins.example.com` |
+| Lab registry hostname | `registry.hub-cluster.example.com` |
+| Lab cluster identifiers | `spoke-cluster`, `hub-cluster` |
+| CI notification email | `ci-notify@example.com` |
+| Internal domain globs | `*.apps.your-ocp-cluster.example.com` |
+
+## Agent behavior
+
+- **Before committing:** verify no internal hostname patterns appear in staged files. Use `.dev/verify-swipe.sh` if the pattern file is available.
+- **When writing examples, docs, or config** that reference infrastructure: use the placeholder values from the table above.
+- **When fetching data from RP or CI at runtime:** the data stays in `.dev/` (gitignored) or other untracked locations. Never commit raw API responses containing real hostnames.
+- **If a real hostname is needed in code:** parameterize it via environment variable, CLI flag, or config file (gitignored).
+
+## Verification
+
+The `.dev/verify-swipe.sh` script checks all tracked files against the pattern file. Run it before any commit that touches documentation, examples, or configuration.
+
+## Pre-commit hook
+
+A Git pre-commit hook (`.git/hooks/pre-commit`) automatically blocks commits that contain scrubbed patterns. It reads from `.dev/data-swipe-patterns.txt` and checks staged files.

@@ -1,6 +1,6 @@
 # Contract — Data Swipe
 
-**Status:** active  
+**Status:** complete  
 **Goal:** All internal infrastructure hostnames are scrubbed from the entire git history so the repo is safe to remain public.  
 **Serves:** PoC completion (public repo hygiene)
 
@@ -52,12 +52,12 @@ An audit of the 71-commit, 301-file repo identified 8 pattern categories of inte
 - [x] Create `.dev/verify-swipe.sh` — verification script (gitignored)
 - [x] Baseline verify — all 8 patterns detected in 12 files
 - [x] Create this contract
-- [ ] Create backup mirror clone
-- [ ] Fresh clone, run filter-repo, verify clean
-- [ ] Build and test on rewritten repo
-- [ ] Force-push rewritten history to origin/master
-- [ ] Final verify on fresh clone
-- [ ] Add pre-commit guard rule
+- [x] Create backup mirror clone (`/tmp/asterisk-backup-20260219.git`)
+- [x] Fresh clone, run filter-repo, verify clean (9 patterns, 0 leaks)
+- [x] Build and test on rewritten repo (`go build` + `go test` — all pass)
+- [x] Force-push rewritten history to origin/master (`2fcc3f3...9f5097c`)
+- [x] Final verify on fresh clone (zero matches in tracked files + full history)
+- [x] Add pre-commit guard rule (`.cursor/rules/data-hygiene.mdc` + `.git/hooks/pre-commit`)
 
 ## Acceptance criteria
 
@@ -72,3 +72,4 @@ An audit of the 71-commit, 301-file repo identified 8 pattern categories of inte
 ## Notes
 
 - 2026-02-19 00:00 — Contract created. 8 patterns across 12 files, 9 commits. Pattern file and verify script in `.dev/` (gitignored). Baseline verification passes (all patterns detected).
+- 2026-02-19 00:30 — Execution complete. 9 patterns (added minio-s3 during first pass QA), 72 commits rewritten, zero leaks in tracked files and full history. `go build` + `go test` pass. Force-pushed to origin. Pre-commit hook and data-hygiene rule installed. Backup mirror at `/tmp/asterisk-backup-20260219.git`.

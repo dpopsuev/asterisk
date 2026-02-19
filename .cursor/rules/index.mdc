@@ -16,3 +16,4 @@
 - `off-the-shelf.mdc` — prefer mature, community-backed Go modules over bespoke implementations when justified; maturity gate and decision matrix. File-scoped to `**/*.go`.
 - `agent-bus.mdc` — mandatory signaling protocol for agent/subagent coordination during MCP calibration; delegation mandate, signal events, and observability alignment.
 - `reviewability-first.mdc` — prefer observable, git-diffable formats over opaque binary stores; the self-reinforcement loop (mutate → review → feedback → improve) requires every agent mutation to be visible in PR diffs.
+- `data-hygiene.mdc` — prevent re-introduction of scrubbed internal hostnames; prohibited content categories, placeholder values, verification protocol, pre-commit hook.
