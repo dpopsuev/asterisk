@@ -14,9 +14,10 @@ Ordered by priority. Agents should work top-down: complete the gate before touch
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| **gate** | `rp-e2e-launch` | active | Final PoC gate. 20 RP-sourced cases (of 30 total), 18 verified ground truth. BasicAdapter phases complete (M19=0.83). CursorAdapter blind test via MCP in progress. Push gated on cursor adapter confidence. |
+| **gate** | `rp-e2e-launch` | active | Final PoC gate. 20 RP-sourced cases (of 30 total), 18 verified ground truth. BasicAdapter M19=0.83. **CursorAdapter Phase 5a FAIL M19=0.50** — see `notes/phase-5a-post-run-analysis.md` for root causes and priority fixes. Push gated on cursor adapter confidence. |
 | **quick-win** | `poc-tuning-loop` | draft | Activates after rp-e2e-launch. Surface RP attributes, wire Jira links, tune keyword maps. Tight calibrate-measure-commit loop. |
 | **quick-win** | `improve-human-operator-output` | draft | Agent narration: human words, progress, ETA, trajectory during calibration. Zero Go changes — agent rule update only. |
+| **quick-win** | `data-swipe` | active | Scrub internal infrastructure hostnames from git history. 8 patterns, 12 files, 9 commits. `git filter-repo` rewrite. |
 | **quick-win** | `evidence-gap-brief` | draft | Structured "what's missing" output when confidence is low. Feeds tuning loop priorities and Defect Court mistrial. |
 | **gate** | `poc-scope-precision` | draft | Zero-friction packaging: simplified CLI, Cursor skill, CEO-ready README. Required for external demo. |
 | **next-milestone** | `mcp-server-foundation` | draft | MCP chain step 1. `asterisk serve` over stdio; placeholder tools. Post-PoC. |

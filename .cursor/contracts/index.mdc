@@ -26,6 +26,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `improve-human-operator-output.md` | Agent narration during calibration: human words not machine codes, progress/ETA/trajectory, milestone summaries. | PoC completion |
 | `defect-court.md` | Adversarial "Defect Court" phase (D0-D4): prosecution, defense, judicial verdict. | Architecture evolution |
 | `workspace-revisited.md` | Universal artifact reference system: taxonomy, format learning, local catalog/cache. | Architecture evolution |
+| `data-swipe.md` | Scrub internal infrastructure hostnames from entire git history. Pattern file in `.dev/` (gitignored). | Public repo hygiene |
 
 _(Not yet written: persona-system -- specialized prompt preambles with workspace binding.)_
 
