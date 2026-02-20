@@ -3,6 +3,7 @@ package calibrate
 import (
 	"encoding/json"
 
+	"asterisk/internal/framework"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
 	"asterisk/internal/workspace"
@@ -33,4 +34,11 @@ type StoreAware interface {
 type IDMappable interface {
 	SetRCAID(gtID string, storeID int64)
 	SetSymptomID(gtID string, storeID int64)
+}
+
+// Identifiable is an optional interface for adapters that can report
+// which LLM model ("ghost") is behind the adapter ("shell").
+// Called once at session start to populate session metadata.
+type Identifiable interface {
+	Identify() (framework.ModelIdentity, error)
 }

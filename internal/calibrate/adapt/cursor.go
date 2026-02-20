@@ -1,12 +1,14 @@
 package adapt
 
 import (
-	"asterisk/internal/calibrate/dispatch"
 	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"asterisk/internal/calibrate/dispatch"
+	"asterisk/internal/framework"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
@@ -92,6 +94,66 @@ func NewCursorAdapter(promptDir string, opts ...CursorAdapterOption) *CursorAdap
 
 // Name returns the adapter identifier.
 func (a *CursorAdapter) Name() string { return "cursor" }
+
+// identityProbePrompt is the tightly constrained prompt sent to discover
+// which model is behind the dispatcher.
+const identityProbePrompt = `Respond with ONLY a JSON object, no markdown, no explanation, no code fences:
+{"model_name": "<your exact model name, e.g. claude-4-sonnet>", "provider": "<company that created you, e.g. Anthropic>"}`
+
+// Identify sends a probe prompt through the dispatcher to discover which
+// LLM model is behind this adapter. The model self-reports its name and provider.
+func (a *CursorAdapter) Identify() (framework.ModelIdentity, error) {
+	tmpDir := os.TempDir()
+	promptFile := filepath.Join(tmpDir, "asterisk-identity-probe.md")
+	artifactFile := filepath.Join(tmpDir, "asterisk-identity-probe.json")
+
+	if err := os.WriteFile(promptFile, []byte(identityProbePrompt), 0644); err != nil {
+		return framework.ModelIdentity{}, fmt.Errorf("cursor: write identity probe: %w", err)
+	}
+	defer os.Remove(promptFile)
+	defer os.Remove(artifactFile)
+
+	data, err := a.dispatcher.Dispatch(dispatch.DispatchContext{
+		CaseID:       "_probe",
+		Step:         "_identify",
+		PromptPath:   promptFile,
+		ArtifactPath: artifactFile,
+	})
+	if err != nil {
+		return framework.ModelIdentity{}, fmt.Errorf("cursor: identity probe dispatch: %w", err)
+	}
+
+	return ParseModelIdentity(data)
+}
+
+// ParseModelIdentity extracts a ModelIdentity from raw JSON bytes.
+// Exported so tests and other callers can reuse the parsing logic.
+func ParseModelIdentity(data []byte) (framework.ModelIdentity, error) {
+	raw := strings.TrimSpace(string(data))
+
+	var mi framework.ModelIdentity
+	if err := json.Unmarshal([]byte(raw), &mi); err != nil {
+		return framework.ModelIdentity{}, fmt.Errorf("identity probe: invalid JSON: %w (raw: %q)", err, truncate(raw, 120))
+	}
+
+	mi.Raw = raw
+
+	if mi.ModelName == "" {
+		return framework.ModelIdentity{}, fmt.Errorf("identity probe: model_name is empty (raw: %q)", truncate(raw, 120))
+	}
+	if mi.Provider == "" {
+		return framework.ModelIdentity{}, fmt.Errorf("identity probe: provider is empty (raw: %q)", truncate(raw, 120))
+	}
+
+	return mi, nil
+}
+
+func truncate(s string, n int) string {
+	if len(s) <= n {
+		return s
+	}
+	return s[:n] + "..."
+}
 
 // SetStore is called by the calibrate runner to inject the per-run MemStore.
 func (a *CursorAdapter) SetStore(st store.Store) { a.st = st }

@@ -9,6 +9,7 @@ import (
 	"regexp"
 	"strings"
 
+	"asterisk/internal/framework"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
 )
@@ -42,6 +43,14 @@ func NewBasicAdapter(st store.Store, repos []string) *BasicAdapter {
 
 // Name returns the adapter identifier.
 func (a *BasicAdapter) Name() string { return "basic" }
+
+// Identify returns a static identity for the basic heuristic adapter (no LLM).
+func (a *BasicAdapter) Identify() (framework.ModelIdentity, error) {
+	return framework.ModelIdentity{
+		ModelName: "basic-heuristic",
+		Provider:  "asterisk",
+	}, nil
+}
 
 // RegisterCase adds a case to the adapter's internal registry so SendPrompt can
 // look up error messages, log snippets, and test names by case label.

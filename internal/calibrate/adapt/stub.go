@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"asterisk/internal/calibrate"
+	"asterisk/internal/framework"
 	"asterisk/internal/orchestrate"
 )
 
@@ -29,6 +30,14 @@ func NewStubAdapter(scenario *calibrate.Scenario) *StubAdapter {
 }
 
 func (a *StubAdapter) Name() string { return "stub" }
+
+// Identify returns a static identity for the stub adapter (no LLM behind it).
+func (a *StubAdapter) Identify() (framework.ModelIdentity, error) {
+	return framework.ModelIdentity{
+		ModelName: "stub",
+		Provider:  "asterisk",
+	}, nil
+}
 
 // SetRCAID maps a ground truth RCA ID to a store-assigned ID. Thread-safe.
 func (a *StubAdapter) SetRCAID(gtID string, storeID int64) {
