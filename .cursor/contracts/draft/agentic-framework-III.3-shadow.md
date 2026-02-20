@@ -1,6 +1,6 @@
 # Contract — Agentic Framework III.3: Shadow
 
-**Status:** draft
+**Status:** active
 **Goal:** Define the adversarial pipeline pattern where Light and Shadow agents contest uncertain cases, using the Wuxing destructive cycle for challenger selection. Absorb scope of `defect-court.md`.
 **Serves:** Architecture evolution (Framework identity)
 
@@ -204,12 +204,12 @@ Shadow personas with distinct system prompts via MCP.
 
 ### Phase 1 -- Framework types
 
-- [ ] Define court artifact types: `Indictment`, `DefenseBrief`, `HearingRecord`, `Verdict`
-- [ ] Define `CourtConfig` with TTL, MaxHandoffs, MaxRemands, ActivationThreshold
-- [ ] Create `pipelines/defect-court.yaml` -- D0-D4 pipeline in Framework DSL
+- [x] Define court artifact types: `Indictment`, `DefenseBrief`, `HearingRecord`, `Verdict`
+- [x] Define `CourtConfig` with TTL, MaxHandoffs, MaxRemands, ActivationThreshold
+- [x] Create `pipelines/defect-court.yaml` -- D0-D4 pipeline in Framework DSL (created in I.2)
 - [ ] Define court Edge evaluators (HD1-HD12) as Framework Edge implementations
 - [ ] Define `CourtEvidenceGap` extending shared `EvidenceGap` type
-- [ ] Wire Shadow activation trigger: Light F5 confidence in uncertain range
+- [x] Wire Shadow activation trigger: Light F5 confidence in uncertain range (`ShouldActivate`)
 
 ### Phase 2 -- BasicAdapter court roles
 
@@ -270,6 +270,7 @@ Shadow personas with distinct system prompts via MCP.
 
 ## Notes
 
+- 2026-02-21 20:30 -- Phase 1 partial: court artifact types (Indictment, DefenseBrief, HearingRecord, Verdict), CourtConfig with ShouldActivate, VerdictDecision constants, RemandFeedback. 9 court tests passing. Edge evaluators (HD1-HD12) and CourtEvidenceGap deferred to Phase 1 completion. Phases 2-4 require adapter/calibration/LLM integration outside framework layer. Contract moved to active.
 - 2026-02-20 -- Contract created. Absorbs `defect-court.md` scope. Reframed as a Framework pipeline instance (second Graph) rather than a special extension to F0-F6. Shadow personas (from III.1) serve as court roles. Destructive cycle (from II.2) determines challenger selection. Court pipeline expressed in Framework DSL (from I.2).
 - The key insight from Jung: the Shadow is not evil -- it is the hidden, unacknowledged aspect that must be integrated for wholeness. Similarly, Shadow agents are not trying to break the pipeline -- they are trying to make it honest.
 - Depends on I.1-ontology, I.2-characteristica, II.2-cycles, III.1-personae, III.2-masks.
