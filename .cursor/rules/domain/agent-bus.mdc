@@ -1,0 +1,288 @@
+---
+description: Agent message bus — mandatory signaling protocol for agent/subagent coordination during MCP calibration
+alwaysApply: false
+---
+
+# Agent Message Bus
+
+During MCP calibration, the main agent and subagents coordinate through the **signal bus** exposed by `emit_signal` and `get_signals` MCP tools.
+
+## Delegation mandate
+
+Every calibration pipeline step MUST be delegated to a subagent. The main agent acts as a **dispatcher**, not an executor.
+
+| Responsibility | Owner |
+|----------------|-------|
+| `get_next_step`, `submit_artifact`, `get_report` | Main agent |
+| Read prompt, generate artifact JSON | Subagent |
+| `emit_signal` (dispatch) | Main agent |
+| `emit_signal` (start, done, error) | Subagent |
+
+Processing a step inline (no subagent) without explicit justification is a violation.
+
+## Signal protocol
+
+### Required signals
+
+| Event | Emitter | When | Required meta |
+|-------|---------|------|---------------|
+| `dispatch` | Main agent | Before launching subagent | — |
+| `start` | Subagent | First action in subagent | — |
+| `done` | Subagent | Artifact ready, before returning | `bytes` (artifact size) |
+| `error` | Subagent | On failure | `error` (message) |
+
+### Auto-emitted signals (server-side, do not duplicate)
+
+| Event | Emitter | When |
+|-------|---------|------|
+| `session_started` | Server | `start_calibration` |
+| `step_ready` | Server | `get_next_step` returns a step |
+| `artifact_submitted` | Server | `submit_artifact` succeeds |
+| `pipeline_done` | Server | `get_next_step` returns `done=true` |
+| `session_done` | Server | Calibration run completes |
+| `session_error` | Server | Calibration run fails |
+
+### Tool signatures
+
+```
+emit_signal(session_id, event, agent, case_id?, step?, meta?)
+get_signals(session_id, since?)
+get_next_step(session_id, timeout_ms?)
+```
+
+- `since` is a 0-based index; omit to get all signals. Use `since` for polling.
+- `timeout_ms` is the max wait in milliseconds. When 0 or omitted, blocks forever (backward-compatible). When >0, returns `available=false` if no step is ready within the timeout.
+
+## Court zones (meta-phases)
+
+The F0–F6 pipeline is divided into three court zones. Each zone groups steps with similar characteristics.
+
+| Zone | Steps | Character | Stickiness value |
+|------|-------|-----------|-----------------|
+| **Backcourt** | F0_RECALL, F1_TRIAGE | High throughput, stateless classification | Near zero |
+| **Frontcourt** | F2_RESOLVE, F3_INVESTIGATE | Bottleneck (60% of wall clock). Convergence loops. Context-hungry. | Maximum |
+| **Paint** | F4_CORRELATE, F5_REVIEW, F6_REPORT | Medium throughput, finishing. Operates from artifact chain. | Medium |
+
+## Main agent loop
+
+The main agent runs **4 position-typed worker coroutines**. Each worker has a basketball-inspired **position** that determines its home zone and stickiness level. Workers pull, dispatch, submit, and loop independently — no worker waits for siblings.
+
+### Positions
+
+| Position | Color | Sticky | Home zone | Behavior |
+|----------|-------|--------|-----------|----------|
+| **PG** (Point Guard) | Crimson | 0 (anti-sticky) | Backcourt | Never resumes. Churns F0+F1 intake. Floats to F2 overflow after Backcourt empties. |
+| **SG** (Shooting Guard) | Amber | 1 (medium-low) | Paint | Resumes within Paint only. Catches kick-outs from Frontcourt. |
+| **PF** (Power Forward) | Cobalt | 2 (medium-high) | Frontcourt | Resumes within Frontcourt. Handles regular F2+F3 investigations. |
+| **C** (Center) | Cerulean | 3 (heavy-sticky) | Frontcourt | Always resumes. Full context accumulation. Handles hardest cases. |
+
+### State
+
+```
+session = start_calibration(...)
+
+positions = [
+    {slot: 0, pos: "PG", home: ["F0_RECALL", "F1_TRIAGE"],       sticky: 0},
+    {slot: 1, pos: "SG", home: ["F4_CORRELATE", "F5_REVIEW", "F6_REPORT"], sticky: 1},
+    {slot: 2, pos: "PF", home: ["F2_RESOLVE", "F3_INVESTIGATE"],  sticky: 2},
+    {slot: 3, pos: "C",  home: ["F2_RESOLVE", "F3_INVESTIGATE"],  sticky: 3},
+]
+
+sticky_agents   = {}                 // case_id -> {agent_id, last_step, sticky_level}
+progress        = {completed: 0, errors: 0, signal_cursor: 0}
+phase_counts    = {}                 // step_name -> count of completed
+zone_queues     = {Backcourt: 0, Frontcourt: 0, Paint: 0}
+done_flag       = false
+```
+
+### Worker coroutine
+
+Each worker executes this loop with its position context. Workers are launched concurrently (parallel Task calls). A worker **preferentially** pulls steps from its home zone but accepts any step when its home zone is empty (zone shift).
+
+```
+worker(slot_id, position):
+    while not done_flag:
+        step = get_next_step(session_id, timeout_ms=5000)
+        if step.done:
+            done_flag = true
+            break
+        if not step.available:
+            continue                 // timeout — no work ready; retry
+
+        // --- Zone shift check ---
+        step_zone = zone_of(step.step)
+        if step_zone != position.home_zone:
+            print("[{position.pos}] Zone shift: {position.home_zone} -> {step_zone}")
+
+        emit_signal(session_id, "dispatch", "main", step.case_id, step.step,
+                    {position: position.pos, zone: step_zone})
+
+        // --- Position-aware sticky dispatch ---
+        entry = sticky_agents.get(step.case_id)
+        if entry and entry.sticky_level >= 2 and should_resume(position, entry, step):
+            artifact = Task(resume=entry.agent_id, prompt=step)
+            agent_id = entry.agent_id
+        else:
+            result   = Task(prompt=step)
+            agent_id = result.agent_id
+        sticky_agents[step.case_id] = {agent_id, step.step, position.sticky}
+
+        submit_artifact(session_id, result.artifact, step.dispatch_id)
+
+        progress.completed += 1
+        phase_counts[step.step] += 1
+        report_progress(position)
+```
+
+### Stickiness rules
+
+The `should_resume` function encodes the per-position stickiness contract:
+
+```
+should_resume(position, entry, step):
+    if position.sticky == 0:   return false       // PG: never resume
+    if position.sticky == 1:                       // SG: resume within Paint only
+        return zone_of(step.step) == "Paint" and zone_of(entry.last_step) == "Paint"
+    if position.sticky == 2:                       // PF: resume within Frontcourt only
+        return zone_of(step.step) == "Frontcourt" and zone_of(entry.last_step) == "Frontcourt"
+    if position.sticky == 3:   return true         // C: always resume
+```
+
+### Zone mapping
+
+```
+zone_of(step):
+    if step in ["F0_RECALL", "F1_TRIAGE"]:                     return "Backcourt"
+    if step in ["F2_RESOLVE", "F3_INVESTIGATE"]:                return "Frontcourt"
+    if step in ["F4_CORRELATE", "F5_REVIEW", "F6_REPORT"]:     return "Paint"
+```
+
+### Zone shift protocol
+
+When a worker's home zone has no queued steps, the worker accepts steps from other zones with constraints:
+
+| Position | Can shift to | Constraint |
+|----------|-------------|------------|
+| **PG** | Frontcourt (F2 only), Paint | Never takes F3 (needs stickiness PG lacks) |
+| **SG** | Frontcourt (F2 only) | Never takes F3 |
+| **PF** | Paint, Backcourt | Full capability in any zone |
+| **C** | Paint | Only for hard cases already in C's sticky map |
+
+The server does not enforce zone preferences — it returns the next available step regardless. Zone discipline is a client-side contract. If a worker receives a step outside its capability (e.g., PG gets F3), it should still process it rather than block.
+
+### Progress reporting
+
+After every `submit_artifact`, the worker prints a position-tagged progress line and polls the signal bus for errors. See `contracts/draft/improve-human-operator-output.md` for full narration templates.
+
+```
+report_progress(position):
+    signals = get_signals(session_id, since=progress.signal_cursor)
+    progress.signal_cursor += len(signals)
+    for sig in signals:
+        if sig.event == "error":
+            progress.errors += 1
+            print("[{position.pos}] Error: case={sig.case_id} step={sig.step} — {sig.meta.error}")
+
+    phase_summary = ", ".join(f"{step}: {n}" for step, n in phase_counts)
+    print("[{position.pos}/{zone}] {progress.completed} done | {phase_summary} | errors: {progress.errors}")
+```
+
+**Rule:** After every submit (not batched — every individual submit), print progress with the position tag. The operator must never see silence for more than one step's processing time.
+
+### Orchestration
+
+```
+emit_signal(session_id, "loop", "main")
+
+// Launch 4 position-typed workers concurrently (parallel Task calls in one message)
+results = parallel_launch([
+    worker(0, positions[0]),   // PG — Backcourt
+    worker(1, positions[1]),   // SG — Paint
+    worker(2, positions[2]),   // PF — Frontcourt
+    worker(3, positions[3]),   // C  — Frontcourt
+])
+
+// All workers exited — pipeline complete
+report_progress(positions[0])        // final summary from any position
+report = get_report(session_id)
+```
+
+### Sticky agent eviction
+
+When more distinct cases exist than parallel slots, the `sticky_agents` map may grow beyond PARALLEL. Eviction respects stickiness level:
+
+1. When `len(sticky_agents) > PARALLEL * 2`, evict entries starting from the **lowest stickiness level** and **oldest `last_step`** (LRU within each level).
+2. **PG entries (sticky 0):** Immediately discarded after submission — PG never needs them.
+3. **SG entries (sticky 1):** Evicted after all Paint steps for that case are complete.
+4. **PF entries (sticky 2):** Evicted when the case leaves Frontcourt (F3 converged or exhausted).
+5. **C entries (sticky 3):** Never evicted — Center's full context is always preserved.
+6. Cases currently in-flight (a worker is processing them) are never evicted.
+
+### Error handling
+
+- If a subagent returns an error, the worker emits `error` on its behalf, calls `submit_artifact` with a minimal error artifact, and continues to the next step.
+- If `get_next_step` returns an unexpected error (session expired, etc.), the worker exits. Remaining workers drain naturally.
+
+### get_next_step response fields
+
+| Field | Type | Meaning |
+|-------|------|---------|
+| `done` | bool | Pipeline finished; no more steps will be produced |
+| `available` | bool | A step was returned (false on timeout) |
+| `case_id` | string | Case identifier (present when available=true) |
+| `step` | string | Pipeline step name (present when available=true) |
+| `dispatch_id` | int64 | Routing ID for submit_artifact |
+| `prompt_path` | string | Path to the prompt template |
+| `artifact_path` | string | Path to write the artifact |
+
+### Session TTL watchdog
+
+If no `submit_artifact` arrives for the configured TTL (default: 5 minutes), the session aborts all pending dispatches and transitions to `StateError`. The watchdog emits a `session_error` signal before aborting. Use `SetSessionTTL` (test hook) or configure via `start_calibration` options.
+
+## Subagent contract
+
+The subagent receives: `session_id`, `case_id`, `step`, `prompt_path`, `artifact_path`.
+
+### Fresh invocation
+
+A new subagent is spawned when no `sticky_agents` entry exists for the case.
+
+```
+emit_signal(session_id, "start", "sub", case_id, step)
+prompt = read(prompt_path)
+artifact = generate_artifact(prompt)
+emit_signal(session_id, "done", "sub", case_id, step, {bytes: len(artifact)})
+return artifact
+```
+
+### Resumed invocation (sticky)
+
+When the main agent resumes a subagent via `Task(resume=agent_id)`, the subagent already has full context from prior steps (error messages, triage results, prior artifacts). The resumed subagent:
+
+1. Receives the **new step name** and **new prompt path** only — all prior context is preserved in the agent's conversation history.
+2. Reads the new prompt and generates the artifact for the new step.
+3. Emits `start` and `done` signals as usual.
+
+```
+// Resumed — prior context (case errors, triage, artifacts) already in memory
+emit_signal(session_id, "start", "sub", case_id, step)
+prompt = read(prompt_path)
+artifact = generate_artifact(prompt)    // benefits from accumulated context
+emit_signal(session_id, "done", "sub", case_id, step, {bytes: len(artifact)})
+return artifact
+```
+
+The key benefit: a subagent that triaged a case in F1, then resolved repos in F2, carries that knowledge into F3 investigation without re-reading or re-inferring. This improves RCA quality and reduces token usage.
+
+Whether a subagent is resumed depends on the dispatching worker's stickiness level. PG (sticky 0) always spawns fresh. C (sticky 3) always resumes. PF and SG resume within their home zone only. See "Stickiness rules" above.
+
+### Error handling
+
+On error, emit `error` instead of `done` and return the error to the main agent. The main agent decides whether to retry with a fresh subagent or skip the case.
+
+## Observability alignment
+
+- **Orange signals** (problem): `error` events, missing templates, low confidence scores in meta.
+- **Yellow signals** (success): `done` events with `bytes`, convergence scores, elapsed time in meta.
+
+Both map to the Orange/Yellow phases in `testing-methodology.mdc`.

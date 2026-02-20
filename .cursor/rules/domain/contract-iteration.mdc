@@ -1,6 +1,7 @@
 ---
 description: Contract iteration — monitor active and goal-mapped contracts for insights from discussions, field results, and calibration runs
-alwaysApply: true
+globs: ".cursor/contracts/**"
+alwaysApply: false
 ---
 
 # Contract Iteration

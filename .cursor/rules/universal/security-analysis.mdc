@@ -1,6 +1,6 @@
 ---
 description: Security analysis — OWASP Top 10 checklist applied to every feature and trust-boundary change
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Security Analysis

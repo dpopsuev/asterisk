@@ -1,6 +1,7 @@
 ---
 description: Testing methodology — coverage matrix, Red-Orange-Green-Yellow-Blue development cycle, and security-as-test
-alwaysApply: true
+globs: "**/*.go"
+alwaysApply: false
 ---
 
 # Testing Methodology

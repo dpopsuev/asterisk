@@ -1,7 +1,8 @@
 # .cursor/strategy Index
 
-Long-term objectives and invariants.
+Long-term objectives, invariants, and identity.
 
 ## Files
 - `index.mdc` — index for this directory.
-- `rca-invariants.mdc` — long-term RCA quality invariants.
+- `rca-invariants.mdc` — long-term RCA quality and company-aligned invariants.
+- `red-hat-telco-soul.mdc` — Red Hat identity, telco mission, open source philosophy, and scale awareness.

@@ -47,3 +47,12 @@ alwaysApply: true
 
 - RCA output must include: summary, suspected components/commits, category + confidence, and recommended next actions.
 - Every conclusion must link to supporting evidence.
+
+## Company alignment
+
+Asterisk is a Red Hat tool serving Red Hat's telco quality engineering mission. See `strategy/red-hat-telco-soul.mdc` for the full identity.
+
+- **Identity**: Red Hat — the world's largest open source company. Upstream-first, community-driven, open by default.
+- **Domain**: telco QE on OpenShift. Current use case: PTP Operator CI. Target: N operators across RAN, Core, edge, and platform.
+- **Philosophy**: evidence over authority, community over control, meritocracy of ideas. No black-box conclusions.
+- **Scale**: design for multi-team, multi-operator, multi-CI from the start. Operator-specific and CI-specific logic belongs in adapters, not in the core. See `strategy/rca-invariants.mdc` for company-aligned invariants.

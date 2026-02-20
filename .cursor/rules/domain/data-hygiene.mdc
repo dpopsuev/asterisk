@@ -1,5 +1,7 @@
 ---
 description: Prevent re-introduction of scrubbed internal hostnames
+globs: ".cursor/**"
+alwaysApply: false
 ---
 
 # Data Hygiene
@@ -24,8 +26,9 @@ The following categories of internal identifiers must not appear in committed fi
 
 - **Before committing:** verify no internal hostname patterns appear in staged files. Use `.dev/verify-swipe.sh` if the pattern file is available.
 - **When writing examples, docs, or config** that reference infrastructure: use the placeholder values from the table above.
-- **When fetching data from RP or CI at runtime:** the data stays in `.dev/` (gitignored) or other untracked locations. Never commit raw API responses containing real hostnames.
+- **When fetching data from RP or CI at runtime:** the data stays in `.cursor/sensitive/` or `.dev/` (both gitignored). Never commit raw API responses containing real hostnames.
 - **If a real hostname is needed in code:** parameterize it via environment variable, CLI flag, or config file (gitignored).
+- **When storing real infrastructure details:** use `.cursor/sensitive/` — the dedicated security compartment (gitignored).
 
 ## Verification
 
@@ -33,4 +36,4 @@ The `.dev/verify-swipe.sh` script checks all tracked files against the pattern f
 
 ## Pre-commit hook
 
-A Git pre-commit hook (`.git/hooks/pre-commit`) automatically blocks commits that contain scrubbed patterns. It reads from `.dev/data-swipe-patterns.txt` and checks staged files.
+A Git pre-commit hook (`.git/hooks/pre-commit`) automatically blocks commits that contain scrubbed patterns. It reads from `.dev/data-swipe-patterns.txt` and checks staged files. A consolidated copy also lives in `.cursor/sensitive/data-swipe-patterns.txt`.

@@ -1,19 +1,45 @@
+---
+description: "Rules index — directory listing of all agent rules organized by compartment"
+alwaysApply: false
+---
+
 # .cursor/rules Index
 
-## Files
+Rules are organized into **compartments** reflecting their scope and trust model. See `rules/domain/knowledge-store.mdc` for the full compartment model.
 
-- `index.mdc` — this index.
-- `project-standards.mdc` — product definition, development methodology, calibration ordering, data handling, and output requirements.
-- `agent-operations.mdc` — agent execution model: local CI/CD pipeline stages, timeout SLAs, abort protocol, observability requirements, and anti-patterns.
-- `testing-methodology.mdc` — coverage matrix (unit/integration/contract/e2e/concurrency/security), Red-Orange-Green-Yellow-Blue development cycle, and security-as-test.
-- `go-test-conventions.mdc` — Go test framework selection (Ginkgo + stdlib hybrid), naming conventions, fixtures, and dependency management. File-scoped to `**/*.go`.
-- `abstraction-boundaries.mdc` — separate generic domain models from scenario-specific implementations; adapter pattern over hardcoded layouts.
-- `security-analysis.mdc` — OWASP Top 10 checklist applied to every feature and trust-boundary change; security case filing protocol.
-- `workspace-context.mdc` — local-first workspace: cloned repos as source of truth, version alignment (RP 5.11.x), read from disk instead of guessing.
-- `human-readable-output.mdc` — "Code for machines, words for humans": machine codes stay in machine contexts; human-facing output uses readable names via `internal/display` registry.
-- `knowledge-store.mdc` — `.cursor/` directory structure, index integrity protocol, persistence triggers, and work contract conventions (status-based directories, goal manifest).
-- `contract-iteration.mdc` — monitor active and goal-mapped contracts for insights from discussions, field results, and calibration runs; cross-contract feedback; lifecycle transitions.
-- `off-the-shelf.mdc` — prefer mature, community-backed Go modules over bespoke implementations when justified; maturity gate and decision matrix. File-scoped to `**/*.go`.
-- `agent-bus.mdc` — mandatory signaling protocol for agent/subagent coordination during MCP calibration; delegation mandate, signal events, and observability alignment.
-- `reviewability-first.mdc` — prefer observable, git-diffable formats over opaque binary stores; the self-reinforcement loop (mutate → review → feedback → improve) requires every agent mutation to be visible in PR diffs.
-- `data-hygiene.mdc` — prevent re-introduction of scrubbed internal hostnames; prohibited content categories, placeholder values, verification protocol, pre-commit hook.
+## universal/ — Generic IT Engineering (committed, shared)
+
+Rules portable across any software project. Most are `globs`-scoped to relevant file types.
+
+| Rule | Routing | Description |
+|------|---------|-------------|
+| `testing-methodology.mdc` | `globs: **/*.go` | Coverage matrix, Red-Orange-Green-Yellow-Blue development cycle, security-as-test. |
+| `security-analysis.mdc` | agent-requestable | OWASP Top 10 checklist for features and trust-boundary changes. |
+| `abstraction-boundaries.mdc` | `globs: **/*.go` | Separate generic domain models from scenario-specific implementations. |
+| `reviewability-first.mdc` | agent-requestable | Prefer observable, git-diffable formats over opaque binary stores. |
+| `off-the-shelf.mdc` | `globs: **/*.go` | Prefer mature modules; maturity gate and decision matrix. |
+| `go-test-conventions.mdc` | `globs: **/*.go` | Go test framework (Ginkgo + stdlib hybrid), naming, fixtures. |
+
+## domain/ — Asterisk Project (committed, shared)
+
+Rules specific to this repository and its domain.
+
+| Rule | Routing | Description |
+|------|---------|-------------|
+| `project-standards.mdc` | **alwaysApply** | Product definition, methodology, calibration ordering, data handling, output. |
+| `agent-operations.mdc` | **alwaysApply** | Local pipeline stages, timeout SLAs, abort protocol, observability. |
+| `knowledge-store.mdc` | **alwaysApply** | `.cursor/` structure, index integrity, persistence protocol, work contracts. |
+| `contract-iteration.mdc` | `globs: .cursor/contracts/**` | Monitor contracts for insights from discussions and calibration runs. |
+| `architecture-snapshots.mdc` | `globs: .cursor/**/*.md` | Architecture diagrams as first-class artifacts; current/desired state snapshots. |
+| `data-hygiene.mdc` | `globs: .cursor/**` | Prevent re-introduction of scrubbed internal hostnames; placeholder values. |
+| `workspace-context.mdc` | agent-requestable | Local repos as source of truth; version alignment (RP 5.11.x). |
+| `agent-bus.mdc` | agent-requestable | MCP calibration signaling protocol; agent/subagent coordination. |
+| `human-readable-output.mdc` | agent-requestable | Codes for machines, words for humans; `internal/display` registry. |
+| `contract-sizing.mdc` | `globs: .cursor/contracts/**` | Contract sizing and urgency classification; goal alignment check; must/should/nice splits. |
+
+## Gitignored compartments
+
+Two additional compartments live under `.cursor/` but are gitignored:
+
+- **`personal/`** — Per-developer preferences, private notes, agent personality tuning. See `personal/README.md`.
+- **`sensitive/`** — Internal hostnames, infrastructure details, credentials. See `sensitive/README.md`.

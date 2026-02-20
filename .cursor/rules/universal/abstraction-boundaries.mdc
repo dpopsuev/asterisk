@@ -1,6 +1,7 @@
 ---
 description: Abstraction boundaries — separate generic domain models from scenario-specific implementations
-alwaysApply: true
+globs: "**/*.go"
+alwaysApply: false
 ---
 
 # Abstraction Boundaries

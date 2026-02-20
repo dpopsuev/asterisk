@@ -1,0 +1,61 @@
+---
+description: Architecture diagrams are first-class knowledge store artifacts — current/desired state snapshots, integrity checks, canonical doc
+globs: ".cursor/**/*.md"
+alwaysApply: false
+---
+
+# Architecture Snapshots
+
+Architecture diagrams produced during Plan Mode are first-class artifacts. They must be preserved in the knowledge store, not left in ephemeral plan files.
+
+## Snapshot protocol
+
+Every contract that introduces or modifies system architecture MUST include two sections:
+
+### `## Current Architecture`
+
+The system as it exists at contract creation time. This is a testable assertion — the implementation should match this diagram. Reference `docs/architecture.md` as the canonical source and extract the relevant subsystem view.
+
+### `## Desired Architecture`
+
+The system after the contract is complete. This is the acceptance target. The delta between current and desired defines the contract's architectural scope.
+
+Both sections MUST contain at least one mermaid diagram. Prose alone is insufficient for architecture — diagrams are the primary artifact, prose is supplementary.
+
+## Plan-to-contract transfer
+
+When a Plan Mode conversation produces architecture diagrams:
+
+1. **Carry diagrams forward.** When creating a contract from a plan, copy all mermaid diagrams into the contract's Current/Desired Architecture sections. Do not reduce them to ASCII or prose.
+2. **Attribute the source.** Note the plan file name in the contract's Notes section for traceability.
+3. **Adapt scope.** If the plan diagram covers more than the contract's scope, extract the relevant subsystem view rather than dropping the diagram entirely.
+
+## Diagram taxonomy
+
+Use the appropriate mermaid diagram type for the architectural concern:
+
+| Diagram type | Use for | Example |
+|---|---|---|
+| `flowchart` / `graph` | Component relationships, data flow, dependency graphs | Package dependencies, adapter routing |
+| `sequenceDiagram` | Multi-step protocols, request/response flows | Pipeline step execution, MCP dispatch loop |
+| `classDiagram` | Interface hierarchies, type relationships | ModelAdapter implementations, Scheduler strategies |
+
+## Canonical architecture document
+
+`docs/architecture.md` is the single source of truth for the system's current architecture.
+
+- When a contract completes and changes architecture, update `docs/architecture.md` to reflect the new state. This is part of the contract's completion checklist.
+- New contracts must verify their `Current Architecture` section is consistent with `docs/architecture.md`. If they diverge, either the doc is stale or the contract's baseline is wrong — resolve before proceeding.
+
+## Architectural integrity checks
+
+| When | Check | Action on failure |
+|---|---|---|
+| Contract creation | `Current Architecture` matches `docs/architecture.md` | Resolve drift before proceeding |
+| Contract completion | Implementation matches `Desired Architecture` | Structural review; fix before marking complete |
+| Concurrent contracts | Two contracts modify the same component boundary | Flag conflict in both contracts' Notes sections |
+| Post-completion | `docs/architecture.md` reflects the new state | Update doc as part of completion |
+
+## Applicability
+
+This rule applies to contracts that change **component boundaries, interfaces, data flow, or dependency graphs**. Contracts that only change behavior within existing boundaries (bug fixes, prompt tuning, documentation) are exempt from the Current/Desired Architecture requirement but may still include diagrams where helpful.

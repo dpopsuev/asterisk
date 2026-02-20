@@ -1,3 +1,8 @@
+---
+description: "Human-readable output — codes for machines, words for humans; internal/display registry for human-facing names"
+alwaysApply: false
+---
+
 # Human-Readable Output
 
 **Principle: Code is for machines, words are for humans.**

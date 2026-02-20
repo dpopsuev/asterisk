@@ -1,6 +1,6 @@
 ---
 description: Workspace context — local repos as source of truth; version alignment; read from disk instead of guessing
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Workspace Context

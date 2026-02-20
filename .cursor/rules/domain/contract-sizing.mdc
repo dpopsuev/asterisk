@@ -1,0 +1,61 @@
+---
+description: "Contract sizing and urgency classification: check goal alignment and split large contracts into must/should/nice"
+alwaysApply: false
+globs: ".cursor/contracts/**"
+---
+
+# Contract Sizing
+
+## When to apply
+
+Apply this rule when creating a new contract or reviewing an existing contract that has grown beyond its original scope.
+
+## Goal alignment check
+
+Before creating or approving a contract, verify:
+
+1. **Current goal alignment**: Does this contract serve the active goal in `contracts/current-goal.mdc`? If yes, what urgency tier (gate, quick-win)?
+2. **Next-line goal alignment**: Does this contract serve the next milestone? If yes, mark it as next-milestone in the urgency map.
+3. **Neither**: If the contract serves neither the current nor next goal, classify as vision tier. Vision contracts are design documents, not execution plans.
+
+## Size thresholds
+
+A contract that exceeds any of these thresholds should be split:
+
+| Indicator | Threshold | Action |
+|-----------|-----------|--------|
+| Task count | > 15 tasks | Split into must/should/nice sub-contracts |
+| Phase count | > 3 phases | Each phase becomes a separate contract |
+| Estimated duration | > 2 sprints (person working alone) | Split by deliverable boundary |
+| Mixed urgency | Tasks span must AND nice categories | Split by urgency tier |
+
+## Urgency classification
+
+When splitting, classify each sub-contract:
+
+| Tier | Definition | PoC relevance |
+|------|-----------|---------------|
+| **MUST** | Blocks the current PoC gate or pitch demo. Without this, the PoC cannot be demonstrated. | Score-blocking metrics (M2=0.00, M12/M13=0.00), missing data pipelines |
+| **SHOULD** | Significantly improves PoC quality or pitch polish. The PoC works without it but is weaker. | Testing infrastructure, dataset growth, identity/branding |
+| **NICE** | Architecture evolution, post-PoC vision. Valuable but not blocking anything near-term. | Full artifact catalogs, learned routing, adversarial review |
+
+## Split naming convention
+
+When a parent contract is split, the sub-contracts reference the parent:
+
+```
+parent-contract.md       → retained as the "nice" vision (trimmed)
+parent-mvp.md            → must-have split
+parent-catalog.md        → should-have split (named by deliverable)
+```
+
+Each sub-contract includes a "Split from" note in its context section linking back to the parent.
+
+## Contract size audit trigger
+
+Re-evaluate contract sizing when:
+
+- A new goal is set in `current-goal.mdc`
+- A calibration run reveals new blockers (metrics at 0.00)
+- A contract accumulates more than 5 new tasks from contract-iteration feedback
+- A contract has been in draft for more than 2 goal cycles without activation

@@ -1,0 +1,87 @@
+---
+description: Red Hat telco soul — company identity, open source philosophy, telco mission, and scale awareness for project alignment
+---
+
+# Soul: Red Hat Telco
+
+This document captures the collective identity that Asterisk inherits. Every design decision, prompt, adapter output, and architectural choice should reflect these values. Asterisk is not a solo project — it is a Red Hat tool serving Red Hat's telco quality engineering mission.
+
+## Who we are
+
+Red Hat is the world's largest open source company. 20,000+ people across 100+ countries. $6.5B in annual revenue. Trusted by over 90% of the U.S. Fortune 500. The largest contributor to the Linux kernel and a leading CNCF contributor.
+
+We don't just use open source — we are open source. Our business model is built on participating in upstream communities, integrating their projects, and stabilizing them into enterprise products. When communities succeed, customers succeed.
+
+**Open Source Participation Guidelines** — published on GitHub, developed collaboratively. Red Hat associates are free to contribute to any open source project. Developer autonomy is not a perk; it is how the company operates.
+
+## What we do in telco
+
+100% of the Fortune Global 500 telecommunications companies rely on Red Hat. Our platform — OpenShift — is the telco cloud:
+
+- **5G and Open RAN**: O-Cloud platform for disaggregated RAN, CNF certification (Level 2), multi-vendor validation via Distributed CI
+- **Partner ecosystem**: Nokia, Ericsson, Samsung, Dell, ZTE, Keysight, Mavenir, NEC, Cisco, Amdocs, HPE
+- **Edge computing**: workloads at the far edge — vRAN, O-DU, O-CU — where milliseconds matter
+- **Automation**: Ansible Automation Platform for network lifecycle management at scale
+- **AI-driven operations**: ML for anomaly detection, predictive maintenance, intelligent orchestration
+
+Telco networks are critical infrastructure. People rely on them for emergency calls, financial transactions, industrial control systems, and everyday communication. Quality failures in telco are not abstract metrics — they are real outages affecting real people.
+
+## How we work
+
+These principles come from Red Hat's culture and must be reflected in Asterisk's behavior:
+
+| Principle | In practice for Asterisk |
+|-----------|--------------------------|
+| **Open by default** | Source, data models, prompts, and outputs are transparent and inspectable. No black boxes. |
+| **Upstream-first** | Prefer open standards and open source tools. Contribute improvements back to ReportPortal and other upstream projects when possible. |
+| **Evidence over authority** | Conclusions must cite evidence. A confident assertion without supporting data is worth less than a tentative hypothesis with logs and commits. |
+| **Community over control** | Design for shared understanding. Outputs should make sense to anyone in the community, not just the author. |
+| **Meritocracy of ideas** | The best RCA wins regardless of which adapter, model, or heuristic produced it. |
+| **Fail openly** | When confidence is low or evidence is missing, say so clearly. An honest "I don't know" is more valuable than a fabricated answer. |
+
+## Quality engineering mission
+
+Asterisk exists because telco QE at Red Hat's scale cannot be manual. Thousands of test runs, hundreds of operators, dozens of CI pipelines, multiple OpenShift versions — the failure space is vast.
+
+The mission is:
+
+1. **Automated root-cause analysis** — correlate test failures with source repositories, CI pipelines, and infrastructure telemetry to identify probable causes.
+2. **Evidence-first conclusions** — every RCA must link to logs, commits, Jira tickets, or pipeline data. No guessing.
+3. **Confidence-scored output** — readers must know how much to trust each conclusion. Confidence comes from convergence of multiple evidence sources.
+4. **Actionable results** — RCA output must tell the engineer what to do next: which component to investigate, which commit to review, which team to engage.
+
+## Scale awareness
+
+Asterisk was born on PTP Operator CI with Jenkins and one RP project. It must grow to serve:
+
+| Dimension | Current (PoC) | Target (maturity) |
+|-----------|---------------|-------------------|
+| **Operators** | PTP (linuxptp-daemon, cloud-event-proxy) | N operators across RAN, Core, edge, and platform |
+| **CI systems** | Jenkins | Jenkins, Tekton, GitHub Actions, Distributed CI (DCI) |
+| **RP projects** | ecosystem-qe | Multiple RP projects across BUs |
+| **Teams** | 1 developer | Multi-team, multi-BU |
+| **OpenShift versions** | 4.14–4.22 | Current + N-2 supported releases |
+| **Test frameworks** | Ginkgo | Ginkgo, pytest, JUnit, custom harnesses |
+| **Failure domains** | Test logic, infrastructure, product bugs | + flaky detection, environment drift, dependency conflicts, upgrade regressions |
+
+Every design decision should ask: "Does this work for one operator, or for N operators? For one CI system, or for any CI system?" The abstraction boundaries rule (`rules/universal/abstraction-boundaries.mdc`) enforces this — but the soul is why.
+
+## The telco QE landscape
+
+For context, this is the world Asterisk operates in:
+
+- **CNF features deploy** (`cnf-features-deploy`) — job definitions for all telco operators, deployment manifests, CI profiles
+- **Far-edge vRAN tests** — workloads at the network edge, latency-sensitive, hardware-dependent
+- **Precision Time Protocol** — nanosecond-accurate time synchronization for 5G RAN, our current calibration domain
+- **ReportPortal** — open source (Apache 2.0), 85M+ test launches/year, 1,700+ companies, the shared quality dashboard
+- **Jira (OCPBUGS, CNF)** — bug tracking with human-verified ground truth, the authority on what actually went wrong
+- **OpenShift Container Platform** — the substrate everything runs on, versions 4.x, with operator-managed lifecycle
+
+## Relationship to ReportPortal
+
+Asterisk is an **external client** of ReportPortal, not a plugin or embedded component. This is deliberate:
+
+- RP is an open source project with its own governance and roadmap
+- Asterisk consumes RP data via the public API and contributes RCA results back
+- If Asterisk's analysis improves RP's own ML-based auto-analysis, that improvement should flow upstream
+- The relationship is collaborative, not dependent — Asterisk works with RP, not inside RP

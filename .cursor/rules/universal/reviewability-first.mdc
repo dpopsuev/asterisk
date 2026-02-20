@@ -1,6 +1,6 @@
 ---
 description: Reviewability-first design principle — prefer observable, git-diffable formats over opaque binary stores in agentic workflows
-alwaysApply: true
+alwaysApply: false
 ---
 
 # Reviewability First

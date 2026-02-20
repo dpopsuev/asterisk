@@ -11,7 +11,11 @@ The `.cursor/` directory is the project's structured knowledge store. All reusab
 
 | Path | Purpose |
 |------|---------|
-| `rules/` | Persistent agent constraints and conventions (this directory) |
+| `rules/` | Persistent agent constraints and conventions. Organized into compartments (see below). |
+| `rules/universal/` | Generic IT engineering rules — apply to any software project. |
+| `rules/domain/` | Asterisk-specific rules — project standards, operations, domain protocols. |
+| `personal/` | **Gitignored.** Per-developer preferences, private notes, agent personality tuning. |
+| `sensitive/` | **Gitignored.** Internal hostnames, infrastructure details, credentials. Never enters git. |
 | `contracts/` | Work contracts organized by lifecycle status: `draft/`, `active/`, `completed/{phase}/`. Urgency via `current-goal.mdc` manifest. |
 | `docs/` | Deep references and long-form analysis |
 | `notes/` | Short summaries and quick references |
@@ -24,6 +28,25 @@ The `.cursor/` directory is the project's structured knowledge store. All reusab
 | `glossary/` | Domain terms and definitions |
 | `goals/` | Goal checklists and per-goal details |
 | `skills/` | Project-specific skill definitions (`<name>/SKILL.md`) |
+
+## Knowledge compartments
+
+The knowledge store is divided into four compartments. Each has a distinct trust model and git visibility.
+
+| Compartment | Location | Git | Scope | Routing |
+|-------------|----------|-----|-------|---------|
+| **Universal** | `rules/universal/` | committed | Any software project | `globs`-scoped or agent-requestable |
+| **Domain** | `rules/domain/` | committed | This repository | 3 `alwaysApply` + scoped/requestable |
+| **Personal** | `personal/` | **gitignored** | Per-developer | Local `alwaysApply` (no conflicts) |
+| **Sensitive** | `sensitive/` | **gitignored** | Security compartment | On-demand only |
+
+**Universal** rules are engineering truths portable across projects (testing methodology, security checklist, abstraction boundaries). They load via `globs` when working on matching files, or by agent request.
+
+**Domain** rules encode Asterisk-specific knowledge (project standards, agent operations, calibration protocols). Three core rules (`project-standards`, `agent-operations`, `knowledge-store`) are `alwaysApply`. The rest are scoped to relevant paths or agent-requestable.
+
+**Personal** is each developer's private workspace. Gitignored so preferences, private notes, and agent personality tuning never enter version control. Multiple developers can have different setups without conflict.
+
+**Sensitive** holds content that must never enter git history — internal hostnames, infrastructure details, credentials. The committed `data-hygiene.mdc` rule points here as the correct destination for sensitive content. This compartment prevents future data-swipe incidents.
 
 ## File conventions
 
@@ -50,6 +73,8 @@ When a conversation produces reusable knowledge, persist it to the appropriate t
 | `rules/` | New constraint, convention, or invariant |
 | `goals/` | Scope decisions (in/out) |
 | `glossary/` | New domain terms |
+| `docs/architecture.md` | Architecture diagram produced (mermaid flowchart, sequence, class); or component boundary changed. See `rules/architecture-snapshots.mdc`. |
+| Contract (Current/Desired) | Plan Mode produces architecture diagrams for a contract scope. Carry diagrams into the contract's `## Current Architecture` / `## Desired Architecture` sections. |
 
 For delimited topic blocks, propose **"Save Block {{ID}}"** with target directory and rationale.
 
