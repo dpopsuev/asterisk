@@ -33,6 +33,61 @@ The **remand** path is the key feedback loop: if the judge finds the evidence in
 
 The **plea deal** fast-path handles easy cases: when prosecution confidence is very high and the defense concedes, skip directly to verdict.
 
+## Current Architecture
+
+Linear F0-F6 pipeline with single-perspective review. F5 Review is a rubber stamp (BasicAdapter always approves). No alternative hypotheses, no adversarial challenge, no structured feedback on reinvestigation.
+
+```mermaid
+flowchart LR
+    F0[F0 Recall] --> F1[F1 Triage]
+    F1 --> F2[F2 Resolve]
+    F2 --> F3[F3 Investigate]
+    F3 --> F4[F4 Correlate]
+    F4 --> F5[F5 Review]
+    F5 --> F6[F6 Report]
+    F6 --> Done
+    F5 -->|"reassess (blind retry)"| F2
+```
+
+All steps use the same adapter. The F5-to-F2 reassess loop is a blind retry with no structured feedback about what was wrong.
+
+## Desired Architecture
+
+F6 Report feeds into an adversarial court phase (D0-D4) with role-separated adapters. The remand path provides structured feedback to F2/F3, replacing blind retry with targeted reinvestigation.
+
+```mermaid
+flowchart TD
+    F6[F6 Report] --> D0[D0 Indict]
+    D0 --> D1[D1 Discover]
+    D1 --> D2[D2 Defend]
+    D2 -->|"plea deal (HD2)"| D4plea["D4 Verdict (affirm)"]
+    D2 -->|"challenge (HD3/HD4)"| D3[D3 Hearing]
+    D3 --> D4[D4 Verdict]
+    D4 -->|"affirm / amend"| VerdictDone[Done]
+    D4 -->|"remand (HD8)"| F2[F2 Resolve]
+    D4 -->|"acquit / mistrial"| GapBrief[Evidence Gap Brief]
+    D4plea --> VerdictDone
+```
+
+Role interaction during a contested case:
+
+```mermaid
+sequenceDiagram
+    participant P as Prosecution
+    participant D as Defense
+    participant J as Judge
+
+    P->>J: D0 Indictment (charge + evidence)
+    J->>D: D1 Discovery (raw data, not conclusions)
+    D->>J: D2 Defense Brief (challenges + alternative hypothesis)
+    J->>P: D3 Hearing Round 1 (address defense challenges)
+    P->>J: Rebuttal
+    J->>D: D3 Hearing Round 2 (final response)
+    D->>J: Final statement
+    J->>J: D4 Deliberation
+    J-->>P: Verdict (affirm / amend / remand / acquit)
+```
+
 ## Architecture
 
 ### New pipeline steps
@@ -213,5 +268,6 @@ Implement these mitigations when executing this contract.
 
 (Running log, newest first.)
 
+- 2026-02-20 — **Absorbed by `agentic-framework-III.3-shadow.md`.** All D0-D4 steps, HD1-HD12 heuristics, prosecution/defense/judge roles, remand feedback, and TTL/handoff limits are preserved in the Framework shadow contract. The court pipeline is now expressed as a second Graph instance using the Framework DSL.
 - 2026-02-18 — Updated: added TTL, handoff limits, remand cap, and mistrial outcome (HD10-HD12). Mistrial artifact is a superset of Evidence Gap Brief (see `evidence-gap-brief.md`). `CourtEvidenceGap` extends shared `EvidenceGap` type with role and stage metadata.
 - 2026-02-16 — Contract drafted. Adversarial RCA inspired by US federal trial process. Assessed as real benefit (not just novelty) based on proven adversarial techniques in AI alignment and the concentration of errors in ambiguous cases. Deferred to post-MCP phase.

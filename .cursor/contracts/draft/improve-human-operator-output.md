@@ -53,13 +53,16 @@ Map domain concepts to human language. The agent must never use the left column 
 | `si001` | "system issue" | "Likely a system/infrastructure issue" |
 | convergence loop | "retrying with broader scope" | "Convergence too low (0.45) — retrying with broader scope" |
 | duplicate detected | "same root cause as case N" | "Same root cause as case 7 — fast-tracking" |
+| `PG`, `SG`, `PF`, `C` | position name or omit | "[PG/Backcourt]" or "[Center/Frontcourt]" |
+| `Backcourt`, `Frontcourt`, `Paint` | zone name | "Backcourt clear — shifting to Frontcourt" |
 
 ### Narration format
 
-Every narration line the agent emits to the human must contain **at least three** of these five elements:
+Every narration line the agent emits to the human must contain **at least three** of these six elements. In parallel mode (parallel > 1), the **Position** element is mandatory.
 
 | Element | Purpose | Example |
 |---|---|---|
+| **Position** | Which agent and zone (parallel mode only) | "[PG/Backcourt]", "[C/Frontcourt]" |
 | **Progress** | Where are we in the run | "Case 5 of 18" |
 | **Activity** | What the agent is doing right now | "Investigating holdover recovery" |
 | **Trajectory** | Is confidence increasing or decreasing | "Convergence: 0.45 → 0.70 (accepted)" |
@@ -104,12 +107,41 @@ Case 8 of 18 — Same root cause as case 7 (holdover recovery) — fast-tracked
   Smoking gun hits: 2 of 9 │ 3 duplicates fast-tracked
 ```
 
-**Parallel execution** (future — when parallel > 1):
+**Parallel execution** (position-tagged, when parallel > 1):
+
+Each agent is tagged with its position and court zone (see `notes/subagent-position-system.md` for the full design). Positions are: PG (Point Guard / Backcourt), SG (Shooting Guard / Paint), PF (Power Forward / Frontcourt), C (Center / Frontcourt).
 
 ```
-[Worker 1] Case 5 of 18 — Investigating "GNSS sync state" — convergence 0.70
-[Worker 2] Case 6 of 18 — Classifying symptoms for "PTP clock state"
-[Worker 3] Case 7 of 18 — Complete — product bug in ptp-operator — 1m15s
+[PG/Backcourt] Case 5 of 18 — Classifying symptoms for "GNSS sync state"
+[C/Frontcourt]  Case 3 of 18 — Investigating "holdover recovery" — convergence 0.65 (loop 2/3)
+[PF/Frontcourt] Case 4 of 18 — Selecting repos for "PTP clock state"
+[SG/Paint]      Case 1 of 18 — Final review approved — writing up the finding
+```
+
+**Pipeline health dashboard** (emit every 5 cases or alongside milestone summary):
+
+Shows per-zone throughput and queue depth. Highlights the bottleneck zone.
+
+```
+━━━ Pipeline Health ━━━
+  Backcourt:  18/18 complete (PG idle — shifted to Frontcourt)
+  Frontcourt: 8 investigated, 4 active (PF: case 9@investigating, C: case 7@investigating loop 2)
+  Paint:      6 complete, 2 in progress (SG: case 5@final review)
+  Queue:      4 cases waiting for investigation
+```
+
+**Bottleneck warning** (emit when Frontcourt queue depth exceeds 2x Frontcourt agent count):
+
+```
+⚠ Investigation bottleneck: 8 cases queued with 2 Frontcourt agents — shifting PG to assist with repo selection
+```
+
+**Zone shift narration** (emit when an agent leaves its home zone):
+
+```
+[PG] Backcourt clear — shifting to Frontcourt to assist with repo selection backlog
+[SG] Paint queue empty — assisting Frontcourt with repo selection
+[PG] New intake arriving — shifting back to Backcourt
 ```
 
 ### ETA calculation
@@ -156,3 +188,4 @@ Round ETA to nearest minute for display. Show "less than a minute" when ETA < 60
 ## Notes
 
 - 2026-02-18 19:00 — Contract created. Triggered by Phase 5a calibration run where the agent produced 25 minutes of terse machine-code output with no ETAs, no progress context, and no trajectory information. The `human-readable-output.mdc` rule was violated throughout.
+- 2026-02-20 — Position system diffusion: replaced generic `[Worker N]` templates with position-tagged output (`[PG/Backcourt]`, `[C/Frontcourt]`, etc.). Added pipeline health dashboard, bottleneck warning, and zone shift narration templates. Added Position as a 6th narration element (mandatory in parallel mode). Design source: subagent position system brainstorm.

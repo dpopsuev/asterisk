@@ -1,16 +1,74 @@
 # Contract — Workspace Revisited
 
 **Status:** draft  
-**Goal:** Redefine the workspace from a repo-name catalog into a universal artifact reference system with content resolution, format learning, graceful degradation, and a local artifact catalog/cache. Future phase — aligns with persona system, MCP integration, and Defect Court.  
-**Serves:** Architecture evolution
+**Goal:** Long-term workspace vision: layered composition (base + version + investigation), artifact dependency graph, token-budget-aware summarization pipeline, documentation caching, and must-gather ingestion. Remaining vision after MVP and Catalog splits.  
+**Serves:** Architecture evolution (NICE to have)
 
 ## Contract rules
 
 - Global rules only.
-- This is a **future-phase** contract. Do not implement until MCP foundation is operational and RP E2E launch is complete.
-- The redesigned workspace is **backward-compatible** — existing `internal/workspace.Workspace` consumers must continue to work. New capabilities are additive.
-- Follow the scenario-vs-generic rule: the artifact taxonomy is generic; specific readers, URI patterns, and format registry entries are scenario-specific (label them).
-- Every artifact is optional. The system must produce useful results with zero artifacts resolved, degrading gracefully.
+- This is a **future-phase** contract. Do not implement until Workspace MVP and Workspace Catalog are complete.
+- Backward-compatible with existing workspace consumers.
+- Split history: Workspace MVP (`workspace-mvp.md`, MUST) covers RP attributes, Jira links, repo paths. Workspace Catalog (`workspace-catalog.md`, SHOULD) covers artifact catalog, format registry, CI log ingestion. This contract retains the remaining vision.
+
+## Decomposition note
+
+This contract was split into three urgency tiers per Phase 5a mitigation:
+
+| Contract | Urgency | Scope |
+|----------|---------|-------|
+| `workspace-mvp.md` | MUST | Wire RP attrs, Jira links, repo paths into prompts. Resolution status. |
+| `workspace-catalog.md` | SHOULD | Artifact catalog, format registry, CI log readers, fetch-through. |
+| `workspace-revisited.md` (this) | NICE | Layered composition, dependency graph, token-budget summarization, docs caching. |
+
+## Current Architecture
+
+Flat declarative repo list. The workspace declares repos by name and path but never clones, reads, or indexes content. Prompt templates receive a Markdown table of repo metadata. No artifact resolution, no format detection, no caching.
+
+```mermaid
+flowchart LR
+    Config["workspace.yaml"] -->|LoadFromPath| WS["Workspace\n(Repos: name, path, purpose)"]
+    WS -->|"Markdown table"| Prompt[Prompt Template]
+    Prompt -->|"repo names only"| Adapter[ModelAdapter]
+```
+
+Real CI artifacts on disk (job logs, test bundles) and RP data fields (launch attributes, Jira links, logs) are available but never consumed by the pipeline.
+
+## Desired Architecture
+
+Layered workspace with a local artifact catalog, format registry, and content resolution chain. Every artifact reference carries a resolution status. The pipeline queries the catalog, which fetches through to sources on demand.
+
+```mermaid
+flowchart TD
+    subgraph sources [External Sources]
+        RP[RP API]
+        CI[CI / Jenkins / S3]
+        Git[Git Repos]
+        Jira[Jira API]
+        Docs[OCP Docs]
+    end
+
+    subgraph catalog [Artifact Catalog]
+        Registry["Format Registry\n(URI pattern -> reader)"]
+        Cache["Local Cache\n(.asterisk/catalog/)"]
+        Resolver["Content Resolver\n(fetch-through, TTL, dedup)"]
+    end
+
+    subgraph layers [Workspace Layers]
+        Base["Base Layer\n(domain repos, platform docs)"]
+        Version["Version Layer\n(branch/tag per case version)"]
+        Investigation["Investigation Layer\n(RP data, CI logs per launch)"]
+    end
+
+    sources --> Resolver
+    Resolver --> Registry
+    Resolver --> Cache
+    Cache --> layers
+    layers -->|"resolved artifacts\n(with status + confidence)"| Pipeline[F0-F6 Pipeline]
+    Pipeline -->|"on-demand queries"| Resolver
+```
+
+Effective workspace = Base + Version(case.Version) + Investigation(launch_id). Every artifact carries a resolution status (`resolved`, `cached`, `degraded`, `unavailable`, `unknown`) that caps pipeline confidence when degraded or missing.
 
 ## Context
 
@@ -366,26 +424,26 @@ This naturally supports the persona workspace-binding concept: base and version 
 
 ## Execution strategy
 
-This is a design-and-prototype contract. Implementation is incremental:
+Phases 1-2 have been split into separate contracts. This contract covers the remaining vision:
 
-1. **Phase 1 (near-term)**: Extend `Workspace` type with artifact references alongside repos. Add resolution status. Wire RP launch attributes into prompts.
-2. **Phase 2 (mid-term)**: Implement catalog with fetch-through for RP data and local files. Add format registry with seeded patterns. Wire CI job logs.
+1. ~~**Phase 1 (near-term)**~~ → `workspace-mvp.md`
+2. ~~**Phase 2 (mid-term)**~~ → `workspace-catalog.md`
 3. **Phase 3 (future)**: Git repo checkout with version matrix. Documentation caching. Jira integration. Reader plugins.
 4. **Phase 4 (distant)**: Workspace composition layers. Artifact dependency graph. Full token-budget-aware summarization pipeline.
 
 ## Tasks
 
-- [ ] Finalize artifact taxonomy review with stakeholder
-- [ ] Design unified artifact reference type (extends current `Repo`)
-- [ ] Design catalog entry schema and registry format
-- [ ] Design reader interface and built-in reader set
-- [ ] Prototype: wire RP launch attributes into prompt templates
-- [ ] Prototype: catalog fetch-through for RP data
-- [ ] Prototype: ingest local CI job logs via reader
-- [ ] Define version matrix format and resolution logic
-- [ ] Define workspace composition layer semantics
-- [ ] Validate — design review, prototype demonstrates catalog fetch + degradation
-- [ ] Tune — refine taxonomy, TTL defaults, confidence impact values via calibration experiments
+Tasks for Phases 1-2 have moved to `workspace-mvp.md` and `workspace-catalog.md`. Remaining:
+
+- [ ] Define version matrix format and resolution logic (Phase 3)
+- [ ] Implement Git repo checkout with version-parametric branch selection (Phase 3)
+- [ ] Implement documentation caching (OCP docs, operator release notes) (Phase 3)
+- [ ] Define workspace composition layer semantics (base + version + investigation) (Phase 4)
+- [ ] Implement artifact dependency graph with topological resolution (Phase 4)
+- [ ] Implement token-budget-aware summarization pipeline (Phase 4)
+- [ ] Wire must-gather dump ingestion (Phase 4)
+- [ ] Validate — composition layers produce correct effective workspace per case
+- [ ] Tune — confidence impact values via calibration experiments
 
 ## Acceptance criteria
 
@@ -409,5 +467,6 @@ Implement these mitigations when executing this contract.
 
 ## Notes
 
-2026-02-18 — Added connection to `evidence-gap-brief.md`: gap categories map 1:1 to artifact taxonomy domains, making gap briefs a demand signal for workspace expansion priorities.
-2026-02-18 — Contract drafted from brainstorming session. Grounded in exploration of current codebase (`internal/workspace/`, `internal/calibrate/`, `internal/rp/`, `internal/orchestrate/`, `.cursor/prompts/`, `archive/ci/`). Key finding: the workspace is purely declarative metadata today — never clones, reads, or indexes any content. Real CI archives on disk (`#5400.txt`, `failed_ptp_suite_test.zip`) and RP data fields (`Attributes`, `ExternalSystemIssues`, logs) are available but not consumed by the pipeline.
+- 2026-02-18 — Added connection to `evidence-gap-brief.md`: gap categories map 1:1 to artifact taxonomy domains, making gap briefs a demand signal for workspace expansion priorities.
+- 2026-02-18 — Contract drafted from brainstorming session. Grounded in exploration of current codebase (`internal/workspace/`, `internal/calibrate/`, `internal/rp/`, `internal/orchestrate/`, `.cursor/prompts/`, `archive/ci/`). Key finding: the workspace is purely declarative metadata today — never clones, reads, or indexes any content. Real CI archives on disk (`#5400.txt`, `failed_ptp_suite_test.zip`) and RP data fields (`Attributes`, `ExternalSystemIssues`, logs) are available but not consumed by the pipeline.
+- 2026-02-19 04:00 — Split into three contracts per Phase 5a mitigation urgency audit. `workspace-mvp.md` (MUST) takes Phase 1, `workspace-catalog.md` (SHOULD) takes Phase 2, this contract retains Phases 3-4 as NICE-to-have vision.

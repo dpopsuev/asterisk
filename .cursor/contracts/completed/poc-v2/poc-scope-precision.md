@@ -1,6 +1,6 @@
 # Contract — PoC Scope Precision
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Deliver a zero-friction PoC experience: a simplified `asterisk analyze <LAUNCH_ID>` command (no flags needed), a `/asterisk-analyze` Cursor skill, RP token guidance, help system, and a CEO-ready README.md. Another engineer can clone, build, and run an RCA in under 5 minutes.  
 **Serves:** PoC completion
 
@@ -64,13 +64,13 @@ Command-style skill:
 
 ## Tasks
 
-- [ ] **Simplify CLI** — positional arg, env var default, output path default, token check, input validation
-- [ ] **Create skill** — `.cursor/skills/asterisk-analyze/SKILL.md` with help mode and security guardrails
-- [ ] **README overhaul** — copy to `.post`, write new CEO-ready README
-- [ ] **Update FSC** — contracts index, goal manifest, skills index
-- [ ] Validate (green) — `go build`, `go test`, `go vet` all pass; `asterisk analyze --help` shows updated help
-- [ ] Tune (blue) — refine README tone, skill wording. No behavior changes.
-- [ ] Validate (green) — all tests still pass after tuning.
+- [x] **Simplify CLI** — positional arg, env var default, output path default, token check, input validation
+- [x] **Create skill** — `.cursor/skills/asterisk-analyze/SKILL.md` with help mode and security guardrails
+- [x] **README overhaul** — copy to `.post`, write new CEO-ready README
+- [x] **Update FSC** — contracts index, goal manifest, skills index
+- [x] Validate (green) — `go build`, `go test`, `go vet` all pass; `asterisk analyze --help` shows updated help
+- [x] Tune (blue) — README tone, skill wording finalized.
+- [x] Validate (green) — all tests pass after tuning.
 
 ## Acceptance criteria
 
@@ -121,3 +121,4 @@ Implement these mitigations when executing this contract.
 (Running log, newest first.)
 
 - 2026-02-18 — Contract created. Packages the PoC for external consumption: simplified CLI, Cursor skill, CEO-ready README. Security assessment includes 8 OWASP findings with mitigations.
+- 2026-02-19 — All 7 tasks completed. CLI has positional arg, env defaults, token check; Skill at `.cursor/skills/asterisk-analyze/SKILL.md`; README overhaul with `.post` archive; FSC indexes updated. All tests green.

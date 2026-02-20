@@ -76,6 +76,74 @@ graph TD
     wiring_pkg --> postinvest_pkg
 ```
 
+## Pipeline Flow (F0-F6)
+
+The investigation pipeline processes each case through up to 7 steps. Heuristic rules evaluate artifacts at each step and determine the next transition. Convergence loops (F5 reassess) and recall hits (F0 direct to F5) are the primary branch points.
+
+```mermaid
+flowchart LR
+    F0[F0 Recall] -->|"H1: recall hit"| F5[F5 Review]
+    F0 -->|"H2: recall miss"| F1[F1 Triage]
+    F1 --> F2[F2 Resolve]
+    F2 --> F3[F3 Investigate]
+    F3 --> F4[F4 Correlate]
+    F4 --> F5
+    F5 -->|"H3: converged"| F6[F6 Report]
+    F5 -->|"H4: reassess"| F2
+    F6 --> Done
+```
+
+## Adapter Dispatch
+
+The adapter dispatch mechanism varies by adapter type. StubAdapter and BasicAdapter return directly. CursorAdapter delegates to a Dispatcher which bridges to an external agent (via file signals, stdin, or MCP channels).
+
+```mermaid
+sequenceDiagram
+    participant R as Runner
+    participant A as CursorAdapter
+    participant D as MuxDispatcher
+    participant Agent as External Agent
+
+    R->>A: SendPrompt(caseID, step)
+    A->>A: Fill prompt template
+    A->>D: Dispatch(context)
+    D->>D: Assign dispatch_id
+    D->>Agent: Prompt available (via channel)
+    Agent->>Agent: Read prompt, generate artifact
+    Agent->>D: SubmitArtifact(dispatch_id, data)
+    D->>A: Return artifact bytes
+    A->>R: Return json.RawMessage
+```
+
+## MCP Calibration Session
+
+During MCP-mode calibration, the Go runner and the AI agent communicate through tool calls. The MCP server bridges the runner's blocking `Dispatch()` calls with the agent's `get_next_step` / `submit_artifact` tool calls.
+
+```mermaid
+sequenceDiagram
+    participant Agent as AI Agent
+    participant MCP as MCP Server
+    participant Runner as Calibration Runner
+    participant Disp as MuxDispatcher
+
+    Agent->>MCP: start_calibration(scenario, adapter)
+    MCP->>Runner: Launch goroutine
+    loop For each pipeline step
+        Runner->>Disp: Dispatch(caseID, step, promptPath)
+        Disp-->>MCP: Step ready (channel)
+        Agent->>MCP: get_next_step(session_id)
+        MCP-->>Agent: caseID, step, promptPath, dispatch_id
+        Agent->>Agent: Read prompt, produce artifact
+        Agent->>MCP: submit_artifact(session_id, dispatch_id, json)
+        MCP->>Disp: Route artifact by dispatch_id
+        Disp->>Runner: Return artifact
+    end
+    Agent->>MCP: get_next_step(session_id)
+    MCP-->>Agent: done=true
+    Agent->>MCP: get_report(session_id)
+    MCP-->>Agent: CalibrationReport
+```
+
 ## Component Inventory
 
 ### Per-Component Raison d'Être

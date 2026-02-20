@@ -1,8 +1,8 @@
 # Contract — origami-ground-truth-ingestor
 
 **Status:** draft  
-**Goal:** Agentic dataset curation: consume unstructured evidence (Jira, PRs, logs, files) into structured ground truth via AI subagents, stored as reviewable JSON files.  
-**Serves:** Dataset growth (next-milestone)
+**Goal:** Agentic dataset curation: consume unstructured evidence (Jira, PRs, logs, files) into structured ground truth via AI subagents, stored as reviewable JSON files. Target: 18 verified → 50+ verified cases. Export as reviewable JSON and open GitHub PR for team review.  
+**Serves:** Dataset growth (SHOULD for Phase 5a mitigation Item 4)
 
 ## Contract rules
 
@@ -78,6 +78,17 @@ type EvidenceSource interface {
 ```
 
 PoC implementations: `JiraSource`, `GitHubPRSource`, `FileSource`, `URLSource`.
+
+#### Robustness requirements
+
+`EvidenceSource` adapters must handle real-world edge cases:
+
+- **Rate limits**: Respect `Retry-After` headers from Jira and GitHub APIs. Exponential backoff with jitter.
+- **Authentication**: Support both anonymous and authenticated access. Degrade gracefully when auth fails (mark evidence as `unavailable` with reason).
+- **Large files**: Stream large artifacts (CI logs > 1 MB). Never load entire file into memory for extraction.
+- **Partial data**: When a source returns incomplete data (e.g., Jira ticket with redacted fields, PR with no diff), extract what is available and record the gaps in `CompletenessResult.Missing`.
+- **Timeouts**: Per-source configurable timeout (default 30s). Fail fast and record the timeout in evidence metadata.
+- **Network errors**: Transient errors retry (max 3 attempts). Permanent errors (404, 403) fail immediately with descriptive error.
 
 ### Completeness Tracker
 
@@ -167,6 +178,14 @@ internal/mcp/
 - [ ] Add Origami MCP tools to `internal/mcp/server.go` (thin facade to CLI layer)
 - [ ] Integration tests: agent conversation flow via MCP
 
+### Phase 7 — Dataset expansion + GitHub PR
+- [ ] Target dataset size: 50+ verified cases (current: 18 verified + 12 candidates)
+- [ ] Identify additional RP launches for ingestion (new PTP CI runs, other operator CIs)
+- [ ] Run `asterisk origami import` to produce initial `datasets/ptp-real-ingest.json` from Go structs
+- [ ] Open GitHub PR with `datasets/ptp-real-ingest.json` for team review
+- [ ] Iterate on PR: ingest evidence for candidates, promote ready candidates, update JSON, push
+- [ ] Acceptance: PR merged with 30+ verified cases in JSON dataset
+
 ### Validation
 - [ ] Validate (green) — all tests pass, acceptance criteria met.
 - [ ] Tune (blue) — refactor for quality. No behavior changes.
@@ -190,6 +209,14 @@ internal/mcp/
 **When** calibration runs with `--scenario ptp-real-ingest`,  
 **Then** the runner loads from JSON and scores only verified cases (same behavior as Go structs).
 
+**Given** the PR with `datasets/ptp-real-ingest.json` is merged,  
+**When** calibration runs with `--scenario ptp-real-ingest`,  
+**Then** it uses the JSON dataset with 30+ verified cases and scores on a statistically meaningful sample.
+
+**Given** the `JiraSource` adapter encounters a rate-limited Jira API response,  
+**When** `asterisk origami ingest` is run,  
+**Then** the adapter retries with exponential backoff and does not crash or lose partial progress.
+
 **Structural invariant:** The canonical dataset is always a git-tracked JSON file. Every Origami mutation produces a reviewable diff.
 
 ## Notes
@@ -197,3 +224,7 @@ internal/mcp/
 2026-02-18 — Revised storage from SQLite to JSON files based on reviewability-first principle. "The real benefit is reviewability — you can see the full dataset in a PR." This enables the self-reinforcement loop: agent mutates dataset → PR diff visible → human/agent reviews → feedback improves process. New rule `reviewability-first.mdc` codifies this.
 
 2026-02-18 — User confirmed: CLI-first citizen (any agent can use it), thin MCP layer (facade/bridge pattern), generic from day one with PTP as first driver, adapter-driver pattern for storage.
+
+2026-02-19 04:00 — Phase 5a mitigation Item 4: dataset size target raised to 50+ verified (from 18), robustness requirements added to EvidenceSource adapters (rate limits, auth, large files, partial data, timeouts), Phase 7 added for dataset expansion and GitHub PR workflow. PR is the reviewable delivery mechanism for dataset updates.
+
+2026-02-19 06:00 — **PoC scope trimming**: For SHOULD-tier execution, only Phases 1-2 (storage foundation + completeness tracker + CLI status) and Phase 7 (dataset expansion + GitHub PR) are in scope. Phases 3-6 (evidence sources, AI extractors, promote + calibration integration, MCP bridge) are deferred to post-PoC. This cuts the contract from a multi-week effort to 2-3 days. Execution order: 4th of 6 SHOULD contracts.
