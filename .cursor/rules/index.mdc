@@ -7,6 +7,12 @@ alwaysApply: false
 
 Rules are organized into **compartments** reflecting their scope and trust model. See `rules/domain/knowledge-store.mdc` for the full compartment model.
 
+## Root-level
+
+| Rule | Routing | Description |
+|------|---------|-------------|
+| `rule-router.mdc` | **alwaysApply** | Magic-word lookup table mapping user intent to the correct rule file. |
+
 ## universal/ — Generic IT Engineering (committed, shared)
 
 Rules portable across any software project. Most are `globs`-scoped to relevant file types.
