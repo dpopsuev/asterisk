@@ -1,6 +1,6 @@
 # Contract — Agentic Framework II.2: Cycles
 
-**Status:** draft
+**Status:** complete
 **Goal:** Define generative (sheng) and destructive (ke) interaction cycles between elements, mapping them to concrete scheduler routing rules that determine which agent handles a step after a given agent's output.
 **Serves:** Architecture evolution (Framework physics)
 
@@ -108,16 +108,16 @@ The cycles inform the `AffinityScheduler` (from III.1-personae) as tiebreakers:
 
 ## Tasks
 
-- [ ] Define `CycleType`, `CycleRule` types
-- [ ] Implement `GenerativeCycle() []CycleRule` -- 4 main + 2 modifier rules
-- [ ] Implement `DestructiveCycle() []CycleRule` -- 6 destructive pair rules
-- [ ] Implement `NextGenerative(Element) Element` -- lookup function
-- [ ] Implement `Challenges(Element) Element` -- lookup function
-- [ ] Implement `ChallengedBy(Element) Element` -- reverse lookup
-- [ ] Write `internal/framework/cycle_test.go` -- verify all cycle rules, lookup functions, cycle completeness
-- [ ] Validate (green) -- `go build ./...`, all tests pass
-- [ ] Tune (blue) -- verify cycle rules match F0-F6 pipeline flow
-- [ ] Validate (green) -- all tests still pass after tuning
+- [x] Define `CycleType`, `CycleRule` types
+- [x] Implement `GenerativeCycle() []CycleRule` -- 4 main + 2 modifier rules
+- [x] Implement `DestructiveCycle() []CycleRule` -- 6 destructive pair rules
+- [x] Implement `NextGenerative(Element) Element` -- lookup function
+- [x] Implement `Challenges(Element) Element` -- lookup function
+- [x] Implement `ChallengedBy(Element) Element` -- reverse lookup
+- [x] Write `internal/framework/cycle_test.go` -- verify all cycle rules, lookup functions, cycle completeness
+- [x] Validate (green) -- `go build ./...`, all tests pass
+- [x] Tune (blue) -- verify cycle rules match F0-F6 pipeline flow
+- [x] Validate (green) -- all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -135,6 +135,7 @@ The cycles inform the `AffinityScheduler` (from III.1-personae) as tiebreakers:
 
 ## Notes
 
+- 2026-02-21 19:00 -- Contract complete. CycleType, CycleRule, GenerativeCycle (6 rules), DestructiveCycle (6 rules), NextGenerative, Challenges, ChallengedBy implemented. 8 tests including cycle completeness and symmetry verification. Moved to `completed/framework/`.
 - 2026-02-21 14:30 -- DSL design principles diffusion (P2, P5): cycle rules could be expressed as edge annotations in the pipeline DSL (I.2-characteristica). An edge with `cycle: generative` or `cycle: destructive` would declare which interaction pattern it follows. This is a future extension -- the current contract defines cycles as Go lookup functions; the DSL annotation layer can be added once I.2 is implemented and the annotation mechanism is proven.
 - 2026-02-20 -- Contract created. The cycles are not just metaphors -- they encode real routing preferences. The generative cycle maps to the natural F0-F6 flow. The destructive cycle maps to the Defect Court's adversarial pattern.
 - Depends on II.1-elements for Element type and traits.
