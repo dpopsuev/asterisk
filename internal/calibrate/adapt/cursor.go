@@ -95,10 +95,20 @@ func NewCursorAdapter(promptDir string, opts ...CursorAdapterOption) *CursorAdap
 // Name returns the adapter identifier.
 func (a *CursorAdapter) Name() string { return "cursor" }
 
-// identityProbePrompt is the tightly constrained prompt sent to discover
-// which model is behind the dispatcher.
-const identityProbePrompt = `Respond with ONLY a JSON object, no markdown, no explanation, no code fences:
-{"model_name": "<your exact model name, e.g. claude-4-sonnet>", "provider": "<company that created you, e.g. Anthropic>", "version": "<your version string, e.g. 20250514, 4.0, 1.0>"}`
+// identityProbePrompt asks the model to report its FOUNDATION identity,
+// not the wrapper/IDE that hosts it. The distinction matters: "composer"
+// is Cursor's wrapper; the ghost behind it is e.g. claude-sonnet-4.
+const identityProbePrompt = `You are being asked to self-identify. Respond with ONLY a JSON object.
+No markdown, no code fences, no explanation — just raw JSON.
+
+IMPORTANT: Report your FOUNDATION model, not the wrapper or IDE hosting you.
+If you are Claude running inside Cursor, model_name is "claude-sonnet-4-20250514", NOT "composer".
+If you are GPT-4o running inside Copilot, model_name is "gpt-4o", NOT "copilot".
+
+{"model_name": "<your foundation model name, e.g. claude-sonnet-4-20250514>",
+ "provider": "<company that TRAINED you, e.g. Anthropic, OpenAI, Google>",
+ "version": "<your version or checkpoint, e.g. 20250514, 4.0>",
+ "wrapper": "<hosting environment if any, e.g. Cursor, Azure, Copilot, or null if direct>"}`
 
 // Identify sends a probe prompt through the dispatcher to discover which
 // LLM model is behind this adapter. The model self-reports its name and provider.
@@ -127,7 +137,7 @@ func (a *CursorAdapter) Identify() (framework.ModelIdentity, error) {
 }
 
 // ParseModelIdentity extracts a ModelIdentity from raw JSON bytes.
-// Exported so tests and other callers can reuse the parsing logic.
+// Returns an error if model_name is a known wrapper rather than a foundation model.
 func ParseModelIdentity(data []byte) (framework.ModelIdentity, error) {
 	raw := strings.TrimSpace(string(data))
 
@@ -143,6 +153,9 @@ func ParseModelIdentity(data []byte) (framework.ModelIdentity, error) {
 	}
 	if mi.Provider == "" {
 		return framework.ModelIdentity{}, fmt.Errorf("identity probe: provider is empty (raw: %q)", truncate(raw, 120))
+	}
+	if framework.IsWrapperName(mi.ModelName) {
+		return mi, fmt.Errorf("identity probe: model_name %q is a wrapper, not a foundation model (raw: %q)", mi.ModelName, truncate(raw, 120))
 	}
 
 	return mi, nil

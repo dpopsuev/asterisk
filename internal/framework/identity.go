@@ -9,17 +9,19 @@ type AgentIdentity struct {
 	Name string
 }
 
-// ModelIdentity records which LLM model ("ghost") is behind an adapter
-// ("shell"). Populated at session start via the Identifiable interface.
+// ModelIdentity records which foundation LLM model ("ghost") is behind
+// an adapter ("shell"). The Wrapper field records the hosting environment
+// (e.g. Cursor, Azure) that may sit between the caller and the foundation model.
 type ModelIdentity struct {
 	ModelName string `json:"model_name"`
 	Provider  string `json:"provider"`
 	Version   string `json:"version,omitempty"`
+	Wrapper   string `json:"wrapper,omitempty"`
 	Raw       string `json:"raw,omitempty"`
 }
 
-// String returns a deterministic, short identifier: "model@version/provider".
-// Omits the @version segment when Version is empty.
+// String returns "model@version/provider (via wrapper)".
+// Omits @version when empty. Omits "(via wrapper)" when empty.
 func (m ModelIdentity) String() string {
 	name := m.ModelName
 	if name == "" {
@@ -29,10 +31,18 @@ func (m ModelIdentity) String() string {
 	if prov == "" {
 		prov = "unknown"
 	}
+
+	var s string
 	if m.Version != "" {
-		return fmt.Sprintf("%s@%s/%s", name, m.Version, prov)
+		s = fmt.Sprintf("%s@%s/%s", name, m.Version, prov)
+	} else {
+		s = fmt.Sprintf("%s/%s", name, prov)
 	}
-	return fmt.Sprintf("%s/%s", name, prov)
+
+	if m.Wrapper != "" {
+		s += fmt.Sprintf(" (via %s)", m.Wrapper)
+	}
+	return s
 }
 
 // Tag returns a bracket-wrapped model name for log lines, e.g. "[claude-4-sonnet]".

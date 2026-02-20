@@ -9,7 +9,7 @@ import (
 )
 
 // TestWetIdentityProbe_CheckRegistry validates that a live probe result
-// matches the KnownModels registry.
+// reports a foundation model (not a wrapper) and matches KnownModels.
 //
 // Run with: go test -tags wet -run TestWetIdentityProbe ./internal/framework/...
 //
@@ -33,12 +33,25 @@ func TestWetIdentityProbe_CheckRegistry(t *testing.T) {
 		t.Fatalf("failed to parse probe result: %v\nraw: %s", err, raw)
 	}
 
-	t.Logf("Probed identity: model_name=%q provider=%q version=%q", mi.ModelName, mi.Provider, mi.Version)
+	t.Logf("Probed identity: model_name=%q provider=%q version=%q wrapper=%q",
+		mi.ModelName, mi.Provider, mi.Version, mi.Wrapper)
 	t.Logf("String: %s", mi.String())
 	t.Logf("Tag:    %s", mi.Tag())
 
+	if IsWrapperName(mi.ModelName) {
+		t.Fatalf("WRAPPER DETECTED as model_name: %q\n\n"+
+			"The probe returned a wrapper identity, not the foundation model.\n"+
+			"The probe prompt needs further hardening, or the model can't self-identify.\n"+
+			"Wrapper: %q, Raw: %s",
+			mi.ModelName, mi.ModelName, mi.Raw)
+	}
+
+	if mi.Wrapper == "" {
+		t.Log("WARNING: wrapper field is empty — model may not know it's wrapped")
+	}
+
 	if !IsKnownModel(mi) {
-		t.Fatalf("UNKNOWN MODEL detected: %s\n\n"+
+		t.Fatalf("UNKNOWN FOUNDATION MODEL detected: %s\n\n"+
 			"Add this entry to known_models.go:\n\n"+
 			"\t%q: {ModelName: %q, Provider: %q, Version: %q},\n",
 			mi.String(), mi.ModelName, mi.ModelName, mi.Provider, mi.Version)
@@ -53,7 +66,7 @@ func TestWetIdentityProbe_CheckRegistry(t *testing.T) {
 		t.Logf("version drift: registry has %q, probe returned %q", known.Version, mi.Version)
 	}
 
-	t.Logf("Model %s is registered and verified", mi.String())
+	t.Logf("Foundation model %s is registered and verified", mi.String())
 }
 
 // TestWetIdentityProbe_RegistryNotEmpty ensures someone has populated the

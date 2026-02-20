@@ -23,17 +23,20 @@ func TestModelIdentity_Tag_Determinism(t *testing.T) {
 }
 
 func TestModelIdentity_String_Conciseness(t *testing.T) {
-	cases := []ModelIdentity{
-		{ModelName: "claude-4-sonnet", Provider: "Anthropic"},
-		{ModelName: "claude-4-sonnet", Provider: "Anthropic", Version: "20250514"},
-		{ModelName: "gpt-4o", Provider: "OpenAI", Version: "2024-08-06"},
-		{ModelName: "stub", Provider: "asterisk"},
-		{ModelName: "basic-heuristic", Provider: "asterisk"},
+	cases := []struct {
+		mi     ModelIdentity
+		maxLen int
+	}{
+		{ModelIdentity{ModelName: "claude-4-sonnet", Provider: "Anthropic"}, 40},
+		{ModelIdentity{ModelName: "claude-4-sonnet", Provider: "Anthropic", Version: "20250514"}, 50},
+		{ModelIdentity{ModelName: "gpt-4o", Provider: "OpenAI", Version: "2024-08-06"}, 40},
+		{ModelIdentity{ModelName: "stub", Provider: "asterisk"}, 30},
+		{ModelIdentity{ModelName: "claude-sonnet-4", Provider: "Anthropic", Wrapper: "Cursor"}, 60},
 	}
-	for _, mi := range cases {
-		s := mi.String()
-		if len(s) > 40 {
-			t.Errorf("String() too long (%d chars): %q", len(s), s)
+	for _, tc := range cases {
+		s := tc.mi.String()
+		if len(s) > tc.maxLen {
+			t.Errorf("String() too long (%d chars, max %d): %q", len(s), tc.maxLen, s)
 		}
 		if len(s) == 0 {
 			t.Error("String() is empty")
@@ -103,6 +106,45 @@ func TestModelIdentity_String_EmptyVersionOmitted(t *testing.T) {
 	want := "gpt-4o/OpenAI"
 	if got := mi.String(); got != want {
 		t.Errorf("String() = %q, want %q (version should be omitted)", got, want)
+	}
+}
+
+func TestModelIdentity_String_WithWrapper(t *testing.T) {
+	mi := ModelIdentity{ModelName: "claude-sonnet-4", Provider: "Anthropic", Version: "20250514", Wrapper: "Cursor"}
+	want := "claude-sonnet-4@20250514/Anthropic (via Cursor)"
+	if got := mi.String(); got != want {
+		t.Errorf("String() = %q, want %q", got, want)
+	}
+}
+
+func TestModelIdentity_String_WrapperNoVersion(t *testing.T) {
+	mi := ModelIdentity{ModelName: "claude-sonnet-4", Provider: "Anthropic", Wrapper: "Cursor"}
+	want := "claude-sonnet-4/Anthropic (via Cursor)"
+	if got := mi.String(); got != want {
+		t.Errorf("String() = %q, want %q", got, want)
+	}
+}
+
+func TestModelIdentity_String_EmptyWrapperOmitted(t *testing.T) {
+	mi := ModelIdentity{ModelName: "gpt-4o", Provider: "OpenAI"}
+	got := mi.String()
+	if got != "gpt-4o/OpenAI" {
+		t.Errorf("String() = %q, want no wrapper suffix", got)
+	}
+}
+
+func TestIsWrapperName(t *testing.T) {
+	wrappers := []string{"composer", "Composer", "COMPOSER", "copilot", "Cursor", "azure"}
+	for _, w := range wrappers {
+		if !IsWrapperName(w) {
+			t.Errorf("IsWrapperName(%q) = false, want true", w)
+		}
+	}
+	foundations := []string{"claude-sonnet-4", "gpt-4o", "gemini-pro", "stub"}
+	for _, f := range foundations {
+		if IsWrapperName(f) {
+			t.Errorf("IsWrapperName(%q) = true, want false", f)
+		}
 	}
 }
 
