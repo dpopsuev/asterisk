@@ -274,16 +274,17 @@ Every contract has:
 1. **Status** — `draft` | `active` | `complete` | `abandoned`
 2. **Goal** — One sentence. Binary — true or false.
 3. **Serves** — Goal name from `current-goal.mdc` (e.g. "PoC completion").
-3. **Contract Rules** — Additions to global rules for this specific work. "Global rules only" if none.
 4. **Contract Rules** — Additions to global rules for this specific work. "Global rules only" if none.
-5. **Context** — Links to notes, docs, design decisions.
-6. **Execution Strategy** — Approach and ordering.
-7. **Tasks** — Ordered checklist. Must always end with:
+5. **Context** — Links to notes, docs, design decisions. Optionally includes Current Architecture / Desired Architecture mermaid diagrams.
+6. **FSC Artifacts** — What reusable knowledge this contract will produce and where it routes (`docs/`, `notes/`, `rules/`, `glossary/`, `sensitive/`). "Code only — no FSC artifacts" if none.
+7. **Execution Strategy** — Approach and ordering.
+8. **Tasks** — Ordered checklist. Must always end with:
    - `[ ] Validate (green)` — all tests pass, acceptance criteria met.
    - `[ ] Tune (blue)` — refactor for quality. No behavior changes.
    - `[ ] Validate (green)` — all tests still pass after tuning.
-8. **Acceptance Criteria** — Given/When/Then or structural invariants.
-9. **Notes** — Running log (newest first). **Always include hour:minute** — format `YYYY-MM-DD HH:MM`. Decisions, bugs found, course corrections.
+9. **Acceptance Criteria** — Given/When/Then or structural invariants.
+10. **Security Assessment** — OWASP spot-check for trust boundaries touched by this contract. "No trust boundaries affected" if none.
+11. **Notes** — Running log (newest first). **Always include hour:minute** — format `YYYY-MM-DD HH:MM`. Decisions, bugs found, course corrections. On completion: extract reusable knowledge to FSC targets declared in field 6.
 
 ### Note timestamp convention
 
