@@ -1,6 +1,6 @@
 # Contract — Agentic Framework I.1: Ontology
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Define `Node`, `Edge`, `Walker`, `Graph` as generic Go interfaces in `internal/framework/`, making the implicit relationships between existing `orchestrate` types (`HeuristicRule`, `PipelineStep`, `CaseState`) and graph concepts explicit. Absorb scope of `agentmux-decoupling.md`.  
 **Serves:** Architecture evolution (Framework foundation)
 
@@ -163,18 +163,18 @@ internal/
 
 ## Tasks
 
-- [ ] Create `internal/framework/node.go` — `Node`, `Artifact`, `NodeContext` interfaces
-- [ ] Create `internal/framework/edge.go` — `Edge`, `Transition` types
-- [ ] Create `internal/framework/walker.go` — `Walker`, `WalkerState`, `StepRecord`
-- [ ] Create `internal/framework/graph.go` — `Graph`, `Zone` interfaces + `DefaultGraph` implementation
-- [ ] Create `internal/framework/identity.go` — `AgentIdentity` placeholder
-- [ ] Create `internal/framework/element.go` — `Element` placeholder type
-- [ ] Create `internal/framework/errors.go` — `ErrNoEdge`, `ErrNodeNotFound`, `ErrMaxLoops`
-- [ ] Write `internal/framework/graph_test.go` — build 3-node graph, walk it, verify edge evaluation and transitions
-- [ ] Write `internal/framework/walker_test.go` — walker state transitions, history accumulation, loop counting
-- [ ] Validate (green) — `go build ./...`, all tests pass, existing pipeline unchanged
-- [ ] Tune (blue) — review interfaces for minimality, ensure zero domain imports
-- [ ] Validate (green) — all tests still pass after tuning
+- [x] Create `internal/framework/node.go` — `Node`, `Artifact`, `NodeContext` interfaces
+- [x] Create `internal/framework/edge.go` — `Edge`, `Transition` types
+- [x] Create `internal/framework/walker.go` — `Walker`, `WalkerState`, `StepRecord`
+- [x] Create `internal/framework/graph.go` — `Graph`, `Zone` interfaces + `DefaultGraph` implementation
+- [x] Create `internal/framework/identity.go` — `AgentIdentity` placeholder
+- [x] Create `internal/framework/element.go` — `Element` placeholder type
+- [x] Create `internal/framework/errors.go` — `ErrNoEdge`, `ErrNodeNotFound`, `ErrMaxLoops`
+- [x] Write `internal/framework/graph_test.go` — build 3-node graph, walk it, verify edge evaluation and transitions
+- [x] Write `internal/framework/walker_test.go` — walker state transitions, history accumulation, loop counting
+- [x] Validate (green) — `go build ./...`, all tests pass, existing pipeline unchanged
+- [x] Tune (blue) — review interfaces for minimality, ensure zero domain imports
+- [x] Validate (green) — all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -198,6 +198,7 @@ internal/
 
 ## Notes
 
+- 2026-02-21 15:00 — Contract complete. All interfaces and types implemented in `internal/framework/`. 10 graph tests, 4 walker tests passing. Zero domain imports confirmed via `go list -deps`. Moved to `completed/framework/`.
 - 2026-02-20 21:30 — FSC diffusion: `ModelIdentity`, `KnownModels`, `KnownWrappers`, and `Identifiable` are already implemented in `internal/framework/` and `internal/calibrate/adapter.go`. This contract's `AgentIdentity` placeholder will be expanded by III.1-personae to include a `ModelIdentity` field so every persona knows which foundation model powers it.
 - 2026-02-20 — Contract created. Absorbs `agentmux-decoupling.md` scope. The generic `Agent` interface becomes `Walker`; `Task` becomes `NodeContext`; `Result` becomes `Artifact`. Package target changed from `internal/agentmux/` to `internal/framework/` to reflect broader scope.
 - The existing 17 heuristic rules in `orchestrate/heuristics.go` are a concrete implementation of the `Edge` interface. Migration will wrap each `HeuristicRule` as an `Edge` adapter.

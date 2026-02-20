@@ -1,6 +1,6 @@
 # Contract — Agentic Framework II.1: Elements
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Define the six elements (Fire, Lightning, Earth, Diamond, Water, Air) as Go types with quantified behavioral traits that govern how agents move through a pipeline graph. Add Iron as an evolved form of Earth.  
 **Serves:** Architecture evolution (Framework physics)
 
@@ -96,16 +96,16 @@ func IronFromEarth(accuracy float64) ElementTraits
 
 ## Tasks
 
-- [ ] Define `Element` constants: fire, lightning, earth, diamond, water, air, iron
-- [ ] Define `SpeedClass` type and constants
-- [ ] Define `ElementTraits` struct with all six numeric fields
-- [ ] Implement `DefaultTraits(Element) ElementTraits` — lookup table for canonical traits
-- [ ] Implement `AllElements() []Element` — returns the six core elements
-- [ ] Implement `IronFromEarth(accuracy float64) ElementTraits` — derive Iron from Earth + calibration data
-- [ ] Write `internal/framework/element_test.go` — verify all default traits, Iron derivation, boundary conditions
-- [ ] Validate (green) — `go build ./...`, all tests pass
-- [ ] Tune (blue) — review trait values against calibration experience
-- [ ] Validate (green) — all tests still pass after tuning
+- [x] Define `Element` constants: fire, lightning, earth, diamond, water, air, iron
+- [x] Define `SpeedClass` type and constants
+- [x] Define `ElementTraits` struct with all six numeric fields
+- [x] Implement `DefaultTraits(Element) ElementTraits` — lookup table for canonical traits
+- [x] Implement `AllElements() []Element` — returns the six core elements
+- [x] Implement `IronFromEarth(accuracy float64) ElementTraits` — derive Iron from Earth + calibration data
+- [x] Write `internal/framework/element_test.go` — verify all default traits, Iron derivation, boundary conditions
+- [x] Validate (green) — `go build ./...`, all tests pass
+- [x] Tune (blue) — review trait values against calibration experience
+- [x] Validate (green) — all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -123,6 +123,7 @@ func IronFromEarth(accuracy float64) ElementTraits
 
 ## Notes
 
+- 2026-02-21 15:00 — Contract complete. All element types, traits, and IronFromEarth implemented. 8 element tests passing. Moved to `completed/framework/`.
 - 2026-02-20 — Contract created. The trait values are initial calibrations based on Phase 5a observations. Fire/Lightning map to the fast-classification pattern (F0+F1). Water maps to deep investigation (F3). Diamond maps to precise review (F5). Air maps to holistic synthesis (F4+F6). Earth maps to steady resolution (F2).
 - Iron's derivation formula: `MaxLoops = max(0, Earth.MaxLoops - floor(accuracy * 2))`, `ConvergenceThreshold = Earth.ConvergenceThreshold + (1 - accuracy) * 0.1`. Subject to tuning.
 - Depends on I.1-ontology for the `Element` type definition location.

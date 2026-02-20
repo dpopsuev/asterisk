@@ -55,9 +55,9 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | **next-milestone** | `mcp-pipeline-tools` | draft | MCP chain step 2. F0-F6 pipeline tools. |
 | **next-milestone** | `mcp-calibration-mode` | draft | MCP chain step 3. Calibration-specific MCP tools. |
 | **vision** | `workspace-revisited` | draft | Long-term workspace vision: layered composition, dependency graph, summarization. Trimmed to Phases 3-4. |
-| **vision — Framework Tome I** | `agentic-framework-I.1-ontology` | draft | Node/Edge/Walker/Graph interfaces in `internal/framework/`. Absorbs `agentmux-decoupling`. |
+| ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.1-ontology`~~ | **complete** | Node/Edge/Walker/Graph interfaces in `internal/framework/`. Moved to `completed/framework/`. |
 | **vision — Framework Tome I** | `agentic-framework-I.2-characteristica` | draft | Pipeline DSL (YAML/Go). Express F0-F6 and D0-D4 as declarative graphs. |
-| **vision — Framework Tome II** | `agentic-framework-II.1-elements` | draft | 6 elements (Fire, Lightning, Earth, Diamond, Water, Air) with quantified behavioral traits. |
+| ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.1-elements`~~ | **complete** | 6 elements with quantified behavioral traits. Moved to `completed/framework/`. |
 | **vision — Framework Tome II** | `agentic-framework-II.2-cycles` | draft | Generative/destructive interaction cycles. Scheduler routing rules. |
 | **vision — Framework Tome III** | `agentic-framework-III.1-personae` | draft | AgentIdentity (Color x Element x Position x Alignment). 4 Light + 4 Shadow personas. Absorbs `agent-adapter-overloading` Phase 1. |
 | **vision — Framework Tome III** | `agentic-framework-III.2-masks` | draft | Detachable capability modifiers (middleware). Bionicle Kanohi / Jungian Persona. |
