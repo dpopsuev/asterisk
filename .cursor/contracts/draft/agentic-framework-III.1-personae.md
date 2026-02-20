@@ -18,22 +18,23 @@
 - `contracts/draft/agent-adapter-overloading.md` -- defines AdapterTraits, Position, MetaPhase, color palette, stickiness gradient. All absorbed here.
 - `contracts/draft/agentic-framework-I.1-ontology.md` -- defines AgentIdentity placeholder.
 - `contracts/draft/agentic-framework-II.1-elements.md` -- defines Element type with behavioral traits.
-- `internal/calibrate/adapter.go` -- current ModelAdapter interface.
+- `internal/calibrate/adapter.go` -- current ModelAdapter interface + `Identifiable` interface for runtime model probing.
+- `internal/framework/identity.go` -- `ModelIdentity` (already implemented). Records foundation LLM name, provider, version, and wrapper. Every persona is powered by a model; `ModelIdentity` is the "ghost" behind the persona "shell".
+- `internal/framework/known_models.go` -- `KnownModels` registry, `KnownWrappers` set. Foundation models are registered; wrappers (Cursor, Copilot) are rejected as model names.
 - `rules/domain/agent-bus.mdc` -- court positions (PG, SG, PF, C) and zone definitions.
 - Plan reference: agentic_framework_contracts_2daf3e14.plan.md -- Tome III: Personae.
 
-## Three-axis agent identity
+## Agent identity axes
 
 ```
 Axis 1: COLOR (WHO) -- personality, from warm/aggressive to cool/analytical
 Axis 2: ELEMENT (HOW) -- behavioral physics, from fast/greedy to deep/adaptive
 Axis 3: ALIGNMENT (WHY) -- motivation, from Light (cooperative) to Shadow (adversarial)
+Axis 4: POSITION (WHERE) -- court position, from Backcourt (intake) to Frontcourt (investigation) to Paint (close-out)
+Axis 5: MODEL (WHAT) -- foundation LLM powering the agent (ModelIdentity, already implemented)
 ```
 
-Plus a fourth structural axis:
-```
-Axis 4: POSITION (WHERE) -- court position, from Backcourt (intake) to Frontcourt (investigation) to Paint (close-out)
-```
+Axes 1-4 are persona traits (defined by this contract). Axis 5 is infrastructure (already implemented as `ModelIdentity` in `identity.go`). A persona is a mask; the model is the ghost wearing it. The same persona can be backed by different models, and the same model can wear different personas.
 
 ## Light Personas (Cadai)
 
@@ -96,7 +97,10 @@ const (
 )
 
 // AgentIdentity is the complete identity of an agent in the Framework.
+// Axes 1-4 (persona) are set at configuration time.
+// Axis 5 (Model) is discovered at runtime via the Identifiable interface.
 type AgentIdentity struct {
+    // Persona axes (1-4)
     PersonaName     string    `json:"persona_name"`
     Color           Color     `json:"color"`
     Element         Element   `json:"element"`
@@ -104,6 +108,11 @@ type AgentIdentity struct {
     Alignment       Alignment `json:"alignment"`
     HomeZone        MetaPhase `json:"home_zone"`
     StickinessLevel int       `json:"stickiness_level"`
+
+    // Model axis (5) -- which foundation LLM powers this agent.
+    // Populated at session start via Identifiable.Identify().
+    // Zero value means model is unknown (e.g. stub adapter).
+    Model           ModelIdentity `json:"model"`
 
     StepAffinity    map[string]float64 `json:"step_affinity"`
     PersonalityTags []string           `json:"personality_tags"`
@@ -168,11 +177,12 @@ func HomeZoneFor(p Position) MetaPhase
 
 ## Execution strategy
 
-1. Replace the AgentIdentity placeholder in `internal/framework/identity.go` with the full struct.
+1. Replace the AgentIdentity placeholder in `internal/framework/identity.go` with the full struct. Preserve the existing `ModelIdentity` type and add a `Model ModelIdentity` field to `AgentIdentity`.
 2. Define Color, Alignment, Position, MetaPhase, CostProfile types.
 3. Define the 8 personas (4 Light + 4 Shadow) as a curated registry.
 4. Implement lookup functions (PersonaByName, HomeZoneFor, LightPersonas, ShadowPersonas).
 5. Wire persona identity into log output: `[crimson/herald] F1 triage: product_bug (0.92)`.
+6. At session start, if the adapter implements `Identifiable`, call `Identify()` and populate `AgentIdentity.Model` for all personas backed by that adapter.
 
 ## Tasks
 
@@ -212,6 +222,7 @@ func HomeZoneFor(p Position) MetaPhase
 
 ## Notes
 
+- 2026-02-20 21:30 -- Agent identification diffusion: added Axis 5 (Model) to AgentIdentity. `ModelIdentity`, `KnownModels`, `KnownWrappers`, and `Identifiable` are already implemented. Live probes confirmed `claude-sonnet-4-20250514/Anthropic (via Cursor)`. This contract must preserve the existing `ModelIdentity` type when replacing the `AgentIdentity` placeholder, and add a `Model` field so every persona carries its ghost identity.
 - 2026-02-20 -- Contract created. Absorbs agent-adapter-overloading.md Phase 1 scope. The AdapterTraits struct from that contract is replaced by AgentIdentity here, which adds Element and Alignment axes on top of the existing Color and Position axes.
 - Shadow personas are not implemented in the pipeline until III.3-shadow is complete. This contract defines their identity; III.3 activates them.
 - Depends on I.1-ontology for AgentIdentity placeholder location, II.1-elements for Element type.

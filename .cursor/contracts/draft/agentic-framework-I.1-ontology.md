@@ -18,6 +18,9 @@
 - `internal/orchestrate/heuristics.go` — 17 heuristic rules that ARE edges in the F0-F6 graph.
 - `internal/orchestrate/runner.go` — the pipeline engine that IS a graph walker.
 - `contracts/draft/agentmux-decoupling.md` — defines generic `Agent`, `Task`, `Result`, `AgentPool`, `Scheduler`, `ResultCollector`. These concepts fold into the Framework ontology.
+- `internal/framework/identity.go` — `ModelIdentity` (already implemented). Records which foundation LLM ("ghost") is behind an adapter ("shell"). Includes `Wrapper` field for hosting environments (Cursor, Azure). `AgentIdentity` (placeholder) and `ModelIdentity` are siblings: identity = who the persona is + which model powers it.
+- `internal/framework/known_models.go` — `KnownModels` registry, `KnownWrappers` set, `IsWrapperName()` validation. Foundation models are registered here; wrappers are rejected.
+- `internal/calibrate/adapter.go` — `Identifiable` interface: `Identify() (ModelIdentity, error)`. Adapters implement this to self-report their foundation model at session start.
 - Plan reference: `agentic_framework_contracts_2daf3e14.plan.md` — Tome I: Prima Materia.
 - Inspiration: Neural networks (nodes/edges/weights), Kabbalah Tree of Life (hierarchical emanation), Hermeticism ("as above, so below" — graph topology mirrors problem structure at every scale).
 
@@ -126,6 +129,8 @@ type NodeContext struct {
 }
 
 // AgentIdentity is a placeholder here; fully defined in III.1-personae.
+// See also ModelIdentity (already implemented in identity.go) which
+// records the foundation LLM behind the agent.
 type AgentIdentity struct {
     Name string
 }
@@ -143,7 +148,8 @@ internal/
     edge.go                      # Edge, Transition interfaces
     walker.go                    # Walker, WalkerState, StepRecord
     graph.go                     # Graph, Zone interfaces + default impl
-    identity.go                  # AgentIdentity placeholder (extended by III.1)
+    identity.go                  # AgentIdentity placeholder (III.1) + ModelIdentity (IMPLEMENTED)
+    known_models.go              # KnownModels registry, KnownWrappers, IsWrapperName (IMPLEMENTED)
     element.go                   # Element placeholder (extended by II.1)
     errors.go                    # Framework-specific error types
 ```
@@ -192,5 +198,6 @@ internal/
 
 ## Notes
 
+- 2026-02-20 21:30 — FSC diffusion: `ModelIdentity`, `KnownModels`, `KnownWrappers`, and `Identifiable` are already implemented in `internal/framework/` and `internal/calibrate/adapter.go`. This contract's `AgentIdentity` placeholder will be expanded by III.1-personae to include a `ModelIdentity` field so every persona knows which foundation model powers it.
 - 2026-02-20 — Contract created. Absorbs `agentmux-decoupling.md` scope. The generic `Agent` interface becomes `Walker`; `Task` becomes `NodeContext`; `Result` becomes `Artifact`. Package target changed from `internal/agentmux/` to `internal/framework/` to reflect broader scope.
 - The existing 17 heuristic rules in `orchestrate/heuristics.go` are a concrete implementation of the `Edge` interface. Migration will wrap each `HeuristicRule` as an `Edge` adapter.
