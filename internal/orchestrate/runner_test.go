@@ -341,6 +341,7 @@ func TestRunnerInvestigateLoop(t *testing.T) {
 
 	WriteArtifact(caseDir, ArtifactFilename(StepF3Invest), &InvestigateArtifact{
 		ConvergenceScore: 0.4, RCAMessage: "uncertain", DefectType: "ti001",
+		EvidenceRefs: []string{"partial-evidence"},
 	})
 
 	result, err := RunStep(st, caseData, nil, nil, cfg)

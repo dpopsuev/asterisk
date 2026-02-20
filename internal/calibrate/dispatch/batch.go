@@ -6,6 +6,8 @@ import (
 	"os"
 	"path/filepath"
 	"sync"
+
+	"asterisk/internal/logging"
 )
 
 // BatchFileDispatcher writes N signals concurrently, generates a batch
@@ -36,7 +38,7 @@ func NewBatchFileDispatcher(cfg BatchFileDispatcherConfig) *BatchFileDispatcher 
 	}
 	l := cfg.Logger
 	if l == nil {
-		l = discardLogger()
+		l = logging.New("batch-dispatch")
 	}
 	return &BatchFileDispatcher{
 		cfg:         cfg.FileConfig,

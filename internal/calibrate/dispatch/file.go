@@ -7,6 +7,8 @@ import (
 	"os"
 	"path/filepath"
 	"time"
+
+	"asterisk/internal/logging"
 )
 
 // FileDispatcherConfig configures the FileDispatcher behavior.
@@ -69,7 +71,7 @@ func NewFileDispatcher(cfg FileDispatcherConfig) *FileDispatcher {
 	}
 	l := cfg.Logger
 	if l == nil {
-		l = discardLogger()
+		l = logging.New("file-dispatch")
 	}
 	return &FileDispatcher{cfg: cfg, log: l}
 }
@@ -111,8 +113,8 @@ func (d *FileDispatcher) Dispatch(ctx DispatchContext) ([]byte, error) {
 	}
 	dl.Debug("signal written", "status", "waiting")
 
-	fmt.Printf("[file-dispatch] signal.json written: case=%s step=%s dispatch_id=%d\n", ctx.CaseID, ctx.Step, did)
-	fmt.Printf("[file-dispatch] waiting for artifact at %s (timeout %s)\n", ctx.ArtifactPath, d.cfg.Timeout)
+	dl.Info("signal.json written, waiting for artifact",
+		"artifact_path", ctx.ArtifactPath, "timeout", d.cfg.Timeout)
 
 	// Poll for artifact file with matching dispatch_id
 	deadline := time.Now().Add(d.cfg.Timeout)
@@ -202,7 +204,7 @@ func (d *FileDispatcher) Dispatch(ctx DispatchContext) ([]byte, error) {
 		sig.Error = ""
 		_ = WriteSignal(signalPath, &sig)
 
-		fmt.Printf("[file-dispatch] artifact found (%d bytes, dispatch_id=%d)\n", len(wrapper.Data), did)
+		dl.Info("artifact validated and accepted", "bytes", len(wrapper.Data))
 		return wrapper.Data, nil
 	}
 }

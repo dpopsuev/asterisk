@@ -32,6 +32,14 @@ func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*preinv
 		FailureList: make([]preinvest.FailureItem, 0, len(items)),
 	}
 
+	for _, attr := range launch.Attributes {
+		env.LaunchAttributes = append(env.LaunchAttributes, preinvest.Attribute{
+			Key:    attr.Key,
+			Value:  attr.Value,
+			System: attr.System,
+		})
+	}
+
 	for _, it := range items {
 		path := it.Path
 		if path == "" {
@@ -55,6 +63,12 @@ func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*preinv
 			fi.IssueType = it.Issue.IssueType
 			fi.IssueComment = it.Issue.Comment
 			fi.AutoAnalyzed = it.Issue.AutoAnalyzed
+			for _, ext := range it.Issue.ExternalSystemIssues {
+				fi.ExternalIssues = append(fi.ExternalIssues, preinvest.ExternalIssue{
+					TicketID: ext.TicketID,
+					URL:      ext.URL,
+				})
+			}
 		}
 
 		env.FailureList = append(env.FailureList, fi)

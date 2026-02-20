@@ -7,6 +7,16 @@ type Envelope struct {
 	LaunchUUID  string `json:"launch_uuid"`
 	Name        string `json:"name"`
 	FailureList []FailureItem `json:"failure_list"`
+
+	// LaunchAttributes from RP launch (key-value pairs like OCP version, cluster name).
+	LaunchAttributes []Attribute `json:"launch_attributes,omitempty"`
+}
+
+// Attribute is a key-value pair from RP launch or test item attributes.
+type Attribute struct {
+	Key    string `json:"key"`
+	Value  string `json:"value"`
+	System bool   `json:"system,omitempty"`
 }
 
 // FailureItem is one failed step (leaf) in the envelope.
@@ -25,4 +35,13 @@ type FailureItem struct {
 	IssueType      string `json:"issue_type,omitempty"`
 	IssueComment   string `json:"issue_comment,omitempty"`
 	AutoAnalyzed   bool   `json:"auto_analyzed,omitempty"`
+
+	// ExternalIssues are Jira/BTS ticket links from RP test item issues.
+	ExternalIssues []ExternalIssue `json:"external_issues,omitempty"`
+}
+
+// ExternalIssue links a test failure to an external bug tracker ticket.
+type ExternalIssue struct {
+	TicketID string `json:"ticket_id"`
+	URL      string `json:"url,omitempty"`
 }

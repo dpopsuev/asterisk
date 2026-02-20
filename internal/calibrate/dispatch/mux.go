@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"log/slog"
 	"sync"
+
+	"asterisk/internal/logging"
 )
 
 var (
@@ -35,7 +37,7 @@ type MuxDispatcher struct {
 func NewMuxDispatcher(ctx context.Context) *MuxDispatcher {
 	return &MuxDispatcher{
 		ctx:      ctx,
-		log:      slog.Default(),
+		log:      logging.New("mux-dispatch"),
 		pending:  make(map[int64]chan []byte),
 		closed:   make(map[int64]struct{}),
 		promptCh: make(chan DispatchContext),
@@ -186,6 +188,13 @@ func (d *MuxDispatcher) Abort(err error) {
 		close(ch)
 		delete(d.pending, id)
 	}
+}
+
+// ActiveDispatches returns the number of steps dispatched but not yet submitted.
+func (d *MuxDispatcher) ActiveDispatches() int {
+	d.mu.Lock()
+	defer d.mu.Unlock()
+	return len(d.pending)
 }
 
 // PromptCh returns the read-only prompt channel (for session integration).

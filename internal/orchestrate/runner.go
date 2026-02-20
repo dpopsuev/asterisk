@@ -2,8 +2,8 @@ package orchestrate
 
 import (
 	"fmt"
-	"log"
 
+	"asterisk/internal/logging"
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
 	"asterisk/internal/workspace"
@@ -108,8 +108,8 @@ func RunStep(
 		rules := DefaultHeuristics(cfg.Thresholds)
 		action, ruleID := EvaluateHeuristics(rules, state.CurrentStep, artifact, state)
 
-		log.Printf("[orchestrate] step=%s rule=%s next=%s: %s",
-			state.CurrentStep, ruleID, action.NextStep, action.Explanation)
+		logging.New("orchestrate").Info("heuristic evaluated",
+			"step", string(state.CurrentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
 
 		// Handle investigate loop increment
 		if state.CurrentStep == StepF3Invest && action.NextStep == StepF2Resolve {
@@ -122,7 +122,7 @@ func RunStep(
 
 		// Apply store side effects for the completed step
 		if err := ApplyStoreEffects(st, caseData, state.CurrentStep, artifact); err != nil {
-			log.Printf("[orchestrate] store side-effect error at %s: %v", state.CurrentStep, err)
+			logging.New("orchestrate").Warn("store side-effect error", "step", string(state.CurrentStep), "error", err)
 		}
 
 		AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
@@ -193,8 +193,8 @@ func SaveArtifactAndAdvance(
 	rules := DefaultHeuristics(cfg.Thresholds)
 	action, ruleID := EvaluateHeuristics(rules, state.CurrentStep, artifact, state)
 
-	log.Printf("[orchestrate] save: step=%s rule=%s next=%s: %s",
-		state.CurrentStep, ruleID, action.NextStep, action.Explanation)
+	logging.New("orchestrate").Info("save: heuristic evaluated",
+		"step", string(state.CurrentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
 
 	if state.CurrentStep == StepF3Invest && action.NextStep == StepF2Resolve {
 		IncrementLoop(state, "investigate")
@@ -204,7 +204,7 @@ func SaveArtifactAndAdvance(
 	}
 
 	if err := ApplyStoreEffects(st, caseData, state.CurrentStep, artifact); err != nil {
-		log.Printf("[orchestrate] store side-effect error at %s: %v", state.CurrentStep, err)
+		logging.New("orchestrate").Warn("store side-effect error", "step", string(state.CurrentStep), "error", err)
 	}
 
 	AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
@@ -332,14 +332,14 @@ func applyTriageEffects(st store.Store, caseData *store.Case, artifact any) erro
 		DataQualityNotes:     r.DataQualityNotes,
 	}
 	if _, err := st.CreateTriage(triage); err != nil {
-		log.Printf("[orchestrate] create triage: %v", err)
+		logging.New("orchestrate").Warn("create triage failed", "error", err)
 	}
 
 	// Upsert symptom (fingerprint from test name + error + category)
 	fingerprint := ComputeFingerprint(caseData.Name, caseData.ErrorMessage, r.SymptomCategory)
 	sym, err := st.GetSymptomByFingerprint(fingerprint)
 	if err != nil {
-		log.Printf("[orchestrate] get symptom by fingerprint: %v", err)
+		logging.New("orchestrate").Warn("get symptom by fingerprint failed", "error", err)
 	}
 	if sym == nil {
 		newSym := &store.Symptom{
@@ -363,7 +363,7 @@ func applyTriageEffects(st store.Store, caseData *store.Case, artifact any) erro
 	// Link case to symptom and update status
 	if caseData.SymptomID != 0 {
 		if err := st.LinkCaseToSymptom(caseData.ID, caseData.SymptomID); err != nil {
-			log.Printf("[orchestrate] link case to symptom: %v", err)
+			logging.New("orchestrate").Warn("link case to symptom failed", "error", err)
 		}
 	}
 	if err := st.UpdateCaseStatus(caseData.ID, "triaged"); err != nil {
@@ -418,7 +418,7 @@ func applyInvestigateEffects(st store.Store, caseData *store.Case, artifact any)
 			Notes:      "linked from F3 investigation",
 		}
 		if _, err := st.LinkSymptomToRCA(link); err != nil {
-			log.Printf("[orchestrate] link symptom to rca: %v", err)
+			logging.New("orchestrate").Warn("link symptom to RCA failed", "error", err)
 		}
 	}
 	return nil
@@ -443,7 +443,7 @@ func applyCorrelateEffects(st store.Store, caseData *store.Case, artifact any) e
 			Notes:      "linked from F4 correlation",
 		}
 		if _, err := st.LinkSymptomToRCA(link); err != nil {
-			log.Printf("[orchestrate] link symptom to rca (correlate): %v", err)
+			logging.New("orchestrate").Warn("link symptom to RCA failed (correlate)", "error", err)
 		}
 	}
 	return nil
@@ -469,7 +469,7 @@ func applyReviewEffects(st store.Store, caseData *store.Case, artifact any) erro
 				rca.Description = r.HumanOverride.RCAMessage
 				rca.DefectType = r.HumanOverride.DefectType
 				if _, err := st.SaveRCAV2(rca); err != nil {
-					log.Printf("[orchestrate] update rca after overturn: %v", err)
+					logging.New("orchestrate").Warn("update RCA after overturn failed", "error", err)
 				}
 			}
 		}

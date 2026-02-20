@@ -3,7 +3,9 @@ package orchestrate
 import (
 	"testing"
 
+	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
+	"asterisk/internal/workspace"
 )
 
 // TestBuildParams_RecallWithPriorSymptom verifies that when a prior symptom+RCA
@@ -227,5 +229,168 @@ func TestBuildParams_RecallDormantReactivation(t *testing.T) {
 	}
 	if !params.History.SymptomInfo.IsDormantReactivation {
 		t.Error("expected IsDormantReactivation=true for dormant symptom")
+	}
+}
+
+func TestBuildParams_WorkspaceLaunchAttributes(t *testing.T) {
+	st := store.NewMemStore()
+	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
+	env := &preinvest.Envelope{
+		RunID: "100",
+		Name:  "launch-100",
+		LaunchAttributes: []preinvest.Attribute{
+			{Key: "ocp_version", Value: "4.21"},
+			{Key: "operator_version", Value: "4.21.0-202402"},
+			{Key: "cluster", Value: "cnf-lab-01", System: true},
+		},
+	}
+
+	params := BuildParams(st, caseData, env, nil, StepF1Triage, "")
+
+	if params.Workspace == nil {
+		t.Fatal("expected Workspace to be populated")
+	}
+	if params.Workspace.AttrsStatus != Resolved {
+		t.Errorf("AttrsStatus = %q, want %q", params.Workspace.AttrsStatus, Resolved)
+	}
+	if len(params.Workspace.LaunchAttributes) != 3 {
+		t.Fatalf("LaunchAttributes len = %d, want 3", len(params.Workspace.LaunchAttributes))
+	}
+	if params.Workspace.LaunchAttributes[0].Key != "ocp_version" {
+		t.Errorf("first attr key = %q, want %q", params.Workspace.LaunchAttributes[0].Key, "ocp_version")
+	}
+	if params.Workspace.LaunchAttributes[0].Value != "4.21" {
+		t.Errorf("first attr value = %q, want %q", params.Workspace.LaunchAttributes[0].Value, "4.21")
+	}
+}
+
+func TestBuildParams_WorkspaceJiraLinks(t *testing.T) {
+	st := store.NewMemStore()
+	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
+	env := &preinvest.Envelope{
+		RunID: "100",
+		Name:  "launch-100",
+		FailureList: []preinvest.FailureItem{
+			{
+				ID: 1, Name: "test-1", Status: "FAILED",
+				ExternalIssues: []preinvest.ExternalIssue{
+					{TicketID: "OCPBUGS-70233", URL: "https://issues.redhat.com/browse/OCPBUGS-70233"},
+				},
+			},
+			{
+				ID: 2, Name: "test-2", Status: "FAILED",
+				ExternalIssues: []preinvest.ExternalIssue{
+					{TicketID: "OCPBUGS-70233", URL: "https://issues.redhat.com/browse/OCPBUGS-70233"},
+					{TicketID: "OCPBUGS-71000", URL: "https://issues.redhat.com/browse/OCPBUGS-71000"},
+				},
+			},
+		},
+	}
+
+	params := BuildParams(st, caseData, env, nil, StepF1Triage, "")
+
+	if params.Workspace == nil {
+		t.Fatal("expected Workspace to be populated")
+	}
+	if params.Workspace.JiraStatus != Resolved {
+		t.Errorf("JiraStatus = %q, want %q", params.Workspace.JiraStatus, Resolved)
+	}
+	if len(params.Workspace.JiraLinks) != 2 {
+		t.Fatalf("JiraLinks len = %d, want 2 (deduplicated)", len(params.Workspace.JiraLinks))
+	}
+}
+
+func TestBuildParams_WorkspaceReposPaths(t *testing.T) {
+	st := store.NewMemStore()
+	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
+	ws := &workspace.Workspace{
+		Repos: []workspace.Repo{
+			{Name: "ptp-operator", Path: "/home/user/repos/ptp-operator", Purpose: "SUT", Branch: "release-4.21"},
+			{Name: "cnf-gotests", Path: "/home/user/repos/cnf-gotests", Purpose: "Test framework"},
+		},
+	}
+
+	params := BuildParams(st, caseData, nil, ws, StepF2Resolve, "")
+
+	if params.Workspace == nil {
+		t.Fatal("expected Workspace to be populated")
+	}
+	if params.Workspace.ReposStatus != Resolved {
+		t.Errorf("ReposStatus = %q, want %q", params.Workspace.ReposStatus, Resolved)
+	}
+	if len(params.Workspace.Repos) != 2 {
+		t.Fatalf("Repos len = %d, want 2", len(params.Workspace.Repos))
+	}
+	if params.Workspace.Repos[0].Path != "/home/user/repos/ptp-operator" {
+		t.Errorf("repo path = %q, want /home/user/repos/ptp-operator", params.Workspace.Repos[0].Path)
+	}
+}
+
+func TestBuildParams_WorkspaceUnavailable(t *testing.T) {
+	st := store.NewMemStore()
+	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
+
+	params := BuildParams(st, caseData, nil, nil, StepF1Triage, "")
+
+	if params.Workspace == nil {
+		t.Fatal("expected Workspace to always be populated (with statuses)")
+	}
+	if params.Workspace.AttrsStatus != Unavailable {
+		t.Errorf("AttrsStatus = %q, want %q", params.Workspace.AttrsStatus, Unavailable)
+	}
+	if params.Workspace.JiraStatus != Unavailable {
+		t.Errorf("JiraStatus = %q, want %q", params.Workspace.JiraStatus, Unavailable)
+	}
+	if params.Workspace.ReposStatus != Unavailable {
+		t.Errorf("ReposStatus = %q, want %q", params.Workspace.ReposStatus, Unavailable)
+	}
+}
+
+func TestBuildParams_WorkspaceFullContext(t *testing.T) {
+	st := store.NewMemStore()
+	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
+	env := &preinvest.Envelope{
+		RunID: "100",
+		Name:  "launch-100",
+		LaunchAttributes: []preinvest.Attribute{
+			{Key: "ocp_version", Value: "4.21"},
+		},
+		FailureList: []preinvest.FailureItem{
+			{
+				ID: 1, Name: "test-1", Status: "FAILED",
+				ExternalIssues: []preinvest.ExternalIssue{
+					{TicketID: "OCPBUGS-70233", URL: "https://issues.redhat.com/browse/OCPBUGS-70233"},
+				},
+			},
+		},
+	}
+	ws := &workspace.Workspace{
+		Repos: []workspace.Repo{
+			{Name: "ptp-operator", Path: "/repos/ptp-operator", Purpose: "SUT"},
+		},
+	}
+
+	params := BuildParams(st, caseData, env, ws, StepF3Invest, "")
+
+	if params.Workspace == nil {
+		t.Fatal("expected Workspace")
+	}
+	if params.Workspace.AttrsStatus != Resolved {
+		t.Errorf("AttrsStatus = %q, want %q", params.Workspace.AttrsStatus, Resolved)
+	}
+	if params.Workspace.JiraStatus != Resolved {
+		t.Errorf("JiraStatus = %q, want %q", params.Workspace.JiraStatus, Resolved)
+	}
+	if params.Workspace.ReposStatus != Resolved {
+		t.Errorf("ReposStatus = %q, want %q", params.Workspace.ReposStatus, Resolved)
+	}
+	if len(params.Workspace.LaunchAttributes) != 1 {
+		t.Errorf("LaunchAttributes len = %d, want 1", len(params.Workspace.LaunchAttributes))
+	}
+	if len(params.Workspace.JiraLinks) != 1 {
+		t.Errorf("JiraLinks len = %d, want 1", len(params.Workspace.JiraLinks))
+	}
+	if len(params.Workspace.Repos) != 1 {
+		t.Errorf("Repos len = %d, want 1", len(params.Workspace.Repos))
 	}
 }

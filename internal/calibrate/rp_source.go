@@ -2,9 +2,9 @@ package calibrate
 
 import (
 	"fmt"
-	"log"
 	"strings"
 
+	"asterisk/internal/logging"
 	"asterisk/internal/preinvest"
 )
 
@@ -13,6 +13,7 @@ import (
 // Cases without RPLaunchID are left unchanged. Envelopes are cached by launch
 // ID so multiple cases sharing a launch only trigger one API call.
 func ResolveRPCases(fetcher preinvest.Fetcher, scenario *Scenario) error {
+	logger := logging.New("rp-source")
 	cache := make(map[int]*preinvest.Envelope)
 
 	for i := range scenario.Cases {
@@ -29,8 +30,8 @@ func ResolveRPCases(fetcher preinvest.Fetcher, scenario *Scenario) error {
 				return fmt.Errorf("fetch RP launch %d for case %s: %w", c.RPLaunchID, c.ID, err)
 			}
 			cache[c.RPLaunchID] = env
-			log.Printf("[rp-source] fetched launch %d (%s): %d failures",
-				c.RPLaunchID, env.Name, len(env.FailureList))
+			logger.Info("fetched RP launch",
+				"launch_id", c.RPLaunchID, "name", env.Name, "failures", len(env.FailureList))
 		}
 
 		item := matchFailureItem(env, c)
@@ -39,7 +40,7 @@ func ResolveRPCases(fetcher preinvest.Fetcher, scenario *Scenario) error {
 				c.ID, c.RPLaunchID, c.TestName, c.RPItemID)
 		}
 
-		log.Printf("[rp-source] case %s: matched RP item %d (%s)", c.ID, item.ID, item.Name)
+		logger.Info("matched RP item", "case_id", c.ID, "item_id", item.ID, "item_name", item.Name)
 
 		if item.Description != "" {
 			c.ErrorMessage = item.Description

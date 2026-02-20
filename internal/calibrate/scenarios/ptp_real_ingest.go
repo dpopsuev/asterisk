@@ -4,7 +4,12 @@
 // 30 RCAs, 30 symptoms, 18 verified cases + 12 candidates
 package scenarios
 
-import "asterisk/internal/calibrate"
+import (
+	"os"
+	"path/filepath"
+
+	"asterisk/internal/calibrate"
+)
 
 // PTPRealIngestScenario returns the real-world PTP calibration scenario
 // built from ingested CI results across multiple OCP versions.
@@ -1747,25 +1752,32 @@ func ptpRealIngestAllCases() []calibrate.GroundTruthCase {
 }
 
 func ptpRealIngestWorkspace() calibrate.WorkspaceConfig {
+	home, _ := os.UserHomeDir()
+	ws := func(rel string) string { return filepath.Join(home, "Workspace", rel) }
+
 	return calibrate.WorkspaceConfig{
 		Repos: []calibrate.RepoConfig{
 			{
 				Name:    "cnf-gotests",
+				Path:    ws("cnf-gotests"),
 				Purpose: "PTP test cases (Ginkgo): test code, assertions, test helpers",
 				Branch:  "master",
 			},
 			{
 				Name:    "ptp-operator",
+				Path:    ws("ptp-operator"),
 				Purpose: "SUT: PTP operator lifecycle, manages linuxptp-daemon DaemonSet",
 				Branch:  "release-4.18",
 			},
 			{
 				Name:    "linuxptp-daemon",
+				Path:    ws("linuxptp-daemon"),
 				Purpose: "SUT: PTP daemon — ptp4l, phc2sys, ts2phc; event socket; config change handling",
 				Branch:  "release-4.18",
 			},
 			{
 				Name:    "cloud-event-proxy",
+				Path:    ws("cloud-event-proxy"),
 				Purpose: "Cloud Event Proxy: receives PTP events via Unix socket; publishes cloud events",
 				Branch:  "release-4.18",
 			},
@@ -1776,6 +1788,7 @@ func ptpRealIngestWorkspace() calibrate.WorkspaceConfig {
 			},
 			{
 				Name:    "eco-gotests",
+				Path:    ws("eco-gotests"),
 				Purpose: "Ecosystem QE test framework; shared helpers (NOT PTP-specific)",
 				Branch:  "master",
 				IsRedHerring: true,

@@ -129,7 +129,7 @@ type RCA struct {
 	ID               int64
 	Title            string
 	Description      string
-	DefectType       string  // e.g. "pb001", "ab001", "ti001"
+	DefectType       string  // e.g. "pb001", "au001", "ti001"
 	Category         string  // product / automation / system / infra / config
 	Component        string  // primary component (e.g. "linuxptp-daemon")
 	AffectedVersions string  // JSON array (e.g. `["4.20","4.21"]`)

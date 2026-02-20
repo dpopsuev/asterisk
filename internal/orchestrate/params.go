@@ -78,9 +78,22 @@ type SiblingParams struct {
 	Status string
 }
 
-// WorkspaceParams holds repo list from the context workspace.
+// ResolutionStatus indicates whether a workspace field was successfully resolved.
+type ResolutionStatus string
+
+const (
+	Resolved    ResolutionStatus = "resolved"
+	Unavailable ResolutionStatus = "unavailable"
+)
+
+// WorkspaceParams holds repo list, launch attributes, and Jira links.
 type WorkspaceParams struct {
-	Repos []RepoParams
+	Repos            []RepoParams
+	LaunchAttributes []AttributeParams
+	JiraLinks        []JiraLinkParams
+	AttrsStatus      ResolutionStatus
+	JiraStatus       ResolutionStatus
+	ReposStatus      ResolutionStatus
 }
 
 // RepoParams holds one repo's metadata.
@@ -89,6 +102,19 @@ type RepoParams struct {
 	Path    string
 	Purpose string
 	Branch  string
+}
+
+// AttributeParams holds a key-value launch attribute from RP.
+type AttributeParams struct {
+	Key    string
+	Value  string
+	System bool
+}
+
+// JiraLinkParams holds an external issue link from RP test items.
+type JiraLinkParams struct {
+	TicketID string
+	URL      string
 }
 
 // URLParams holds pre-built navigable links.
@@ -150,8 +176,9 @@ func DefaultTaxonomy() *TaxonomyParams {
 	return &TaxonomyParams{
 		DefectTypes: `Defect types:
 - pb001: Product Bug — defect in the product code (operator, daemon, proxy, etc.)
-- ab001: Automation Bug — defect in test code, CI config, or test infrastructure
-- si001: System Issue — infrastructure/environment issue (node, network, cluster, NTP, etc.)
+- au001: Automation Bug — defect in test code, CI config, or test infrastructure
+- en001: Environment Issue — infrastructure/environment issue (node, network, cluster, NTP, etc.)
+- fw001: Firmware Issue — defect in firmware or hardware-adjacent code (NIC, FPGA, PHC)
 - nd001: No Defect — test is correct, product is correct, flaky/transient/expected behavior
 - ti001: To Investigate — insufficient data to classify; needs manual investigation`,
 	}
@@ -199,9 +226,11 @@ func BuildParams(
 		Status:       caseData.Status,
 	}
 
-	// Workspace repos
-	if ws != nil {
-		wsp := &WorkspaceParams{}
+	// Workspace: repos, launch attributes, Jira links
+	wsp := &WorkspaceParams{}
+
+	if ws != nil && len(ws.Repos) > 0 {
+		wsp.ReposStatus = Resolved
 		for _, r := range ws.Repos {
 			wsp.Repos = append(wsp.Repos, RepoParams{
 				Name:    r.Name,
@@ -210,8 +239,44 @@ func BuildParams(
 				Branch:  r.Branch,
 			})
 		}
-		params.Workspace = wsp
+	} else {
+		wsp.ReposStatus = Unavailable
 	}
+
+	if env != nil && len(env.LaunchAttributes) > 0 {
+		wsp.AttrsStatus = Resolved
+		for _, a := range env.LaunchAttributes {
+			wsp.LaunchAttributes = append(wsp.LaunchAttributes, AttributeParams{
+				Key:    a.Key,
+				Value:  a.Value,
+				System: a.System,
+			})
+		}
+	} else {
+		wsp.AttrsStatus = Unavailable
+	}
+
+	if env != nil {
+		seen := map[string]bool{}
+		for _, f := range env.FailureList {
+			for _, ext := range f.ExternalIssues {
+				if ext.TicketID != "" && !seen[ext.TicketID] {
+					seen[ext.TicketID] = true
+					wsp.JiraLinks = append(wsp.JiraLinks, JiraLinkParams{
+						TicketID: ext.TicketID,
+						URL:      ext.URL,
+					})
+				}
+			}
+		}
+	}
+	if len(wsp.JiraLinks) > 0 {
+		wsp.JiraStatus = Resolved
+	} else {
+		wsp.JiraStatus = Unavailable
+	}
+
+	params.Workspace = wsp
 
 	// Load prior artifacts from case directory
 	params.Prior = loadPriorArtifacts(caseDir)

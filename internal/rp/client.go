@@ -10,6 +10,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"asterisk/internal/logging"
 )
 
 // Client is a high-level client for the Report Portal API.
@@ -54,7 +56,7 @@ func New(baseURL, bearerToken string, opts ...Option) (*Client, error) {
 
 	logger := cfg.logger
 	if logger == nil {
-		logger = slog.New(slog.NewTextHandler(io.Discard, nil))
+		logger = logging.New("rp-client")
 	}
 
 	return &Client{

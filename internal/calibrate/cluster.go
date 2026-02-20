@@ -40,7 +40,14 @@ func ClusterCases(results []TriageResult, scenario *Scenario) []SymptomCluster {
 
 		// Compute cluster key from triage result
 		key := clusterKey(tr)
-		if _, ok := clusters[key]; !ok {
+		existing, ok := clusters[key]
+		if ok && len(existing.Members) >= MaxClusterSize {
+			// Cluster full — spill into a singleton so this case
+			// gets its own investigation rather than inheriting.
+			key = singletonKey(tr)
+			ok = false
+		}
+		if !ok {
 			clusters[key] = &SymptomCluster{
 				Key:            key,
 				Representative: tr,
@@ -59,7 +66,15 @@ func ClusterCases(results []TriageResult, scenario *Scenario) []SymptomCluster {
 	return result
 }
 
+// MaxClusterSize caps how many cases can share a single representative.
+// Beyond this limit, additional cases become singleton clusters to ensure
+// diverse bugs within the same symptom category each get investigated.
+const MaxClusterSize = 3
+
 // clusterKey computes the primary clustering key from a triage result.
+// Key includes: category, first candidate repo, defect type hypothesis,
+// version, and an error message fingerprint. This prevents cross-version
+// or cross-error clustering that leads to wrong RCA inheritance.
 func clusterKey(tr *TriageResult) string {
 	if tr.TriageArtifact == nil {
 		return singletonKey(tr)
@@ -68,13 +83,33 @@ func clusterKey(tr *TriageResult) string {
 	category := strings.ToLower(strings.TrimSpace(ta.SymptomCategory))
 	defect := strings.ToLower(strings.TrimSpace(ta.DefectTypeHypothesis))
 
-	// Try to extract component from candidate repos
 	component := ""
 	if len(ta.CandidateRepos) > 0 {
 		component = strings.ToLower(ta.CandidateRepos[0])
 	}
 
-	return category + "|" + component + "|" + defect
+	version := ""
+	if tr.CaseResult != nil {
+		version = tr.CaseResult.Version
+	}
+
+	errFP := errorFingerprint(ta.DataQualityNotes)
+
+	return category + "|" + component + "|" + defect + "|" + version + "|" + errFP
+}
+
+// errorFingerprint extracts a short fingerprint from the data quality notes
+// or triage context to discriminate cases with different error messages.
+func errorFingerprint(notes string) string {
+	if notes == "" {
+		return ""
+	}
+	lower := strings.ToLower(notes)
+	tokens := strings.Fields(lower)
+	if len(tokens) > 6 {
+		tokens = tokens[:6]
+	}
+	return strings.Join(tokens, " ")
 }
 
 // singletonKey creates a unique key for a case that won't cluster with others.

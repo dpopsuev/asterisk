@@ -197,6 +197,23 @@ func DefaultHeuristics(th Thresholds) []HeuristicRule {
 			},
 		},
 		{
+			ID: "H10a", Name: "investigate-no-evidence-skip", Stage: StepF3Invest,
+			SignalField: "evidence_refs",
+			Evaluate: func(artifact any, state *CaseState) *HeuristicAction {
+				r, ok := artifact.(*InvestigateArtifact)
+				if !ok || r == nil || r.ConvergenceScore >= th.ConvergenceSufficient {
+					return nil
+				}
+				if len(r.EvidenceRefs) > 0 {
+					return nil
+				}
+				return &HeuristicAction{
+					NextStep:    StepF4Correlate,
+					Explanation: fmt.Sprintf("convergence %.2f < %.2f but zero evidence refs — re-looping won't improve; proceed with current hypothesis", r.ConvergenceScore, th.ConvergenceSufficient),
+				}
+			},
+		},
+		{
 			ID: "H10", Name: "investigate-low", Stage: StepF3Invest,
 			SignalField: "convergence_score",
 			Evaluate: func(artifact any, state *CaseState) *HeuristicAction {

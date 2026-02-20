@@ -3,8 +3,8 @@ package calibrate
 import (
 	"asterisk/internal/display"
 	"asterisk/internal/format"
+	"asterisk/internal/logging"
 	"fmt"
-	"log"
 	"strings"
 
 	"asterisk/internal/orchestrate"
@@ -56,14 +56,16 @@ func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg Analysi
 		TotalCases: len(cases),
 	}
 
+	logger := logging.New("analyze")
+
 	for i, caseData := range cases {
 		caseLabel := fmt.Sprintf("A%d", i+1)
-		log.Printf("[analyze] --- Case %s (%d/%d): %s ---",
-			caseLabel, i+1, len(cases), caseData.Name)
+		logger.Info("processing case",
+			"label", caseLabel, "index", i+1, "total", len(cases), "test", caseData.Name)
 
 		result, err := runAnalysisCasePipeline(st, caseData, suiteID, caseLabel, cfg)
 		if err != nil {
-			log.Printf("[analyze] ERROR on case %s: %v", caseLabel, err)
+			logger.Error("case pipeline failed", "label", caseLabel, "error", err)
 			result = &AnalysisCaseResult{
 				CaseLabel:   caseLabel,
 				TestName:    caseData.Name,
@@ -151,8 +153,9 @@ func runAnalysisCasePipeline(
 		extractAnalysisStepData(result, currentStep, artifact)
 
 		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
-		log.Printf("[orchestrate] step=%s rule=%s next=%s: %s",
-			display.Stage(string(currentStep)), display.HeuristicWithCode(ruleID), display.Stage(string(action.NextStep)), action.Explanation)
+		logging.New("analyze").Info("heuristic evaluated",
+			"step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID),
+			"next", display.Stage(string(action.NextStep)), "explanation", action.Explanation)
 
 		if currentStep == orchestrate.StepF3Invest && action.NextStep == orchestrate.StepF2Resolve {
 			orchestrate.IncrementLoop(state, "investigate")
@@ -164,7 +167,7 @@ func runAnalysisCasePipeline(
 		}
 
 		if err := orchestrate.ApplyStoreEffects(st, caseData, currentStep, artifact); err != nil {
-			log.Printf("[analyze] store side-effect error at %s: %v", currentStep, err)
+			logging.New("analyze").Warn("store side-effect error", "step", string(currentStep), "error", err)
 		}
 
 		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)

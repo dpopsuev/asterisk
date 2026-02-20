@@ -2,11 +2,11 @@ package calibrate
 
 import (
 	"asterisk/internal/calibrate/dispatch"
+	"asterisk/internal/logging"
 	"asterisk/internal/preinvest"
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"path/filepath"
 	"strings"
 
@@ -59,8 +59,10 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 
 	var allRunMetrics []MetricSet
 
+	logger := logging.New("calibrate")
+
 	for run := 0; run < cfg.Runs; run++ {
-		log.Printf("[calibrate] === Run %d/%d ===", run+1, cfg.Runs)
+		logger.Info("starting run", "run", run+1, "total", cfg.Runs)
 
 		results, suiteID, err := runSingleCalibration(ctx, cfg)
 		if err != nil {
@@ -190,10 +192,12 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 	idMapper, hasIDMap := cfg.Adapter.(IDMappable)
 
 	// Process each case in order
+	logger := logging.New("calibrate")
+
 	var results []CaseResult
 	for i, gtCase := range cfg.Scenario.Cases {
-		log.Printf("[calibrate] --- Case %s (%d/%d): %s ---",
-			gtCase.ID, i+1, len(cfg.Scenario.Cases), gtCase.TestName)
+		logger.Info("processing case",
+			"case_id", gtCase.ID, "index", i+1, "total", len(cfg.Scenario.Cases), "test", gtCase.TestName)
 
 		pk := pipeKey{gtCase.Version, gtCase.Job}
 		caseData := &store.Case{
@@ -217,7 +221,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 
 		result, err := runCasePipeline(ctx, st, caseData, suiteID, gtCase, cfg)
 		if err != nil {
-			log.Printf("[calibrate] ERROR on case %s: %v", gtCase.ID, err)
+			logger.Error("case pipeline failed", "case_id", gtCase.ID, "error", err)
 			result = &CaseResult{
 				CaseID:        gtCase.ID,
 				TestName:      gtCase.TestName,
@@ -363,8 +367,8 @@ func runCasePipeline(
 
 		// Evaluate heuristics
 		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
-		log.Printf("[orchestrate] step=%s rule=%s next=%s: %s",
-			currentStep, ruleID, action.NextStep, action.Explanation)
+		logging.New("calibrate").Info("heuristic evaluated",
+			"step", string(currentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
 
 		// Handle loop counters
 		if currentStep == orchestrate.StepF3Invest && action.NextStep == orchestrate.StepF2Resolve {
@@ -378,7 +382,7 @@ func runCasePipeline(
 
 		// Apply store side effects via the orchestrator's exported function
 		if err := orchestrate.ApplyStoreEffects(st, caseData, currentStep, artifact); err != nil {
-			log.Printf("[calibrate] store side-effect error at %s: %v", currentStep, err)
+			logging.New("calibrate").Warn("store side-effect error", "step", string(currentStep), "error", err)
 		}
 
 		// Advance state
