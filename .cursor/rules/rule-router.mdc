@@ -24,6 +24,7 @@ When the user's message matches a trigger phrase, read the referenced rule befor
 | "calibration", "MCP", "signal bus", "subagent", "dispatch", "emit_signal" | Agent Bus | `domain/agent-bus.mdc` |
 | "workspace", "local repo", "service-api", "RP version", "read from disk" | Workspace Context | `domain/workspace-context.mdc` |
 | "display name", "human readable", "codes for machines", "output format" | Human-Readable Output | `domain/human-readable-output.mdc` |
+| "DSL", "pipeline format", "YAML pipeline", "pipeline definition", "declarative pipeline" | DSL Design Principles | `domain/dsl-design-principles.mdc` |
 
 ## Auto-loaded (no trigger needed)
 

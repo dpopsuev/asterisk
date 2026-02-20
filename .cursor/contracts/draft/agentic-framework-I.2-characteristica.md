@@ -10,7 +10,23 @@
 - The DSL must map 1:1 to `framework.Graph` -- every DSL pipeline produces a valid `Graph` instance.
 - The F0-F6 pipeline must be expressible in the DSL as the first validation case.
 - The DSL is descriptive, not prescriptive: it declares structure, not implementation. Node `Process` functions are registered separately.
+- All 8 DSL design principles in `rules/domain/dsl-design-principles.mdc` apply. In particular: YAML as canonical format (P1), declarative intent (P2), reading-first layout (P3), progressive disclosure (P7), and round-trip fidelity (P8).
 - Inspired by Leibniz's Characteristica Universalis -- a notation so clear that "controversies become calculations."
+
+## Design principles
+
+This contract implements the 8 principles codified in `rules/domain/dsl-design-principles.mdc`:
+
+| Principle | How this contract applies it |
+|-----------|------------------------------|
+| P1: YAML as canonical | One `.yaml` file per pipeline in `pipelines/`. All other formats derived. |
+| P2: Declarative intent | `condition` fields are human-readable labels; Go `NodeRegistry` holds executable logic. |
+| P3: Reading-first layout | YAML sections ordered: pipeline > zones > nodes > edges > start/done. Edges sorted by source node. |
+| P4: One concept per block | Each YAML list item is exactly one `NodeDef` or `EdgeDef`. Zones are one map entry each. |
+| P5: Human labels, machine IDs | Every edge has `id` (machine, e.g. "H1") and `name` (human, e.g. "recall-hit"). |
+| P6: Derived visualization | `Render(*PipelineDef) string` generates Mermaid from the parsed definition. |
+| P7: Progressive disclosure | `zones`, `element`, `stickiness` are optional with sensible defaults. Minimal pipeline needs only `nodes`, `edges`, `start`, `done`. |
+| P8: Round-trip fidelity | `LoadPipeline -> PipelineDef -> MarshalYAML` produces semantically equivalent YAML. |
 
 ## Context
 
@@ -206,30 +222,38 @@ func (def *PipelineDef) BuildGraph(registry NodeRegistry) (Graph, error)
 
 // NodeRegistry maps node family names to Node factory functions.
 type NodeRegistry map[string]func(def NodeDef) Node
+
+// Render generates a Mermaid flowchart string from a pipeline definition (P6).
+// The output is a valid Mermaid graph that can be embedded in Markdown.
+func Render(def *PipelineDef) string
 ```
 
 ## Execution strategy
 
-1. Define `PipelineDef`, `ZoneDef`, `NodeDef`, `EdgeDef` structs with YAML tags.
+1. Define `PipelineDef`, `ZoneDef`, `NodeDef`, `EdgeDef` structs with YAML tags. Apply progressive disclosure (P7): optional fields use `omitempty`, defaults are zero-values.
 2. Implement `LoadPipeline` -- parse YAML into `PipelineDef`.
 3. Implement `PipelineDef.Validate()` -- check referential integrity (all edge endpoints exist, zones reference valid nodes, start node exists).
 4. Implement `BuildGraph` -- construct a `Graph` from the definition + a `NodeRegistry`.
-5. Express the F0-F6 pipeline as a YAML file and verify round-trip: YAML -> PipelineDef -> Graph -> walk.
-6. Express the Defect Court D0-D4 pipeline as a second YAML file for validation.
+5. Implement `Render(*PipelineDef) string` -- generate Mermaid flowchart from a parsed pipeline definition (P6: derived visualization).
+6. Express the F0-F6 pipeline as a YAML file and verify round-trip (P8): YAML -> PipelineDef -> Graph -> walk.
+7. Express the Defect Court D0-D4 pipeline as a second YAML file for validation.
+8. Verify round-trip fidelity (P8): `LoadPipeline -> Marshal -> LoadPipeline` produces equivalent results.
 
 ## Tasks
 
-- [ ] Create `internal/framework/dsl.go` -- `PipelineDef`, `ZoneDef`, `NodeDef`, `EdgeDef` structs
+- [ ] Create `internal/framework/dsl.go` -- `PipelineDef`, `ZoneDef`, `NodeDef`, `EdgeDef` structs (P7: optional fields with `omitempty`)
 - [ ] Implement `LoadPipeline(data []byte) (*PipelineDef, error)` -- YAML parser
 - [ ] Implement `PipelineDef.Validate() error` -- referential integrity checks
 - [ ] Implement `BuildGraph(registry NodeRegistry) (Graph, error)` -- construct Graph from DSL
 - [ ] Define `NodeRegistry` type and factory pattern
-- [ ] Create `pipelines/rca-investigation.yaml` -- F0-F6 pipeline in DSL
+- [ ] Implement `Render(*PipelineDef) string` -- generate Mermaid flowchart from parsed definition (P6)
+- [ ] Create `pipelines/rca-investigation.yaml` -- F0-F6 pipeline in DSL (P3: reading-first layout)
 - [ ] Create `pipelines/defect-court.yaml` -- D0-D4 pipeline in DSL (structure only, no Process implementations)
-- [ ] Write `internal/framework/dsl_test.go` -- parse, validate, round-trip tests
+- [ ] Write `internal/framework/dsl_test.go` -- parse, validate, round-trip fidelity (P8) tests
 - [ ] Write `internal/framework/build_test.go` -- build graph from DSL, walk with mock nodes
+- [ ] Write `internal/framework/render_test.go` -- Mermaid output correctness (P6)
 - [ ] Validate (green) -- `go build ./...`, all tests pass
-- [ ] Tune (blue) -- review DSL ergonomics, ensure YAML is human-readable
+- [ ] Tune (blue) -- review DSL ergonomics, ensure YAML is human-readable, verify progressive disclosure (P7)
 - [ ] Validate (green) -- all tests still pass after tuning
 
 ## Acceptance criteria
@@ -248,5 +272,6 @@ type NodeRegistry map[string]func(def NodeDef) Node
 
 ## Notes
 
+- 2026-02-21 14:30 -- DSL design principles research completed. 8 principles codified in `rules/domain/dsl-design-principles.mdc` and diffused into this contract. Key additions: `Render()` for derived Mermaid visualization (P6), progressive disclosure in struct design (P7), round-trip fidelity test (P8). YAML confirmed as primary format after assessing YAML, CUE, Mermaid, HCL, and custom DSL options against the dual-audience constraint (human + AI readers). Dagster's YAML DSL + code registry pattern validates our `PipelineDef` + `NodeRegistry` approach.
 - 2026-02-20 -- Contract created. The DSL condition strings (e.g. "confidence >= recall_hit_threshold") are descriptive labels in Phase 1 -- actual evaluation logic remains in Go `Edge.Evaluate()` functions. A future contract could introduce a condition expression language.
 - Depends on I.1-ontology for `Graph`, `Node`, `Edge`, `Zone` interfaces.

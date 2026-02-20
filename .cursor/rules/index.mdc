@@ -42,6 +42,7 @@ Rules specific to this repository and its domain.
 | `agent-bus.mdc` | agent-requestable | MCP calibration signaling protocol; agent/subagent coordination. |
 | `human-readable-output.mdc` | agent-requestable | Codes for machines, words for humans; `internal/display` registry. |
 | `contract-sizing.mdc` | `globs: .cursor/contracts/**` | Contract sizing and urgency classification; goal alignment check; must/should/nice splits. |
+| `dsl-design-principles.mdc` | `globs: internal/framework/**,pipelines/**` | 8 DSL design principles for pipeline definitions: YAML canonical, declarative intent, reading-first, progressive disclosure, round-trip fidelity. |
 
 ## Gitignored compartments
 

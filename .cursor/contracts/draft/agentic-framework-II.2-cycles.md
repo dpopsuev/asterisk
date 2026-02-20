@@ -135,6 +135,7 @@ The cycles inform the `AffinityScheduler` (from III.1-personae) as tiebreakers:
 
 ## Notes
 
+- 2026-02-21 14:30 -- DSL design principles diffusion (P2, P5): cycle rules could be expressed as edge annotations in the pipeline DSL (I.2-characteristica). An edge with `cycle: generative` or `cycle: destructive` would declare which interaction pattern it follows. This is a future extension -- the current contract defines cycles as Go lookup functions; the DSL annotation layer can be added once I.2 is implemented and the annotation mechanism is proven.
 - 2026-02-20 -- Contract created. The cycles are not just metaphors -- they encode real routing preferences. The generative cycle maps to the natural F0-F6 flow. The destructive cycle maps to the Defect Court's adversarial pattern.
 - Depends on II.1-elements for Element type and traits.
 - Used by III.3-shadow for adversarial agent selection.
