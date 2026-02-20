@@ -36,6 +36,7 @@ var calibrateFlags struct {
 	rpBase        string
 	rpKeyPath     string
 	rpProject     string
+	routingLog    string
 }
 
 var calibrateCmd = &cobra.Command{
@@ -63,6 +64,7 @@ func init() {
 	f.StringVar(&calibrateFlags.rpBase, "rp-base-url", "", "RP base URL for RP-sourced scenario cases")
 	f.StringVar(&calibrateFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
 	f.StringVar(&calibrateFlags.rpProject, "rp-project", "", "RP project name (default: $ASTERISK_RP_PROJECT)")
+	f.StringVar(&calibrateFlags.routingLog, "routing-log", "", "Write adapter routing log to path (JSON); empty = disabled")
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
@@ -157,6 +159,12 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		adapter = adapt.NewCursorAdapter(calibrateFlags.promptDir, adapt.WithDispatcher(trackedDispatcher), adapt.WithBasePath(calibDir))
 	default:
 		return fmt.Errorf("unknown adapter: %s (available: stub, basic, cursor)", calibrateFlags.adapter)
+	}
+
+	var routingRecorder *adapt.RoutingRecorder
+	if calibrateFlags.routingLog != "" {
+		routingRecorder = adapt.NewRoutingRecorder(adapter, adapterColor(calibrateFlags.adapter))
+		adapter = routingRecorder
 	}
 
 	var basePath string
@@ -284,9 +292,29 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		}
 	}
 
+	if routingRecorder != nil {
+		if err := adapt.SaveRoutingLog(calibrateFlags.routingLog, routingRecorder.Log()); err != nil {
+			fmt.Fprintf(os.Stderr, "save routing log: %v\n", err)
+		} else {
+			fmt.Fprintf(out, "\nRouting log: %s (%d entries)\n", calibrateFlags.routingLog, routingRecorder.Log().Len())
+		}
+	}
+
 	passed, total := report.Metrics.PassCount()
 	if passed < total {
 		return fmt.Errorf("calibration: %d/%d metrics passed", passed, total)
 	}
 	return nil
+}
+
+// adapterColor maps adapter name to color identity for routing log tagging.
+func adapterColor(name string) string {
+	switch name {
+	case "basic":
+		return "crimson"
+	case "cursor":
+		return "cerulean"
+	default:
+		return name
+	}
 }

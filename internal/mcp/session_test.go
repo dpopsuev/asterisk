@@ -69,7 +69,7 @@ func TestNewSession_GetNextStep_DoneImmediately(t *testing.T) {
 		t.Fatal("timed out")
 	}
 
-	_, done, err := sess.GetNextStep(ctx)
+	_, done, _, err := sess.GetNextStep(ctx, 0)
 	if err != nil {
 		t.Fatalf("GetNextStep: %v", err)
 	}

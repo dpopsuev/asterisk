@@ -4,7 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 	"sync"
@@ -14,6 +14,7 @@ import (
 	"asterisk/internal/calibrate/adapt"
 	"asterisk/internal/calibrate/dispatch"
 	"asterisk/internal/calibrate/scenarios"
+	"asterisk/internal/logging"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/preinvest"
 	"asterisk/internal/rp"
@@ -62,7 +63,7 @@ func (b *SignalBus) Since(idx int) []Signal {
 	b.mu.Lock()
 	defer b.mu.Unlock()
 	if idx < 0 {
-		log.Printf("[signal-bus] WARN: Since called with negative idx=%d, clamping to 0", idx)
+		logging.New("signal-bus").Warn("Since called with negative index, clamping to 0", "idx", idx)
 		idx = 0
 	}
 	if idx >= len(b.signals) {
@@ -81,17 +82,39 @@ func (b *SignalBus) Len() int {
 
 // Session holds the state for a single calibration run driven by MCP tool calls.
 type Session struct {
-	ID         string
-	TotalCases int
-	Scenario   string
-	Bus        *SignalBus
+	ID              string
+	TotalCases      int
+	Scenario        string
+	DesiredCapacity int
+	Bus             *SignalBus
 
+	log        *slog.Logger
 	state      SessionState
 	dispatcher *dispatch.MuxDispatcher
 	report     *calibrate.CalibrationReport
 	err        error
 	doneCh     chan struct{}
 	cancel     context.CancelFunc
+
+	ttl            time.Duration
+	lastActivityAt time.Time
+
+	// Agent-side concurrency tracking.
+	agentInFlight int
+	// batchPeak is the maximum agentInFlight reached in the current batch.
+	// Reset to 0 when agentInFlight drops to 0 (batch complete).
+	batchPeak int
+	// concurrentPullers tracks how many get_next_step calls are blocked
+	// right now waiting for a step. If >= desiredCapacity, the agent has
+	// proven concurrency (independent worker model) and the gate opens.
+	concurrentPullers int
+	// peakPullers is the max concurrentPullers seen in this session.
+	// Once it reaches desiredCapacity, the gate stays open permanently
+	// (the agent has proven it runs enough concurrent workers).
+	peakPullers int
+	// gateExempt is set when get_next_step returns done or unavailable,
+	// signaling the pipeline can't fill capacity. Resets each batch.
+	gateExempt bool
 
 	mu sync.Mutex
 }
@@ -101,6 +124,97 @@ func (s *Session) GetState() SessionState {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.state
+}
+
+// PullerEnter is called when a get_next_step call starts blocking for a step.
+// Tracks concurrent callers to detect the independent-worker pattern.
+func (s *Session) PullerEnter() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.concurrentPullers++
+	if s.concurrentPullers > s.peakPullers {
+		s.peakPullers = s.concurrentPullers
+	}
+}
+
+// PullerExit is called when a get_next_step call delivers a step or returns.
+func (s *Session) PullerExit() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.concurrentPullers > 0 {
+		s.concurrentPullers--
+	}
+}
+
+// AgentPull increments the agent in-flight counter (called on get_next_step delivery).
+func (s *Session) AgentPull() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.agentInFlight++
+	if s.agentInFlight > s.batchPeak {
+		s.batchPeak = s.agentInFlight
+	}
+	return s.agentInFlight
+}
+
+// AgentSubmit decrements the agent in-flight counter (called on submit_artifact).
+func (s *Session) AgentSubmit() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.agentInFlight > 0 {
+		s.agentInFlight--
+	}
+	if s.agentInFlight == 0 {
+		s.batchPeak = 0
+		s.gateExempt = false
+	}
+	return s.agentInFlight
+}
+
+// SetGateExempt marks the current batch as exempt from the capacity gate.
+// Called when get_next_step returns done/unavailable (pipeline can't fill capacity).
+func (s *Session) SetGateExempt() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.gateExempt = true
+}
+
+// CheckCapacityGate returns an error if the agent hasn't proven it runs
+// enough concurrent workers. The gate opens when ANY of:
+//   - desiredCapacity <= 1 (serial mode is legitimate)
+//   - gateExempt (pipeline draining, fewer steps than capacity)
+//   - batchPeak >= desiredCapacity (batch pattern: pulled N before submitting)
+//   - peakPullers >= desiredCapacity (worker pattern: N concurrent get_next_step callers observed)
+func (s *Session) CheckCapacityGate() error {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	if s.DesiredCapacity <= 1 {
+		return nil
+	}
+	if s.gateExempt {
+		return nil
+	}
+	if s.batchPeak >= s.DesiredCapacity {
+		return nil
+	}
+	if s.peakPullers >= s.DesiredCapacity {
+		return nil
+	}
+
+	return fmt.Errorf(
+		"CAPACITY GATE CLOSED: you pulled %d/%d steps this batch (peak concurrent callers: %d/%d). "+
+			"Pull %d more steps via get_next_step before submitting, or run %d concurrent workers. "+
+			"If you don't bring more workers, the TTL watchdog will terminate this session",
+		s.batchPeak, s.DesiredCapacity, s.peakPullers, s.DesiredCapacity,
+		s.DesiredCapacity-s.batchPeak, s.DesiredCapacity)
+}
+
+// AgentInFlight returns how many steps the agent has pulled but not yet submitted.
+func (s *Session) AgentInFlight() int {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	return s.agentInFlight
 }
 
 // StartCalibrationInput mirrors the tool arguments for start_calibration.
@@ -212,14 +326,16 @@ func NewSession(ctx context.Context, input StartCalibrationInput) (*Session, err
 	bus := &SignalBus{}
 
 	sess := &Session{
-		ID:         fmt.Sprintf("s-%d", time.Now().UnixMilli()),
-		state:      StateRunning,
-		TotalCases: len(scenario.Cases),
-		Scenario:   scenario.Name,
-		Bus:        bus,
-		dispatcher: mcpDisp,
-		doneCh:     make(chan struct{}),
-		cancel:     runCancel,
+		ID:              fmt.Sprintf("s-%d", time.Now().UnixMilli()),
+		log:             logging.New("mcp-session"),
+		state:           StateRunning,
+		TotalCases:      len(scenario.Cases),
+		Scenario:        scenario.Name,
+		DesiredCapacity: parallel,
+		Bus:             bus,
+		dispatcher:      mcpDisp,
+		doneCh:          make(chan struct{}),
+		cancel:          runCancel,
 	}
 
 	bus.Emit("session_started", "server", "", "", map[string]string{
@@ -237,6 +353,78 @@ func NewSession(ctx context.Context, input StartCalibrationInput) (*Session, err
 	go sess.run(runCtx, cfg)
 
 	return sess, nil
+}
+
+// SetTTL configures the session inactivity TTL. When no submit_artifact
+// arrives for this duration, the session aborts itself. Can be called
+// after session creation (e.g. from test hooks).
+func (s *Session) SetTTL(ttl time.Duration) {
+	s.mu.Lock()
+	s.ttl = ttl
+	s.lastActivityAt = time.Now()
+	s.mu.Unlock()
+
+	go s.watchdog()
+}
+
+// touchActivity updates the last-activity timestamp (called on each submit).
+func (s *Session) touchActivity() {
+	s.mu.Lock()
+	prev := s.lastActivityAt
+	s.lastActivityAt = time.Now()
+	ttl := s.ttl
+	s.mu.Unlock()
+
+	if ttl > 0 && !prev.IsZero() {
+		s.log.Debug("activity reset", "gap", time.Since(prev), "ttl", ttl)
+	}
+}
+
+// watchdog monitors session inactivity. If no submit_artifact arrives for
+// the configured TTL, the session is aborted. This prevents indefinite
+// hangs when the agent side is stuck or disconnected.
+func (s *Session) watchdog() {
+	s.mu.Lock()
+	ttl := s.ttl
+	s.mu.Unlock()
+
+	if ttl <= 0 {
+		return
+	}
+
+	ticker := time.NewTicker(ttl / 5)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-s.doneCh:
+			return
+		case <-ticker.C:
+			s.mu.Lock()
+			stale := time.Since(s.lastActivityAt)
+			currentTTL := s.ttl
+			s.mu.Unlock()
+
+			if currentTTL <= 0 {
+				return
+			}
+
+			if stale > currentTTL {
+				s.log.Warn("TTL watchdog triggered, aborting session",
+					"stale", stale, "ttl", currentTTL, "session_id", s.ID)
+				s.Bus.Emit("session_error", "server", "", "", map[string]string{
+					"error": fmt.Sprintf("session TTL expired: no activity for %v", stale),
+				})
+				s.dispatcher.Abort(fmt.Errorf("session TTL expired: no activity for %v", stale))
+				s.mu.Lock()
+				s.state = StateError
+				s.err = fmt.Errorf("session TTL expired: no activity for %v", stale)
+				s.mu.Unlock()
+				s.cancel()
+				return
+			}
+		}
+	}
 }
 
 // Cancel terminates the runner goroutine and releases resources.
@@ -260,7 +448,7 @@ func (s *Session) run(ctx context.Context, cfg calibrate.RunConfig) {
 		s.state = StateError
 		s.err = err
 		s.Bus.Emit("session_error", "server", "", "", map[string]string{"error": err.Error()})
-		log.Printf("[mcp-session] calibration error: %v", err)
+		s.log.Error("calibration failed", "error", err)
 		return
 	}
 	s.state = StateDone
@@ -268,29 +456,41 @@ func (s *Session) run(ctx context.Context, cfg calibrate.RunConfig) {
 	s.Bus.Emit("session_done", "server", "", "", map[string]string{
 		"case_results": fmt.Sprintf("%d", len(report.CaseResults)),
 	})
-	log.Printf("[mcp-session] calibration complete: %d case results", len(report.CaseResults))
+	s.log.Info("calibration complete", "case_results", len(report.CaseResults))
 }
 
-// GetNextStep blocks until the runner produces the next prompt, or returns
-// done=true if the run has completed.
-func (s *Session) GetNextStep(ctx context.Context) (dc dispatch.DispatchContext, done bool, err error) {
+// GetNextStep blocks until the runner produces the next prompt, the run
+// completes, or the timeout expires. When timeout is 0 it blocks forever
+// (backward-compatible). Returns available=false on timeout.
+func (s *Session) GetNextStep(ctx context.Context, timeout time.Duration) (dc dispatch.DispatchContext, done bool, available bool, err error) {
 	select {
 	case <-s.doneCh:
-		return dispatch.DispatchContext{}, true, nil
+		return dispatch.DispatchContext{}, true, false, nil
 	default:
 	}
 
-	// Try both: runner may finish between the default check and the select.
+	var timer <-chan time.Time
+	if timeout > 0 {
+		timer = time.After(timeout)
+	}
+
+	start := time.Now()
+
 	select {
 	case <-ctx.Done():
-		return dispatch.DispatchContext{}, false, ctx.Err()
+		return dispatch.DispatchContext{}, false, false, ctx.Err()
 	case <-s.doneCh:
-		return dispatch.DispatchContext{}, true, nil
+		return dispatch.DispatchContext{}, true, false, nil
 	case dc, ok := <-s.dispatcher.PromptCh():
 		if !ok {
-			return dispatch.DispatchContext{}, true, nil
+			return dispatch.DispatchContext{}, true, false, nil
 		}
-		return dc, false, nil
+		s.log.Info("step delivered",
+			"case_id", dc.CaseID, "step", dc.Step, "dispatch_id", dc.DispatchID, "wait", time.Since(start))
+		return dc, false, true, nil
+	case <-timer:
+		s.log.Warn("get_next_step timed out, no step available", "timeout", timeout)
+		return dispatch.DispatchContext{}, false, false, nil
 	}
 }
 
@@ -300,6 +500,7 @@ func (s *Session) SubmitArtifact(ctx context.Context, dispatchID int64, data []b
 	if !json.Valid(data) {
 		return fmt.Errorf("invalid JSON in artifact")
 	}
+	s.touchActivity()
 	return s.dispatcher.SubmitArtifact(ctx, dispatchID, data)
 }
 

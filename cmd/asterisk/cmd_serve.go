@@ -2,9 +2,10 @@ package main
 
 import (
 	"context"
-	"log"
+
 	"github.com/spf13/cobra"
 
+	"asterisk/internal/logging"
 	mcpserver "asterisk/internal/mcp"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
@@ -30,6 +31,6 @@ func runServe(cmd *cobra.Command, _ []string) error {
 
 	mcpserver.WatchStdin(ctx, nil, cancel)
 
-	log.Println("[mcp] starting asterisk MCP server over stdio (parent watchdog active)")
+	logging.New("mcp").Info("starting asterisk MCP server over stdio (parent watchdog active)")
 	return srv.MCPServer.Run(ctx, &sdkmcp.StdioTransport{})
 }

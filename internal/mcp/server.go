@@ -4,13 +4,19 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"os"
 	"sync"
+	"time"
 
 	"asterisk/internal/calibrate"
+	"asterisk/internal/logging"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
+)
+
+var (
+	DefaultGetNextStepTimeout = 10 * time.Second
+	DefaultSessionTTL         = 5 * time.Minute
 )
 
 // Server wraps the MCP SDK server and manages calibration sessions.
@@ -76,6 +82,7 @@ type startCalibrationInput struct {
 	RPBaseURL string `json:"rp_base_url,omitempty" jsonschema:"ReportPortal base URL for RP-sourced cases"`
 	RPProject string `json:"rp_project,omitempty" jsonschema:"ReportPortal project name"`
 	Parallel  int    `json:"parallel,omitempty" jsonschema:"number of parallel workers (default 1 = serial)"`
+	Force     bool   `json:"force,omitempty" jsonschema:"cancel any existing session and start fresh"`
 }
 
 type startCalibrationOutput struct {
@@ -87,15 +94,20 @@ type startCalibrationOutput struct {
 
 type getNextStepInput struct {
 	SessionID string `json:"session_id" jsonschema:"session ID from start_calibration"`
+	TimeoutMS int    `json:"timeout_ms,omitempty" jsonschema:"max wait in milliseconds (0 = block forever)"`
 }
 
 type getNextStepOutput struct {
-	Done         bool   `json:"done"`
-	CaseID       string `json:"case_id,omitempty"`
-	Step         string `json:"step,omitempty"`
-	PromptPath   string `json:"prompt_path,omitempty"`
-	ArtifactPath string `json:"artifact_path,omitempty"`
-	DispatchID   int64  `json:"dispatch_id,omitempty"`
+	Done              bool   `json:"done"`
+	Available         bool   `json:"available,omitempty"`
+	CaseID            string `json:"case_id,omitempty"`
+	Step              string `json:"step,omitempty"`
+	PromptPath        string `json:"prompt_path,omitempty"`
+	ArtifactPath      string `json:"artifact_path,omitempty"`
+	DispatchID        int64  `json:"dispatch_id,omitempty"`
+	ActiveDispatches  int    `json:"active_dispatches"`
+	DesiredCapacity   int    `json:"desired_capacity"`
+	CapacityWarning   string `json:"capacity_warning,omitempty"`
 }
 
 type submitArtifactInput struct {
@@ -147,14 +159,21 @@ type getSignalsOutput struct {
 // --- Tool handlers ---
 
 func (s *Server) handleStartCalibration(ctx context.Context, _ *sdkmcp.CallToolRequest, input startCalibrationInput) (*sdkmcp.CallToolResult, startCalibrationOutput, error) {
+	logger := logging.New("mcp-session")
 	s.mu.Lock()
 	if s.session != nil {
 		select {
 		case <-s.session.Done():
+			logger.Info("replacing completed/aborted session", "old_id", s.session.ID)
 			s.session.Cancel()
 		default:
-			s.mu.Unlock()
-			return nil, startCalibrationOutput{}, fmt.Errorf("a calibration session is already running (id=%s)", s.session.ID)
+			if input.Force {
+				logger.Warn("force-replacing active session", "old_id", s.session.ID)
+				s.session.Cancel()
+			} else {
+				s.mu.Unlock()
+				return nil, startCalibrationOutput{}, fmt.Errorf("a calibration session is already running (id=%s)", s.session.ID)
+			}
 		}
 	}
 	s.session = nil
@@ -171,6 +190,8 @@ func (s *Server) handleStartCalibration(ctx context.Context, _ *sdkmcp.CallToolR
 	if err != nil {
 		return nil, startCalibrationOutput{}, fmt.Errorf("start calibration: %w", err)
 	}
+
+	sess.SetTTL(DefaultSessionTTL)
 
 	s.mu.Lock()
 	s.session = sess
@@ -190,34 +211,70 @@ func (s *Server) handleGetNextStep(ctx context.Context, _ *sdkmcp.CallToolReques
 		return nil, getNextStepOutput{}, err
 	}
 
-	dc, done, err := sess.GetNextStep(ctx)
+	var timeout time.Duration
+	if input.TimeoutMS > 0 {
+		timeout = time.Duration(input.TimeoutMS) * time.Millisecond
+	} else {
+		timeout = DefaultGetNextStepTimeout
+	}
+
+	sess.PullerEnter()
+	dc, done, available, err := sess.GetNextStep(ctx, timeout)
+	sess.PullerExit()
+
 	if err != nil {
 		return nil, getNextStepOutput{}, fmt.Errorf("get_next_step: %w", err)
 	}
 
 	if done {
+		sess.SetGateExempt()
 		sess.Bus.Emit("pipeline_done", "server", "", "", nil)
 		return nil, getNextStepOutput{Done: true}, nil
+	}
+
+	if !available {
+		sess.SetGateExempt()
+		return nil, getNextStepOutput{Done: false, Available: false}, nil
 	}
 
 	sess.Bus.Emit("step_ready", "server", dc.CaseID, dc.Step, map[string]string{
 		"prompt_path": dc.PromptPath,
 	})
 
-	return nil, getNextStepOutput{
-		Done:         false,
-		CaseID:       dc.CaseID,
-		Step:         dc.Step,
-		PromptPath:   dc.PromptPath,
-		ArtifactPath: dc.ArtifactPath,
-		DispatchID:   dc.DispatchID,
-	}, nil
+	inFlight := sess.AgentPull()
+	desired := sess.DesiredCapacity
+	out := getNextStepOutput{
+		Done:             false,
+		Available:        true,
+		CaseID:           dc.CaseID,
+		Step:             dc.Step,
+		PromptPath:       dc.PromptPath,
+		ArtifactPath:     dc.ArtifactPath,
+		DispatchID:       dc.DispatchID,
+		ActiveDispatches: inFlight,
+		DesiredCapacity:  desired,
+	}
+
+	if desired > 1 && inFlight < desired {
+		out.CapacityWarning = fmt.Sprintf(
+			"UNDER CAPACITY: %d/%d agent workers active — you MUST launch %d more parallel subagents before submitting",
+			inFlight, desired, desired-inFlight)
+		logger := logging.New("mcp-session")
+		logger.Warn("agent under capacity",
+			"in_flight", inFlight, "desired", desired, "deficit", desired-inFlight)
+	}
+
+	return nil, out, nil
 }
 
 func (s *Server) handleSubmitArtifact(ctx context.Context, _ *sdkmcp.CallToolRequest, input submitArtifactInput) (*sdkmcp.CallToolResult, submitArtifactOutput, error) {
 	sess, err := s.getSession(input.SessionID)
 	if err != nil {
 		return nil, submitArtifactOutput{}, err
+	}
+
+	if gateErr := sess.CheckCapacityGate(); gateErr != nil {
+		return nil, submitArtifactOutput{}, gateErr
 	}
 
 	data := []byte(input.ArtifactJSON)
@@ -229,8 +286,10 @@ func (s *Server) handleSubmitArtifact(ctx context.Context, _ *sdkmcp.CallToolReq
 		return nil, submitArtifactOutput{}, fmt.Errorf("submit_artifact: %w", err)
 	}
 
+	remaining := sess.AgentSubmit()
 	sess.Bus.Emit("artifact_submitted", "server", "", "", map[string]string{
-		"bytes": fmt.Sprintf("%d", len(data)),
+		"bytes":     fmt.Sprintf("%d", len(data)),
+		"in_flight": fmt.Sprintf("%d", remaining),
 	})
 
 	return nil, submitArtifactOutput{OK: "artifact accepted"}, nil
@@ -271,12 +330,13 @@ func (s *Server) handleGetReport(ctx context.Context, _ *sdkmcp.CallToolRequest,
 }
 
 func (s *Server) handleEmitSignal(ctx context.Context, _ *sdkmcp.CallToolRequest, input emitSignalInput) (*sdkmcp.CallToolResult, emitSignalOutput, error) {
+	logger := logging.New("signal-bus")
 	if input.Event == "" {
-		log.Printf("[signal-bus] WARN: emit_signal rejected: empty event field")
+		logger.Warn("emit_signal rejected: empty event field")
 		return nil, emitSignalOutput{}, fmt.Errorf("event is required")
 	}
 	if input.Agent == "" {
-		log.Printf("[signal-bus] WARN: emit_signal rejected: empty agent field")
+		logger.Warn("emit_signal rejected: empty agent field")
 		return nil, emitSignalOutput{}, fmt.Errorf("agent is required")
 	}
 
@@ -287,7 +347,7 @@ func (s *Server) handleEmitSignal(ctx context.Context, _ *sdkmcp.CallToolRequest
 
 	sess.Bus.Emit(input.Event, input.Agent, input.CaseID, input.Step, input.Meta)
 	idx := sess.Bus.Len()
-	log.Printf("[signal-bus] signal #%d: event=%s agent=%s case=%s step=%s", idx, input.Event, input.Agent, input.CaseID, input.Step)
+	logger.Info("signal emitted", "index", idx, "event", input.Event, "agent", input.Agent, "case_id", input.CaseID, "step", input.Step)
 
 	return nil, emitSignalOutput{
 		OK:    "signal emitted",
@@ -306,6 +366,26 @@ func (s *Server) handleGetSignals(ctx context.Context, _ *sdkmcp.CallToolRequest
 		Signals: signals,
 		Total:   sess.Bus.Len(),
 	}, nil
+}
+
+// SetSessionTTL configures the inactivity TTL on the current session.
+// Primarily used for testing the watchdog with short durations.
+func (s *Server) SetSessionTTL(ttl time.Duration) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.session != nil {
+		s.session.SetTTL(ttl)
+	}
+}
+
+// SessionID returns the current session's ID, or empty string if none.
+func (s *Server) SessionID() string {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.session != nil {
+		return s.session.ID
+	}
+	return ""
 }
 
 // Shutdown cancels any active session, releasing runner goroutines.

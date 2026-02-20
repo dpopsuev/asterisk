@@ -2,9 +2,10 @@ package mcp
 
 import (
 	"context"
-	"log"
 	"os"
 	"time"
+
+	"asterisk/internal/logging"
 )
 
 // WatchStdin monitors for parent process death in a background goroutine.
@@ -26,7 +27,7 @@ func WatchStdin(ctx context.Context, _ any, cancelFn context.CancelFunc) {
 				return
 			case <-time.After(2 * time.Second):
 				if os.Getppid() != ppid {
-					log.Printf("[mcp] WARN: parent process died (was pid %d), initiating shutdown", ppid)
+					logging.New("mcp").Warn("parent process died, initiating shutdown", "parent_pid", ppid)
 					cancelFn()
 					return
 				}

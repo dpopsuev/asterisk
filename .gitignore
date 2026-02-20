@@ -21,6 +21,12 @@
 # Cursor local MCP config (contains machine-specific paths)
 .cursor/mcp.json
 
+# Personal developer preferences (never commit — per-developer)
+.cursor/personal/
+
+# Sensitive infrastructure details (never commit — security compartment)
+.cursor/sensitive/
+
 # Local runtime directory
 .asterisk/
 

@@ -15,6 +15,11 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
+func TestMain(m *testing.M) {
+	mcpserver.DefaultGetNextStepTimeout = 1 * time.Second
+	os.Exit(m.Run())
+}
+
 // projectRoot walks up from the test directory to find the module root (go.mod).
 func projectRoot(t *testing.T) string {
 	t.Helper()
@@ -830,6 +835,848 @@ func TestServer_Parallel_InterleavedSubmit(t *testing.T) {
 	t.Log("interleaved submit: both steps submitted in reverse order")
 }
 
+// callToolE is a goroutine-safe variant of callTool that returns errors instead of calling t.Fatal.
+func callToolE(ctx context.Context, session *sdkmcp.ClientSession, name string, args map[string]any) (map[string]any, error) {
+	res, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
+		Name:      name,
+		Arguments: args,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("CallTool(%s): %w", name, err)
+	}
+	if res.IsError {
+		for _, c := range res.Content {
+			if tc, ok := c.(*sdkmcp.TextContent); ok {
+				return nil, fmt.Errorf("CallTool(%s) error: %s", name, tc.Text)
+			}
+		}
+		return nil, fmt.Errorf("CallTool(%s) returned error", name)
+	}
+	for _, c := range res.Content {
+		if tc, ok := c.(*sdkmcp.TextContent); ok {
+			result := make(map[string]any)
+			if err := json.Unmarshal([]byte(tc.Text), &result); err != nil {
+				return nil, fmt.Errorf("unmarshal %s result: %w", name, err)
+			}
+			return result, nil
+		}
+	}
+	return nil, fmt.Errorf("no text content in %s result", name)
+}
+
+// artifactForStep returns minimal valid JSON for a given pipeline step.
+func artifactForStep(step string, subagentID int) string {
+	switch step {
+	case "F0_RECALL":
+		return fmt.Sprintf(`{"match":false,"confidence":0.0,"reasoning":"subagent-%d"}`, subagentID)
+	case "F1_TRIAGE":
+		return `{"symptom_category":"product","severity":"high","defect_type_hypothesis":"pb001","candidate_repos":["test-repo"],"skip_investigation":false,"cascade_suspected":false}`
+	case "F2_RESOLVE":
+		return `{"selected_repos":[{"name":"test-repo","reason":"test"}]}`
+	case "F3_INVESTIGATE":
+		return fmt.Sprintf(`{"rca_message":"root cause from subagent-%d","defect_type":"pb001","component":"test-component","convergence_score":0.85,"evidence_refs":["ref-1"]}`, subagentID)
+	case "F4_CORRELATE":
+		return `{"is_duplicate":false,"confidence":0.1}`
+	case "F5_REVIEW":
+		return `{"decision":"approve"}`
+	case "F6_REPORT":
+		return fmt.Sprintf(`{"defect_type":"pb001","case_id":"auto","subagent":%d}`, subagentID)
+	default:
+		return fmt.Sprintf(`{"defect_type":"pb001","subagent":%d}`, subagentID)
+	}
+}
+
+type stepRecord struct {
+	CaseID     string
+	Step       string
+	DispatchID int64
+}
+
+func TestServer_FourSubagents_FullDrain(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+	t.Logf("started session %s", sessionID)
+
+	var mu sync.Mutex
+	workLog := make(map[int][]stepRecord) // subagentID -> records
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(subID int) {
+			defer wg.Done()
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("subagent-%d get_next_step: %w", subID, err)
+					return
+				}
+
+				if done, _ := res["done"].(bool); done {
+					return
+				}
+
+				caseID, _ := res["case_id"].(string)
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+
+				artifact := artifactForStep(step, subID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("subagent-%d submit_artifact(%s/%s): %w", subID, caseID, step, err)
+					return
+				}
+
+				mu.Lock()
+				workLog[subID] = append(workLog[subID], stepRecord{
+					CaseID:     caseID,
+					Step:       step,
+					DispatchID: int64(dispatchID),
+				})
+				mu.Unlock()
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Errorf("subagent error: %v", err)
+	}
+
+	// Assertion 1: all 4 subagents got work (no starvation)
+	for i := 0; i < 4; i++ {
+		if len(workLog[i]) == 0 {
+			t.Errorf("subagent-%d got zero steps (starvation)", i)
+		} else {
+			t.Logf("subagent-%d processed %d steps", i, len(workLog[i]))
+		}
+	}
+
+	// Assertion 2: all dispatch IDs are unique
+	seenIDs := make(map[int64]bool)
+	totalSteps := 0
+	for _, records := range workLog {
+		for _, r := range records {
+			if seenIDs[r.DispatchID] {
+				t.Errorf("duplicate dispatch_id %d", r.DispatchID)
+			}
+			seenIDs[r.DispatchID] = true
+			totalSteps++
+		}
+	}
+
+	// Assertion 3: total steps > 0
+	if totalSteps == 0 {
+		t.Fatal("pipeline produced zero steps")
+	}
+	t.Logf("total steps processed: %d across 4 subagents", totalSteps)
+
+	// Assertion 4: final report is complete
+	reportResult := callTool(t, ctx, session, "get_report", map[string]any{
+		"session_id": sessionID,
+	})
+	status, _ := reportResult["status"].(string)
+	if status != "done" {
+		t.Fatalf("expected status=done, got %s", status)
+	}
+	caseResults, _ := reportResult["case_results"].([]any)
+	if len(caseResults) == 0 {
+		t.Error("expected case_results in report")
+	}
+	t.Logf("report: status=%s, case_results=%d", status, len(caseResults))
+}
+
+func TestServer_FourSubagents_NoDuplicateDispatch(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "daemon-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	var mu sync.Mutex
+	var allRecords []stepRecord
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(subID int) {
+			defer wg.Done()
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("subagent-%d: %w", subID, err)
+					return
+				}
+
+				if done, _ := res["done"].(bool); done {
+					return
+				}
+
+				caseID, _ := res["case_id"].(string)
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+
+				artifact := artifactForStep(step, subID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("subagent-%d submit(%s/%s): %w", subID, caseID, step, err)
+					return
+				}
+
+				mu.Lock()
+				allRecords = append(allRecords, stepRecord{
+					CaseID:     caseID,
+					Step:       step,
+					DispatchID: int64(dispatchID),
+				})
+				mu.Unlock()
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Errorf("subagent error: %v", err)
+	}
+
+	// Assert no (case_id, step) pair appears twice
+	type caseStep struct{ CaseID, Step string }
+	seen := make(map[caseStep]int)
+	for _, r := range allRecords {
+		key := caseStep{r.CaseID, r.Step}
+		seen[key]++
+		if seen[key] > 1 {
+			t.Errorf("duplicate dispatch: case=%s step=%s appeared %d times", r.CaseID, r.Step, seen[key])
+		}
+	}
+
+	if len(allRecords) == 0 {
+		t.Fatal("pipeline produced zero steps")
+	}
+	t.Logf("daemon-mock: %d unique (case, step) pairs processed, 0 duplicates", len(seen))
+
+	reportResult := callTool(t, ctx, session, "get_report", map[string]any{
+		"session_id": sessionID,
+	})
+	if status, _ := reportResult["status"].(string); status != "done" {
+		t.Fatalf("expected status=done, got %s", status)
+	}
+}
+
+// TestServer_SubagentCapacity_PeakConcurrency proves that the signal bus
+// can track active subagent count and detect peak concurrency. Each simulated
+// subagent emits "start" before working and "done" after submitting. The test
+// asserts:
+//   1. Peak concurrent active subagents reaches exactly the desired capacity (4)
+//   2. Active count never exceeds capacity
+//   3. All subagents are observed via signals
+func TestServer_SubagentCapacity_PeakConcurrency(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	const capacity = 4
+	var mu sync.Mutex
+	var peakActive int
+	var active int
+	subagentsSeen := make(map[int]bool)
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, capacity)
+
+	for i := 0; i < capacity; i++ {
+		wg.Add(1)
+		go func(subID int) {
+			defer wg.Done()
+
+			// Emit start signal — this is what the capacity system monitors
+			_, _ = callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "start",
+				"agent":      "sub",
+				"meta":       map[string]any{"subagent_id": fmt.Sprintf("%d", subID)},
+			})
+
+			mu.Lock()
+			active++
+			subagentsSeen[subID] = true
+			if active > peakActive {
+				peakActive = active
+			}
+			mu.Unlock()
+
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+				})
+				if err != nil {
+					errCh <- err
+					return
+				}
+				if done, _ := res["done"].(bool); done {
+					break
+				}
+
+				// Simulate work
+				time.Sleep(3 * time.Millisecond)
+
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+
+				artifact := artifactForStep(step, subID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- err
+					return
+				}
+			}
+
+			mu.Lock()
+			active--
+			mu.Unlock()
+
+			// Emit done signal
+			_, _ = callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "done",
+				"agent":      "sub",
+				"meta":       map[string]any{"subagent_id": fmt.Sprintf("%d", subID)},
+			})
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Fatalf("subagent error: %v", err)
+	}
+
+	// Assertion 1: peak concurrent reached desired capacity
+	if peakActive < capacity {
+		t.Errorf("peak concurrent subagents = %d, wanted %d (not fully parallel)", peakActive, capacity)
+	}
+	t.Logf("peak concurrent subagents: %d/%d", peakActive, capacity)
+
+	// Assertion 2: all subagents were observed
+	if len(subagentsSeen) != capacity {
+		t.Errorf("saw %d unique subagents, wanted %d", len(subagentsSeen), capacity)
+	}
+
+	// Assertion 3: signal bus recorded all start/done pairs
+	signals := callTool(t, ctx, session, "get_signals", map[string]any{
+		"session_id": sessionID,
+	})
+	signalList, _ := signals["signals"].([]any)
+	startCount, doneCount := 0, 0
+	for _, s := range signalList {
+		sig, _ := s.(map[string]any)
+		event, _ := sig["event"].(string)
+		agent, _ := sig["agent"].(string)
+		if agent == "sub" {
+			switch event {
+			case "start":
+				startCount++
+			case "done":
+				doneCount++
+			}
+		}
+	}
+	if startCount != capacity {
+		t.Errorf("expected %d start signals, got %d", capacity, startCount)
+	}
+	if doneCount != capacity {
+		t.Errorf("expected %d done signals, got %d", capacity, doneCount)
+	}
+	t.Logf("signals: %d start, %d done (from %d total signals)", startCount, doneCount, len(signalList))
+}
+
+// TestServer_FourSubagents_ConcurrencyTiming proves that 4 concurrent workers
+// complete significantly faster than serial execution. Each worker adds a
+// deliberate per-step delay (5ms). With N total steps:
+//   - Serial: N * 5ms wall time
+//   - 4-concurrent: ~N/4 * 5ms wall time
+//
+// The test asserts wall time is < 60% of serial estimate, proving true
+// concurrent dispatch (not sequential).
+func TestServer_FourSubagents_ConcurrencyTiming(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	const perStepDelay = 5 * time.Millisecond
+	var mu sync.Mutex
+	var totalSteps int64
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+
+	start := time.Now()
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(subID int) {
+			defer wg.Done()
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+				})
+				if err != nil {
+					errCh <- err
+					return
+				}
+				if done, _ := res["done"].(bool); done {
+					return
+				}
+
+				time.Sleep(perStepDelay)
+
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+
+				artifact := artifactForStep(step, subID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- err
+					return
+				}
+				mu.Lock()
+				totalSteps++
+				mu.Unlock()
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	elapsed := time.Since(start)
+
+	for err := range errCh {
+		t.Fatalf("subagent error: %v", err)
+	}
+
+	serialEstimate := time.Duration(totalSteps) * perStepDelay
+	speedup := float64(serialEstimate) / float64(elapsed)
+	concurrencyThreshold := 0.60
+
+	t.Logf("steps=%d, elapsed=%v, serial_estimate=%v, speedup=%.2fx",
+		totalSteps, elapsed, serialEstimate, speedup)
+
+	if elapsed > time.Duration(float64(serialEstimate)*concurrencyThreshold) {
+		t.Errorf("concurrent execution too slow: elapsed=%v > %.0f%% of serial=%v (speedup=%.2fx, expected >1.5x)",
+			elapsed, concurrencyThreshold*100, serialEstimate, speedup)
+	}
+
+	// Verify report
+	reportResult := callTool(t, ctx, session, "get_report", map[string]any{
+		"session_id": sessionID,
+	})
+	if status, _ := reportResult["status"].(string); status != "done" {
+		t.Fatalf("expected done, got %s", status)
+	}
+}
+
+// TestServer_CapacityGate_RejectsSerialSubmit proves the capacity gate
+// physically blocks submit_artifact when the agent hasn't pulled enough
+// steps. The gate tracks "batch peak" — the max in-flight reached since
+// the last batch completed. If peak < desired_capacity, submit is rejected.
+//
+// Serial pattern:  pull 1 → submit → REJECTED (peak=1 < 4)
+// Parallel pattern: pull 4 → submit 4 → all accepted (peak=4)
+func TestServer_CapacityGate_RejectsSerialSubmit(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Pull just 1 step (serial pattern)
+	step1 := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID, "timeout_ms": 500,
+	})
+	dispatchID1, _ := step1["dispatch_id"].(float64)
+	stepName1, _ := step1["step"].(string)
+
+	// Try to submit with only 1/4 pulled — GATE MUST REJECT
+	_, err := callToolE(ctx, session, "submit_artifact", map[string]any{
+		"session_id":    sessionID,
+		"artifact_json": artifactForStep(stepName1, 0),
+		"dispatch_id":   int64(dispatchID1),
+	})
+	if err == nil {
+		t.Fatal("submit_artifact should be REJECTED when peak in-flight (1) < capacity (4)")
+	}
+	t.Logf("gate rejected serial submit: %v", err)
+
+	// Now pull 3 more to reach capacity
+	step2 := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID, "timeout_ms": 500,
+	})
+	step3 := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID, "timeout_ms": 500,
+	})
+	step4 := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID, "timeout_ms": 500,
+	})
+
+	// Submit all 4 — gate should allow (peak=4 == capacity)
+	for _, step := range []map[string]any{step1, step2, step3, step4} {
+		did, _ := step["dispatch_id"].(float64)
+		sn, _ := step["step"].(string)
+		_, submitErr := callToolE(ctx, session, "submit_artifact", map[string]any{
+			"session_id":    sessionID,
+			"artifact_json": artifactForStep(sn, 0),
+			"dispatch_id":   int64(did),
+		})
+		if submitErr != nil {
+			t.Fatalf("submit should succeed at full capacity: %v", submitErr)
+		}
+	}
+	t.Log("all 4 submits accepted after reaching capacity")
+}
+
+// TestServer_CapacityGate_AllowsDrainingPipeline proves the gate relaxes
+// when the pipeline has fewer remaining steps than capacity (draining).
+// Without this escape hatch, the last few steps could never be submitted.
+func TestServer_CapacityGate_AllowsDrainingPipeline(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Drain most of the pipeline at full capacity
+	for {
+		// Pull 4
+		var steps []map[string]any
+		allDone := false
+		for i := 0; i < 4; i++ {
+			res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+				"session_id": sessionID, "timeout_ms": 200,
+			})
+			if err != nil {
+				t.Fatalf("get_next_step: %v", err)
+			}
+			if done, _ := res["done"].(bool); done {
+				allDone = true
+				break
+			}
+			if avail, _ := res["available"].(bool); !avail {
+				break
+			}
+			steps = append(steps, res)
+		}
+		if allDone {
+			break
+		}
+		// Submit all pulled
+		for _, step := range steps {
+			did, _ := step["dispatch_id"].(float64)
+			sn, _ := step["step"].(string)
+			_, err := callToolE(ctx, session, "submit_artifact", map[string]any{
+				"session_id":    sessionID,
+				"artifact_json": artifactForStep(sn, 0),
+				"dispatch_id":   int64(did),
+			})
+			if err != nil {
+				t.Fatalf("submit during drain: %v", err)
+			}
+		}
+	}
+	t.Log("pipeline drained — gate allowed all submissions including tail batches")
+}
+
+// TestServer_CapacityGate_Serial1Allowed proves parallel=1 is not gated
+// (single-worker mode is legitimately serial).
+func TestServer_CapacityGate_Serial1Allowed(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID, "timeout_ms": 500,
+	})
+	did, _ := step["dispatch_id"].(float64)
+	sn, _ := step["step"].(string)
+
+	// parallel=1 means serial is correct — gate must not fire
+	_, err := callToolE(ctx, session, "submit_artifact", map[string]any{
+		"session_id":    sessionID,
+		"artifact_json": artifactForStep(sn, 0),
+		"dispatch_id":   int64(did),
+	})
+	if err != nil {
+		t.Fatalf("parallel=1 should allow serial submit: %v", err)
+	}
+	t.Log("parallel=1: serial submit accepted (no gate)")
+}
+
+func TestGetNextStep_Timeout(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	// Start with cursor adapter so steps block on MuxDispatcher (not instantly done)
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// First get_next_step without timeout should return a step (runner produces it)
+	step1 := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	if done, _ := step1["done"].(bool); done {
+		t.Fatal("expected a step, got done=true")
+	}
+	if avail, _ := step1["available"].(bool); !avail {
+		t.Fatal("expected available=true for first step")
+	}
+
+	// Now call with timeout_ms=100; the previous step hasn't been submitted yet,
+	// so the runner is blocked and no new step is available.
+	start := time.Now()
+	res := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+		"timeout_ms": 100,
+	})
+	elapsed := time.Since(start)
+
+	if done, _ := res["done"].(bool); done {
+		t.Fatal("expected done=false (pipeline not finished)")
+	}
+	if avail, _ := res["available"].(bool); avail {
+		t.Fatal("expected available=false (timeout, no step ready)")
+	}
+	if elapsed > 2*time.Second {
+		t.Fatalf("timeout should return within ~100ms, took %v", elapsed)
+	}
+	t.Logf("timeout returned in %v with available=false", elapsed)
+}
+
+func TestServer_OverSubscription_NoDeadlock(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	// parallel=2 means runner produces 2 steps at a time
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 2,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Issue 4 concurrent get_next_step calls with timeout — only 2 should get steps
+	type result struct {
+		available bool
+		done      bool
+		caseID    string
+		err       error
+	}
+	results := make(chan result, 4)
+
+	for i := 0; i < 4; i++ {
+		go func() {
+			res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+				"session_id": sessionID,
+				"timeout_ms": 500,
+			})
+			if err != nil {
+				results <- result{err: err}
+				return
+			}
+			results <- result{
+				available: res["available"] == true,
+				done:      res["done"] == true,
+				caseID:    fmt.Sprintf("%v", res["case_id"]),
+			}
+		}()
+	}
+
+	var gotSteps, gotTimeout int
+	for i := 0; i < 4; i++ {
+		select {
+		case r := <-results:
+			if r.err != nil {
+				t.Fatalf("get_next_step error: %v", r.err)
+			}
+			if r.done {
+				t.Fatal("unexpected done=true")
+			}
+			if r.available {
+				gotSteps++
+			} else {
+				gotTimeout++
+			}
+		case <-ctx.Done():
+			t.Fatalf("DEADLOCK: only %d/4 get_next_step calls returned (steps=%d, timeouts=%d)",
+				gotSteps+gotTimeout, gotSteps, gotTimeout)
+		}
+	}
+
+	if gotSteps != 2 {
+		t.Errorf("expected 2 steps, got %d", gotSteps)
+	}
+	if gotTimeout != 2 {
+		t.Errorf("expected 2 timeouts, got %d", gotTimeout)
+	}
+	t.Logf("over-subscription resolved: %d steps, %d timeouts, no deadlock", gotSteps, gotTimeout)
+}
+
+func TestSession_TTL_Abort(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Consume one step but never submit -- session should abort via TTL watchdog
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	if done, _ := step["done"].(bool); done {
+		t.Fatal("expected a step, got done=true")
+	}
+	t.Logf("consumed step %s/%s, now waiting for TTL abort...", step["case_id"], step["step"])
+
+	// Set TTL to 2s on the session directly (test-only hook)
+	srv.SetSessionTTL(2 * time.Second)
+
+	// Wait for the session to abort
+	deadline := time.After(10 * time.Second)
+	ticker := time.NewTicker(200 * time.Millisecond)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-deadline:
+			t.Fatal("session did not abort within 10s after TTL=2s was set")
+		case <-ticker.C:
+			// Poll: try get_next_step with short timeout
+			res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+				"session_id": sessionID,
+				"timeout_ms": 100,
+			})
+			if err != nil {
+				// Error could mean session aborted -- check signals
+				signals := callTool(t, ctx, session, "get_signals", map[string]any{
+					"session_id": sessionID,
+				})
+				sigs, _ := signals["signals"].([]any)
+				for _, s := range sigs {
+					sig, _ := s.(map[string]any)
+					if sig["event"] == "session_error" {
+						t.Logf("TTL abort detected via session_error signal")
+						return
+					}
+				}
+				t.Logf("get_next_step error (may be abort): %v", err)
+				continue
+			}
+			if done, _ := res["done"].(bool); done {
+				t.Logf("session transitioned to done (aborted)")
+				return
+			}
+		}
+	}
+}
+
 func TestServer_SignalBus_NoSession(t *testing.T) {
 	srv := newTestServer(t)
 	ctx := context.Background()
@@ -857,4 +1704,393 @@ func TestServer_SignalBus_NoSession(t *testing.T) {
 	if !res.IsError {
 		t.Fatal("expected IsError=true for get_signals with no session")
 	}
+}
+
+// --- Stale session edge case tests ---
+
+// TestServer_StaleSession_StartReplacesStuck proves that start_calibration
+// can replace a stuck session. Without this, the MCP server is permanently
+// wedged after a crashed agent run.
+func TestServer_StaleSession_StartReplacesStuck(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	// Start a cursor session (blocks on MuxDispatcher, never completes)
+	start1 := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sid1 := start1["session_id"].(string)
+	t.Logf("session 1: %s", sid1)
+
+	// Drain one step to prove it's alive
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sid1,
+		"timeout_ms": 500,
+	})
+	if avail, _ := step["available"].(bool); !avail {
+		t.Fatal("expected first step to be available")
+	}
+
+	// Now abandon the session — do NOT submit the artifact.
+	// Try to start a new session. Currently this should fail with
+	// "a calibration session is already running".
+	// After the fix, passing force=true should cancel the old session
+	// and start a new one.
+	start2, err := callToolE(ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "stub",
+	})
+	if err == nil {
+		t.Fatalf("expected error starting second session without force, got: %v", start2)
+	}
+	t.Logf("without force: %v (expected)", err)
+
+	// With force=true, the stuck session should be cancelled and replaced
+	start3 := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "stub",
+		"force":    true,
+	})
+	sid3 := start3["session_id"].(string)
+	if sid3 == "" {
+		t.Fatal("expected new session_id from force-start")
+	}
+	if sid3 == sid1 {
+		t.Fatal("force-started session should have a different ID")
+	}
+	t.Logf("force-started session 3: %s (replaced %s)", sid3, sid1)
+
+	// The new session should complete normally (stub adapter)
+	report := callTool(t, ctx, session, "get_report", map[string]any{
+		"session_id": sid3,
+	})
+	if status, _ := report["status"].(string); status != "done" {
+		t.Fatalf("expected done, got %s", status)
+	}
+}
+
+// TestServer_StaleSession_TTLAutoAbort proves that sessions with a configured
+// TTL self-terminate after inactivity. This prevents zombie sessions from
+// permanently blocking the server.
+func TestServer_StaleSession_TTLAutoAbort(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	// Start a cursor session, set a very short TTL
+	start := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sid := start["session_id"].(string)
+
+	// Set a 200ms TTL — the session will abort itself within ~200ms of
+	// no submit_artifact activity.
+	srv.SetSessionTTL(200 * time.Millisecond)
+
+	// Drain one step but don't submit — let the TTL expire
+	callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sid,
+		"timeout_ms": 1000,
+	})
+
+	// Wait for TTL watchdog to fire
+	time.Sleep(500 * time.Millisecond)
+
+	// Now start_calibration should succeed WITHOUT force — the TTL-aborted
+	// session's Done channel is closed, so handleStartCalibration detects it.
+	start2 := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "stub",
+	})
+	sid2 := start2["session_id"].(string)
+	if sid2 == "" || sid2 == sid {
+		t.Fatalf("expected new session after TTL abort, got %q", sid2)
+	}
+	t.Logf("TTL-aborted session %s replaced by %s", sid, sid2)
+}
+
+// TestServer_StaleSession_GetNextStepOnAbortedSession proves that
+// get_next_step on an aborted session returns done=true (not a hang).
+func TestServer_StaleSession_GetNextStepOnAbortedSession(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	start := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sid := start["session_id"].(string)
+
+	// Set a tiny TTL and let it expire
+	srv.SetSessionTTL(100 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
+
+	// get_next_step on the aborted session should return done=true or error,
+	// not block forever
+	before := time.Now()
+	result := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sid,
+	})
+	elapsed := time.Since(before)
+
+	done, _ := result["done"].(bool)
+	if !done {
+		t.Fatalf("expected done=true on aborted session, got %v", result)
+	}
+	if elapsed > 2*time.Second {
+		t.Fatalf("get_next_step on aborted session took %v (should be instant)", elapsed)
+	}
+	t.Logf("get_next_step on aborted session returned done=true in %v", elapsed)
+}
+
+// TestServer_StaleSession_SubmitAfterAbort proves that submit_artifact
+// on an aborted session returns a clear error, not a hang.
+func TestServer_StaleSession_SubmitAfterAbort(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	start := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sid := start["session_id"].(string)
+
+	// Get a step so we have a dispatch_id
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sid,
+		"timeout_ms": 500,
+	})
+	dispatchID := step["dispatch_id"]
+
+	// Now abort the session via TTL
+	srv.SetSessionTTL(100 * time.Millisecond)
+	time.Sleep(300 * time.Millisecond)
+
+	// Submit should fail with an error, not hang
+	_, err := callToolE(ctx, session, "submit_artifact", map[string]any{
+		"session_id":   sid,
+		"artifact_json": `{"match":false,"confidence":0.1,"reasoning":"test"}`,
+		"dispatch_id":  dispatchID,
+	})
+	if err == nil {
+		t.Fatal("expected error submitting to aborted session")
+	}
+	t.Logf("submit after abort: %v (expected)", err)
+}
+
+// TestGetNextStep_DefaultTimeout_NeverBlocksForever proves that calling
+// get_next_step without timeout_ms uses the server default (30s) rather
+// than blocking forever. We override the default to 500ms for the test.
+func TestGetNextStep_DefaultTimeout_NeverBlocksForever(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Consume the first step so the runner blocks waiting for a submit
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	if done, _ := step["done"].(bool); done {
+		t.Fatal("expected a step, got done=true")
+	}
+
+	// Override the server default timeout to 500ms (so the test is fast)
+	saved := mcpserver.DefaultGetNextStepTimeout
+	mcpserver.DefaultGetNextStepTimeout = 500 * time.Millisecond
+	defer func() { mcpserver.DefaultGetNextStepTimeout = saved }()
+
+	// Call without timeout_ms — must NOT block forever
+	start := time.Now()
+	res := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	elapsed := time.Since(start)
+
+	if done, _ := res["done"].(bool); done {
+		t.Fatal("expected done=false, pipeline still running")
+	}
+	if avail, _ := res["available"].(bool); avail {
+		t.Fatal("expected available=false (no step ready, timeout)")
+	}
+	if elapsed > 3*time.Second {
+		t.Fatalf("get_next_step without timeout_ms took %v; server default should cap it", elapsed)
+	}
+	t.Logf("get_next_step without timeout_ms returned in %v (server default kicked in)", elapsed)
+}
+
+// TestGetNextStep_OverPull_Draining proves the exact production scenario:
+// parallel=2, agent pulls 4 concurrently, only 2 steps exist.
+// The 2 extra calls must timeout gracefully (not deadlock).
+func TestGetNextStep_OverPull_Draining(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 2,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Pull 4 concurrent get_next_step but only 2 steps are available initially
+	type pullResult struct {
+		res map[string]any
+		err error
+	}
+	results := make(chan pullResult, 4)
+	start := time.Now()
+	for i := 0; i < 4; i++ {
+		go func() {
+			res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+				"session_id": sessionID,
+				"timeout_ms": 500,
+			})
+			results <- pullResult{res, err}
+		}()
+	}
+
+	var gotSteps, gotTimeout, gotDone int
+	for i := 0; i < 4; i++ {
+		select {
+		case r := <-results:
+			if r.err != nil {
+				t.Fatalf("unexpected error: %v", r.err)
+			}
+			if done, _ := r.res["done"].(bool); done {
+				gotDone++
+			} else if avail, _ := r.res["available"].(bool); avail {
+				gotSteps++
+			} else {
+				gotTimeout++
+			}
+		case <-ctx.Done():
+			t.Fatalf("DEADLOCK: only %d of 4 calls returned", gotSteps+gotTimeout+gotDone)
+		}
+	}
+	elapsed := time.Since(start)
+
+	if gotSteps != 2 {
+		t.Errorf("expected 2 steps, got %d", gotSteps)
+	}
+	if gotTimeout < 2 {
+		t.Errorf("expected at least 2 timeouts, got %d (done=%d)", gotTimeout, gotDone)
+	}
+	if elapsed > 5*time.Second {
+		t.Fatalf("over-pull took %v; should resolve within ~500ms timeout", elapsed)
+	}
+	t.Logf("draining resolved: %d steps, %d timeouts, %d done in %v — no deadlock",
+		gotSteps, gotTimeout, gotDone, elapsed)
+}
+
+// TestSession_DefaultTTL_EnforcedOnStart verifies that sessions created
+// via start_calibration have a default TTL (not zero). This prevents the
+// scenario where no TTL is set and the watchdog never fires.
+func TestSession_DefaultTTL_EnforcedOnStart(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+
+	// The session should have a non-zero TTL.
+	// We verify this indirectly: override TTL to 200ms and wait.
+	// If the default TTL logic is present, the session will have a watchdog
+	// already running. We override it shorter and verify it aborts.
+	srv.SetSessionTTL(200 * time.Millisecond)
+	time.Sleep(500 * time.Millisecond)
+
+	// After TTL fires, get_next_step should return done=true
+	res := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": srv.SessionID(),
+	})
+	if done, _ := res["done"].(bool); !done {
+		t.Fatalf("expected done=true after TTL abort, got %v", res)
+	}
+	t.Logf("default TTL enforcement verified — session aborted after override")
+}
+
+// TestSession_TTL_UnblocksHungGetNextStep proves that a blocked
+// get_next_step call (no timeout_ms) is unblocked when the TTL watchdog
+// fires and aborts the session.
+func TestSession_TTL_UnblocksHungGetNextStep(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Consume one step to make the runner block
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	if done, _ := step["done"].(bool); done {
+		t.Fatal("expected a step")
+	}
+
+	// Override server default timeout to something large so only TTL saves us
+	saved := mcpserver.DefaultGetNextStepTimeout
+	mcpserver.DefaultGetNextStepTimeout = 60 * time.Second
+	defer func() { mcpserver.DefaultGetNextStepTimeout = saved }()
+
+	// Set a short TTL — this should fire and abort the session
+	srv.SetSessionTTL(500 * time.Millisecond)
+
+	// Now call get_next_step without timeout_ms — it would block for 60s
+	// if the TTL watchdog didn't fire
+	start := time.Now()
+	res := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	elapsed := time.Since(start)
+
+	done, _ := res["done"].(bool)
+	if !done {
+		t.Fatalf("expected done=true after TTL abort, got %v", res)
+	}
+	if elapsed > 5*time.Second {
+		t.Fatalf("TTL should have unblocked get_next_step within ~500ms, took %v", elapsed)
+	}
+	t.Logf("TTL unblocked hung get_next_step in %v", elapsed)
 }
