@@ -32,10 +32,9 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `subagent-testing-framework.md` | Deterministic subagent dispatch assertions, color-tagged log filtering, and routing replay for reproducible multi-adapter testing. | PoC completion (SHOULD) |
 | `agent-adapter-overloading.md` | Multi-adapter orchestration. **Phase 1 absorbed by `agentic-framework-III.1-personae.md`.** | Architecture evolution |
 | `agentmux-decoupling.md` | Extract generic agent orchestration. **Absorbed by `agentic-framework-I.1-ontology.md`.** | Architecture evolution |
-| `agentic-framework-III.2-masks.md` | Detachable capability modifiers (middleware). Bionicle Kanohi / Jungian Persona. | Framework Tome III |
 | `agentic-framework-III.3-shadow.md` | Adversarial pipeline pattern. Light/Shadow contest. Absorbs defect-court. | Framework Tome III |
 
-## completed/ -- Historical record (57 completed contracts)
+## completed/ -- Historical record (58 completed contracts)
 
 Grouped by original development phase. All contracts below are **complete** (or closed).
 
@@ -131,7 +130,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `architecture-snapshots.md` | Architecture diagrams as first-class artifacts; current/desired state snapshots; retrofit 3 contracts; extend `docs/architecture.md`. |
 | `soul-red-hat-telco.md` | Red Hat identity, telco mission, OSS philosophy, and scale awareness encoded into strategy, invariants, and standards. |
 
-### completed/framework/ (5)
+### completed/framework/ (6)
 
 | Contract | Goal |
 |----------|------|
@@ -140,6 +139,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `agentic-framework-II.1-elements.md` | 6 elements with quantified behavioral traits. Iron as evolved Earth. |
 | `agentic-framework-II.2-cycles.md` | Generative/destructive interaction cycles. Scheduler routing rules. |
 | `agentic-framework-III.1-personae.md` | AgentIdentity (Color x Element x Position x Alignment). 4 Light + 4 Shadow personas. |
+| `agentic-framework-III.2-masks.md` | Detachable capability modifiers (middleware). 4 Light masks. |
 
 ### completed/output/ (6)
 

@@ -23,5 +23,5 @@ type Artifact interface {
 type NodeContext struct {
 	WalkerState   *WalkerState
 	PriorArtifact Artifact
-	Meta          map[string]string
+	Meta          map[string]any
 }

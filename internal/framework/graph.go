@@ -123,7 +123,7 @@ func (g *DefaultGraph) Walk(ctx context.Context, walker Walker, startNode string
 		nc := NodeContext{
 			WalkerState:   state,
 			PriorArtifact: priorArtifact,
-			Meta:          make(map[string]string),
+			Meta:          make(map[string]any),
 		}
 
 		artifact, err := walker.Handle(ctx, node, nc)

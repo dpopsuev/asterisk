@@ -1,6 +1,6 @@
 # Contract -- Agentic Framework III.2: Masks
 
-**Status:** draft
+**Status:** complete
 **Goal:** Define masks as detachable capability modifiers that agents can equip at specific pipeline nodes, inspired by Bionicle Kanohi masks and Jungian persona theory. Implement as middleware wrapping Node.Process.
 **Serves:** Architecture evolution (Framework identity)
 
@@ -111,20 +111,20 @@ func (mn *MaskedNode) Process(ctx context.Context, nc NodeContext) (Artifact, er
 
 ## Tasks
 
-- [ ] Define Mask interface: Name(), Description(), ValidNodes(), Wrap()
-- [ ] Define NodeProcessor function type
-- [ ] Define MaskRegistry type
-- [ ] Implement MaskedNode struct with Process method (middleware chain)
-- [ ] Implement EquipMask(node, mask) with valid-node check
-- [ ] Implement EquipMasks(node, masks...) for multi-mask stacking
-- [ ] Implement skeleton RecallMask -- valid at "recall" node
-- [ ] Implement skeleton ForgeMask -- valid at "investigate" node
-- [ ] Implement skeleton CorrelationMask -- valid at "correlate" node
-- [ ] Implement skeleton JudgmentMask -- valid at "review" node
-- [ ] Write `internal/framework/mask_test.go` -- wrapping, chaining, ordering, invalid node rejection
-- [ ] Validate (green) -- go build ./..., all tests pass
-- [ ] Tune (blue) -- review middleware chain for correctness and performance
-- [ ] Validate (green) -- all tests still pass after tuning
+- [x] Define Mask interface: Name(), Description(), ValidNodes(), Wrap()
+- [x] Define NodeProcessor function type
+- [x] Define MaskRegistry type
+- [x] Implement MaskedNode struct with Process method (middleware chain)
+- [x] Implement EquipMask(node, mask) with valid-node check
+- [x] Implement EquipMasks(node, masks...) for multi-mask stacking
+- [x] Implement skeleton RecallMask -- valid at "recall" node
+- [x] Implement skeleton ForgeMask -- valid at "investigate" node
+- [x] Implement skeleton CorrelationMask -- valid at "correlate" node
+- [x] Implement skeleton JudgmentMask -- valid at "review" node
+- [x] Write `internal/framework/mask_test.go` -- wrapping, chaining, ordering, invalid node rejection
+- [x] Validate (green) -- go build ./..., all tests pass
+- [x] Tune (blue) -- review middleware chain for correctness and performance
+- [x] Validate (green) -- all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -142,6 +142,7 @@ func (mn *MaskedNode) Process(ctx context.Context, nc NodeContext) (Artifact, er
 
 ## Notes
 
+- 2026-02-21 20:00 -- Contract complete. Mask interface, MaskedNode (middleware chain), EquipMask/EquipMasks with node validation, 4 Light masks (Recall, Forge, Correlation, Judgment), DefaultLightMasks registry. 10 mask tests including middleware ordering. NodeContext.Meta widened from `map[string]string` to `map[string]any` for richer context injection. Moved to `completed/framework/`.
 - 2026-02-20 -- Contract created. Masks are the Kanohi of the Framework -- they grant specific powers at specific nodes without changing the agent's core identity. This maps to Jung's concept of persona: the mask we wear for specific social contexts.
 - Shadow pipeline masks (Indictment, Discovery) are listed for completeness but implemented in III.3-shadow.
 - Depends on I.1-ontology for Node, Artifact, NodeContext interfaces. Depends on III.1-personae for AgentIdentity (masks don't change identity, but identity determines which masks are available).
