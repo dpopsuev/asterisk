@@ -216,7 +216,7 @@ type stubBuildWalker struct {
 	state *WalkerState
 }
 
-func (w *stubBuildWalker) Identity() AgentIdentity { return AgentIdentity{Name: "test"} }
+func (w *stubBuildWalker) Identity() AgentIdentity { return AgentIdentity{PersonaName: "test"} }
 func (w *stubBuildWalker) State() *WalkerState     { return w.state }
 func (w *stubBuildWalker) Handle(_ context.Context, node Node, nc NodeContext) (Artifact, error) {
 	return node.Process(context.Background(), nc)

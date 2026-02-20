@@ -1,6 +1,6 @@
 # Contract -- Agentic Framework III.1: Personae
 
-**Status:** draft
+**Status:** complete
 **Goal:** Define the complete agent identity as a composite of four axes (Color, Element, Position, Alignment) and declare 4 Light + 4 Shadow personas for the PoC pipeline. Absorb scope of agent-adapter-overloading.md.
 **Serves:** Architecture evolution (Framework identity)
 
@@ -186,21 +186,20 @@ func HomeZoneFor(p Position) MetaPhase
 
 ## Tasks
 
-- [ ] Define Color struct with Name, DisplayName, Hex, Family
-- [ ] Define Alignment type and constants (Light, Shadow)
-- [ ] Define Position type and constants (PG, SG, PF, C)
-- [ ] Define MetaPhase type and constants (Backcourt, Frontcourt, Paint)
-- [ ] Define CostProfile struct
-- [ ] Define AgentIdentity struct with all four axes + operational fields
-- [ ] Define Persona struct with Identity + Description
-- [ ] Implement LightPersonas() -- Herald, Seeker, Sentinel, Weaver with full traits
-- [ ] Implement ShadowPersonas() -- Challenger, Abyss, Bulwark, Specter with full traits
-- [ ] Implement AllPersonas(), PersonaByName(), HomeZoneFor()
-- [ ] Write `internal/framework/identity_test.go` -- verify all personas, lookup functions, axis independence
-- [ ] Write `internal/framework/color_test.go` -- verify palette completeness, hex values, family groupings
-- [ ] Validate (green) -- go build, all tests pass, single-adapter mode unchanged
-- [ ] Tune (blue) -- review persona trait values, align with calibration experience
-- [ ] Validate (green) -- all tests still pass after tuning
+- [x] Define Color struct with Name, DisplayName, Hex, Family
+- [x] Define Alignment type and constants (Light, Shadow)
+- [x] Define Position type and constants (PG, SG, PF, C)
+- [x] Define MetaPhase type and constants (Backcourt, Frontcourt, Paint)
+- [x] Define CostProfile struct
+- [x] Define AgentIdentity struct with all four axes + operational fields
+- [x] Define Persona struct with Identity + Description
+- [x] Implement LightPersonas() -- Herald, Seeker, Sentinel, Weaver with full traits
+- [x] Implement ShadowPersonas() -- Challenger, Abyss, Bulwark, Specter with full traits
+- [x] Implement AllPersonas(), PersonaByName(), HomeZoneFor()
+- [x] Write `internal/framework/persona_test.go` -- verify all personas, lookup functions, axis independence, color palette
+- [x] Validate (green) -- go build, all tests pass, single-adapter mode unchanged
+- [x] Tune (blue) -- review persona trait values, align with calibration experience
+- [x] Validate (green) -- all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -222,6 +221,7 @@ func HomeZoneFor(p Position) MetaPhase
 
 ## Notes
 
+- 2026-02-21 19:30 -- Contract complete. AgentIdentity expanded from placeholder to 5-axis struct (Color, Element, Position, Alignment, Model). 8 personas defined (4 Light: Herald/Seeker/Sentinel/Weaver, 4 Shadow: Challenger/Abyss/Bulwark/Specter). Color palette with 8 hex-coded colors. 21 persona tests passing. Single-adapter mode unaffected. Moved to `completed/framework/`.
 - 2026-02-21 14:30 -- DSL design principles diffusion (P3, P7): persona definitions could be expressed in YAML as a progressive disclosure extension. A `personas.yaml` file declaring the 8 curated personas (color, element, position, alignment, step affinity, prompt preamble) would complement the pipeline YAML files from I.2-characteristica. This is a future extension -- the current contract defines personas as Go registry functions. The YAML layer can be added once I.2's DSL and `LoadPipeline` patterns are proven and stable.
 - 2026-02-20 21:30 -- Agent identification diffusion: added Axis 5 (Model) to AgentIdentity. `ModelIdentity`, `KnownModels`, `KnownWrappers`, and `Identifiable` are already implemented. Live probes confirmed `claude-sonnet-4-20250514/Anthropic (via Cursor)`. This contract must preserve the existing `ModelIdentity` type when replacing the `AgentIdentity` placeholder, and add a `Model` field so every persona carries its ghost identity.
 - 2026-02-20 -- Contract created. Absorbs agent-adapter-overloading.md Phase 1 scope. The AdapterTraits struct from that contract is replaced by AgentIdentity here, which adds Element and Alignment axes on top of the existing Color and Position axes.

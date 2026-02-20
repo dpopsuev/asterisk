@@ -59,7 +59,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.2-characteristica`~~ | **complete** | Pipeline DSL (YAML/Go). Orchestrate bridge. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.1-elements`~~ | **complete** | 6 elements with quantified behavioral traits. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.2-cycles`~~ | **complete** | Generative/destructive interaction cycles. Moved to `completed/framework/`. |
-| **vision — Framework Tome III** | `agentic-framework-III.1-personae` | draft | AgentIdentity (Color x Element x Position x Alignment). 4 Light + 4 Shadow personas. Absorbs `agent-adapter-overloading` Phase 1. |
+| ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.1-personae`~~ | **complete** | AgentIdentity 5-axis, 8 personas (4L+4S). Moved to `completed/framework/`. |
 | **vision — Framework Tome III** | `agentic-framework-III.2-masks` | draft | Detachable capability modifiers (middleware). Bionicle Kanohi / Jungian Persona. |
 | **vision — Framework Tome III** | `agentic-framework-III.3-shadow` | draft | Adversarial pipeline pattern. Light/Shadow contest. Absorbs `defect-court`. |
 
