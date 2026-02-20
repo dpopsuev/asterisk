@@ -1,0 +1,174 @@
+# F0-F6 Root Cause Analysis pipeline.
+# Source of truth for the RCA graph structure.
+# Edge evaluation logic is registered via EdgeFactory in Go.
+pipeline: rca-investigation
+description: "F0-F6 root cause analysis pipeline"
+
+zones:
+  backcourt:
+    nodes: [recall, triage]
+    element: fire
+    stickiness: 0
+  frontcourt:
+    nodes: [resolve, investigate]
+    element: water
+    stickiness: 3
+  paint:
+    nodes: [correlate, review, report]
+    element: air
+    stickiness: 1
+
+nodes:
+  - name: recall
+    element: fire
+    family: recall
+  - name: triage
+    element: fire
+    family: triage
+  - name: resolve
+    element: earth
+    family: resolve
+  - name: investigate
+    element: water
+    family: investigate
+  - name: correlate
+    element: air
+    family: correlate
+  - name: review
+    element: diamond
+    family: review
+  - name: report
+    element: air
+    family: report
+
+edges:
+  - id: H1
+    name: recall-hit
+    from: recall
+    to: review
+    shortcut: true
+    condition: "confidence >= recall_hit_threshold"
+
+  - id: H3
+    name: recall-uncertain
+    from: recall
+    to: triage
+    condition: "recall_uncertain <= confidence < recall_hit"
+
+  - id: H2
+    name: recall-miss
+    from: recall
+    to: triage
+    condition: "confidence < recall_uncertain OR no match"
+
+  - id: H4
+    name: triage-skip-infra
+    from: triage
+    to: review
+    shortcut: true
+    condition: "symptom_category == infra"
+
+  - id: H5
+    name: triage-skip-flake
+    from: triage
+    to: review
+    shortcut: true
+    condition: "symptom_category == flake"
+
+  - id: H18
+    name: triage-skip-investigation
+    from: triage
+    to: review
+    shortcut: true
+    condition: "skip_investigation == true"
+
+  - id: H17
+    name: triage-clock-skew
+    from: triage
+    to: triage
+    condition: "clock_skew_suspected (advisory, no routing change)"
+
+  - id: H7
+    name: triage-single-repo
+    from: triage
+    to: investigate
+    shortcut: true
+    condition: "single candidate repo, skip resolve"
+
+  - id: H6
+    name: triage-investigate
+    from: triage
+    to: resolve
+    condition: "default (investigation needed)"
+
+  - id: H8
+    name: resolve-proceed
+    from: resolve
+    to: investigate
+    condition: "repos resolved, proceed to investigate"
+
+  - id: H9
+    name: investigate-converged
+    from: investigate
+    to: correlate
+    condition: "convergence_score >= convergence_sufficient"
+
+  - id: H10a
+    name: investigate-no-evidence-skip
+    from: investigate
+    to: correlate
+    condition: "low convergence but zero evidence refs"
+
+  - id: H10
+    name: investigate-loop
+    from: investigate
+    to: resolve
+    loop: true
+    condition: "convergence_score < convergence_sufficient AND loops < max_loops"
+
+  - id: H11
+    name: investigate-exhausted
+    from: investigate
+    to: review
+    condition: "loops >= max_loops"
+
+  - id: H15
+    name: correlate-dup
+    from: correlate
+    to: _done
+    shortcut: true
+    condition: "is_duplicate AND confidence >= correlate_dup_threshold"
+
+  - id: H15b
+    name: correlate-proceed
+    from: correlate
+    to: review
+    condition: "correlation complete, proceed to review"
+
+  - id: H12
+    name: review-approve
+    from: review
+    to: report
+    condition: "decision == approve"
+
+  - id: H13
+    name: review-reassess
+    from: review
+    to: resolve
+    loop: true
+    condition: "decision == reassess"
+
+  - id: H14
+    name: review-overturn
+    from: review
+    to: report
+    condition: "decision == overturn"
+
+  - id: H16
+    name: report-done
+    from: report
+    to: _done
+    condition: "always (terminal)"
+
+start: recall
+done: _done

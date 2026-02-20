@@ -1,0 +1,82 @@
+# D0-D4 Defect Court adversarial pipeline (structure only).
+# Process implementations are defined by III.3-shadow.
+pipeline: defect-court
+description: "D0-D4 adversarial review pipeline"
+
+zones:
+  prosecution:
+    nodes: [challenge, cross-examine]
+    element: fire
+    stickiness: 2
+  defense:
+    nodes: [counter-investigate, rebut]
+    element: water
+    stickiness: 2
+  bench:
+    nodes: [verdict]
+    element: diamond
+    stickiness: 0
+
+nodes:
+  - name: challenge
+    element: fire
+    family: challenge
+  - name: cross-examine
+    element: fire
+    family: cross-examine
+  - name: counter-investigate
+    element: water
+    family: counter-investigate
+  - name: rebut
+    element: water
+    family: rebut
+  - name: verdict
+    element: diamond
+    family: verdict
+
+edges:
+  - id: D1
+    name: challenge-accepted
+    from: challenge
+    to: counter-investigate
+    condition: "challenge has merit, investigate counter-evidence"
+
+  - id: D2
+    name: challenge-dismissed
+    from: challenge
+    to: verdict
+    shortcut: true
+    condition: "challenge lacks evidence, fast-track to verdict"
+
+  - id: D3
+    name: counter-evidence-found
+    from: counter-investigate
+    to: cross-examine
+    condition: "counter-evidence found, cross-examine"
+
+  - id: D4
+    name: counter-evidence-absent
+    from: counter-investigate
+    to: verdict
+    condition: "no counter-evidence, proceed to verdict"
+
+  - id: D5
+    name: cross-examine-rebut
+    from: cross-examine
+    to: rebut
+    condition: "cross-examination complete, defense rebuts"
+
+  - id: D6
+    name: rebut-verdict
+    from: rebut
+    to: verdict
+    condition: "rebuttal complete, proceed to verdict"
+
+  - id: D7
+    name: verdict-done
+    from: verdict
+    to: _done
+    condition: "verdict rendered (terminal)"
+
+start: challenge
+done: _done

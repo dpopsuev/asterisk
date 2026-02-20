@@ -11,9 +11,10 @@ import (
 
 // RunnerConfig holds configuration for the pipeline runner.
 type RunnerConfig struct {
-	PromptDir  string     // directory containing prompt templates (e.g. ".cursor/prompts")
-	Thresholds Thresholds // configurable thresholds for heuristics
-	BasePath   string     // root directory for investigation artifacts; defaults to DefaultBasePath
+	PromptDir  string         // directory containing prompt templates (e.g. ".cursor/prompts")
+	Thresholds Thresholds     // configurable thresholds for heuristics
+	BasePath   string         // root directory for investigation artifacts; defaults to DefaultBasePath
+	Graph      *PipelineGraph // YAML-defined pipeline graph with heuristic edge evaluation
 }
 
 // DefaultRunnerConfig returns a RunnerConfig with sensible defaults.
@@ -104,9 +105,8 @@ func RunStep(
 			break // no artifact yet; need to generate prompt for this step
 		}
 
-		// Artifact exists — evaluate heuristics
-		rules := DefaultHeuristics(cfg.Thresholds)
-		action, ruleID := EvaluateHeuristics(rules, state.CurrentStep, artifact, state)
+		// Artifact exists — evaluate graph edges
+		action, ruleID := cfg.evaluateStep(state.CurrentStep, artifact, state)
 
 		logging.New("orchestrate").Info("heuristic evaluated",
 			"step", string(state.CurrentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
@@ -190,8 +190,7 @@ func SaveArtifactAndAdvance(
 		return nil, fmt.Errorf("no artifact found for step %s in %s", state.CurrentStep, caseDir)
 	}
 
-	rules := DefaultHeuristics(cfg.Thresholds)
-	action, ruleID := EvaluateHeuristics(rules, state.CurrentStep, artifact, state)
+	action, ruleID := cfg.evaluateStep(state.CurrentStep, artifact, state)
 
 	logging.New("orchestrate").Info("save: heuristic evaluated",
 		"step", string(state.CurrentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
@@ -479,6 +478,16 @@ func applyReviewEffects(st store.Store, caseData *store.Case, artifact any) erro
 		caseData.Status = "reviewed"
 	}
 	return nil
+}
+
+// evaluateStep dispatches heuristic evaluation through the graph bridge when
+// a PipelineGraph is configured, otherwise falls back to legacy heuristics.
+func (cfg RunnerConfig) evaluateStep(step PipelineStep, artifact any, state *CaseState) (*HeuristicAction, string) {
+	if cfg.Graph != nil {
+		return cfg.Graph.EvaluateEdges(step, artifact, state)
+	}
+	rules := DefaultHeuristics(cfg.Thresholds)
+	return EvaluateHeuristics(rules, step, artifact, state)
 }
 
 // ComputeFingerprint generates a deterministic fingerprint from failure attributes.

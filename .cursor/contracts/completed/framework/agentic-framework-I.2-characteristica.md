@@ -1,6 +1,6 @@
 # Contract — Agentic Framework I.2: Characteristica
 
-**Status:** draft
+**Status:** complete
 **Goal:** Define a declarative YAML/Go DSL for expressing pipelines as graphs, so that the F0-F6 pipeline, the Defect Court D0-D4 pipeline, or any future pipeline can be declared as a configuration rather than hardcoded in Go.
 **Serves:** Architecture evolution (Framework foundation)
 
@@ -241,20 +241,20 @@ func Render(def *PipelineDef) string
 
 ## Tasks
 
-- [ ] Create `internal/framework/dsl.go` -- `PipelineDef`, `ZoneDef`, `NodeDef`, `EdgeDef` structs (P7: optional fields with `omitempty`)
-- [ ] Implement `LoadPipeline(data []byte) (*PipelineDef, error)` -- YAML parser
-- [ ] Implement `PipelineDef.Validate() error` -- referential integrity checks
-- [ ] Implement `BuildGraph(registry NodeRegistry) (Graph, error)` -- construct Graph from DSL
-- [ ] Define `NodeRegistry` type and factory pattern
-- [ ] Implement `Render(*PipelineDef) string` -- generate Mermaid flowchart from parsed definition (P6)
-- [ ] Create `pipelines/rca-investigation.yaml` -- F0-F6 pipeline in DSL (P3: reading-first layout)
-- [ ] Create `pipelines/defect-court.yaml` -- D0-D4 pipeline in DSL (structure only, no Process implementations)
-- [ ] Write `internal/framework/dsl_test.go` -- parse, validate, round-trip fidelity (P8) tests
-- [ ] Write `internal/framework/build_test.go` -- build graph from DSL, walk with mock nodes
-- [ ] Write `internal/framework/render_test.go` -- Mermaid output correctness (P6)
-- [ ] Validate (green) -- `go build ./...`, all tests pass
-- [ ] Tune (blue) -- review DSL ergonomics, ensure YAML is human-readable, verify progressive disclosure (P7)
-- [ ] Validate (green) -- all tests still pass after tuning
+- [x] Create `internal/framework/dsl.go` -- `PipelineDef`, `ZoneDef`, `NodeDef`, `EdgeDef` structs (P7: optional fields with `omitempty`)
+- [x] Implement `LoadPipeline(data []byte) (*PipelineDef, error)` -- YAML parser
+- [x] Implement `PipelineDef.Validate() error` -- referential integrity checks
+- [x] Implement `BuildGraph(registry NodeRegistry) (Graph, error)` -- construct Graph from DSL
+- [x] Define `NodeRegistry` type and factory pattern
+- [x] Implement `Render(*PipelineDef) string` -- generate Mermaid flowchart from parsed definition (P6)
+- [x] Create `pipelines/rca-investigation.yaml` -- F0-F6 pipeline in DSL (P3: reading-first layout)
+- [x] Create `pipelines/defect-court.yaml` -- D0-D4 pipeline in DSL (structure only, no Process implementations)
+- [x] Write `internal/framework/dsl_test.go` -- parse, validate, round-trip fidelity (P8) tests
+- [x] Write `internal/framework/build_test.go` -- build graph from DSL, walk with mock nodes
+- [x] Write `internal/framework/render_test.go` -- Mermaid output correctness (P6)
+- [x] Validate (green) -- `go build ./...`, all tests pass
+- [x] Tune (blue) -- review DSL ergonomics, ensure YAML is human-readable, verify progressive disclosure (P7)
+- [x] Validate (green) -- all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -272,6 +272,7 @@ func Render(def *PipelineDef) string
 
 ## Notes
 
+- 2026-02-21 18:30 -- Contract complete. DSL layer (dsl.go, render.go), 2 pipeline YAMLs (rca-investigation, defect-court), orchestrate graph bridge (graph_bridge.go), runner refactored to use graph evaluation. 15 DSL tests, 5 build tests, 4 render tests passing. `DefaultHeuristics`/`EvaluateHeuristics` kept exported with deprecation notes for calibrate package compatibility. Moved to `completed/framework/`.
 - 2026-02-21 14:30 -- DSL design principles research completed. 8 principles codified in `rules/domain/dsl-design-principles.mdc` and diffused into this contract. Key additions: `Render()` for derived Mermaid visualization (P6), progressive disclosure in struct design (P7), round-trip fidelity test (P8). YAML confirmed as primary format after assessing YAML, CUE, Mermaid, HCL, and custom DSL options against the dual-audience constraint (human + AI readers). Dagster's YAML DSL + code registry pattern validates our `PipelineDef` + `NodeRegistry` approach.
 - 2026-02-20 -- Contract created. The DSL condition strings (e.g. "confidence >= recall_hit_threshold") are descriptive labels in Phase 1 -- actual evaluation logic remains in Go `Edge.Evaluate()` functions. A future contract could introduce a condition expression language.
 - Depends on I.1-ontology for `Graph`, `Node`, `Edge`, `Zone` interfaces.
