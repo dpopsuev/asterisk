@@ -1,0 +1,82 @@
+---
+description: "Bidirectional mapping between Asterisk's 'What' taxonomy and ReportPortal's 'Who' taxonomy for defect classification scoring"
+alwaysApply: false
+---
+# Symptom Taxonomy Translator
+
+## Problem
+
+Two valid taxonomies describe test failure defect types:
+
+| Dimension | System | Categories | Question answered |
+|-----------|--------|-----------|-------------------|
+| **What** | Asterisk (internal) | `timeout`, `assertion`, `crash`, `infra`, `config`, `flake`, `unknown` | What does the failure look like? |
+| **Who** | ReportPortal (external) | `product_bug`, `automation_bug`, `system_issue`, `to_investigate` | Who owns the bug? |
+
+Both are domain-valid. RP's taxonomy is a service-specific narrow selection used for defect triage. Asterisk's taxonomy is richer and captures failure symptom patterns. When scoring against RP ground truth (M2 metric), a translator converts between them.
+
+## Static translation table
+
+Each "What" category maps to one or more "Who" categories. The `primary` column is the default mapping used when no case context is available. The `alternate` column is used when disambiguating context is present.
+
+| What (Asterisk) | Primary Who (RP) | Alternate Who (RP) | Disambiguation signal |
+|-----------------|-------------------|---------------------|----------------------|
+| `timeout` | `product_bug` | `system_issue` | If error source is infrastructure (network, cluster) → `system_issue` |
+| `assertion` | `product_bug` | `automation_bug` | If assertion is in test harness code → `automation_bug` |
+| `crash` | `product_bug` | — | Crashes are almost always product bugs |
+| `infra` | `system_issue` | — | Infrastructure failures map directly |
+| `config` | `system_issue` | `product_bug` | If config is product default → `product_bug` |
+| `flake` | `automation_bug` | — | Flaky tests are test infrastructure issues |
+| `unknown` | `to_investigate` | — | Direct mapping to RP's unknown |
+
+### Reverse table (Who → What)
+
+Reverse translation is one-to-many; the translator returns ranked candidates.
+
+| Who (RP) | Candidate What (Asterisk) | Ranking heuristic |
+|----------|--------------------------|-------------------|
+| `product_bug` | `crash`, `assertion`, `timeout`, `config` | Check stack trace for panic/OOM → `crash`; check for assert → `assertion`; check for deadline → `timeout` |
+| `automation_bug` | `flake`, `assertion` | Check for retry patterns → `flake`; else `assertion` |
+| `system_issue` | `infra`, `timeout`, `config` | Check for network/DNS → `infra`; check for deadline → `timeout`; else `config` |
+| `to_investigate` | `unknown` | Direct mapping |
+
+## Extension protocol
+
+When integrating a new external service with a different taxonomy:
+
+1. Define the new taxonomy's categories and the question they answer
+2. Add a new section to this file with the mapping table
+3. Implement the `Translator` interface in `internal/taxonomy/` with a new adapter
+4. Register the adapter in the translator factory, keyed by service name
+5. Update the relevant prompts to output labels for both taxonomies
+
+### Interface contract (Go)
+
+```go
+type Translator interface {
+    ToExternal(what string, ctx CaseContext) (string, float64)
+    ToInternal(who string, ctx CaseContext) ([]RankedCategory, error)
+}
+
+type CaseContext struct {
+    ErrorSource   string   // "product", "test-harness", "infrastructure"
+    StackHints    []string // key stack trace terms
+    ComponentTags []string // affected components
+}
+
+type RankedCategory struct {
+    Category   string
+    Confidence float64
+}
+```
+
+## Scoring integration
+
+When computing M2 (defect-type accuracy):
+
+1. The F1 prompt outputs the "What" label as primary classification
+2. Before scoring, the translator converts "What" → "Who" using the static table
+3. If disambiguation context is available from F3/F4, use the context-aware path
+4. Score the translated "Who" label against RP ground truth
+
+Expected impact: M2 from 0.00 (no translation) to ~0.75 (static) to ~0.90 (context-aware).

@@ -48,6 +48,24 @@ Perform deep root-cause analysis for the failed test by investigating the select
 {{if .Prior.ResolveResult.CrossRefStrategy}}**Cross-reference strategy:** {{.Prior.ResolveResult.CrossRefStrategy}}{{end}}
 {{end}}{{end}}
 
+{{if .Workspace}}{{if eq .Workspace.AttrsStatus "resolved"}}## Launch attributes
+
+| Key | Value |
+|-----|-------|
+{{range .Workspace.LaunchAttributes}}{{if not .System}}| {{.Key}} | {{.Value}} |
+{{end}}{{end}}
+{{else}}*No launch attributes available.*
+{{end}}
+
+{{if eq .Workspace.JiraStatus "resolved"}}## Linked Jira tickets
+
+| Ticket | URL |
+|--------|-----|
+{{range .Workspace.JiraLinks}}| {{.TicketID}} | {{.URL}} |
+{{end}}
+{{else}}*No linked Jira tickets.*
+{{end}}{{end}}
+
 {{if .Git}}## Git context
 
 {{if .Git.Branch}}**Branch:** {{.Git.Branch}}{{end}}
@@ -82,6 +100,17 @@ Perform deep root-cause analysis for the failed test by investigating the select
 - **G32 (vague-rca-message):** RCA must be specific and actionable: name exact component/function/config, describe causal mechanism, state what would fix it.
 - **G33 (wrong-defect-type-code):** Use ONLY codes from the taxonomy above. If none fit, use `ti001`.
 - **G34 (evidence-without-reasoning):** For each evidence ref, explain **how** it supports the conclusion.
+
+## Component frequency distribution (PTP Operator CI domain)
+
+Use these base rates when choosing the root cause component. Do not override strong evidence, but when evidence is ambiguous, prefer the higher-frequency component.
+
+| Component | Frequency | Notes |
+|-----------|-----------|-------|
+| `linuxptp-daemon` | ~78% (14/18 verified) | Dominant root cause. PTP sync logic, holdover state, clock class, DPLL tracking. |
+| `cloud-event-proxy` | ~11% (2/18) | GNSS sync state mapping, cloud event publishing. |
+| `ptp-operator` | ~6% (1/18) | Operator reconciliation, profile management. |
+| Other (cnf-gotests, eco-gotests, WLP) | ~5% (1/18) | Test harness or specialized components. |
 
 ## Instructions
 

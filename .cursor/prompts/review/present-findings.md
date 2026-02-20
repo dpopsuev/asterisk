@@ -92,7 +92,7 @@ For overturn:
 {
   "decision": "overturn",
   "human_override": {
-    "defect_type": "ab001",
+    "defect_type": "au001",
     "rca_message": "The actual root cause is..."
   },
   "loop_target": ""

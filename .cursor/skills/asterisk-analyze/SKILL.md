@@ -248,12 +248,23 @@ Do not summarize or reformat — relay it as-is.
 ## Batch mode (multi-subagent)
 
 When `batch-manifest.json` exists with `status: "pending"`, switch to batch mode.
-As the parent agent, coordinate multiple Task subagents (up to 4 concurrent).
+As the parent agent, coordinate multiple Task subagents (up to 4 concurrent) using independent worker coroutines with sticky subagents.
 
-1. Read `batch-manifest.json` and the briefing file.
-2. For each pending signal, spawn a Task subagent (see [subagent-template.md](subagent-template.md)).
-3. Wait for all Tasks to complete; verify artifacts.
-4. Repeat until all signals are processed.
+### Worker model
+
+Each parallel slot runs an independent pull-dispatch-submit loop (see `agent-bus.mdc` for full pseudocode). No worker waits for siblings.
+
+### Sticky subagents
+
+Subagents persist across pipeline steps for the same case using the `Task` tool's `resume` parameter. Maintain a `case_id -> agent_id` map:
+
+- **First step for a case:** spawn a fresh `Task` subagent; store `agent_id`.
+- **Subsequent steps:** `Task(resume=agent_id)` — the subagent retains prior context (triage, repos, error messages).
+- **Eviction:** when the map exceeds `PARALLEL * 2`, evict LRU entries; evicted cases get fresh subagents.
+
+### Progress
+
+After every `submit_artifact`, print progress: steps completed, per-phase counts, error count. Never let the operator see silence for more than one step's processing time.
 
 Adaptive scheduling: reduce batch size on high error rates or budget limits.
 Budget enforcement via `budget-status.json` if present.

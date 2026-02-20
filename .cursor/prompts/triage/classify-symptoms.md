@@ -40,25 +40,49 @@ Classify the failure symptom from the error output and envelope metadata. No rep
 {{end}}
 {{end}}
 
-{{if .Workspace}}## Available repos
+{{if .Workspace}}{{if eq .Workspace.AttrsStatus "resolved"}}## Launch attributes
 
-{{range .Workspace.Repos}}| Repo | Purpose |
-|------|---------|
-| {{.Name}} ({{.Path}}) | {{.Purpose}} |
+| Key | Value |
+|-----|-------|
+{{range .Workspace.LaunchAttributes}}{{if not .System}}| {{.Key}} | {{.Value}} |
+{{end}}{{end}}
+{{else}}*No launch attributes available.*
 {{end}}
+
+{{if eq .Workspace.JiraStatus "resolved"}}## Linked Jira tickets
+
+| Ticket | URL |
+|--------|-----|
+{{range .Workspace.JiraLinks}}| {{.TicketID}} | {{.URL}} |
 {{end}}
+{{else}}*No linked Jira tickets.*
+{{end}}
+
+{{if eq .Workspace.ReposStatus "resolved"}}## Available repos
+
+| Repo | Path | Purpose |
+|------|------|---------|
+{{range .Workspace.Repos}}| {{.Name}} | {{.Path}} | {{.Purpose}} |
+{{end}}
+{{else}}*No workspace repos configured.*
+{{end}}{{end}}
 
 ## Symptom categories
 
-| Category | Signal examples | Likely defect type |
-|----------|----------------|-------------------|
-| `timeout` | "context deadline exceeded", "timed out" (NOT Gomega Eventually) | si001 or ab001 |
-| `assertion` | "Expected X got Y", Gomega matcher failure, Eventually timeout | pb001 or ab001 |
-| `crash` | panic, segfault, OOM killed | pb001 or si001 |
-| `infra` | "connection refused", DNS failure, node not ready | si001 |
-| `config` | env var missing, wrong profile, flag mismatch | ab001 or si001 |
-| `flake` | Passed on retry, intermittent, known flaky | nd001 or ab001 |
-| `unknown` | Cannot classify from surface data | ti001 |
+Classify by **root cause domain** — where does the bug live?
+
+| Category | Meaning | Signal examples | Likely defect type |
+|----------|---------|----------------|-------------------|
+| `product` | Bug in the product under test (operator, daemon, proxy). Code logic error, wrong state machine transition, incorrect value mapping. | Assertion failures on SUT behavior ("Expected X got Y" on product state), panic/segfault in product code, incorrect sync state, wrong clock class, holdover re-entry timing | pb001 |
+| `automation` | Bug in the test framework or test code itself. The product is correct but the test is wrong. | Test harness misconfiguration, wrong test assertion, test setup error, test timeout due to bad polling interval, test code referencing wrong resource | au001 |
+| `environment` | Bug in the infrastructure, cluster, or CI environment. Neither product nor test code is at fault. | Node not ready, DNS failure, connection refused, resource quota exceeded, operator not installed, missing CRD, cluster state leftover from prior test | en001 |
+| `firmware` | Bug in firmware or hardware-adjacent code (NIC, FPGA, PHC). Not product-level software. | NIC firmware mismatch, FPGA register misconfiguration, PHC clock source error | fw001 |
+
+**Decision guide:**
+1. If the error traces to product source code (operator, daemon, proxy) -> `product`
+2. If the error is in test assertions, test setup, or test fixtures -> `automation`
+3. If the error is from infrastructure, cluster state, or CI environment -> `environment`
+4. When uncertain, prefer `product` — in this domain, ~80% of verified bugs are product bugs.
 
 {{.Taxonomy.DefectTypes}}
 
@@ -88,7 +112,7 @@ Save as `triage-result.json`:
 
 ```json
 {
-  "symptom_category": "assertion",
+  "symptom_category": "product",
   "severity": "high",
   "defect_type_hypothesis": "pb001",
   "candidate_repos": ["ptp-operator", "cnf-gotests"],

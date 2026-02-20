@@ -49,13 +49,32 @@ The convergence was too low. Select a different repo or broader scope for the re
 {{if .Git.Commit}}| Commit | {{.Git.Commit}} |{{end}}
 {{end}}
 
-{{if .Workspace}}## Available repos
+{{if .Workspace}}{{if eq .Workspace.AttrsStatus "resolved"}}## Launch attributes
+
+| Key | Value |
+|-----|-------|
+{{range .Workspace.LaunchAttributes}}{{if not .System}}| {{.Key}} | {{.Value}} |
+{{end}}{{end}}
+{{else}}*No launch attributes available.*
+{{end}}
+
+{{if eq .Workspace.JiraStatus "resolved"}}## Linked Jira tickets
+
+| Ticket | URL |
+|--------|-----|
+{{range .Workspace.JiraLinks}}| {{.TicketID}} | {{.URL}} |
+{{end}}
+{{else}}*No linked Jira tickets.*
+{{end}}
+
+{{if eq .Workspace.ReposStatus "resolved"}}## Available repos
 
 | Repo | Path | Purpose | Branch |
 |------|------|---------|--------|
 {{range .Workspace.Repos}}| {{.Name}} | {{.Path}} | {{.Purpose}} | {{.Branch}} |
 {{end}}
-{{end}}
+{{else}}*No workspace repos configured.*
+{{end}}{{end}}
 
 ## Guards
 
