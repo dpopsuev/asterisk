@@ -66,7 +66,7 @@ func TestBasicAdapter_Identify_Determinism(t *testing.T) {
 
 func TestCursorAdapter_Identify_ValidResponse(t *testing.T) {
 	mock := &mockProbeDispatcher{
-		response: []byte(`{"model_name":"claude-4-sonnet","provider":"Anthropic"}`),
+		response: []byte(`{"model_name":"claude-4-sonnet","provider":"Anthropic","version":"20250514"}`),
 	}
 	adapter := NewCursorAdapter("", WithDispatcher(mock))
 
@@ -80,8 +80,26 @@ func TestCursorAdapter_Identify_ValidResponse(t *testing.T) {
 	if mi.Provider != "Anthropic" {
 		t.Errorf("Provider = %q, want %q", mi.Provider, "Anthropic")
 	}
+	if mi.Version != "20250514" {
+		t.Errorf("Version = %q, want %q", mi.Version, "20250514")
+	}
 	if mi.Raw == "" {
 		t.Error("Raw should contain the original response")
+	}
+}
+
+func TestCursorAdapter_Identify_NoVersion(t *testing.T) {
+	mock := &mockProbeDispatcher{
+		response: []byte(`{"model_name":"composer","provider":"Cursor"}`),
+	}
+	adapter := NewCursorAdapter("", WithDispatcher(mock))
+
+	mi, err := adapter.Identify()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mi.Version != "" {
+		t.Errorf("Version = %q, want empty (version is optional)", mi.Version)
 	}
 }
 
@@ -143,6 +161,20 @@ func TestParseModelIdentity_Valid(t *testing.T) {
 	}
 }
 
+func TestParseModelIdentity_WithVersion(t *testing.T) {
+	mi, err := ParseModelIdentity([]byte(`{"model_name":"gpt-4o","provider":"OpenAI","version":"2024-08-06"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if mi.Version != "2024-08-06" {
+		t.Errorf("Version = %q, want %q", mi.Version, "2024-08-06")
+	}
+	want := "gpt-4o@2024-08-06/OpenAI"
+	if got := mi.String(); got != want {
+		t.Errorf("String() = %q, want %q", got, want)
+	}
+}
+
 func TestParseModelIdentity_WithWhitespace(t *testing.T) {
 	mi, err := ParseModelIdentity([]byte(`  {"model_name":"gpt-4o","provider":"OpenAI"}  `))
 	if err != nil {
@@ -180,7 +212,8 @@ func TestModelIdentity_Conciseness(t *testing.T) {
 		{ModelName: "stub", Provider: "asterisk"},
 		{ModelName: "basic-heuristic", Provider: "asterisk"},
 		{ModelName: "claude-4-sonnet", Provider: "Anthropic"},
-		{ModelName: "gpt-4o", Provider: "OpenAI"},
+		{ModelName: "claude-4-sonnet", Provider: "Anthropic", Version: "20250514"},
+		{ModelName: "gpt-4o", Provider: "OpenAI", Version: "2024-08-06"},
 	}
 	for _, mi := range identities {
 		s := mi.String()

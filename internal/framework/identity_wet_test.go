@@ -33,21 +33,24 @@ func TestWetIdentityProbe_CheckRegistry(t *testing.T) {
 		t.Fatalf("failed to parse probe result: %v\nraw: %s", err, raw)
 	}
 
-	t.Logf("Probed identity: model_name=%q provider=%q", mi.ModelName, mi.Provider)
+	t.Logf("Probed identity: model_name=%q provider=%q version=%q", mi.ModelName, mi.Provider, mi.Version)
 	t.Logf("String: %s", mi.String())
 	t.Logf("Tag:    %s", mi.Tag())
 
 	if !IsKnownModel(mi) {
 		t.Fatalf("UNKNOWN MODEL detected: %s\n\n"+
 			"Add this entry to known_models.go:\n\n"+
-			"\t%q: {ModelName: %q, Provider: %q},\n",
-			mi.String(), mi.ModelName, mi.ModelName, mi.Provider)
+			"\t%q: {ModelName: %q, Provider: %q, Version: %q},\n",
+			mi.String(), mi.ModelName, mi.ModelName, mi.Provider, mi.Version)
 	}
 
-	known := KnownModels[mi.ModelName]
+	known, _ := LookupModel(mi.ModelName)
 	if known.Provider != mi.Provider {
 		t.Errorf("provider mismatch: registry has %q, probe returned %q",
 			known.Provider, mi.Provider)
+	}
+	if known.Version != "" && mi.Version != "" && known.Version != mi.Version {
+		t.Logf("version drift: registry has %q, probe returned %q", known.Version, mi.Version)
 	}
 
 	t.Logf("Model %s is registered and verified", mi.String())

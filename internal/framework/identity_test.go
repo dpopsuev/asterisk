@@ -25,7 +25,8 @@ func TestModelIdentity_Tag_Determinism(t *testing.T) {
 func TestModelIdentity_String_Conciseness(t *testing.T) {
 	cases := []ModelIdentity{
 		{ModelName: "claude-4-sonnet", Provider: "Anthropic"},
-		{ModelName: "gpt-4o", Provider: "OpenAI"},
+		{ModelName: "claude-4-sonnet", Provider: "Anthropic", Version: "20250514"},
+		{ModelName: "gpt-4o", Provider: "OpenAI", Version: "2024-08-06"},
 		{ModelName: "stub", Provider: "asterisk"},
 		{ModelName: "basic-heuristic", Provider: "asterisk"},
 	}
@@ -86,6 +87,22 @@ func TestModelIdentity_String_Format(t *testing.T) {
 	want := "claude-4-sonnet/Anthropic"
 	if got := mi.String(); got != want {
 		t.Errorf("String() = %q, want %q", got, want)
+	}
+}
+
+func TestModelIdentity_String_FormatWithVersion(t *testing.T) {
+	mi := ModelIdentity{ModelName: "claude-4-sonnet", Provider: "Anthropic", Version: "20250514"}
+	want := "claude-4-sonnet@20250514/Anthropic"
+	if got := mi.String(); got != want {
+		t.Errorf("String() = %q, want %q", got, want)
+	}
+}
+
+func TestModelIdentity_String_EmptyVersionOmitted(t *testing.T) {
+	mi := ModelIdentity{ModelName: "gpt-4o", Provider: "OpenAI", Version: ""}
+	want := "gpt-4o/OpenAI"
+	if got := mi.String(); got != want {
+		t.Errorf("String() = %q, want %q (version should be omitted)", got, want)
 	}
 }
 

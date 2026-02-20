@@ -98,7 +98,7 @@ func (a *CursorAdapter) Name() string { return "cursor" }
 // identityProbePrompt is the tightly constrained prompt sent to discover
 // which model is behind the dispatcher.
 const identityProbePrompt = `Respond with ONLY a JSON object, no markdown, no explanation, no code fences:
-{"model_name": "<your exact model name, e.g. claude-4-sonnet>", "provider": "<company that created you, e.g. Anthropic>"}`
+{"model_name": "<your exact model name, e.g. claude-4-sonnet>", "provider": "<company that created you, e.g. Anthropic>", "version": "<your version string, e.g. 20250514, 4.0, 1.0>"}`
 
 // Identify sends a probe prompt through the dispatcher to discover which
 // LLM model is behind this adapter. The model self-reports its name and provider.

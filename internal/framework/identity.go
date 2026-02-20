@@ -14,10 +14,12 @@ type AgentIdentity struct {
 type ModelIdentity struct {
 	ModelName string `json:"model_name"`
 	Provider  string `json:"provider"`
+	Version   string `json:"version,omitempty"`
 	Raw       string `json:"raw,omitempty"`
 }
 
-// String returns a deterministic, short identifier: "model/provider".
+// String returns a deterministic, short identifier: "model@version/provider".
+// Omits the @version segment when Version is empty.
 func (m ModelIdentity) String() string {
 	name := m.ModelName
 	if name == "" {
@@ -26,6 +28,9 @@ func (m ModelIdentity) String() string {
 	prov := m.Provider
 	if prov == "" {
 		prov = "unknown"
+	}
+	if m.Version != "" {
+		return fmt.Sprintf("%s@%s/%s", name, m.Version, prov)
 	}
 	return fmt.Sprintf("%s/%s", name, prov)
 }
