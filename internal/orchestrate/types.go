@@ -3,7 +3,7 @@
 // controls loops, and manages per-case state.
 package orchestrate
 
-// PipelineStep represents a step in the F0–F6 prompt pipeline.
+// PipelineStep represents a step in the F0-F6 (Light) or D0-D4 (Shadow) pipeline.
 type PipelineStep string
 
 const (
@@ -16,6 +16,13 @@ const (
 	StepF5Review   PipelineStep = "F5_REVIEW"
 	StepF6Report   PipelineStep = "F6_REPORT"
 	StepDone       PipelineStep = "DONE"
+
+	StepD0Indict  PipelineStep = "D0_INDICT"
+	StepD1Discover PipelineStep = "D1_DISCOVER"
+	StepD2Defend  PipelineStep = "D2_DEFEND"
+	StepD3Hearing PipelineStep = "D3_HEARING"
+	StepD4Verdict PipelineStep = "D4_VERDICT"
+	StepCourtDone PipelineStep = "COURT_DONE"
 )
 
 // Family returns the prompt family name (for directory/file naming).
@@ -35,8 +42,28 @@ func (s PipelineStep) Family() string {
 		return "review"
 	case StepF6Report:
 		return "report"
+	case StepD0Indict:
+		return "indict"
+	case StepD1Discover:
+		return "discover"
+	case StepD2Defend:
+		return "defend"
+	case StepD3Hearing:
+		return "hearing"
+	case StepD4Verdict:
+		return "verdict"
 	default:
 		return ""
+	}
+}
+
+// IsCourtStep returns true if the step belongs to the D0-D4 Shadow pipeline.
+func (s PipelineStep) IsCourtStep() bool {
+	switch s {
+	case StepD0Indict, StepD1Discover, StepD2Defend, StepD3Hearing, StepD4Verdict:
+		return true
+	default:
+		return false
 	}
 }
 

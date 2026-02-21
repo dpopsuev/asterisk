@@ -2,6 +2,7 @@ package calibrate
 
 import (
 	"asterisk/internal/calibrate/dispatch"
+	"asterisk/internal/framework"
 	"asterisk/internal/logging"
 	"asterisk/internal/preinvest"
 	"context"
@@ -27,6 +28,7 @@ type RunConfig struct {
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
 	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
 	RPFetcher    preinvest.Fetcher // optional; when set, RP-sourced cases fetch real failure data
+	CourtConfig  framework.CourtConfig // Shadow court pipeline config; disabled by default
 }
 
 // DefaultRunConfig returns defaults for calibration.

@@ -213,11 +213,11 @@ Shadow personas with distinct system prompts via MCP.
 
 ### Phase 2 -- BasicAdapter court roles
 
-- [ ] Implement Challenger persona as prosecution heuristic adapter
-- [ ] Implement Abyss persona as defense heuristic adapter
-- [ ] Implement Bulwark persona as forensic expert heuristic adapter
-- [ ] Implement Specter persona as summary judgment adapter
-- [ ] Wire Shadow pipeline into calibrate runner as post-F6 phase
+- [x] Implement Challenger persona as prosecution heuristic adapter
+- [x] Implement Abyss persona as defense heuristic adapter
+- [x] Implement Bulwark persona as forensic expert heuristic adapter
+- [x] Implement Specter persona as summary judgment adapter
+- [x] Wire Shadow pipeline into calibrate runner as post-F6 phase
 
 ### Phase 3 -- Metrics
 
