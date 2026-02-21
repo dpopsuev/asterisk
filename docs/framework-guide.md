@@ -2,7 +2,7 @@
 
 A design document for the graph-based agent orchestration engine that powers Asterisk. This is not API documentation — it explains *why* the framework exists and *how* it thinks.
 
-**Source:** `internal/framework/` (~1,500 lines, zero domain imports)  
+**Source:** `pkg/framework/` (~2,000 lines, zero domain imports)  
 **Try it:** `go run ./examples/framework/`
 
 ---
@@ -14,10 +14,13 @@ A design document for the graph-based agent orchestration engine that powers Ast
 3. [Personas](#personas)
 4. [Pipeline DSL](#pipeline-dsl)
 5. [Graph Walk](#graph-walk)
-6. [Masks](#masks)
-7. [Shadow Court](#shadow-court)
-8. [Cycles](#cycles)
-9. [Architecture](#architecture)
+6. [Walk Observability](#walk-observability)
+7. [Scheduler](#scheduler)
+8. [Team Walk](#team-walk)
+9. [Masks](#masks)
+10. [Shadow Court](#shadow-court)
+11. [Cycles](#cycles)
+12. [Architecture](#architecture)
 
 ---
 
@@ -240,6 +243,118 @@ The framework provides these interfaces. Domain code provides the implementation
 
 ---
 
+## Walk Observability
+
+Every graph walk emits events that observers can capture for tracing, profiling, and debugging. The observer system is opt-in — pass `nil` and there is zero overhead.
+
+### Event types
+
+| Event | When | Key fields |
+|-------|------|------------|
+| `node_enter` | Walker begins processing a node | `Node`, `Walker` |
+| `node_exit` | Walker finishes a node | `Node`, `Walker`, `Artifact`, `Elapsed`, `Error` |
+| `edge_evaluate` | An edge is tested against the current artifact | `Node`, `Edge` |
+| `transition` | A matching edge fires | `Node`, `Edge` |
+| `walker_switch` | Scheduler assigns a different walker | `Node`, `Walker` |
+| `walk_complete` | Walk reaches the done node | `Walker` |
+| `walk_error` | Walk fails | `Node`, `Error` |
+
+### WalkEvent
+
+```go
+type WalkEvent struct {
+    Type     WalkEventType
+    Node     string
+    Walker   string
+    Edge     string
+    Artifact Artifact
+    Elapsed  time.Duration
+    Error    error
+    Metadata map[string]any  // forward-compatible extension point
+}
+```
+
+The `Metadata` map is the escape hatch — new fields go there without breaking the struct. Observers filter on `Type` and ignore events they don't care about.
+
+### Observer interface
+
+```go
+type WalkObserver interface {
+    OnEvent(WalkEvent)
+}
+```
+
+Single-method design (like `http.Handler`) means adding new event types never breaks existing observers. Adapters:
+
+- **`WalkObserverFunc`** — adapts a plain function to the interface.
+- **`MultiObserver`** — fans out events to multiple observers.
+
+### Built-in observers
+
+| Observer | Purpose |
+|----------|---------|
+| `LogObserver` | Writes structured slog lines (Info for success, Warn for errors) |
+| `TraceCollector` | Accumulates events in memory for post-walk analysis. Thread-safe. Supports `Events()`, `EventsOfType()`, `Reset()`. |
+
+---
+
+## Scheduler
+
+When multiple walkers are available, a scheduler decides which one handles each node. The interface is deliberately narrow:
+
+```go
+type Scheduler interface {
+    Select(ctx SchedulerContext) Walker
+}
+
+type SchedulerContext struct {
+    Node        Node
+    Zone        *Zone
+    Walkers     []Walker
+    PriorWalker Walker
+    WalkState   *WalkerState
+}
+```
+
+### Built-in schedulers
+
+| Scheduler | Algorithm |
+|-----------|-----------|
+| `SingleScheduler` | Always returns the same walker. Wraps legacy single-walker behavior into the team API. |
+| `AffinityScheduler` | Picks the walker with the highest `StepAffinity` for the current node name. Ties broken by element match (walker element == node element affinity). Falls back to the first walker. |
+
+The `SchedulerContext` provides everything a sophisticated scheduler could need: the current node, its zone (if any), all available walkers, and the prior walker. Future schedulers can use zone stickiness, element cycles, or external calibration data without changing the interface.
+
+---
+
+## Team Walk
+
+A `Team` bundles multiple walkers with scheduling and observability:
+
+```go
+type Team struct {
+    Walkers   []Walker
+    Scheduler Scheduler
+    Observer  WalkObserver
+    MaxSteps  int  // 0 = unlimited
+}
+```
+
+`Graph.WalkTeam(ctx, team, startNode)` runs the same graph traversal as `Walk`, but before each node the scheduler picks a walker. Events are emitted to the observer at every decision point. `MaxSteps` provides defense-in-depth against infinite loops.
+
+### Comparison
+
+| Feature | `Walk` | `WalkTeam` |
+|---------|--------|------------|
+| Walkers | 1 | N (scheduler picks per node) |
+| Observer | none | optional (full event stream) |
+| Loop guard | none | `MaxSteps` |
+| API surface | minimal | superset of `Walk` |
+
+A single-walker team with a `SingleScheduler` and nil observer is semantically equivalent to `Walk`.
+
+---
+
 ## Masks
 
 Masks are detachable middleware that grant capabilities at specific pipeline nodes. They wrap a node's processing function without changing the node's identity or the walker's core behavior.
@@ -370,13 +485,16 @@ When the framework needs to choose which agent handles a step, the cycles provid
 
 ```mermaid
 flowchart TD
-    subgraph framework ["internal/framework/ (zero domain imports)"]
+    subgraph framework ["pkg/framework/ (zero domain imports)"]
         Interfaces["Node, Edge, Graph\nWalker, Artifact, Mask"]
         DSL["Pipeline DSL\n(YAML → Graph)"]
         Elements["Elements + Traits"]
         Personas["Personas (8)"]
         Court["Court types\n(Indictment, Verdict...)"]
         Cycles["Generative/Destructive\nCycles"]
+        Obs["Observer\n(WalkEvent, TraceCollector)"]
+        Sched["Scheduler\n(Affinity, Single)"]
+        TeamW["Team Walk\n(multi-walker orchestration)"]
     end
 
     subgraph domain ["Domain packages"]
@@ -405,17 +523,20 @@ The framework defines the rules of the game. Domain packages implement the playe
 
 | File | Lines | Purpose |
 |------|-------|---------|
-| `node.go` | 29 | Node, Artifact, NodeContext interfaces |
-| `edge.go` | 23 | Edge, Transition interfaces |
-| `graph.go` | 176 | DefaultGraph implementation, Walk algorithm |
-| `walker.go` | 69 | Walker interface, WalkerState, StepRecord |
-| `dsl.go` | 199 | PipelineDef, LoadPipeline, Validate, BuildGraph |
-| `render.go` | 71 | Mermaid flowchart renderer |
-| `element.go` | 127 | 7 elements, ElementTraits, IronFromEarth |
-| `persona.go` | 205 | 8 personas (4 Light + 4 Shadow) |
-| `identity.go` | 147 | AgentIdentity, Color, Position, Alignment |
-| `mask.go` | 167 | Mask interface, 4 Light masks, EquipMask |
-| `court.go` | 314 | Court types, HD1-HD12 edge factory |
-| `cycle.go` | 87 | Generative/destructive element interactions |
-| `evidence_gap.go` | 58 | EvidenceGap, GapBrief types |
-| `errors.go` | 16 | ErrNodeNotFound, ErrNoEdge, ErrMaxLoops |
+| `node.go` | ~30 | Node, Artifact, NodeContext interfaces |
+| `edge.go` | ~23 | Edge, Transition interfaces |
+| `graph.go` | ~310 | DefaultGraph: Walk + WalkTeam algorithms |
+| `walker.go` | ~70 | Walker interface, WalkerState, StepRecord |
+| `observer.go` | ~150 | WalkEvent, WalkObserver, LogObserver, TraceCollector |
+| `scheduler.go` | ~90 | Scheduler interface, AffinityScheduler, SingleScheduler |
+| `team.go` | ~12 | Team struct (walkers + scheduler + observer) |
+| `dsl.go` | ~200 | PipelineDef, LoadPipeline, Validate, BuildGraph |
+| `render.go` | ~70 | Mermaid flowchart renderer |
+| `element.go` | ~130 | 7 elements, ElementTraits, IronFromEarth |
+| `persona.go` | ~200 | 8 personas (4 Light + 4 Shadow) |
+| `identity.go` | ~150 | AgentIdentity, Color, Position, Alignment |
+| `mask.go` | ~170 | Mask interface, 4 Light masks, EquipMask |
+| `court.go` | ~310 | Court types, HD1-HD12 edge factory |
+| `cycle.go` | ~90 | Generative/destructive element interactions |
+| `evidence_gap.go` | ~60 | EvidenceGap, GapBrief types |
+| `errors.go` | ~16 | ErrNodeNotFound, ErrNoEdge, ErrMaxLoops |
