@@ -16,7 +16,6 @@ const (
 	classWrapper
 	classExcluded
 	classNoIdentity
-	classWrongSchema
 )
 
 type goldenCase struct {
@@ -53,17 +52,15 @@ func classify(raw string) responseClass {
 }
 
 type complianceScore struct {
-	Total          int
-	Foundation     int
-	Wrapper        int
-	Excluded       int
-	NoIdentity     int
-	WrongSchema    int
-	FoundationPct  float64
-	WrapperPct     float64
-	ExcludedPct    float64
-	NoIdentityPct  float64
-	WrongSchemaPct float64
+	Total         int
+	Foundation    int
+	Wrapper       int
+	Excluded      int
+	NoIdentity    int
+	FoundationPct float64
+	WrapperPct    float64
+	ExcludedPct   float64
+	NoIdentityPct float64
 }
 
 func scoreGoldenResponses(t *testing.T, cases []goldenCase) complianceScore {
@@ -87,8 +84,6 @@ func scoreGoldenResponses(t *testing.T, cases []goldenCase) complianceScore {
 			s.Excluded++
 		case classNoIdentity:
 			s.NoIdentity++
-		case classWrongSchema:
-			s.WrongSchema++
 		}
 
 		if class != gc.expected {
@@ -101,7 +96,6 @@ func scoreGoldenResponses(t *testing.T, cases []goldenCase) complianceScore {
 		s.WrapperPct = float64(s.Wrapper) / float64(s.Total)
 		s.ExcludedPct = float64(s.Excluded) / float64(s.Total)
 		s.NoIdentityPct = float64(s.NoIdentity) / float64(s.Total)
-		s.WrongSchemaPct = float64(s.WrongSchema) / float64(s.Total)
 	}
 	return s
 }
@@ -132,8 +126,8 @@ func TestPromptCompliance_FoundationRate(t *testing.T) {
 		s.NoIdentity, s.NoIdentityPct*100,
 	)
 
-	if s.FoundationPct < 0.3 {
-		t.Errorf("foundation rate %.2f is below 0.30 minimum — prompt needs work", s.FoundationPct)
+	if s.FoundationPct < 0.4 {
+		t.Errorf("foundation rate %.2f is below 0.40 minimum — prompt needs work", s.FoundationPct)
 	}
 }
 

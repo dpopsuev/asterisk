@@ -391,42 +391,29 @@ func TestSession_SignalBus_EmitsSessionDone(t *testing.T) {
 
 // --- Wrapper identity rejection ---
 
-func TestSession_SubmitResponse_WrapperIdentity_Rejected(t *testing.T) {
-	s := NewSession(metacal.DefaultConfig())
+func TestSession_SubmitResponse_WrapperRejected(t *testing.T) {
+	cases := []struct {
+		name, model, provider, version string
+	}{
+		{"Auto", "Auto", "unknown", ""},
+		{"Cursor", "Cursor", "Cursor", "1.0"},
+		{"composer", "composer", "Cursor", ""},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			s := NewSession(metacal.DefaultConfig())
 
-	_, _, err := s.SubmitResponse(validResponse("Auto", "unknown", ""))
-	if err == nil {
-		t.Fatal("expected error for wrapper identity 'Auto'")
-	}
-	if !strings.Contains(err.Error(), "wrapper identity rejected") {
-		t.Errorf("error = %q, want 'wrapper identity rejected'", err.Error())
-	}
-	if s.UniqueCount() != 0 {
-		t.Errorf("unique count = %d, want 0 (wrapper should not be recorded)", s.UniqueCount())
-	}
-}
-
-func TestSession_SubmitResponse_CursorWrapper_Rejected(t *testing.T) {
-	s := NewSession(metacal.DefaultConfig())
-
-	_, _, err := s.SubmitResponse(validResponse("Cursor", "Cursor", "1.0"))
-	if err == nil {
-		t.Fatal("expected error for wrapper identity 'Cursor'")
-	}
-	if !strings.Contains(err.Error(), "wrapper identity rejected") {
-		t.Errorf("error = %q, want 'wrapper identity rejected'", err.Error())
-	}
-}
-
-func TestSession_SubmitResponse_ComposerWrapper_Rejected(t *testing.T) {
-	s := NewSession(metacal.DefaultConfig())
-
-	_, _, err := s.SubmitResponse(validResponse("composer", "Cursor", ""))
-	if err == nil {
-		t.Fatal("expected error for wrapper identity 'composer'")
-	}
-	if !strings.Contains(err.Error(), "wrapper identity rejected") {
-		t.Errorf("error = %q, want 'wrapper identity rejected'", err.Error())
+			_, _, err := s.SubmitResponse(validResponse(tc.model, tc.provider, tc.version))
+			if err == nil {
+				t.Fatalf("expected error for wrapper identity %q", tc.model)
+			}
+			if !strings.Contains(err.Error(), "wrapper identity rejected") {
+				t.Errorf("error = %q, want 'wrapper identity rejected'", err.Error())
+			}
+			if s.UniqueCount() != 0 {
+				t.Errorf("unique count = %d, want 0 (wrapper should not be recorded)", s.UniqueCount())
+			}
+		})
 	}
 }
 
