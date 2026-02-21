@@ -19,6 +19,7 @@ import (
 	"asterisk/internal/preinvest"
 	"asterisk/internal/rp"
 	"asterisk/internal/store"
+	fwmcp "asterisk/pkg/framework/mcp"
 )
 
 // SessionState tracks the lifecycle of a calibration session.
@@ -30,63 +31,13 @@ const (
 	StateError    SessionState = "error"
 )
 
-// Signal represents a single event on the agent message bus.
-type Signal struct {
-	Timestamp string            `json:"ts"`
-	Event     string            `json:"event"`
-	Agent     string            `json:"agent"`
-	CaseID    string            `json:"case_id,omitempty"`
-	Step      string            `json:"step,omitempty"`
-	Meta      map[string]string `json:"meta,omitempty"`
-}
-
-// SignalBus is a thread-safe, append-only signal log for agent coordination.
-type SignalBus struct {
-	mu      sync.Mutex
-	signals []Signal
-}
-
-func (b *SignalBus) Emit(event, agent, caseID, step string, meta map[string]string) {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	b.signals = append(b.signals, Signal{
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
-		Event:     event,
-		Agent:     agent,
-		CaseID:    caseID,
-		Step:      step,
-		Meta:      meta,
-	})
-}
-
-func (b *SignalBus) Since(idx int) []Signal {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	if idx < 0 {
-		logging.New("signal-bus").Warn("Since called with negative index, clamping to 0", "idx", idx)
-		idx = 0
-	}
-	if idx >= len(b.signals) {
-		return nil
-	}
-	out := make([]Signal, len(b.signals)-idx)
-	copy(out, b.signals[idx:])
-	return out
-}
-
-func (b *SignalBus) Len() int {
-	b.mu.Lock()
-	defer b.mu.Unlock()
-	return len(b.signals)
-}
-
 // Session holds the state for a single calibration run driven by MCP tool calls.
 type Session struct {
 	ID              string
 	TotalCases      int
 	Scenario        string
 	DesiredCapacity int
-	Bus             *SignalBus
+	Bus             *fwmcp.SignalBus
 
 	log        *slog.Logger
 	state      SessionState
@@ -323,7 +274,7 @@ func NewSession(ctx context.Context, input StartCalibrationInput) (*Session, err
 		RPFetcher:    rpFetcher,
 	}
 
-	bus := &SignalBus{}
+	bus := fwmcp.NewSignalBus()
 
 	sess := &Session{
 		ID:              fmt.Sprintf("s-%d", time.Now().UnixMilli()),

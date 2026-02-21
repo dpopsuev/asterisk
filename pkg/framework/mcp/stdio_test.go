@@ -7,13 +7,13 @@ import (
 	"testing"
 	"time"
 
-	mcpserver "asterisk/internal/mcp"
+	"asterisk/pkg/framework/mcp"
 )
 
 func TestWatchStdin_StopsWhenContextCanceled(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
-	mcpserver.WatchStdin(ctx, nil, cancel)
+	mcp.WatchStdin(ctx, nil, cancel)
 
 	cancel()
 
@@ -30,7 +30,7 @@ func TestWatchStdin_DoesNotConsumeData(t *testing.T) {
 
 	// WatchStdin should NOT touch the pipe at all.
 	// Pass it as a unused arg; the function ignores the second parameter.
-	mcpserver.WatchStdin(ctx, nil, cancel)
+	mcp.WatchStdin(ctx, nil, cancel)
 
 	// Give the watchdog goroutine time to schedule.
 	time.Sleep(50 * time.Millisecond)

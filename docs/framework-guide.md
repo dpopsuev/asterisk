@@ -513,6 +513,10 @@ flowchart TD
 
 The framework defines the rules of the game. Domain packages implement the players. Products wire everything into a user-facing tool.
 
+### MCP out of the box
+
+The framework provides `pkg/framework/mcp` with **Server** (NewServer), **SignalBus** (NewSignalBus, Emit, Since, Len), and **WatchStdin**. Domains (e.g. Asterisk) implement session and tool handlers and register them via `sdkmcp.AddTool(s.MCPServer, ...)`. The framework package has zero domain imports; only the MCP SDK is required.
+
 ### What the framework does NOT do
 
 - **No I/O**: The framework never reads files, calls APIs, or touches the network. All I/O happens in domain code or adapters.

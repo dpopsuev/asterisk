@@ -13,6 +13,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
 | `metacal-run-1.md` | Discover all Cursor auto-select models via prompt negation, run one behavioral probe on each, persist as first meta-calibration dataset. | Framework showcase (gate) |
+| `mcp-underload-decouple.md` | Underload & decouple: framework-level MCP (Server, SignalBus, WatchStdin); Asterisk domain keeps session and tool handlers only. ROGYB per component. | Architecture evolution |
 
 ## draft/ -- Planned, not yet being executed
 

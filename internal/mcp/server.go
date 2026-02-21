@@ -10,6 +10,7 @@ import (
 
 	"asterisk/internal/calibrate"
 	"asterisk/internal/logging"
+	fwmcp "asterisk/pkg/framework/mcp"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -29,15 +30,12 @@ type Server struct {
 }
 
 // NewServer creates an MCP server with calibration and signal bus tools.
-// It captures the current working directory as the project root so relative
-// paths (prompt templates, artifact dirs) resolve correctly.
+// It uses the framework MCP server and captures the current working directory
+// as the project root so relative paths (prompt templates, artifact dirs) resolve correctly.
 func NewServer() *Server {
 	cwd, _ := os.Getwd()
-	s := &Server{ProjectRoot: cwd}
-	s.MCPServer = sdkmcp.NewServer(
-		&sdkmcp.Implementation{Name: "asterisk", Version: "dev"},
-		nil,
-	)
+	fw := fwmcp.NewServer("asterisk", "dev")
+	s := &Server{MCPServer: fw.MCPServer, ProjectRoot: cwd}
 	s.registerTools()
 	return s
 }
@@ -152,8 +150,8 @@ type getSignalsInput struct {
 }
 
 type getSignalsOutput struct {
-	Signals []Signal `json:"signals"`
-	Total   int      `json:"total"`
+	Signals []fwmcp.Signal `json:"signals"`
+	Total   int            `json:"total"`
 }
 
 // --- Tool handlers ---
