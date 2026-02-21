@@ -42,7 +42,7 @@ func NewSession(config metacal.DiscoveryConfig) *Session {
 		config = metacal.DefaultConfig()
 	}
 	s := &Session{
-		ID:        fmt.Sprintf("mc-%d", time.Now().UnixMilli()),
+		ID:        fmt.Sprintf("mc-%d", time.Now().UnixNano()),
 		Bus:       fwmcp.NewSignalBus(),
 		Config:    config,
 		state:     StateRunning,
@@ -86,6 +86,15 @@ func (s *Session) SubmitResponse(raw string) (metacal.DiscoveryResult, bool, err
 	mi, err := metacal.ParseIdentityResponse(raw)
 	if err != nil {
 		return metacal.DiscoveryResult{}, false, fmt.Errorf("parse identity: %w", err)
+	}
+
+	if framework.IsWrapperName(mi.ModelName) {
+		s.Bus.Emit("identity_rejected", "server", "", "", map[string]string{
+			"model":  mi.ModelName,
+			"reason": "wrapper",
+		})
+		return metacal.DiscoveryResult{}, false, fmt.Errorf(
+			"wrapper identity rejected: model_name=%q is a known wrapper, not a foundation model", mi.ModelName)
 	}
 
 	code, err := metacal.ParseProbeResponse(raw)

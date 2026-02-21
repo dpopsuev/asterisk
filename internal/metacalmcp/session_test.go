@@ -1,6 +1,7 @@
 package metacalmcp
 
 import (
+	"strings"
 	"sync"
 	"testing"
 
@@ -385,5 +386,127 @@ func TestSession_SignalBus_EmitsSessionDone(t *testing.T) {
 	}
 	if !found {
 		t.Error("expected session_done signal after finalize")
+	}
+}
+
+// --- Wrapper identity rejection ---
+
+func TestSession_SubmitResponse_WrapperIdentity_Rejected(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+
+	_, _, err := s.SubmitResponse(validResponse("Auto", "unknown", ""))
+	if err == nil {
+		t.Fatal("expected error for wrapper identity 'Auto'")
+	}
+	if !strings.Contains(err.Error(), "wrapper identity rejected") {
+		t.Errorf("error = %q, want 'wrapper identity rejected'", err.Error())
+	}
+	if s.UniqueCount() != 0 {
+		t.Errorf("unique count = %d, want 0 (wrapper should not be recorded)", s.UniqueCount())
+	}
+}
+
+func TestSession_SubmitResponse_CursorWrapper_Rejected(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+
+	_, _, err := s.SubmitResponse(validResponse("Cursor", "Cursor", "1.0"))
+	if err == nil {
+		t.Fatal("expected error for wrapper identity 'Cursor'")
+	}
+	if !strings.Contains(err.Error(), "wrapper identity rejected") {
+		t.Errorf("error = %q, want 'wrapper identity rejected'", err.Error())
+	}
+}
+
+func TestSession_SubmitResponse_ComposerWrapper_Rejected(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+
+	_, _, err := s.SubmitResponse(validResponse("composer", "Cursor", ""))
+	if err == nil {
+		t.Fatal("expected error for wrapper identity 'composer'")
+	}
+	if !strings.Contains(err.Error(), "wrapper identity rejected") {
+		t.Errorf("error = %q, want 'wrapper identity rejected'", err.Error())
+	}
+}
+
+func TestSession_SubmitResponse_FoundationAccepted(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+
+	result, repeated, err := s.SubmitResponse(validResponse("claude-sonnet-4-20250514", "Anthropic", "20250514"))
+	if err != nil {
+		t.Fatalf("unexpected error for foundation model: %v", err)
+	}
+	if repeated {
+		t.Error("first submission should not be repeated")
+	}
+	if result.Model.ModelName != "claude-sonnet-4-20250514" {
+		t.Errorf("model name = %q, want claude-sonnet-4-20250514", result.Model.ModelName)
+	}
+	if s.UniqueCount() != 1 {
+		t.Errorf("unique count = %d, want 1", s.UniqueCount())
+	}
+}
+
+func TestSession_SubmitResponse_EXCLUDED_Response(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+
+	_, _, err := s.SubmitResponse("EXCLUDED")
+	if err == nil {
+		t.Fatal("expected error for EXCLUDED response")
+	}
+	if !strings.Contains(err.Error(), "parse identity") {
+		t.Errorf("error = %q, want 'parse identity'", err.Error())
+	}
+}
+
+func TestSession_SubmitResponse_WrongSchema(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+
+	raw := `{"model": "gpt-4o", "provider": "OpenAI"}` + "\n" +
+		"```go\nfunc foo() {}\n```"
+	_, _, err := s.SubmitResponse(raw)
+	if err == nil {
+		t.Fatal("expected error for wrong JSON schema (missing model_name)")
+	}
+	if !strings.Contains(err.Error(), "parse identity") {
+		t.Errorf("error = %q, want 'parse identity'", err.Error())
+	}
+}
+
+func TestSession_SubmitResponse_CodeOnlyNoIdentity(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+
+	raw := "```go\nfunc improved(nums []int) int {\n\tvar total int\n\tfor _, n := range nums {\n\t\ttotal += n\n\t}\n\treturn total\n}\n```"
+	_, _, err := s.SubmitResponse(raw)
+	if err == nil {
+		t.Fatal("expected error when response has code only, no identity JSON")
+	}
+	if !strings.Contains(err.Error(), "parse identity") {
+		t.Errorf("error = %q, want 'parse identity'", err.Error())
+	}
+}
+
+func TestSession_SignalBus_EmitsIdentityRejected(t *testing.T) {
+	s := NewSession(metacal.DefaultConfig())
+	beforeSubmit := s.Bus.Len()
+
+	s.SubmitResponse(validResponse("Auto", "unknown", ""))
+
+	signals := s.Bus.Since(beforeSubmit)
+	found := false
+	for _, sig := range signals {
+		if sig.Event == "identity_rejected" {
+			found = true
+			if sig.Meta["model"] != "Auto" {
+				t.Errorf("identity_rejected meta model = %q, want Auto", sig.Meta["model"])
+			}
+			if sig.Meta["reason"] != "wrapper" {
+				t.Errorf("identity_rejected meta reason = %q, want wrapper", sig.Meta["reason"])
+			}
+		}
+	}
+	if !found {
+		t.Error("expected identity_rejected signal after wrapper identity submission")
 	}
 }

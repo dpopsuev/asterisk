@@ -2,6 +2,7 @@ package metacalmcp_test
 
 import (
 	"context"
+	"strings"
 	"testing"
 
 	_ "asterisk/internal/metacalmcp"
@@ -247,6 +248,87 @@ func TestServer_GetSignals_SinceBeyondTotal_EmptyResult(t *testing.T) {
 	signals := result["signals"]
 	if signals != nil {
 		t.Fatalf("expected nil signals for since > total, got %v", signals)
+	}
+}
+
+// --- Wrapper identity rejection at MCP level ---
+
+func TestServer_SubmitWrapper_ReturnsToolError(t *testing.T) {
+	srv := newTestServer(t)
+	ctx := context.Background()
+	session := connectInMemory(t, ctx, srv)
+
+	startResult := callTool(t, ctx, session, "start_discovery", map[string]any{})
+	sessionID := startResult["session_id"].(string)
+
+	callTool(t, ctx, session, "get_discovery_prompt", map[string]any{"session_id": sessionID})
+
+	errMsg := callToolExpectError(t, ctx, session, "submit_discovery_response", map[string]any{
+		"session_id": sessionID,
+		"response":   mockResponse("Auto", "unknown", ""),
+	})
+	if errMsg == "" {
+		t.Fatal("expected error for wrapper identity via MCP")
+	}
+	if !strings.Contains(errMsg, "wrapper identity rejected") {
+		t.Errorf("error = %q, want 'wrapper identity rejected'", errMsg)
+	}
+}
+
+func TestServer_SubmitWrapper_SessionContinues(t *testing.T) {
+	srv := newTestServer(t)
+	ctx := context.Background()
+	session := connectInMemory(t, ctx, srv)
+
+	startResult := callTool(t, ctx, session, "start_discovery", map[string]any{
+		"max_iterations":      10,
+		"terminate_on_repeat": false,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Submit wrapper — should be rejected
+	callTool(t, ctx, session, "get_discovery_prompt", map[string]any{"session_id": sessionID})
+	callToolExpectError(t, ctx, session, "submit_discovery_response", map[string]any{
+		"session_id": sessionID,
+		"response":   mockResponse("Cursor", "Cursor", "1.0"),
+	})
+
+	// Submit foundation — session should still accept it
+	callTool(t, ctx, session, "get_discovery_prompt", map[string]any{"session_id": sessionID})
+	result := callTool(t, ctx, session, "submit_discovery_response", map[string]any{
+		"session_id": sessionID,
+		"response":   mockResponse("gpt-4o", "OpenAI", "4o"),
+	})
+	if result["model_name"] != "gpt-4o" {
+		t.Fatalf("expected gpt-4o, got %v", result["model_name"])
+	}
+
+	// Report should contain only the foundation model, not the wrapper
+	reportResult := callTool(t, ctx, session, "get_discovery_report", map[string]any{
+		"session_id": sessionID,
+	})
+	uniqueModels := reportResult["unique_models"].(float64)
+	if uniqueModels != 1 {
+		t.Fatalf("expected 1 unique model (no wrapper), got %v", uniqueModels)
+	}
+}
+
+func TestServer_SubmitEXCLUDED_ReturnsToolError(t *testing.T) {
+	srv := newTestServer(t)
+	ctx := context.Background()
+	session := connectInMemory(t, ctx, srv)
+
+	startResult := callTool(t, ctx, session, "start_discovery", map[string]any{})
+	sessionID := startResult["session_id"].(string)
+
+	callTool(t, ctx, session, "get_discovery_prompt", map[string]any{"session_id": sessionID})
+
+	errMsg := callToolExpectError(t, ctx, session, "submit_discovery_response", map[string]any{
+		"session_id": sessionID,
+		"response":   "EXCLUDED",
+	})
+	if errMsg == "" {
+		t.Fatal("expected error for EXCLUDED response via MCP")
 	}
 }
 

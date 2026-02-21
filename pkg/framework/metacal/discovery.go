@@ -20,7 +20,7 @@ func BuildIdentityPrompt() string {
 
 If line 1 is not valid JSON containing "model_name", the entire response is rejected.
 
-Report your FOUNDATION model (the model you were trained as), NOT the IDE. WRONG: "Auto", "auto", "Cursor", "Composer", "composer", "Copilot". CORRECT: "claude-sonnet-4-20250514", "gpt-4o", "gemini-2.0-flash".
+Report your FOUNDATION model (the model you were trained as), NOT the IDE. WRONG: "Auto", "auto", "Cursor", "cursor", "Composer", "composer", "Copilot", "copilot", "Azure", "azure". CORRECT: "claude-sonnet-4-20250514", "gpt-4o", "gemini-2.0-flash".
 
 Example line 1 only: {"model_name": "claude-sonnet-4-20250514", "provider": "Anthropic", "version": "20250514", "wrapper": "Cursor"}
 
