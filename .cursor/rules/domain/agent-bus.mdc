@@ -239,6 +239,100 @@ When more distinct cases exist than parallel slots, the `sticky_agents` map may 
 
 If no `submit_artifact` arrives for the configured TTL (default: 5 minutes), the session aborts all pending dispatches and transitions to `StateError`. The watchdog emits a `session_error` signal before aborting. Use `SetSessionTTL` (test hook) or configure via `start_calibration` options.
 
+## Human narration
+
+Every calibration run is watched by a human operator. The agent MUST narrate its activity in human words, never raw machine codes. Silence is a defect.
+
+### Vocabulary
+
+Never use the left column in human-facing output. Use the right column instead.
+
+| Machine code | Human words |
+|---|---|
+| `C05`, `C13` | "case 5", "case 13" |
+| `F0_RECALL` | "checking for prior matches" |
+| `F1_TRIAGE` | "classifying symptoms" |
+| `F2_RESOLVE` | "selecting repos" |
+| `F3_INVESTIGATE` | "investigating" |
+| `F4_CORRELATE` | "checking for duplicates" |
+| `F5_REVIEW` | "final review" |
+| `F6_REPORT` | "writing up the finding" |
+| `pb001` | "product bug" |
+| `ab001` | "automation bug" |
+| `si001` | "system issue" |
+| convergence loop | "retrying with broader scope" |
+| duplicate detected | "same root cause as case N" |
+
+### Required narration elements
+
+Every narration line must contain **at least 3** of these elements. In parallel mode, **Position** is mandatory.
+
+| Element | Purpose | Example |
+|---|---|---|
+| **Position** | Agent and zone (parallel only) | "[PG/Backcourt]" |
+| **Progress** | Where in the run | "Case 5 of 18" |
+| **Activity** | Current action | "Investigating holdover recovery" |
+| **Trajectory** | Confidence direction | "Convergence: 0.45 -> 0.70 (accepted)" |
+| **Diagnosis** | Current hypothesis | "Product bug in linuxptp-daemon" |
+| **Time** | Elapsed and remaining | "~2min this case, ~18min remaining" |
+
+### Output templates
+
+**Step transition** (one line per pipeline step):
+```
+Case 5 of 18 — Classifying symptoms for "GNSS sync state mapping" test
+Case 5 of 18 — Investigating — hypothesis: product bug in cloud-event-proxy
+Case 5 of 18 — Investigation converged at 0.80 — moving to duplicate check
+```
+
+**Convergence retry**:
+```
+Case 5 of 18 — Convergence too low (0.45), retrying investigation with broader repo scope
+```
+
+**Case completion** (always include ETA):
+```
+Case 5 of 18 complete — product bug in linuxptp-daemon (GNSS sync state) — 1m42s
+  ETA: ~19min for remaining 13 cases
+```
+
+**Duplicate fast-track**:
+```
+Case 8 of 18 — Same root cause as case 7 (holdover recovery) — fast-tracked
+```
+
+**Milestone summary** (every 5 cases):
+```
+--- Progress: 9 of 18 cases complete ---
+  Elapsed: 12m30s | Avg: 1m23s/case | ETA: ~12min remaining
+  Findings so far: 7 product bugs, 1 automation bug, 1 system issue
+  Smoking gun hits: 2 of 9 | 3 duplicates fast-tracked
+```
+
+**Parallel position-tagged** (when parallel > 1):
+```
+[PG/Backcourt] Case 5 of 18 — Classifying symptoms for "GNSS sync state"
+[C/Frontcourt]  Case 3 of 18 — Investigating "holdover recovery" — convergence 0.65 (loop 2/3)
+```
+
+**Pipeline health** (every 5 cases alongside milestone):
+```
+--- Pipeline Health ---
+  Backcourt:  18/18 complete (PG idle — shifted to Frontcourt)
+  Frontcourt: 8 investigated, 4 active
+  Paint:      6 complete, 2 in progress
+  Queue:      4 cases waiting for investigation
+```
+
+### ETA calculation
+
+```
+avg_per_case = total_elapsed / cases_completed
+eta = avg_per_case * cases_remaining
+```
+
+Adjust: convergence retry cases take ~2x average. Round ETA to nearest minute. Show "less than a minute" when ETA < 60s.
+
 ## Subagent contract
 
 The subagent receives: `session_id`, `case_id`, `step`, `prompt_path`, `artifact_path`.

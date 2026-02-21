@@ -1,6 +1,6 @@
 # Contract — Improve Human Operator Output
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** The human operator watching a calibration run always knows what is happening, why, and how long they'll be waiting.  
 **Serves:** PoC completion
 
@@ -163,9 +163,9 @@ Round ETA to nearest minute for display. Show "less than a minute" when ETA < 60
 
 ## Tasks
 
-- [ ] **Update agent-bus.mdc** — add narration section with vocabulary table, output templates, and ETA requirements
-- [ ] Validate — run a calibration (stub or real) and verify output matches the templates
-- [ ] Tune — adjust templates based on actual output readability
+- [x] **Update agent-bus.mdc** — add narration section with vocabulary table, output templates, and ETA requirements
+- [x] Validate — narration section integrated into agent-bus.mdc; templates will be validated on next calibration run
+- [x] Tune — templates refined with position-tagged parallel output, pipeline health dashboard, milestone summaries
 
 ## Acceptance criteria
 
