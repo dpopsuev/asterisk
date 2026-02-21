@@ -221,10 +221,10 @@ Shadow personas with distinct system prompts via MCP.
 
 ### Phase 3 -- Metrics
 
-- [ ] Add verdict flip rate metric
-- [ ] Add defense challenge accuracy metric
-- [ ] Add remand effectiveness metric
-- [ ] Add `ExpectedVerdict` to `GroundTruthCase`
+- [x] Add verdict flip rate metric
+- [x] Add defense challenge accuracy metric (verdict accuracy against ground truth)
+- [x] Add remand effectiveness metric
+- [x] Add `ExpectedVerdict` to `GroundTruthCase`
 
 ### Phase 4 -- LLM-based court (future)
 
