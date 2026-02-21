@@ -74,14 +74,18 @@ flowchart LR
 
 ## Execution strategy
 
-Build types first (Phase 1), then the probe (Phase 2), then the discovery runner (Phase 3), then the store and CLI integration (Phase 4). Each phase is independently testable. The package has zero domain imports at all times.
+**Test-as-runner design.** The discovery loop is a recursive Go test function. The `seen` map is the accumulator. Each recursion level = one negation iteration. The fail-fast assertion IS the termination condition: when a model repeats, `t.Fatalf` fires with the full inventory. `t.Cleanup` persists the dataset to JSON regardless of pass/fail.
 
-The main agent orchestrates the discovery loop:
-1. Call `get_next_step` equivalent (build exclusion prompt from prior results).
-2. Spawn a Cursor subagent via the Task tool with the negation prompt.
-3. Subagent identifies itself and runs the refactoring probe.
-4. Main agent scores the probe output, persists the result, updates the exclusion list.
-5. Repeat until termination condition.
+```
+func discoverModels(t, iteration, seen map, exclude []ModelIdentity) {
+    model := spawnSubagent(buildExclusionPrompt(exclude))
+    if _, exists := seen[model]; exists → t.Fatalf("exhausted at iteration %d, %d unique models")
+    seen[model] = result
+    discoverModels(t, iteration+1, seen, append(exclude, model))  // recurse
+}
+```
+
+Build types first (Phase 1), then the probe scorer (Phase 2), then the recursive discovery test (Phase 3), then the store (Phase 4). Each phase is independently testable. The package has zero domain imports at all times.
 
 ## Tasks
 
@@ -103,15 +107,19 @@ The main agent orchestrates the discovery loop:
 - [ ] Implement `BuildProbePrompt(input string) string` — the prompt given to the subagent alongside the messy code
 - [ ] Unit tests for scorer with known inputs/outputs
 
-### Phase 3 — Discovery runner
+### Phase 3 — Recursive discovery test
 
-- [ ] Create `pkg/framework/metacal/discovery.go` with `DiscoveryRunner`
+- [ ] Create `pkg/framework/metacal/discovery.go` with prompt builders and response parsers
 - [ ] Implement `BuildExclusionPrompt(seen []ModelIdentity) string` — constructs the negation prompt
+- [ ] Implement `BuildIdentityPrompt() string` — the "identify yourself" prompt fragment
 - [ ] Implement `ParseIdentityResponse(raw string) (ModelIdentity, error)` — extracts model identity from subagent response
 - [ ] Implement `ParseProbeResponse(raw string) (string, error)` — extracts refactored code from subagent response
-- [ ] Implement `Run(ctx context.Context) (*RunReport, error)` — the main discovery loop
-- [ ] Termination conditions: repeat model, max iterations, subagent error, 2 consecutive same model
-- [ ] Unit tests with stub responses
+- [ ] Create `pkg/framework/metacal/discovery_test.go` with recursive `discoverModels` function
+- [ ] `discoverModels(t, iteration, seen map[string]DiscoveryResult, exclude []ModelIdentity)` — recursive, fail-fast on repeat
+- [ ] `t.Cleanup` persists `seen` map to JSON via `RunStore` regardless of pass/fail
+- [ ] `t.Fatalf` on repeat reports: iteration count, unique model count, full model list
+- [ ] Unit tests for prompt builder and response parser with stub data
+- [ ] Wet test (`//go:build wet`) for the live recursive discovery loop
 
 ### Phase 4 — Store and integration
 
@@ -150,5 +158,7 @@ The main agent orchestrates the discovery loop:
 No trust boundaries affected. The discovery runner operates entirely within the Cursor IDE session. Probe inputs are synthetic (no user data, no secrets). Model identity data is non-sensitive (publicly known model names and providers).
 
 ## Notes
+
+2026-02-21 16:00 — Design refinement: test-as-runner pattern. The discovery loop is a recursive Go test function. `seen` map is the accumulator, fail-fast `t.Fatalf` on model repeat is the termination condition (reports N unique models). `t.Cleanup` persists results to JSON regardless of pass/fail. Wet test tag for live runs.
 
 2026-02-21 15:00 — Contract created. Extends the weekend side-quest with a first empirical meta-calibration run. Concept: prompt negation to enumerate Cursor's model pool. Discovery + one refactoring probe per model. Automated via Task tool subagents.
