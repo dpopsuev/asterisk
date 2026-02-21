@@ -1,6 +1,6 @@
 # Contract — metacal-mcp-server
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Expose meta-calibration discovery as an MCP server (`metacal serve`) so Cursor can drive the negation loop end-to-end without human CLI steps between iterations.  
 **Serves:** Architecture evolution / Framework showcase
 
@@ -83,31 +83,31 @@ Build in order: (1) Session + state management, (2) Tool handlers, (3) `serve` s
 
 ### Phase 1 — Session and state
 
-- [ ] Create `internal/metacal-mcp/session.go` with `Session` struct holding discovery config, seen map, iteration counter, `*fwmcp.SignalBus`, and `RunReport` accumulator
-- [ ] `NewSession(config DiscoveryConfig)` initializes state and emits `session_started`
-- [ ] Unit tests for session state transitions (start, advance iteration, detect repeat, finalize report)
+- [x] Create `internal/metacal-mcp/session.go` with `Session` struct holding discovery config, seen map, iteration counter, `*fwmcp.SignalBus`, and `RunReport` accumulator
+- [x] `NewSession(config DiscoveryConfig)` initializes state and emits `session_started`
+- [x] Unit tests for session state transitions (start, advance iteration, detect repeat, finalize report)
 
 ### Phase 2 — Tool handlers
 
-- [ ] Create `internal/metacal-mcp/server.go` with `Server` struct wrapping `*sdkmcp.Server`
-- [ ] **`start_discovery`** — input: `DiscoveryConfig` JSON; creates session, returns session ID + config echo
-- [ ] **`get_discovery_prompt`** — returns `BuildFullPrompt(seen)` for current iteration; returns `done=true` if terminated
-- [ ] **`submit_discovery_response`** — input: raw response text; parses identity + probe, scores, updates seen map, advances iteration; returns parsed result JSON
-- [ ] **`get_discovery_report`** — returns `RunReport` JSON; persists to `FileRunStore` if session is finalized
-- [ ] **`emit_signal` / `get_signals`** — delegate to `session.Bus` (same pattern as calibration)
-- [ ] Unit tests for each handler (mock session, verify JSON schemas)
+- [x] Create `internal/metacal-mcp/server.go` with `Server` struct wrapping `*sdkmcp.Server`
+- [x] **`start_discovery`** — input: `DiscoveryConfig` JSON; creates session, returns session ID + config echo
+- [x] **`get_discovery_prompt`** — returns `BuildFullPrompt(seen)` for current iteration; returns `done=true` if terminated
+- [x] **`submit_discovery_response`** — input: raw response text; parses identity + probe, scores, updates seen map, advances iteration; returns parsed result JSON
+- [x] **`get_discovery_report`** — returns `RunReport` JSON; persists to `FileRunStore` if session is finalized
+- [x] **`emit_signal` / `get_signals`** — delegate to `session.Bus` (same pattern as calibration)
+- [x] Unit tests for each handler (mock session, verify JSON schemas)
 
 ### Phase 3 — CLI serve subcommand
 
-- [ ] Add `serve` case to `cmd/metacal/main.go` switch (or migrate to Cobra if warranted)
-- [ ] `cmdServe` creates `internal/metacal-mcp.NewServer()`, calls `fwmcp.WatchStdin`, runs over `StdioTransport`
-- [ ] Add `.cursor/mcp.json` entry for metacal server (separate from asterisk)
+- [x] Add `serve` case to `cmd/metacal/main.go` switch (or migrate to Cobra if warranted)
+- [x] `cmdServe` creates `internal/metacal-mcp.NewServer()`, calls `fwmcp.WatchStdin`, runs over `StdioTransport`
+- [x] Add `.cursor/mcp.json` entry for metacal server (separate from asterisk)
 
 ### Phase 4 — Validate and tune
 
-- [ ] Validate (green) — `go build ./...`, `go test ./...`, manual MCP discovery run
-- [ ] Tune (blue) — refactor for quality, align naming with calibration MCP
-- [ ] Validate (green) — all tests still pass after tuning
+- [x] Validate (green) — `go build ./...`, `go test ./...`, manual MCP discovery run
+- [x] Tune (blue) — refactor for quality, align naming with calibration MCP
+- [x] Validate (green) — all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -125,3 +125,4 @@ No trust boundaries affected. MCP server runs in-process over stdio; discovery s
 
 2026-02-21 — Contract created as draft. Not blocking metacal-run-1 (which works via CLI). Activates when agent-driven discovery loop is needed or when meta-calibration vision contract (multi-probe, ModelProfiles) progresses.
 2026-02-21 — Implemented and activated. internal/metacalmcp package with Session + Server + 6 tool handlers. Tests pass. `metacal serve` subcommand added. .cursor/mcp.json updated with metacal entry. Package uses internal/metacalmcp (Go-valid name instead of internal/metacal-mcp).
+2026-02-21 — Contract closed. All 4 phases complete. Moved to completed/mcp/.

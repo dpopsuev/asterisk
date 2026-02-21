@@ -15,7 +15,7 @@ description: Active goal manifest — single-read orientation for agents to know
 | **gate** | `framework-playground` (Contract A) | active | `examples/framework/` — runnable demo of all framework concepts. Zero RP dependency. |
 | **gate** | `framework-developer-guide` (Contract B) | active | `docs/framework-guide.md` — conceptual design document for newcomers. |
 | **gate** | `oss-first-impression` (Contract C) | active | LICENSE, README update, CONTRIBUTING.md, `make playground` target. Depends on A + B. |
-| **gate** | `metacal-run-1` (Contract D) | active | First empirical meta-calibration: model discovery via prompt negation + refactoring probe per model. `pkg/framework/metacal/`. |
+| ~~gate~~ | ~~`metacal-run-1` (Contract D)~~ | **complete** | First empirical meta-calibration: model discovery via prompt negation + refactoring probe per model. Moved to `completed/framework/`. |
 
 ---
 
@@ -76,7 +76,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | **vision** | `workspace-revisited` | draft | Long-term workspace vision: layered composition, dependency graph, summarization. Trimmed to Phases 3-4. |
 | **vision — Framework Tome IV** | `meta-calibration` | draft | Task-based behavioral assessment of LLM models. Empirical ModelProfiles replace hardcoded persona traits. |
 | **vision** | `domain-calibration` | draft | Scope calibration as per-domain. Asterisk RCA + Origami extraction as distinct calibration systems. |
-| **vision** | `metacal-mcp-server` | active | MCP server for meta-calibration discovery loop; Cursor drives negation iterations end-to-end. Implemented. |
+| ~~vision~~ | ~~`metacal-mcp-server`~~ | **complete** | MCP server for meta-calibration discovery loop. Moved to `completed/mcp/`. |
 | **vision** | `prompt-calibration` | draft | Framework-level prompt tuning loop. Split from cursor-prompt-tuning (domain). Extends Tome III + IV. |
 | ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.1-ontology`~~ | **complete** | Node/Edge/Walker/Graph interfaces in `internal/framework/`. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.2-characteristica`~~ | **complete** | Pipeline DSL (YAML/Go). Orchestrate bridge. Moved to `completed/framework/`. |

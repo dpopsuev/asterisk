@@ -12,9 +12,6 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|--------|
 | `cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
-| `metacal-run-1.md` | Discover all Cursor auto-select models via prompt negation, run one behavioral probe on each, persist as first meta-calibration dataset. | Framework showcase (gate) |
-| `mcp-underload-decouple.md` | Underload & decouple: framework-level MCP (Server, SignalBus, WatchStdin); Asterisk domain keeps session and tool handlers only. ROGYB per component. | Architecture evolution |
-| `metacal-mcp-server.md` | MCP server for meta-calibration discovery loop (`metacal serve`); Cursor drives negation iterations end-to-end. | Architecture evolution |
 
 ## draft/ -- Planned, not yet being executed
 
@@ -29,7 +26,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `domain-calibration.md` | Explicitly scope calibration as per-domain; establish Origami's domain calibration alongside Asterisk's. | Architecture evolution |
 | `prompt-calibration.md` | Framework-level prompt tuning loop: measure per-step accuracy, propose edits, re-calibrate. Split from cursor-prompt-tuning. | Architecture evolution |
 
-## completed/ -- Historical record (68 completed contracts)
+## completed/ -- Historical record (71 completed contracts)
 
 Grouped by original development phase. All contracts below are **complete** (or closed).
 
@@ -129,7 +126,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `architecture-snapshots.md` | Architecture diagrams as first-class artifacts; current/desired state snapshots; retrofit 3 contracts; extend `docs/architecture.md`. |
 | `soul-red-hat-telco.md` | Red Hat identity, telco mission, OSS philosophy, and scale awareness encoded into strategy, invariants, and standards. |
 
-### completed/framework/ (10)
+### completed/framework/ (11)
 
 | Contract | Goal |
 |----------|------|
@@ -143,14 +140,17 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `agent-adapter-overloading.md` | Multi-adapter orchestration. **Abandoned** — Phase 1 absorbed by III.1-personae. |
 | `defect-court.md` | Adversarial Defect Court (D0-D4). **Abandoned** — absorbed by III.3-shadow. |
 | `agentmux-decoupling.md` | Generic agent orchestration extraction. **Abandoned** — absorbed by I.1-ontology. |
+| `metacal-run-1.md` | Discover all Cursor auto-select models via prompt negation; one refactoring probe per model; first meta-calibration dataset. |
 
-### completed/mcp/ (3)
+### completed/mcp/ (5)
 
 | Contract | Goal |
 |----------|------|
 | `mcp-server-foundation.md` | `asterisk serve` MCP server over stdio with Cobra command and session management. |
 | `mcp-pipeline-tools.md` | MCP tools driving F0-F6 pipeline (get_next_step, submit_artifact). |
 | `mcp-calibration-mode.md` | Calibration-specific MCP tools (start_calibration, get_report, signal bus). |
+| `mcp-underload-decouple.md` | Framework-level MCP (Server, SignalBus, WatchStdin); Asterisk domain keeps session and tool handlers only. |
+| `metacal-mcp-server.md` | MCP server for meta-calibration discovery loop (`metacal serve`); Cursor drives negation iterations end-to-end. |
 
 ### completed/output/ (6)
 

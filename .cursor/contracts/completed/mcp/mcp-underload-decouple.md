@@ -1,6 +1,6 @@
 # Contract — Underload & Decouple: Framework-Level MCP
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Move generic MCP (server, SignalBus, WatchStdin) into the framework so Asterisk and Origami get MCP out of the box; Asterisk domain keeps only session and tool handlers.  
 **Serves:** Architecture evolution (framework MCP; domain-calibration / Origami alignment)
 
@@ -91,3 +91,4 @@ No trust boundaries affected. MCP server runs in-process; SignalBus and WatchStd
 
 2026-02-22 — Contract created. ROGYB and contract-first execution strategy added so rule router and future agents apply testing-methodology and knowledge-store conventions. Plan-driven implementation had started (Phase 1 framework MCP files added) without a contract or explicit ROGYB; this contract formalizes the remainder and aligns with project standards.
 2026-02-21 — MCP decoupling completed. internal/mcp now uses pkg/framework/mcp for SignalBus, Server, and WatchStdin only; Session and all six tool handlers remain in internal/mcp. go test ./internal/mcp/... and just calibrate-stub pass. "MCP out of the box" subsection added to docs/framework-guide.md.
+2026-02-21 — Contract closed. All tasks complete. Moved to completed/mcp/.

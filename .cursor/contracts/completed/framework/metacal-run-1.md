@@ -1,6 +1,6 @@
 # Contract — metacal-run-1
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Discover all models available in Cursor's auto-select via prompt negation, run one behavioral probe on each, and persist results as the first empirical meta-calibration dataset.  
 **Serves:** Framework showcase (weekend side-quest — gate extension)
 
@@ -91,48 +91,48 @@ Build types first (Phase 1), then the probe scorer (Phase 2), then the recursive
 
 ### Phase 1 — Types
 
-- [ ] Create `pkg/framework/metacal/types.go` with `DiscoveryResult`, `ProbeResult`, `ProbeScore`, `RunReport`, `DiscoveryConfig`
-- [ ] `DiscoveryResult`: `Iteration int`, `ModelIdentity`, `ExclusionPrompt string`, `ProbeResult`, `Timestamp`
-- [ ] `ProbeResult`: `ProbeID string`, `RawOutput string`, `Score ProbeScore`, `Elapsed time.Duration`
-- [ ] `ProbeScore`: `Renames int`, `FunctionSplits int`, `CommentsAdded int`, `StructuralChanges int`, `TotalScore float64`
-- [ ] `RunReport`: `RunID string`, `StartTime`, `EndTime`, `Config DiscoveryConfig`, `Results []DiscoveryResult`, `UniqueModels []ModelIdentity`
-- [ ] `DiscoveryConfig`: `MaxIterations int`, `ProbeID string`, `TerminateOnRepeat bool`
-- [ ] Unit tests for type construction and JSON round-trip
+- [x] Create `pkg/framework/metacal/types.go` with `DiscoveryResult`, `ProbeResult`, `ProbeScore`, `RunReport`, `DiscoveryConfig`
+- [x] `DiscoveryResult`: `Iteration int`, `ModelIdentity`, `ExclusionPrompt string`, `ProbeResult`, `Timestamp`
+- [x] `ProbeResult`: `ProbeID string`, `RawOutput string`, `Score ProbeScore`, `Elapsed time.Duration`
+- [x] `ProbeScore`: `Renames int`, `FunctionSplits int`, `CommentsAdded int`, `StructuralChanges int`, `TotalScore float64`
+- [x] `RunReport`: `RunID string`, `StartTime`, `EndTime`, `Config DiscoveryConfig`, `Results []DiscoveryResult`, `UniqueModels []ModelIdentity`
+- [x] `DiscoveryConfig`: `MaxIterations int`, `ProbeID string`, `TerminateOnRepeat bool`
+- [x] Unit tests for type construction and JSON round-trip
 
 ### Phase 2 — Refactoring probe
 
-- [ ] Create `pkg/framework/metacal/probe.go` with `RefactorProbe` struct
-- [ ] Create deterministic messy Go function input (hardcoded in `probe.go` or `testdata/`)
-- [ ] Implement `ScoreRefactorOutput(original, refactored string) ProbeScore` — counts renames, splits, comments, structural changes
-- [ ] Implement `BuildProbePrompt(input string) string` — the prompt given to the subagent alongside the messy code
-- [ ] Unit tests for scorer with known inputs/outputs
+- [x] Create `pkg/framework/metacal/probe.go` with `RefactorProbe` struct
+- [x] Create deterministic messy Go function input (hardcoded in `probe.go` or `testdata/`)
+- [x] Implement `ScoreRefactorOutput(original, refactored string) ProbeScore` — counts renames, splits, comments, structural changes
+- [x] Implement `BuildProbePrompt(input string) string` — the prompt given to the subagent alongside the messy code
+- [x] Unit tests for scorer with known inputs/outputs
 
 ### Phase 3 — Recursive discovery test
 
-- [ ] Create `pkg/framework/metacal/discovery.go` with prompt builders and response parsers
-- [ ] Implement `BuildExclusionPrompt(seen []ModelIdentity) string` — constructs the negation prompt
-- [ ] Implement `BuildIdentityPrompt() string` — the "identify yourself" prompt fragment
-- [ ] Implement `ParseIdentityResponse(raw string) (ModelIdentity, error)` — extracts model identity from subagent response
-- [ ] Implement `ParseProbeResponse(raw string) (string, error)` — extracts refactored code from subagent response
-- [ ] Create `pkg/framework/metacal/discovery_test.go` with recursive `discoverModels` function
-- [ ] `discoverModels(t, iteration, seen map[string]DiscoveryResult, exclude []ModelIdentity)` — recursive, fail-fast on repeat
-- [ ] `t.Cleanup` persists `seen` map to JSON via `RunStore` regardless of pass/fail
-- [ ] `t.Fatalf` on repeat reports: iteration count, unique model count, full model list
-- [ ] Unit tests for prompt builder and response parser with stub data
-- [ ] Wet test (`//go:build wet`) for the live recursive discovery loop
+- [x] Create `pkg/framework/metacal/discovery.go` with prompt builders and response parsers
+- [x] Implement `BuildExclusionPrompt(seen []ModelIdentity) string` — constructs the negation prompt
+- [x] Implement `BuildIdentityPrompt() string` — the "identify yourself" prompt fragment
+- [x] Implement `ParseIdentityResponse(raw string) (ModelIdentity, error)` — extracts model identity from subagent response
+- [x] Implement `ParseProbeResponse(raw string) (string, error)` — extracts refactored code from subagent response
+- [x] Create `pkg/framework/metacal/discovery_test.go` with recursive `discoverModels` function
+- [x] `discoverModels(t, iteration, seen map[string]DiscoveryResult, exclude []ModelIdentity)` — recursive, fail-fast on repeat
+- [x] `t.Cleanup` persists `seen` map to JSON via `RunStore` regardless of pass/fail
+- [x] `t.Fatalf` on repeat reports: iteration count, unique model count, full model list
+- [x] Unit tests for prompt builder and response parser with stub data
+- [x] Wet test (`//go:build wet`) for the live recursive discovery loop
 
 ### Phase 4 — Store and integration
 
-- [ ] Create `pkg/framework/metacal/store.go` with `RunStore` interface and `FileRunStore` (append-only JSON)
-- [ ] `SaveRun(report RunReport) error`, `LoadRun(runID string) (RunReport, error)`, `ListRuns() ([]string, error)`
-- [ ] Auto-register newly discovered models into `KnownModels` (or print the registration line)
-- [ ] Unit tests for store round-trip
+- [x] Create `pkg/framework/metacal/store.go` with `RunStore` interface and `FileRunStore` (append-only JSON)
+- [x] `SaveRun(report RunReport) error`, `LoadRun(runID string) (RunReport, error)`, `ListRuns() ([]string, error)`
+- [x] Auto-register newly discovered models into `KnownModels` (or print the registration line)
+- [x] Unit tests for store round-trip
 
 ### Phase 5 — Validate and tune
 
-- [ ] Validate (green) — all tests pass, zero domain imports, store round-trip works
-- [ ] Tune (blue) — refactor for quality, review naming, ensure scorer is deterministic
-- [ ] Validate (green) — all tests still pass after tuning
+- [x] Validate (green) — all tests pass, zero domain imports, store round-trip works
+- [x] Tune (blue) — refactor for quality, review naming, ensure scorer is deterministic
+- [x] Validate (green) — all tests still pass after tuning
 
 ## Acceptance criteria
 
@@ -286,3 +286,4 @@ go run ./cmd/metacal prompt --exclude-file models.json
 2026-02-21 16:00 — Design refinement: test-as-runner pattern. The discovery loop is a recursive Go test function. `seen` map is the accumulator, fail-fast `t.Fatalf` on model repeat is the termination condition (reports N unique models). `t.Cleanup` persists results to JSON regardless of pass/fail. Wet test tag for live runs.
 
 2026-02-21 15:00 — Contract created. Extends the weekend side-quest with a first empirical meta-calibration run. Concept: prompt negation to enumerate Cursor's model pool. Discovery + one refactoring probe per model. Automated via Task tool subagents.
+2026-02-21 — Contract closed. All 5 phases complete. Code in pkg/framework/metacal/ (6 src + 4 test files), 2 discovery run JSONs in runs/. Moved to completed/framework/.
