@@ -16,7 +16,30 @@ No AI subscription needed. The default adapter (`basic`) is a zero-LLM heuristic
 
 ---
 
-## Quick Start
+## Try It Now (No ReportPortal Needed)
+
+Want to see the engine without any setup? The framework playground demonstrates every major concept in 30 seconds:
+
+```bash
+make playground
+```
+
+Or run a full analysis against a bundled example envelope:
+
+```bash
+make build
+bin/asterisk analyze examples/pre-investigation-33195-4.21/envelope_33195_4.21.json -o /tmp/rca.json
+```
+
+Stub calibration (20 metrics, zero external dependencies):
+
+```bash
+bin/asterisk calibrate --scenario=ptp-mock --adapter=stub
+```
+
+---
+
+## Quick Start (with ReportPortal)
 
 ### 1. Build
 
@@ -93,6 +116,31 @@ Type `/asterisk-analyze help` for setup instructions.
 
 ---
 
+## The Framework
+
+Underneath the RCA product is a generic **agentic pipeline framework** — a graph-based agent orchestration engine with zero domain dependencies.
+
+```
+internal/framework/    ~1,500 lines of source, ~2,400 lines of tests
+pipelines/*.yaml       Declarative pipeline definitions (YAML → Graph → Walk)
+examples/framework/    Interactive playground
+docs/framework-guide.md   Design document
+```
+
+**Key concepts:**
+
+- **Elements** — 6 behavioral archetypes (Fire, Lightning, Earth, Diamond, Water, Air) with quantified traits governing speed, persistence, convergence, and failure modes.
+- **Personas** — 8 named agent identities (4 Light + 4 Shadow), each with a color, element, court position, and prompt preamble.
+- **Pipeline DSL** — YAML pipelines compiled to executable directed graphs with conditional edges, zones, and loop control.
+- **Graph Walk** — A Walker (agent) traverses nodes, producing artifacts that drive edge evaluation. First matching edge fires. Definition-order evaluation ensures determinism.
+- **Masks** — Detachable middleware that injects capabilities at specific nodes without changing the node or agent.
+- **Shadow Court** — An adversarial D0-D4 pipeline where prosecution, defense, and judge deliberate over uncertain classifications. Same interfaces as the Light pipeline.
+- **Element Cycles** — Generative and destructive interactions between elements (inspired by Wu Xing) that govern agent routing.
+
+The framework is the engine; the RCA pipeline is one car built on it. See the [Framework Developer Guide](docs/framework-guide.md) for the full design document, or run `make playground` to see it in action.
+
+---
+
 ## How It Works
 
 Every failed test flows through a six-stage pipeline (F0-F6):
@@ -150,4 +198,4 @@ For architecture details, data model, CLI reference, project structure, calibrat
 
 ## License
 
-*License information to be added.*
+Apache License 2.0. See [LICENSE](LICENSE).

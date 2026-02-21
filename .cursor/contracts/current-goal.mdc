@@ -4,11 +4,27 @@ description: Active goal manifest — single-read orientation for agents to know
 
 # Current Goal
 
-**Goal:** PoC completion  
+**Goal:** Framework showcase (weekend side-quest)  
+**Reference:** Plan — Weekend Framework Side-Quest  
+**Summary:** Make the agentic framework discoverable, runnable, and documented for technically-oriented visitors. Three gate contracts: Framework Playground, Developer Guide, Open Source Polish. PoC goal is **suspended until Sunday 2026-02-23.**
+
+## Weekend Side-Quest — Urgency Map
+
+| Tier | Contract | Status | Notes |
+|------|----------|--------|-------|
+| **gate** | `framework-playground` (Contract A) | active | `examples/framework/` — runnable demo of all framework concepts. Zero RP dependency. |
+| **gate** | `framework-developer-guide` (Contract B) | active | `docs/framework-guide.md` — conceptual design document for newcomers. |
+| **gate** | `oss-first-impression` (Contract C) | active | LICENSE, README update, CONTRIBUTING.md, `make playground` target. Depends on A + B. |
+
+---
+
+## Suspended Goal: PoC completion
+
+**Resumes:** Sunday 2026-02-23  
 **Reference:** `goals/poc.mdc`  
 **Summary:** Prove Asterisk can do real blind RCA on RP data with both BasicAdapter (heuristic) and CursorAdapter (AI via MCP), push results back to ReportPortal, then tune accuracy through targeted quick wins.
 
-## Urgency Map
+## PoC Urgency Map (suspended)
 
 Ordered by priority within each tier. Agents should work top-down: complete gates before quick-wins; quick-wins before should-haves; should-haves before next-milestone. Re-tiered per Phase 5a mitigation urgency audit (2026-02-19).
 

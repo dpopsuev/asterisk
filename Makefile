@@ -1,7 +1,7 @@
 # Asterisk — build, test, run
 # See .cursor/rules/go-testing.mdc for Ginkgo usage.
 
-.PHONY: build build-all test test-ginkgo test-ginkgo-wiring run clean install help
+.PHONY: build build-all test test-ginkgo test-ginkgo-wiring run clean install playground help
 
 BIN_DIR     := bin
 CMD_ASTERISK := ./cmd/asterisk
@@ -17,6 +17,7 @@ help:
 	@echo "  make test-ginkgo      - run all suites with Ginkgo binary (-r)"
 	@echo "  make test-ginkgo-wiring - run only wiring Ginkgo suite"
 	@echo "  make run              - build and run asterisk with default args"
+	@echo "  make playground       - run the framework playground (no RP needed)"
 	@echo "  make clean            - remove $(BIN_DIR)/"
 	@echo "  make install          - install asterisk to GOPATH/bin"
 
@@ -41,6 +42,9 @@ test-ginkgo:
 
 run: build
 	./$(BIN_DIR)/asterisk analyze -launch 33195 -o /tmp/asterisk-artifact.json
+
+playground:
+	go run ./examples/framework/
 
 clean:
 	rm -rf $(BIN_DIR)
