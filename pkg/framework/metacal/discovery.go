@@ -10,11 +10,22 @@ import (
 )
 
 // BuildIdentityPrompt returns the prompt fragment that asks the model
-// to identify itself. The response must be parseable JSON.
+// to report its FOUNDATION identity (the ghost), not the wrapper/IDE hosting it.
+// Aligned with internal/calibrate/adapt/cursor.go identityProbePrompt.
 func BuildIdentityPrompt() string {
-	return `Before doing anything else, identify yourself. Return a JSON object on a single line with exactly these fields:
-{"model_name": "<your model name>", "provider": "<your provider>", "version": "<your version or empty string>"}
-Do NOT wrap it in a code block. Just the raw JSON line, then proceed with the task.`
+	return `Before doing anything else, identify yourself. Respond with ONLY a JSON object on a single line.
+No markdown, no code fences — just raw JSON.
+
+IMPORTANT: Report your FOUNDATION model, not the wrapper or IDE hosting you.
+If you are Claude running inside Cursor, model_name is "claude-sonnet-4-20250514", NOT "composer" or "Auto".
+If you are GPT-4o running inside Copilot, model_name is "gpt-4o", NOT "copilot".
+
+{"model_name": "<your foundation model name, e.g. claude-sonnet-4-20250514>",
+ "provider": "<company that TRAINED you, e.g. Anthropic, OpenAI, Google>",
+ "version": "<your version or checkpoint, e.g. 20250514, 4.0>",
+ "wrapper": "<hosting environment if any, e.g. Cursor, Azure, Copilot, or empty if direct>"}
+
+Then proceed with the task below.`
 }
 
 // BuildExclusionPrompt constructs the negation system prompt that
@@ -39,14 +50,16 @@ func BuildExclusionPrompt(seen []framework.ModelIdentity) string {
 	return b.String()
 }
 
-// BuildFullPrompt combines the exclusion prompt, identity request, and
-// probe prompt into the complete subagent task.
+// BuildFullPrompt combines identity request, exclusion prompt, and probe
+// into the complete subagent task. Identity is placed first so the model
+// is not primed by "You are on auto" (which previously elicited model_name
+// "auto" instead of the foundation model). See TestCombinedPrompt_ReturnsFoundation.
 func BuildFullPrompt(seen []framework.ModelIdentity) string {
 	var b strings.Builder
-	b.WriteString(BuildExclusionPrompt(seen))
-	b.WriteString("\n")
 	b.WriteString(BuildIdentityPrompt())
 	b.WriteString("\n\n")
+	b.WriteString(BuildExclusionPrompt(seen))
+	b.WriteString("\n")
 	b.WriteString(BuildProbePrompt())
 	return b.String()
 }

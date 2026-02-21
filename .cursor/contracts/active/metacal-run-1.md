@@ -157,6 +157,130 @@ Build types first (Phase 1), then the probe scorer (Phase 2), then the recursive
 
 No trust boundaries affected. The discovery runner operates entirely within the Cursor IDE session. Probe inputs are synthetic (no user data, no secrets). Model identity data is non-sensitive (publicly known model names and providers).
 
+## Wet run protocol
+
+The auto agent follows this loop to execute the live discovery run. **Zero file I/O within the loop** — prompts are built inline, subagent responses travel as messages, and scoring uses stdin piping. The only file write is the final report persistence.
+
+### Prerequisites
+
+- Working directory: project root (`/home/dpopsuev/Workspace/asterisk`)
+- `go build ./cmd/metacal` succeeds
+- `pkg/framework/metacal/runs/` directory exists (has `.gitkeep`)
+
+### Loop (zero file I/O)
+
+```
+SEEN = {}           # map[key] → AnalyzeResult JSON (agent context)
+EXCLUDE = []        # array of ModelIdentity JSON objects (agent context)
+ITERATION = 0
+MAX_ITERATIONS = 15
+RUN_ID = "discovery-" + timestamp
+START_TIME = now()
+RESULTS = []        # ordered list of DiscoveryResult objects
+
+while ITERATION < MAX_ITERATIONS:
+    ITER_START = now()
+
+    1. BUILD PROMPT (inline — no CLI call, no file)
+       The agent constructs the prompt in its own context by concatenating:
+         a. Identity block (from BuildIdentityPrompt — the agent knows this text)
+         b. Exclusion block (from EXCLUDE array — "Do NOT select: ..." for each entry)
+         c. Probe block (from BuildProbePrompt — the agent knows this text)
+       No `metacal prompt` call. No temp files.
+
+    2. SPAWN SUBAGENT
+       Launch Task subagent (subagent_type=generalPurpose, model=fast) with PROMPT.
+       Capture the full response text as RESPONSE (message, not file).
+
+    3. ANALYZE RESPONSE (stdin pipe — no temp file)
+       RESULT = $(echo "$RESPONSE" | go run ./cmd/metacal analyze --response-file -)
+       Parse RESULT JSON → extract key, identity, code, score, known, wrapper fields.
+
+    4. DEDUP CHECK
+       If RESULT.key is in SEEN:
+         TERM_REASON = "repeat at iteration {ITERATION}: model {key} seen at iteration {prev}"
+         Break loop
+       If RESULT.wrapper == true:
+         Log warning: "ORANGE: wrapper identity detected — probe may need hardening"
+         TERM_REASON = "wrapper detected at iteration {ITERATION}"
+         Break loop
+
+    5. GOLDEN FILE UPDATE (one-time, iteration 0 only)
+       If ITERATION == 0 and RESULT.wrapper == false:
+         Write RESPONSE to pkg/framework/metacal/testdata/response_combined.txt
+         This keeps TestCombinedPrompt_ReturnsFoundation current with real data.
+
+    6. RECORD
+       SEEN[RESULT.key] = RESULT
+       Append RESULT.identity to EXCLUDE
+       Append to RESULTS
+       ITERATION++
+       ITER_ELAPSED = now() - ITER_START
+       Log: "iteration {N}: {model_name} (score={total_score}) [{ITER_ELAPSED}ms]"
+
+end loop
+
+If ITERATION == MAX_ITERATIONS:
+  TERM_REASON = "max iterations reached"
+```
+
+### Post-loop
+
+```
+TOTAL_ELAPSED = now() - START_TIME
+Log: "discovery complete: {len(SEEN)} unique models in {ITERATION} iterations [{TOTAL_ELAPSED}ms]"
+
+6. BUILD REPORT (inline JSON — no temp file)
+   Construct RunReport JSON in agent context:
+     { run_id, start_time, end_time, config, results, unique_models, termination_reason }
+
+7. PERSIST (stdin pipe)
+   echo "$REPORT_JSON" | go run ./cmd/metacal save --report-file - --runs-dir pkg/framework/metacal/runs
+
+8. UPDATE KNOWN MODELS
+   For each discovered model where known == false:
+     Print the exact KnownModels registration line:
+       "model-key": {ModelName: "...", Provider: "...", Version: "..."},
+     Propose adding it to pkg/framework/known_models.go
+
+9. SUMMARY
+   Print: N unique models discovered in M iterations
+   Print: per-model scores table (model, provider, score, elapsed)
+   Print: total elapsed time
+   Print: termination reason
+```
+
+### I/O budget
+
+| Operation | Old protocol | Zero-IO protocol |
+|-----------|-------------|-----------------|
+| Temp file writes | ~30 (excludes + responses + report) | 0 |
+| Temp file reads | ~30 | 0 |
+| CLI execs in loop | ~30 (prompt + analyze per iteration) | ~15 (analyze only, via stdin) |
+| File writes total | ~31 | 1 (final report via stdin pipe) |
+| Golden file writes | 0 | 1 (iteration 0, conditional) |
+
+### Observability
+
+- **ORANGE** (problem signals): wrapper identity detected, parse failures, subagent timeout, empty response.
+- **YELLOW** (success signals): per-iteration `"iteration N: MODEL (score=X.XX) [Yms]"`, total elapsed at completion, report persistence confirmation.
+- If `metacal analyze` via stdin fails unexpectedly, log the raw response length and first 200 chars for diagnosis.
+
+### Error handling
+
+- If `metacal analyze` fails (parse error): log the raw response excerpt, save partial results, set TERM_REASON to the error, break.
+- If a subagent returns empty/refused ("EXCLUDED"): log it, set TERM_REASON, break.
+- If a subagent times out: retry once with the same prompt. If it fails again, break.
+- Always persist whatever results were collected — partial runs are valuable.
+
+### Manual use
+
+The `metacal prompt` subcommand is **not** used in the automated loop but remains available for manual prompt inspection:
+```
+go run ./cmd/metacal prompt
+go run ./cmd/metacal prompt --exclude-file models.json
+```
+
 ## Notes
 
 2026-02-21 16:00 — Design refinement: test-as-runner pattern. The discovery loop is a recursive Go test function. `seen` map is the accumulator, fail-fast `t.Fatalf` on model repeat is the termination condition (reports N unique models). `t.Cleanup` persists results to JSON regardless of pass/fail. Wet test tag for live runs.

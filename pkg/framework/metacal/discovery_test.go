@@ -1,6 +1,8 @@
 package metacal
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -48,6 +50,102 @@ func TestBuildFullPrompt_CombinesAll(t *testing.T) {
 	}
 	if !strings.Contains(prompt, "Refactor") {
 		t.Error("missing probe prompt")
+	}
+}
+
+// TestBuildFullPrompt_IdentityFirst ensures identity is placed before the
+// exclusion line ("You are on auto") so the model is not primed to answer
+// "auto" as model_name. See TestCombinedPrompt_ReturnsFoundation.
+func TestBuildFullPrompt_IdentityFirst(t *testing.T) {
+	prompt := BuildFullPrompt(nil)
+
+	idxIdentity := strings.Index(prompt, "Before doing anything else")
+	idxAuto := strings.Index(prompt, "You are on auto")
+	if idxIdentity < 0 || idxAuto < 0 {
+		t.Fatalf("prompt missing identity or exclusion block")
+	}
+	if idxIdentity > idxAuto {
+		t.Errorf("identity block must come before 'You are on auto'; identity at %d, auto at %d", idxIdentity, idxAuto)
+	}
+}
+
+func TestBuildIdentityPrompt_FoundationNotWrapper(t *testing.T) {
+	prompt := BuildIdentityPrompt()
+
+	if !strings.Contains(prompt, "FOUNDATION") {
+		t.Error("identity prompt must ask for foundation model, not wrapper")
+	}
+	if !strings.Contains(prompt, "wrapper") {
+		t.Error("identity prompt must include wrapper field (aligned with adapt/cursor identityProbePrompt)")
+	}
+	if !strings.Contains(prompt, "claude-sonnet-4-20250514") {
+		t.Error("identity prompt should give Claude-in-Cursor example")
+	}
+	if !strings.Contains(prompt, "composer") || !strings.Contains(prompt, "Auto") {
+		t.Error("identity prompt should explicitly exclude composer and Auto as model_name")
+	}
+}
+
+// TestIdentityOnly_ReturnsFoundation reproduces the observed behavior: when the
+// identity probe is sent alone (ghost identity wet test), the model returns
+// foundation identity. Uses golden response from a live run with Cursor Auto.
+func TestIdentityOnly_ReturnsFoundation(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "response_identity_only.txt"))
+	if err != nil {
+		t.Skipf("testdata not available: %v", err)
+	}
+	raw := strings.TrimSpace(string(data))
+
+	mi, err := ParseIdentityResponse(raw)
+	if err != nil {
+		t.Fatalf("parse identity-only response: %v", err)
+	}
+
+	if framework.IsWrapperName(mi.ModelName) {
+		t.Errorf("identity-only response should yield foundation model, not wrapper; got model_name=%q", mi.ModelName)
+	}
+	if !framework.IsKnownModel(mi) {
+		t.Logf("identity-only: foundation model %s not yet in KnownModels (add if desired)", mi.String())
+	}
+}
+
+// TestCombinedPrompt_BeforeFix_ReturnsWrapper reproduces the problem: when the
+// identity prompt was combined with the refactor task and "You are on auto"
+// appeared first, the model returned "auto" (wrapper). Golden: response_combined_before_fix.txt.
+func TestCombinedPrompt_BeforeFix_ReturnsWrapper(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "response_combined_before_fix.txt"))
+	if err != nil {
+		t.Skipf("testdata not available: %v", err)
+	}
+	raw := string(data)
+
+	mi, err := ParseIdentityResponse(raw)
+	if err != nil {
+		t.Fatalf("parse combined (before fix) response: %v", err)
+	}
+
+	if !framework.IsWrapperName(mi.ModelName) {
+		t.Errorf("before fix, combined response was wrapper; got model_name=%q", mi.ModelName)
+	}
+}
+
+// TestCombinedPrompt_ReturnsFoundation asserts that the combined prompt
+// (identity first, then exclusion, then refactor) elicits foundation identity.
+// Golden: response_combined.txt (expected outcome after putting identity first).
+func TestCombinedPrompt_ReturnsFoundation(t *testing.T) {
+	data, err := os.ReadFile(filepath.Join("testdata", "response_combined.txt"))
+	if err != nil {
+		t.Skipf("testdata not available: %v", err)
+	}
+	raw := string(data)
+
+	mi, err := ParseIdentityResponse(raw)
+	if err != nil {
+		t.Fatalf("parse combined response: %v", err)
+	}
+
+	if framework.IsWrapperName(mi.ModelName) {
+		t.Errorf("combined prompt must elicit foundation identity, not wrapper; got model_name=%q", mi.ModelName)
 	}
 }
 

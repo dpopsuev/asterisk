@@ -22,6 +22,7 @@ var KnownModels = map[string]ModelIdentity{
 // and the foundation model. If a probe's model_name matches a wrapper
 // name, the probe failed to reach the foundation layer.
 var KnownWrappers = map[string]bool{
+	"auto":     true, // Cursor auto-select layer; foundation model is behind it
 	"composer": true,
 	"copilot":  true,
 	"cursor":   true,

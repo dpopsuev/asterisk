@@ -134,7 +134,7 @@ func TestModelIdentity_String_EmptyWrapperOmitted(t *testing.T) {
 }
 
 func TestIsWrapperName(t *testing.T) {
-	wrappers := []string{"composer", "Composer", "COMPOSER", "copilot", "Cursor", "azure"}
+	wrappers := []string{"auto", "composer", "Composer", "COMPOSER", "copilot", "Cursor", "azure"}
 	for _, w := range wrappers {
 		if !IsWrapperName(w) {
 			t.Errorf("IsWrapperName(%q) = false, want true", w)
