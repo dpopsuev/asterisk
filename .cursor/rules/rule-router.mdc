@@ -17,6 +17,7 @@ When the user's message matches a trigger phrase, read the referenced rule befor
 | "generic vs specific", "abstraction", "scenario-specific", "adapter pattern" | Abstraction Boundaries | `universal/abstraction-boundaries.mdc` |
 | "reviewability", "git-diffable", "observable", "binary format" | Reviewability First | `universal/reviewability-first.mdc` |
 | "write test", "test coverage", "red green", "TDD", "security test", "test matrix" | Testing Methodology | `universal/testing-methodology.mdc` |
+| "BDD", "Gherkin", "Given/When/Then", "acceptance criteria", "behavior-driven" | Testing Methodology + Project Standards | `universal/testing-methodology.mdc` + `domain/project-standards.mdc` |
 | "Ginkgo", "Gomega", "test naming", "test fixture", "table-driven" | Go Test Conventions | `universal/go-test-conventions.mdc` |
 | "security", "OWASP", "vulnerability", "trust boundary", "injection", "SSRF" | Security Analysis | `universal/security-analysis.mdc` |
 | "hostname", "internal URL", "data scrub", "scrubbed", "placeholder" | Data Hygiene | `domain/data-hygiene.mdc` |

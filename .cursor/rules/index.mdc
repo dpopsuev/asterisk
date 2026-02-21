@@ -19,7 +19,7 @@ Rules portable across any software project. Most are `globs`-scoped to relevant 
 
 | Rule | Routing | Description |
 |------|---------|-------------|
-| `testing-methodology.mdc` | `globs: **/*.go` | Coverage matrix, Red-Orange-Green-Yellow-Blue development cycle, security-as-test. |
+| `testing-methodology.mdc` | `globs: **/*.go` | Coverage matrix, ROGYB cycle, BDD/Gherkin (Given/When/Then), security-as-test. |
 | `security-analysis.mdc` | agent-requestable | OWASP Top 10 checklist for features and trust-boundary changes. |
 | `abstraction-boundaries.mdc` | `globs: **/*.go` | Separate generic domain models from scenario-specific implementations. |
 | `reviewability-first.mdc` | agent-requestable | Prefer observable, git-diffable formats over opaque binary stores. |
@@ -32,7 +32,7 @@ Rules specific to this repository and its domain.
 
 | Rule | Routing | Description |
 |------|---------|-------------|
-| `project-standards.mdc` | **alwaysApply** | Product definition, methodology, calibration ordering, data handling, output. |
+| `project-standards.mdc` | **alwaysApply** | Product definition, methodology (ROGYB, Gherkin acceptance criteria), calibration ordering, data handling, output. |
 | `agent-operations.mdc` | **alwaysApply** | Local pipeline stages, timeout SLAs, abort protocol, observability. |
 | `knowledge-store.mdc` | **alwaysApply** | `.cursor/` structure, index integrity, persistence protocol, work contracts. |
 | `contract-iteration.mdc` | `globs: .cursor/contracts/**` | Monitor contracts for insights from discussions and calibration runs. |
