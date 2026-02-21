@@ -15,6 +15,7 @@ description: Active goal manifest — single-read orientation for agents to know
 | **gate** | `framework-playground` (Contract A) | active | `examples/framework/` — runnable demo of all framework concepts. Zero RP dependency. |
 | **gate** | `framework-developer-guide` (Contract B) | active | `docs/framework-guide.md` — conceptual design document for newcomers. |
 | **gate** | `oss-first-impression` (Contract C) | active | LICENSE, README update, CONTRIBUTING.md, `make playground` target. Depends on A + B. |
+| **gate** | `metacal-run-1` (Contract D) | active | First empirical meta-calibration: model discovery via prompt negation + refactoring probe per model. `pkg/framework/metacal/`. |
 
 ---
 
