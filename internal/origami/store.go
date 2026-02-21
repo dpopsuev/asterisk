@@ -2,6 +2,7 @@ package origami
 
 import (
 	"asterisk/internal/calibrate"
+	"asterisk/internal/curate"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -10,8 +11,9 @@ import (
 	"strings"
 )
 
-// DatasetStore is the interface for ground truth dataset persistence.
-// The canonical implementation stores Scenario structs as JSON files.
+// DatasetStore is the Asterisk-specific interface for ground truth persistence.
+// It operates on calibrate.Scenario, which is the domain type that Asterisk's
+// calibration pipeline consumes.
 type DatasetStore interface {
 	List(ctx context.Context) ([]string, error)
 	Load(ctx context.Context, name string) (*calibrate.Scenario, error)
@@ -19,6 +21,9 @@ type DatasetStore interface {
 }
 
 // FileStore implements DatasetStore using JSON files in a directory.
+// It stores calibrate.Scenario directly for backward compatibility with
+// existing datasets, while the curate.FileStore can be used for generic
+// curation datasets.
 type FileStore struct {
 	Dir string
 }
@@ -76,4 +81,11 @@ func (fs *FileStore) Save(_ context.Context, s *calibrate.Scenario) error {
 	}
 
 	return nil
+}
+
+// CurationStore returns a generic curate.Store that persists curate.Dataset
+// objects. This is the bridge between Asterisk's origami adapter and the
+// generic curation layer.
+func CurationStore(dir string) (curate.Store, error) {
+	return curate.NewFileStore(dir)
 }
