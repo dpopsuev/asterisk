@@ -15,12 +15,13 @@ A design document for the graph-based agent orchestration engine that powers Ast
 4. [Pipeline DSL](#pipeline-dsl)
 5. [Graph Walk](#graph-walk)
 6. [Walk Observability](#walk-observability)
-7. [Scheduler](#scheduler)
-8. [Team Walk](#team-walk)
-9. [Masks](#masks)
-10. [Shadow Court](#shadow-court)
-11. [Cycles](#cycles)
-12. [Architecture](#architecture)
+7. [Vocabulary and Narration](#vocabulary-and-narration)
+8. [Scheduler](#scheduler)
+9. [Team Walk](#team-walk)
+10. [Masks](#masks)
+11. [Shadow Court](#shadow-court)
+12. [Cycles](#cycles)
+13. [Architecture](#architecture)
 
 ---
 
@@ -298,6 +299,69 @@ Single-method design (like `http.Handler`) means adding new event types never br
 
 ---
 
+## Vocabulary and Narration
+
+The framework provides two composable building blocks for human-readable output: **Vocabulary** (code-to-name translation) and **NarrationObserver** (walk narration). Both follow the Papert Paradigm (see `rules/universal/papert-paradigm.mdc`): zero-config defaults, deep customization via interfaces, composable primitives.
+
+### Vocabulary
+
+A `Vocabulary` translates machine codes into human-readable names. The interface has one method:
+
+```go
+type Vocabulary interface {
+    Name(code string) string
+}
+```
+
+Built-in implementations:
+
+| Type | Purpose |
+|------|---------|
+| `MapVocabulary` | Register-based: `Register(code, name)`, `RegisterAll(map)`. Unknown codes pass through unchanged. |
+| `VocabularyFunc` | Adapts any `func(string) string` to the interface. |
+| `ChainVocabulary` | Tries multiple vocabularies in order; first non-passthrough wins. |
+
+Helper: `NameWithCode(v, code)` produces dual-audience format like `"Recall (F0)"`.
+
+**Low floor:** An empty `MapVocabulary` works immediately — it returns codes as-is.
+
+**Wide walls:** Domain packages wrap their existing display functions behind `VocabularyFunc` without changing any domain code. Different registries (stages, defect types, metrics) compose via `ChainVocabulary`.
+
+### NarrationObserver
+
+A `WalkObserver` that translates raw walk events into human-readable narration lines. It tracks progress, computes elapsed time, and emits milestone summaries.
+
+```go
+obs := NewNarrationObserver(
+    WithVocabulary(vocab),       // translate node names
+    WithSink(func(line string) { fmt.Println(line) }),
+    WithMilestoneInterval(5),    // emit summary every 5 nodes
+    WithETA(true),
+)
+
+graph, _ := NewGraph("demo", nodes, edges, zones, WithObserver(obs))
+graph.Walk(ctx, walker, "start")
+```
+
+Event-to-narration mapping:
+
+| Event | Output |
+|-------|--------|
+| `node_enter` | "Entering Triage" or "[Ember] Entering Triage" (walker-tagged) |
+| `node_exit` | "Completed Triage (1.2s)" |
+| `walker_switch` | "Handing off to Ember at Investigate" |
+| `walk_complete` | "Walk complete — 7 nodes visited in 12.3s" |
+| `walk_error` | "Walk failed at Investigate: context deadline exceeded" |
+| milestone | "--- Progress: 5 nodes visited | Elapsed: 8.2s | Avg: 1.6s/node ---" |
+
+**Low floor:** `NewNarrationObserver()` with no options logs to `slog.Info` with passthrough vocabulary.
+
+**High ceiling:** Replace vocabulary, sink, milestone interval, or ETA behavior via functional options.
+
+**Composability:** Use `MultiObserver{narrationObs, traceCollector}` to get both human narration and machine traces from the same walk. Attach via `WithObserver` at graph level so every `Walk` and `WalkTeam` call narrates automatically.
+
+---
+
 ## Scheduler
 
 When multiple walkers are available, a scheduler decides which one handles each node. The interface is deliberately narrow:
@@ -347,11 +411,11 @@ type Team struct {
 | Feature | `Walk` | `WalkTeam` |
 |---------|--------|------------|
 | Walkers | 1 | N (scheduler picks per node) |
-| Observer | none | optional (full event stream) |
+| Observer | graph-level via `WithObserver` | graph-level + team-level (composed via `MultiObserver`) |
 | Loop guard | none | `MaxSteps` |
 | API surface | minimal | superset of `Walk` |
 
-A single-walker team with a `SingleScheduler` and nil observer is semantically equivalent to `Walk`.
+A single-walker team with a `SingleScheduler` and nil observer is semantically equivalent to `Walk`. When a graph-level observer is set via `WithObserver`, both `Walk` and `WalkTeam` emit events at the same points (node enter/exit, transitions, completion, errors). In `WalkTeam`, the graph-level and team-level observers are composed via `MultiObserver`.
 
 ---
 
@@ -529,9 +593,11 @@ The framework provides `pkg/framework/mcp` with **Server** (NewServer), **Signal
 |------|-------|---------|
 | `node.go` | ~30 | Node, Artifact, NodeContext interfaces |
 | `edge.go` | ~23 | Edge, Transition interfaces |
-| `graph.go` | ~310 | DefaultGraph: Walk + WalkTeam algorithms |
+| `graph.go` | ~365 | DefaultGraph: Walk + WalkTeam algorithms, WithObserver, composeObservers |
 | `walker.go` | ~70 | Walker interface, WalkerState, StepRecord |
 | `observer.go` | ~150 | WalkEvent, WalkObserver, LogObserver, TraceCollector |
+| `vocabulary.go` | ~80 | Vocabulary interface, MapVocabulary, ChainVocabulary, VocabularyFunc |
+| `narrate.go` | ~170 | NarrationObserver, NarrationSink, Progress, functional options |
 | `scheduler.go` | ~90 | Scheduler interface, AffinityScheduler, SingleScheduler |
 | `team.go` | ~12 | Team struct (walkers + scheduler + observer) |
 | `dsl.go` | ~200 | PipelineDef, LoadPipeline, Validate, BuildGraph |

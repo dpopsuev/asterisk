@@ -25,6 +25,7 @@ Rules portable across any software project. Most are `globs`-scoped to relevant 
 | `reviewability-first.mdc` | agent-requestable | Prefer observable, git-diffable formats over opaque binary stores. |
 | `off-the-shelf.mdc` | `globs: **/*.go` | Prefer mature modules; maturity gate and decision matrix. |
 | `go-test-conventions.mdc` | `globs: **/*.go` | Go test framework (Ginkgo + stdlib hybrid), naming, fixtures. |
+| `papert-paradigm.mdc` | `globs: pkg/framework/**` | Low floor / high ceiling / wide walls — design checklist for framework components. |
 
 ## domain/ — Asterisk Project (committed, shared)
 

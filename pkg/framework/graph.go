@@ -37,6 +37,7 @@ type DefaultGraph struct {
 	nodeIndex map[string]Node
 	edgeIndex map[string][]Edge // from-node -> edges in definition order
 	doneNode  string            // terminal pseudo-node name (walk stops here)
+	observer  WalkObserver      // graph-level observer, used by Walk and composed with team observer in WalkTeam
 }
 
 // GraphOption configures a DefaultGraph during construction.
@@ -47,6 +48,15 @@ type GraphOption func(*DefaultGraph)
 func WithDoneNode(name string) GraphOption {
 	return func(g *DefaultGraph) {
 		g.doneNode = name
+	}
+}
+
+// WithObserver attaches a graph-level observer that receives walk events
+// from both Walk() and WalkTeam(). In WalkTeam(), this observer is composed
+// with the team's observer via MultiObserver.
+func WithObserver(obs WalkObserver) GraphOption {
+	return func(g *DefaultGraph) {
+		g.observer = obs
 	}
 }
 
@@ -105,10 +115,18 @@ func (g *DefaultGraph) EdgesFrom(nodeName string) []Edge {
 // edges from that node are evaluated in definition order (first match wins).
 // The walk completes when a transition targets the done node, or returns an
 // error if no edge matches or a node is not found.
+//
+// If a graph-level observer is set via WithObserver, walk events are emitted
+// at the same points as WalkTeam (node enter/exit, transitions, completion, errors).
 func (g *DefaultGraph) Walk(ctx context.Context, walker Walker, startNode string) error {
+	obs := g.observer
+	walkerName := walker.Identity().PersonaName
+
 	node, ok := g.nodeIndex[startNode]
 	if !ok {
-		return fmt.Errorf("%w: start node %q", ErrNodeNotFound, startNode)
+		err := fmt.Errorf("%w: start node %q", ErrNodeNotFound, startNode)
+		emitEvent(obs, WalkEvent{Type: EventWalkError, Node: startNode, Error: err})
+		return err
 	}
 
 	state := walker.State()
@@ -118,8 +136,12 @@ func (g *DefaultGraph) Walk(ctx context.Context, walker Walker, startNode string
 	for {
 		if err := ctx.Err(); err != nil {
 			state.Status = "error"
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Error: err})
 			return err
 		}
+
+		emitEvent(obs, WalkEvent{Type: EventNodeEnter, Node: node.Name(), Walker: walkerName})
+		nodeStart := time.Now()
 
 		nc := NodeContext{
 			WalkerState:   state,
@@ -128,20 +150,28 @@ func (g *DefaultGraph) Walk(ctx context.Context, walker Walker, startNode string
 		}
 
 		artifact, err := walker.Handle(ctx, node, nc)
+		nodeElapsed := time.Since(nodeStart)
+
 		if err != nil {
 			state.Status = "error"
+			emitEvent(obs, WalkEvent{Type: EventNodeExit, Node: node.Name(), Walker: walkerName, Elapsed: nodeElapsed, Error: err})
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
 			return fmt.Errorf("node %s: %w", node.Name(), err)
 		}
+
+		emitEvent(obs, WalkEvent{Type: EventNodeExit, Node: node.Name(), Walker: walkerName, Artifact: artifact, Elapsed: nodeElapsed})
 
 		edges := g.EdgesFrom(node.Name())
 		if len(edges) == 0 {
 			state.Status = "done"
+			emitEvent(obs, WalkEvent{Type: EventWalkComplete, Node: node.Name(), Walker: walkerName})
 			return nil
 		}
 
 		var matched *Transition
 		var matchedEdge Edge
 		for _, e := range edges {
+			emitEvent(obs, WalkEvent{Type: EventEdgeEvaluate, Node: node.Name(), Edge: e.ID()})
 			t := e.Evaluate(artifact, state)
 			if t != nil {
 				matched = t
@@ -152,21 +182,28 @@ func (g *DefaultGraph) Walk(ctx context.Context, walker Walker, startNode string
 
 		if matched == nil {
 			state.Status = "error"
-			return fmt.Errorf("%w: node %q, artifact type %q", ErrNoEdge, node.Name(), artifact.Type())
+			err := fmt.Errorf("%w: node %q, artifact type %q", ErrNoEdge, node.Name(), artifact.Type())
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
+			return err
 		}
+
+		emitEvent(obs, WalkEvent{Type: EventTransition, Node: node.Name(), Edge: matchedEdge.ID()})
 
 		state.RecordStep(node.Name(), matchedEdge.ID(), matchedEdge.ID(), time.Now().UTC().Format(time.RFC3339))
 		state.MergeContext(matched.ContextAdditions)
 
 		if matched.NextNode == g.doneNode {
 			state.Status = "done"
+			emitEvent(obs, WalkEvent{Type: EventWalkComplete, Walker: walkerName})
 			return nil
 		}
 
 		nextNode, ok := g.nodeIndex[matched.NextNode]
 		if !ok {
 			state.Status = "error"
-			return fmt.Errorf("%w: transition target %q from edge %s", ErrNodeNotFound, matched.NextNode, matchedEdge.ID())
+			err := fmt.Errorf("%w: transition target %q from edge %s", ErrNodeNotFound, matched.NextNode, matchedEdge.ID())
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Error: err})
+			return err
 		}
 
 		priorArtifact = artifact
@@ -179,10 +216,15 @@ func (g *DefaultGraph) Walk(ctx context.Context, walker Walker, startNode string
 // scheduler. Before each node, the scheduler picks the walker. The
 // observer (if non-nil) receives events for the full walk lifecycle.
 // MaxSteps > 0 provides defense-in-depth against infinite loops.
+//
+// When both a graph-level observer (WithObserver) and team.Observer are set,
+// events are fanned out to both via MultiObserver.
 func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode string) error {
+	obs := composeObservers(g.observer, team.Observer)
+
 	node, ok := g.nodeIndex[startNode]
 	if !ok {
-		emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: startNode, Error: fmt.Errorf("%w: start node %q", ErrNodeNotFound, startNode)})
+		emitEvent(obs, WalkEvent{Type: EventWalkError, Node: startNode, Error: fmt.Errorf("%w: start node %q", ErrNodeNotFound, startNode)})
 		return fmt.Errorf("%w: start node %q", ErrNodeNotFound, startNode)
 	}
 
@@ -196,13 +238,13 @@ func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode strin
 
 	for {
 		if err := ctx.Err(); err != nil {
-			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Error: err})
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Error: err})
 			return err
 		}
 
 		if team.MaxSteps > 0 && steps >= team.MaxSteps {
 			err := fmt.Errorf("max steps (%d) exceeded at node %q", team.MaxSteps, node.Name())
-			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
 			return err
 		}
 
@@ -215,14 +257,14 @@ func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode strin
 		})
 
 		if priorWalker == nil || walker.Identity().PersonaName != priorWalker.Identity().PersonaName {
-			emitEvent(team.Observer, WalkEvent{
+			emitEvent(obs, WalkEvent{
 				Type:   EventWalkerSwitch,
 				Node:   node.Name(),
 				Walker: walker.Identity().PersonaName,
 			})
 		}
 
-		emitEvent(team.Observer, WalkEvent{Type: EventNodeEnter, Node: node.Name(), Walker: walker.Identity().PersonaName})
+		emitEvent(obs, WalkEvent{Type: EventNodeEnter, Node: node.Name(), Walker: walker.Identity().PersonaName})
 		nodeStart := time.Now()
 
 		state := walker.State()
@@ -239,18 +281,18 @@ func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode strin
 
 		if err != nil {
 			state.Status = "error"
-			emitEvent(team.Observer, WalkEvent{
+			emitEvent(obs, WalkEvent{
 				Type:    EventNodeExit,
 				Node:    node.Name(),
 				Walker:  walker.Identity().PersonaName,
 				Elapsed: nodeElapsed,
 				Error:   err,
 			})
-			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
 			return fmt.Errorf("node %s: %w", node.Name(), err)
 		}
 
-		emitEvent(team.Observer, WalkEvent{
+		emitEvent(obs, WalkEvent{
 			Type:     EventNodeExit,
 			Node:     node.Name(),
 			Walker:   walker.Identity().PersonaName,
@@ -261,14 +303,14 @@ func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode strin
 		edges := g.EdgesFrom(node.Name())
 		if len(edges) == 0 {
 			state.Status = "done"
-			emitEvent(team.Observer, WalkEvent{Type: EventWalkComplete, Node: node.Name(), Walker: walker.Identity().PersonaName})
+			emitEvent(obs, WalkEvent{Type: EventWalkComplete, Node: node.Name(), Walker: walker.Identity().PersonaName})
 			return nil
 		}
 
 		var matched *Transition
 		var matchedEdge Edge
 		for _, e := range edges {
-			emitEvent(team.Observer, WalkEvent{Type: EventEdgeEvaluate, Node: node.Name(), Edge: e.ID()})
+			emitEvent(obs, WalkEvent{Type: EventEdgeEvaluate, Node: node.Name(), Edge: e.ID()})
 			t := e.Evaluate(artifact, state)
 			if t != nil {
 				matched = t
@@ -280,18 +322,18 @@ func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode strin
 		if matched == nil {
 			state.Status = "error"
 			err := fmt.Errorf("%w: node %q, artifact type %q", ErrNoEdge, node.Name(), artifact.Type())
-			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
 			return err
 		}
 
-		emitEvent(team.Observer, WalkEvent{Type: EventTransition, Node: node.Name(), Edge: matchedEdge.ID()})
+		emitEvent(obs, WalkEvent{Type: EventTransition, Node: node.Name(), Edge: matchedEdge.ID()})
 
 		state.RecordStep(node.Name(), matchedEdge.ID(), matchedEdge.ID(), time.Now().UTC().Format(time.RFC3339))
 		state.MergeContext(matched.ContextAdditions)
 
 		if matched.NextNode == g.doneNode {
 			state.Status = "done"
-			emitEvent(team.Observer, WalkEvent{Type: EventWalkComplete, Walker: walker.Identity().PersonaName})
+			emitEvent(obs, WalkEvent{Type: EventWalkComplete, Walker: walker.Identity().PersonaName})
 			return nil
 		}
 
@@ -299,7 +341,7 @@ func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode strin
 		if !ok {
 			state.Status = "error"
 			err := fmt.Errorf("%w: transition target %q from edge %s", ErrNodeNotFound, matched.NextNode, matchedEdge.ID())
-			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Error: err})
+			emitEvent(obs, WalkEvent{Type: EventWalkError, Error: err})
 			return err
 		}
 
@@ -308,4 +350,15 @@ func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode strin
 		node = nextNode
 		steps++
 	}
+}
+
+// composeObservers returns a single observer from two possibly-nil observers.
+func composeObservers(a, b WalkObserver) WalkObserver {
+	if a == nil {
+		return b
+	}
+	if b == nil {
+		return a
+	}
+	return MultiObserver{a, b}
 }
