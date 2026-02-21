@@ -2,7 +2,7 @@ package calibrate
 
 import (
 	"asterisk/internal/calibrate/dispatch"
-	"asterisk/internal/framework"
+	"asterisk/pkg/framework"
 	"asterisk/internal/logging"
 	"asterisk/internal/preinvest"
 	"context"

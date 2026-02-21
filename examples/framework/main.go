@@ -16,7 +16,7 @@ import (
 	"runtime"
 	"strings"
 
-	fw "asterisk/internal/framework"
+	fw "asterisk/pkg/framework"
 )
 
 func main() {
@@ -45,6 +45,9 @@ func main() {
 
 	section("8. SHADOW COURT — Adversarial Deliberation Pipeline")
 	showCourt()
+
+	section("9. TEAM WALK — Multi-Persona Scheduling with Live Trace")
+	teamWalkDemo(triageDef)
 
 	printFooter()
 }
@@ -77,7 +80,7 @@ func printHeader() {
 func printFooter() {
 	fmt.Println()
 	fmt.Printf("%s%s=== End of Playground ===%s\n\n", bold, cyan, reset)
-	fmt.Printf("To explore the framework source: %sinternal/framework/%s\n", bold, reset)
+	fmt.Printf("To explore the framework source: %spkg/framework/%s\n", bold, reset)
 	fmt.Printf("Production pipelines:            %spipelines/*.yaml%s\n", bold, reset)
 	fmt.Printf("Developer guide:                 %sdocs/framework-guide.md%s\n\n", bold, reset)
 }
@@ -569,4 +572,122 @@ func showCourt() {
 	fmt.Printf("  %sThe court uses typed artifacts (Indictment, DefenseBrief, HearingRecord,\n", dim)
 	fmt.Printf("  Verdict) and HD1-HD12 heuristic edges — the same Edge interface used\n")
 	fmt.Printf("  by the Light pipeline. Shadow is just another graph walk.%s\n", reset)
+}
+
+// ---------------------------------------------------------------------------
+// 9. Team Walk — multi-persona scheduling with live trace
+// ---------------------------------------------------------------------------
+
+func teamWalkDemo(def *fw.PipelineDef) {
+	fmt.Printf("  The same pipeline, but now %smultiple agents%s collaborate.\n", bold, reset)
+	fmt.Printf("  A %sScheduler%s picks the best walker per node based on affinity.\n", bold, reset)
+	fmt.Printf("  An %sObserver%s traces every event in real time.\n\n", bold, reset)
+
+	nodeReg := fw.NodeRegistry{
+		"classify":    func(d fw.NodeDef) fw.Node { return &demoNode{name: d.Name, element: fw.Element(d.Element)} },
+		"investigate": func(d fw.NodeDef) fw.Node { return &demoNode{name: d.Name, element: fw.Element(d.Element)} },
+		"decide":      func(d fw.NodeDef) fw.Node { return &demoNode{name: d.Name, element: fw.Element(d.Element)} },
+		"close":       func(d fw.NodeDef) fw.Node { return &demoNode{name: d.Name, element: fw.Element(d.Element)} },
+	}
+
+	scenario := newDemoScenario()
+
+	edgeFactory := fw.EdgeFactory{
+		"E1": func(d fw.EdgeDef) fw.Edge { return &demoEdge{def: d, scenario: scenario} },
+		"E2": func(d fw.EdgeDef) fw.Edge { return &demoEdge{def: d, scenario: scenario} },
+		"E3": func(d fw.EdgeDef) fw.Edge { return &demoEdge{def: d, scenario: scenario} },
+		"E4": func(d fw.EdgeDef) fw.Edge { return &demoEdge{def: d, scenario: scenario} },
+		"E5": func(d fw.EdgeDef) fw.Edge { return &demoEdge{def: d, scenario: scenario} },
+		"E6": func(d fw.EdgeDef) fw.Edge { return &demoEdge{def: d, scenario: scenario} },
+		"E7": func(d fw.EdgeDef) fw.Edge { return &demoEdge{def: d, scenario: scenario} },
+	}
+
+	graph, err := def.BuildGraph(nodeReg, edgeFactory)
+	if err != nil {
+		fmt.Printf("  %sBuild error: %v%s\n", red, err, reset)
+		return
+	}
+
+	herald, _ := fw.PersonaByName("Herald")
+	seeker, _ := fw.PersonaByName("Seeker")
+	sentinel, _ := fw.PersonaByName("Sentinel")
+	weaver, _ := fw.PersonaByName("Weaver")
+
+	walkers := []fw.Walker{
+		&demoWalker{identity: herald.Identity, state: fw.NewWalkerState("herald-team"), scenario: scenario},
+		&demoWalker{identity: seeker.Identity, state: fw.NewWalkerState("seeker-team"), scenario: scenario},
+		&demoWalker{identity: sentinel.Identity, state: fw.NewWalkerState("sentinel-team"), scenario: scenario},
+		&demoWalker{identity: weaver.Identity, state: fw.NewWalkerState("weaver-team"), scenario: scenario},
+	}
+
+	fmt.Printf("  %sTeam roster:%s\n", bold, reset)
+	for _, w := range walkers {
+		id := w.Identity()
+		color := elementColor(id.Element)
+		fmt.Printf("    %s%-12s%s element=%-10s position=%s\n",
+			color, id.PersonaName, reset, id.Element, id.Position)
+	}
+	fmt.Println()
+
+	liveObserver := fw.WalkObserverFunc(func(e fw.WalkEvent) {
+		switch e.Type {
+		case fw.EventWalkerSwitch:
+			fmt.Printf("  %s⟳ scheduler%s  → %s%s%s now active at %s\n",
+				cyan, reset, bold, e.Walker, reset, e.Node)
+		case fw.EventNodeEnter:
+			color := yellow
+			fmt.Printf("  %s▸ enter%s      %s%-14s%s  walker=%s\n",
+				color, reset, bold, e.Node, reset, e.Walker)
+		case fw.EventNodeExit:
+			if e.Error != nil {
+				fmt.Printf("  %s✗ exit%s       %-14s  %serror=%v%s\n",
+					red, reset, e.Node, red, e.Error, reset)
+			} else {
+				fmt.Printf("  %s✓ exit%s       %-14s  elapsed=%s  artifact=%s\n",
+					green, reset, e.Node, e.Elapsed, e.Artifact.Type())
+			}
+		case fw.EventEdgeEvaluate:
+			fmt.Printf("  %s? edge%s       %-14s  evaluating %s\n",
+				dim, reset, e.Node, e.Edge)
+		case fw.EventTransition:
+			fmt.Printf("  %s→ transition%s %-14s  via %s\n",
+				blue, reset, e.Node, e.Edge)
+		case fw.EventWalkComplete:
+			fmt.Printf("  %s★ complete%s   walk finished (last walker: %s)\n",
+				green, reset, e.Walker)
+		case fw.EventWalkError:
+			fmt.Printf("  %s✗ walk error%s %v\n", red, reset, e.Error)
+		}
+	})
+
+	trace := &fw.TraceCollector{}
+
+	team := &fw.Team{
+		Walkers:   walkers,
+		Scheduler: &fw.AffinityScheduler{},
+		Observer:  fw.MultiObserver{liveObserver, trace},
+		MaxSteps:  20,
+	}
+
+	fmt.Printf("  %sLive trace:%s\n", bold, reset)
+	err = graph.WalkTeam(context.Background(), team, def.Start)
+	if err != nil {
+		fmt.Printf("\n  %sTeam walk error: %v%s\n", red, err, reset)
+		return
+	}
+
+	fmt.Printf("\n  %sPost-walk summary (from TraceCollector):%s\n", bold, reset)
+	events := trace.Events()
+	enters := trace.EventsOfType(fw.EventNodeEnter)
+	switches := trace.EventsOfType(fw.EventWalkerSwitch)
+	fmt.Printf("    Total events:     %d\n", len(events))
+	fmt.Printf("    Nodes visited:    %d\n", len(enters))
+	fmt.Printf("    Walker switches:  %d\n", len(switches))
+
+	fmt.Println()
+	fmt.Printf("  %sThe AffinityScheduler picked agents by StepAffinity score.\n", dim)
+	fmt.Printf("  Fire-element Herald handles 'classify'; Water-element Seeker handles\n")
+	fmt.Printf("  'investigate'; each agent is automatically matched to the node where\n")
+	fmt.Printf("  it performs best. The observer traced every micro-event for post-hoc\n")
+	fmt.Printf("  analysis, profiling, and debugging.%s\n", reset)
 }

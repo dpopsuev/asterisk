@@ -6,7 +6,7 @@ import (
 
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/dispatch"
-	"asterisk/internal/framework"
+	"asterisk/pkg/framework"
 )
 
 // mockProbeDispatcher returns a fixed response for any dispatch.

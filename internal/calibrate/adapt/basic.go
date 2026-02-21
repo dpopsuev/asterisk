@@ -9,7 +9,7 @@ import (
 	"regexp"
 	"strings"
 
-	"asterisk/internal/framework"
+	"asterisk/pkg/framework"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
 )

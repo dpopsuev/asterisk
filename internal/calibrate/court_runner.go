@@ -1,7 +1,7 @@
 package calibrate
 
 import (
-	"asterisk/internal/framework"
+	"asterisk/pkg/framework"
 	"asterisk/internal/orchestrate"
 	"encoding/json"
 	"fmt"

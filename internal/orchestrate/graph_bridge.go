@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"os"
 
-	"asterisk/internal/framework"
+	"asterisk/pkg/framework"
 )
 
 // PipelineGraph wraps a framework.Graph with the heuristic evaluation logic

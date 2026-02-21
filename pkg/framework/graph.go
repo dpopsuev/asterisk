@@ -15,6 +15,7 @@ type Graph interface {
 	NodeByName(name string) (Node, bool)
 	EdgesFrom(nodeName string) []Edge
 	Walk(ctx context.Context, walker Walker, startNode string) error
+	WalkTeam(ctx context.Context, team *Team, startNode string) error
 }
 
 // Zone is a meta-phase grouping of Nodes with shared characteristics.
@@ -171,5 +172,140 @@ func (g *DefaultGraph) Walk(ctx context.Context, walker Walker, startNode string
 		priorArtifact = artifact
 		node = nextNode
 		state.CurrentNode = matched.NextNode
+	}
+}
+
+// WalkTeam traverses the graph with multiple walkers coordinated by a
+// scheduler. Before each node, the scheduler picks the walker. The
+// observer (if non-nil) receives events for the full walk lifecycle.
+// MaxSteps > 0 provides defense-in-depth against infinite loops.
+func (g *DefaultGraph) WalkTeam(ctx context.Context, team *Team, startNode string) error {
+	node, ok := g.nodeIndex[startNode]
+	if !ok {
+		emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: startNode, Error: fmt.Errorf("%w: start node %q", ErrNodeNotFound, startNode)})
+		return fmt.Errorf("%w: start node %q", ErrNodeNotFound, startNode)
+	}
+
+	if len(team.Walkers) == 0 {
+		return fmt.Errorf("team has no walkers")
+	}
+
+	var priorWalker Walker
+	var priorArtifact Artifact
+	steps := 0
+
+	for {
+		if err := ctx.Err(); err != nil {
+			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Error: err})
+			return err
+		}
+
+		if team.MaxSteps > 0 && steps >= team.MaxSteps {
+			err := fmt.Errorf("max steps (%d) exceeded at node %q", team.MaxSteps, node.Name())
+			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
+			return err
+		}
+
+		zone := zoneForNode(node.Name(), g.zones)
+		walker := team.Scheduler.Select(SchedulerContext{
+			Node:        node,
+			Zone:        zone,
+			Walkers:     team.Walkers,
+			PriorWalker: priorWalker,
+		})
+
+		if priorWalker == nil || walker.Identity().PersonaName != priorWalker.Identity().PersonaName {
+			emitEvent(team.Observer, WalkEvent{
+				Type:   EventWalkerSwitch,
+				Node:   node.Name(),
+				Walker: walker.Identity().PersonaName,
+			})
+		}
+
+		emitEvent(team.Observer, WalkEvent{Type: EventNodeEnter, Node: node.Name(), Walker: walker.Identity().PersonaName})
+		nodeStart := time.Now()
+
+		state := walker.State()
+		state.CurrentNode = node.Name()
+
+		nc := NodeContext{
+			WalkerState:   state,
+			PriorArtifact: priorArtifact,
+			Meta:          make(map[string]any),
+		}
+
+		artifact, err := walker.Handle(ctx, node, nc)
+		nodeElapsed := time.Since(nodeStart)
+
+		if err != nil {
+			state.Status = "error"
+			emitEvent(team.Observer, WalkEvent{
+				Type:    EventNodeExit,
+				Node:    node.Name(),
+				Walker:  walker.Identity().PersonaName,
+				Elapsed: nodeElapsed,
+				Error:   err,
+			})
+			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
+			return fmt.Errorf("node %s: %w", node.Name(), err)
+		}
+
+		emitEvent(team.Observer, WalkEvent{
+			Type:     EventNodeExit,
+			Node:     node.Name(),
+			Walker:   walker.Identity().PersonaName,
+			Artifact: artifact,
+			Elapsed:  nodeElapsed,
+		})
+
+		edges := g.EdgesFrom(node.Name())
+		if len(edges) == 0 {
+			state.Status = "done"
+			emitEvent(team.Observer, WalkEvent{Type: EventWalkComplete, Node: node.Name(), Walker: walker.Identity().PersonaName})
+			return nil
+		}
+
+		var matched *Transition
+		var matchedEdge Edge
+		for _, e := range edges {
+			emitEvent(team.Observer, WalkEvent{Type: EventEdgeEvaluate, Node: node.Name(), Edge: e.ID()})
+			t := e.Evaluate(artifact, state)
+			if t != nil {
+				matched = t
+				matchedEdge = e
+				break
+			}
+		}
+
+		if matched == nil {
+			state.Status = "error"
+			err := fmt.Errorf("%w: node %q, artifact type %q", ErrNoEdge, node.Name(), artifact.Type())
+			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Node: node.Name(), Error: err})
+			return err
+		}
+
+		emitEvent(team.Observer, WalkEvent{Type: EventTransition, Node: node.Name(), Edge: matchedEdge.ID()})
+
+		state.RecordStep(node.Name(), matchedEdge.ID(), matchedEdge.ID(), time.Now().UTC().Format(time.RFC3339))
+		state.MergeContext(matched.ContextAdditions)
+
+		if matched.NextNode == g.doneNode {
+			state.Status = "done"
+			emitEvent(team.Observer, WalkEvent{Type: EventWalkComplete, Walker: walker.Identity().PersonaName})
+			return nil
+		}
+
+		nextNode, ok := g.nodeIndex[matched.NextNode]
+		if !ok {
+			state.Status = "error"
+			err := fmt.Errorf("%w: transition target %q from edge %s", ErrNodeNotFound, matched.NextNode, matchedEdge.ID())
+			emitEvent(team.Observer, WalkEvent{Type: EventWalkError, Error: err})
+			return err
+		}
+
+		priorArtifact = artifact
+		priorWalker = walker
+		node = nextNode
+		steps++
 	}
 }

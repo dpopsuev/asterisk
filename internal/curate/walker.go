@@ -1,7 +1,7 @@
 package curate
 
 import (
-	"asterisk/internal/framework"
+	"asterisk/pkg/framework"
 	"context"
 	"fmt"
 	"log/slog"
