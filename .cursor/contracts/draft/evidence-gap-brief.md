@@ -132,8 +132,8 @@ The gap brief is embedded in the RCA artifact written to FS. The `push` command 
 
 ## Tasks
 
-- [ ] **Phase 1** — Define types, extend CaseResult, add thresholds
-- [ ] **Phase 2** — BasicAdapter gap production
+- [x] **Phase 1** — Define types, extend CaseResult, add thresholds (EvidenceGap, EvidenceGapBrief, GapBriefThreshold in internal/framework/evidence_gap.go)
+- [ ] **Phase 2** — BasicAdapter gap production (blocked on rp-e2e-launch)
 - [ ] **Phase 3** — Output integration (calibration report + artifact)
 - [ ] **Phase 4** — Prompt template for CursorAdapter gap analysis
 - [ ] Validate (green) — all tests pass, acceptance criteria met.

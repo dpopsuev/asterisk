@@ -1,6 +1,6 @@
 # Contract — Agentic Framework III.3: Shadow
 
-**Status:** active
+**Status:** complete
 **Goal:** Define the adversarial pipeline pattern where Light and Shadow agents contest uncertain cases, using the Wuxing destructive cycle for challenger selection. Absorb scope of `defect-court.md`.
 **Serves:** Architecture evolution (Framework identity)
 
@@ -234,9 +234,9 @@ Shadow personas with distinct system prompts via MCP.
 
 ### Validation
 
-- [ ] Validate (green) -- `go build ./...`, all tests pass, Light pipeline unchanged
-- [ ] Tune (blue) -- review activation thresholds, court heuristic rules
-- [ ] Validate (green) -- all tests still pass after tuning
+- [x] Validate (green) -- `go build ./...`, all tests pass, Light pipeline unchanged
+- [x] Tune (blue) -- review activation thresholds, court heuristic rules
+- [x] Validate (green) -- all tests still pass after tuning
 
 ## Acceptance criteria
 

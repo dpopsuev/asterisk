@@ -28,7 +28,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 
 | Order | Contract | Status | PoC scope | Notes |
 |-------|----------|--------|-----------|-------|
-| 1st | `improve-human-operator-output` | draft | Full (3 tasks, rule only) | Zero deps, zero Go code, 15 min. Every subsequent run benefits. |
+| ~~1st~~ | ~~`improve-human-operator-output`~~ | **complete** | Full | Narration rules in agent-bus.mdc. Moved to `completed/poc-v2/`. |
 | ~~2nd~~ | ~~`logging-standardization`~~ | **complete** | Full | All migrated to `log/slog`. Moved to `completed/poc-v2/`. |
 | 2nd | `evidence-gap-brief` | draft | Ph1-3 (types + adapter + output) | Foundational "I don't know because X" infrastructure. Enables tuning QW-4. |
 | 4th | `poc-tuning-loop` | draft | QW-1 to QW-4 | Depends on E2E baseline + evidence-gap-brief. QW-1/QW-2 overlap with workspace-mvp. |
@@ -63,7 +63,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.2-cycles`~~ | **complete** | Generative/destructive interaction cycles. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.1-personae`~~ | **complete** | AgentIdentity 5-axis, 8 personas (4L+4S). Moved to `completed/framework/`. |
 | ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.2-masks`~~ | **complete** | Detachable middleware masks. 4 Light masks. Moved to `completed/framework/`. |
-| **vision — Framework Tome III** | `agentic-framework-III.3-shadow` | **active** | Adversarial pipeline pattern. Phase 1 complete. Phases 2-4 in progress. |
+| ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.3-shadow`~~ | **complete** | All 4 phases done. D0-D4 steps, court runner, metrics, hearing loop, remand injection. Moved to `completed/framework/`. |
 
 ## Goal Transition Protocol
 

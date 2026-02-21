@@ -149,14 +149,14 @@ internal/mcp/
 ## Tasks
 
 ### Phase 1 — Storage foundation
-- [ ] Define `DatasetStore` interface + `FileStore` implementation (`internal/origami/store.go`)
-- [ ] Write `asterisk origami import --from-go ptp-real-ingest` to serialize Go structs → `datasets/ptp-real-ingest.json`
-- [ ] Write `asterisk origami export --scenario ptp-real-ingest` to load JSON → `calibrate.Scenario`
-- [ ] Unit tests: round-trip (import → load → save → load → compare)
+- [x] Define `DatasetStore` interface + `FileStore` implementation (`internal/origami/store.go`)
+- [ ] Write `asterisk gt import --from-go ptp-real-ingest` to serialize Go structs → `datasets/ptp-real-ingest.json`
+- [ ] Write `asterisk gt export --scenario ptp-real-ingest` to load JSON → `calibrate.Scenario`
+- [x] Unit tests: round-trip (import → load → save → load → compare)
 
 ### Phase 2 — Completeness + CLI status
-- [ ] Implement completeness tracker (`internal/origami/completeness.go`)
-- [ ] Write `asterisk origami status` and `asterisk origami inspect <id>` CLI commands
+- [x] Implement completeness tracker (`internal/origami/completeness.go`)
+- [x] Write `asterisk gt status` CLI command (`cmd/asterisk/cmd_gt.go`)
 - [ ] Unit tests: completeness scoring, promotion readiness
 
 ### Phase 3 — Evidence sources + ingest
