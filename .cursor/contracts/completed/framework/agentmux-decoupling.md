@@ -1,8 +1,9 @@
 # Contract — AgentMux Decoupling
 
-**Status:** draft  
+**Status:** abandoned  
 **Goal:** Extract the generic multi-agent orchestration system (dispatch, scheduling, color identity, token tracking, testing) from Asterisk's RCA domain into `internal/agentmux/` — a self-contained package tree with zero domain imports, positioned for future extraction into a standalone repository.  
-**Serves:** Architecture evolution (NICE — enables reuse beyond Asterisk)
+**Serves:** Architecture evolution (NICE — enables reuse beyond Asterisk)  
+**Closure:** Fully absorbed by `agentic-framework-I.1-ontology.md`. Agent interface becomes Walker; Task becomes NodeContext; Result becomes Artifact. Package target changed from `internal/agentmux/` to `internal/framework/`.
 
 ## Contract rules
 

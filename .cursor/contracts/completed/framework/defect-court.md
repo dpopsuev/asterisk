@@ -1,8 +1,9 @@
 # Contract — Defect Court
 
-**Status:** draft  
+**Status:** abandoned  
 **Goal:** Extend the F0-F6 investigation pipeline with an adversarial "Defect Court" phase (D0-D4) where a prosecution brief, defense consul, and judicial verdict replace the single-perspective review, feeding contested findings back to investigation for reassessment. Future phase — post-MCP integration.  
-**Serves:** Architecture evolution
+**Serves:** Architecture evolution  
+**Closure:** Fully absorbed by `agentic-framework-III.3-shadow.md`. All D0-D4 steps, roles, heuristics, and remand feedback are preserved in the Framework shadow contract.
 
 ## Contract rules
 

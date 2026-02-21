@@ -24,15 +24,11 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `poc-tuning-loop.md` | Improve BasicAdapter accuracy on blind cases via targeted prompt/pipeline improvements. Activates after rp-e2e-launch. | PoC completion |
 | `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Court mistrial. | PoC completion |
 | `origami-ground-truth-ingestor.md` | Agentic dataset curation: AI subagents consume unstructured evidence into structured ground truth. JSON files, CLI-first, MCP bridge. Target: 50+ verified cases + PR workflow. | Dataset growth |
-| `improve-human-operator-output.md` | Agent narration during calibration: human words not machine codes, progress/ETA/trajectory, milestone summaries. | PoC completion |
-| `defect-court.md` | Adversarial "Defect Court" phase (D0-D4). **Absorbed by `agentic-framework-III.3-shadow.md`.** | Architecture evolution |
 | `workspace-revisited.md` | Long-term workspace vision: layered composition, dependency graph, summarization. Phases 3-4 (trimmed after MVP + Catalog splits). | Architecture evolution |
-| `agent-adapter-overloading.md` | Multi-adapter orchestration. **Phase 1 absorbed by III.1-personae. Status: abandoned.** | Architecture evolution |
-| `agentmux-decoupling.md` | Extract generic agent orchestration. **Absorbed by `agentic-framework-I.1-ontology.md`.** | Architecture evolution |
 | `meta-calibration.md` | Task-based behavioral assessment of LLM models, producing empirical ModelProfiles that replace hardcoded persona traits. | Architecture evolution |
 | `domain-calibration.md` | Explicitly scope calibration as per-domain; establish Origami's domain calibration alongside Asterisk's. | Architecture evolution |
 
-## completed/ -- Historical record (65 completed contracts)
+## completed/ -- Historical record (68 completed contracts)
 
 Grouped by original development phase. All contracts below are **complete** (or closed).
 
@@ -132,7 +128,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `architecture-snapshots.md` | Architecture diagrams as first-class artifacts; current/desired state snapshots; retrofit 3 contracts; extend `docs/architecture.md`. |
 | `soul-red-hat-telco.md` | Red Hat identity, telco mission, OSS philosophy, and scale awareness encoded into strategy, invariants, and standards. |
 
-### completed/framework/ (7)
+### completed/framework/ (10)
 
 | Contract | Goal |
 |----------|------|
@@ -143,6 +139,9 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `agentic-framework-III.1-personae.md` | AgentIdentity (Color x Element x Position x Alignment). 4 Light + 4 Shadow personas. |
 | `agentic-framework-III.2-masks.md` | Detachable capability modifiers (middleware). 4 Light masks. |
 | `agentic-framework-III.3-shadow.md` | Adversarial Shadow pipeline. D0-D4 court, multi-round hearing, remand injection. |
+| `agent-adapter-overloading.md` | Multi-adapter orchestration. **Abandoned** — Phase 1 absorbed by III.1-personae. |
+| `defect-court.md` | Adversarial Defect Court (D0-D4). **Abandoned** — absorbed by III.3-shadow. |
+| `agentmux-decoupling.md` | Generic agent orchestration extraction. **Abandoned** — absorbed by I.1-ontology. |
 
 ### completed/mcp/ (3)
 
