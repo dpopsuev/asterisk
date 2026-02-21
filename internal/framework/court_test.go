@@ -140,16 +140,22 @@ func TestVerdictDecision_Constants(t *testing.T) {
 
 func TestCourtEvidenceGap(t *testing.T) {
 	gap := CourtEvidenceGap{
-		Description:     "missing network metrics during failure window",
-		Source:          "infrastructure_telemetry",
-		Severity:        "high",
-		SuggestedAction: "collect pod-level network stats from prometheus",
+		EvidenceGap: EvidenceGap{
+			Description:     "missing network metrics during failure window",
+			Source:          "infrastructure_telemetry",
+			Severity:        GapSeverityHigh,
+			SuggestedAction: "collect pod-level network stats from prometheus",
+		},
+		CourtPhase: "D3",
 	}
 	if gap.Description == "" {
 		t.Error("Description should not be empty")
 	}
 	if gap.SuggestedAction == "" {
 		t.Error("SuggestedAction should not be empty")
+	}
+	if gap.CourtPhase != "D3" {
+		t.Errorf("CourtPhase = %q, want D3", gap.CourtPhase)
 	}
 }
 

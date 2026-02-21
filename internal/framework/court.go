@@ -123,12 +123,12 @@ type RemandFeedback struct {
 	SpecificQuestions  []string `json:"specific_questions"`
 }
 
-// CourtEvidenceGap captures a gap discovered during adversarial review.
+// CourtEvidenceGap extends EvidenceGap with court-specific context.
+// It embeds the shared EvidenceGap type so court gaps can be collected
+// into an EvidenceGapBrief on mistrial.
 type CourtEvidenceGap struct {
-	Description string `json:"description"`
-	Source      string `json:"source"`
-	Severity    string `json:"severity"`
-	SuggestedAction string `json:"suggested_action,omitempty"`
+	EvidenceGap
+	CourtPhase string `json:"court_phase,omitempty"`
 }
 
 // BuildCourtEdgeFactory returns an EdgeFactory with skeleton court heuristic
