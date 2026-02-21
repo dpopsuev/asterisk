@@ -35,25 +35,27 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | 5th | `origami-ground-truth-ingestor` | draft | **Ph1-2 + Ph7 only** (store + CLI + PR) | Defer Ph3-6 (AI extractors, MCP bridge). Dataset JSON export + GitHub PR. |
 | ~~6th~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | Full (4 tasks, test-only) | All 4 tasks done. 4-subagent MCP pipeline drain, zero duplicates, full report. |
 | ~~7th~~ | ~~`subagent-testing-framework`~~ | **complete** | Full (9 tasks) | All 9 tasks done. RoutingLog, RoutingRecorder, replay, color-tagged logs. |
-| 6th | `agent-adapter-overloading` | draft | **Phase 1 only** (pool + scheduler) | Defer Ph2-4 (escalation, tournament, learned). Color identity for pitch demo. |
-| 7th | `workspace-catalog` | draft | **Defer or full** | Hard dep on workspace-mvp. Heaviest Go-code. Not PoC-blocking; MVP covers M12/M13. |
+| ~~6th~~ | ~~`agent-adapter-overloading`~~ | **abandoned** | — | Phase 1 absorbed by III.1-personae. Phases 2-4 deferred. |
+| 6th | `workspace-catalog` | draft | **Defer** | Hard dep on workspace-mvp. Heaviest Go-code. Not PoC-blocking; MVP covers M12/M13. |
 
 ### Completed
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| ~~quick-win~~ | ~~`data-swipe`~~ | **complete** | Scrubbed. Moved to active-complete status. |
+| ~~quick-win~~ | ~~`data-swipe`~~ | **complete** | Scrubbed. Moved to `completed/poc-v2/`. |
 | ~~quick-win~~ | ~~`architecture-snapshots`~~ | **complete** | 11 diagrams across 4 files. Moved to `completed/knowledge-store/`. |
 | ~~quick-win~~ | ~~`fsc-knowledge-compartmentalization`~~ | **complete** | 4 compartments, 3 alwaysApply. Moved to `completed/knowledge-store/`. |
 | ~~vision~~ | ~~`soul-red-hat-telco`~~ | **complete** | Red Hat identity, telco mission, OSS philosophy. Moved to `completed/knowledge-store/`. |
+| ~~SHOULD~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | Moved to `completed/poc-v2/`. |
+| ~~SHOULD~~ | ~~`subagent-testing-framework`~~ | **complete** | Moved to `completed/poc-v2/`. |
 
 ### NICE — Architecture evolution, post-PoC
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| **next-milestone** | `mcp-server-foundation` | draft | MCP chain step 1. `asterisk serve` over stdio. |
-| **next-milestone** | `mcp-pipeline-tools` | draft | MCP chain step 2. F0-F6 pipeline tools. |
-| **next-milestone** | `mcp-calibration-mode` | draft | MCP chain step 3. Calibration-specific MCP tools. |
+| ~~next-milestone~~ | ~~`mcp-server-foundation`~~ | **complete** | De facto done. Moved to `completed/mcp/`. |
+| ~~next-milestone~~ | ~~`mcp-pipeline-tools`~~ | **complete** | De facto done. Moved to `completed/mcp/`. |
+| ~~next-milestone~~ | ~~`mcp-calibration-mode`~~ | **complete** | De facto done. Moved to `completed/mcp/`. |
 | **vision** | `workspace-revisited` | draft | Long-term workspace vision: layered composition, dependency graph, summarization. Trimmed to Phases 3-4. |
 | ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.1-ontology`~~ | **complete** | Node/Edge/Walker/Graph interfaces in `internal/framework/`. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.2-characteristica`~~ | **complete** | Pipeline DSL (YAML/Go). Orchestrate bridge. Moved to `completed/framework/`. |
@@ -61,7 +63,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.2-cycles`~~ | **complete** | Generative/destructive interaction cycles. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.1-personae`~~ | **complete** | AgentIdentity 5-axis, 8 personas (4L+4S). Moved to `completed/framework/`. |
 | ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.2-masks`~~ | **complete** | Detachable middleware masks. 4 Light masks. Moved to `completed/framework/`. |
-| **vision — Framework Tome III** | `agentic-framework-III.3-shadow` | **active** | Adversarial pipeline pattern. Phase 1 types done. Phases 2-4 pending. |
+| **vision — Framework Tome III** | `agentic-framework-III.3-shadow` | **active** | Adversarial pipeline pattern. Phase 1 complete. Phases 2-4 in progress. |
 
 ## Goal Transition Protocol
 

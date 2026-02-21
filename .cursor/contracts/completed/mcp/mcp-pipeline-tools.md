@@ -1,8 +1,9 @@
 # Contract — MCP Pipeline Investigation Tools
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** MCP tools drive the F0–F6 investigation pipeline, with Asterisk as the stateful server holding the heuristic engine and store.  
-**Serves:** MCP integration
+**Serves:** MCP integration  
+**Closure:** De facto implemented. MCP server dispatches pipeline steps via `get_next_step`/`submit_artifact` tools. CursorAdapter uses these tools for F0-F6 pipeline execution. Heuristic engine and store fully wired.
 
 ## Contract rules
 

@@ -1,8 +1,9 @@
 # Contract — Agent Adapter Overloading
 
-**Status:** draft  
+**Status:** abandoned  
 **Goal:** Multiple adapters operate concurrently within a single calibration run, with a Scheduler routing each pipeline step to the best-suited adapter based on task characteristics and adapter personality profiles.  
-**Serves:** Architecture evolution
+**Serves:** Architecture evolution  
+**Closure:** Phase 1 (AdapterPool, AffinityScheduler, color traits) fully absorbed by `agentic-framework-III.1-personae` (AgentIdentity 5-axis, 8 personas). Phases 2-4 remain deferred as future work.
 
 ## Contract rules
 

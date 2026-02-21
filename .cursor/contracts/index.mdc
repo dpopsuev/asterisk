@@ -12,6 +12,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|--------|
 | `cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
+| `agentic-framework-III.3-shadow.md` | Adversarial pipeline pattern. Light/Shadow contest. Absorbs defect-court. | Framework Tome III |
 
 ## draft/ -- Planned, not yet being executed
 
@@ -20,21 +21,14 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `workspace-catalog.md` | Artifact catalog with fetch-through, format registry, CI log readers. Split from workspace-revisited. | PoC quality (SHOULD) |
 | `poc-tuning-loop.md` | Improve BasicAdapter accuracy on blind cases via targeted prompt/pipeline improvements. Activates after rp-e2e-launch. | PoC completion |
 | `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Court mistrial. | PoC completion |
-| `mcp-server-foundation.md` | `asterisk serve` starts a stateful MCP server over stdio; placeholder tools. | MCP integration |
-| `mcp-pipeline-tools.md` | MCP tools driving F0-F6 pipeline. Depends on mcp-server-foundation. | MCP integration |
-| `mcp-calibration-mode.md` | Calibration-specific MCP tools. Depends on mcp-pipeline-tools. | MCP integration |
 | `origami-ground-truth-ingestor.md` | Agentic dataset curation: AI subagents consume unstructured evidence into structured ground truth. JSON files, CLI-first, MCP bridge. Target: 50+ verified cases + PR workflow. | Dataset growth |
 | `improve-human-operator-output.md` | Agent narration during calibration: human words not machine codes, progress/ETA/trajectory, milestone summaries. | PoC completion |
 | `defect-court.md` | Adversarial "Defect Court" phase (D0-D4). **Absorbed by `agentic-framework-III.3-shadow.md`.** | Architecture evolution |
 | `workspace-revisited.md` | Long-term workspace vision: layered composition, dependency graph, summarization. Phases 3-4 (trimmed after MVP + Catalog splits). | Architecture evolution |
-| `data-swipe.md` | Scrub internal infrastructure hostnames from entire git history. Pattern file in `.dev/` (gitignored). | Public repo hygiene |
-| `concurrent-subagents-determinism.md` | Prove 4 concurrent Cursor subagents drain the MCP pipeline deterministically: zero dispatch collisions, no starvation, complete report. Test-only. | PoC completion (SHOULD) |
-| `subagent-testing-framework.md` | Deterministic subagent dispatch assertions, color-tagged log filtering, and routing replay for reproducible multi-adapter testing. | PoC completion (SHOULD) |
-| `agent-adapter-overloading.md` | Multi-adapter orchestration. **Phase 1 absorbed by `agentic-framework-III.1-personae.md`.** | Architecture evolution |
+| `agent-adapter-overloading.md` | Multi-adapter orchestration. **Phase 1 absorbed by III.1-personae. Status: abandoned.** | Architecture evolution |
 | `agentmux-decoupling.md` | Extract generic agent orchestration. **Absorbed by `agentic-framework-I.1-ontology.md`.** | Architecture evolution |
-| `agentic-framework-III.3-shadow.md` | Adversarial pipeline pattern. Light/Shadow contest. Absorbs defect-court. | Framework Tome III |
 
-## completed/ -- Historical record (58 completed contracts)
+## completed/ -- Historical record (64 completed contracts)
 
 Grouped by original development phase. All contracts below are **complete** (or closed).
 
@@ -70,7 +64,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `prompt-families.md` | Prompt family taxonomy (F0-F6), pipelines, loops, routing heuristics. |
 | `investigation-context.md` | Two-tier data model: investigation tree + global knowledge. |
 
-### completed/poc-v2/ (8)
+### completed/poc-v2/ (11)
 
 | Contract | Goal |
 |----------|------|
@@ -81,6 +75,9 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `phase-5a-mitigation.md` | Phase 5a mitigation umbrella: taxonomy translator, color-coded agents, workspace MVP, dataset expansion. All 9 tasks complete. |
 | `workspace-mvp.md` | Wire RP launch attrs, Jira links, repo paths into prompts. Resolution status. M12/M13=0.00 → >0. 11 tasks, 5 tests. |
 | `poc-scope-precision.md` | Zero-friction PoC packaging: simplified CLI, Cursor skill, CEO-ready README. 7 tasks complete. |
+| `concurrent-subagents-determinism.md` | 4 concurrent Cursor subagents drain MCP pipeline deterministically. Zero collisions. |
+| `subagent-testing-framework.md` | RoutingLog, RoutingRecorder, replay, color-tagged logs for multi-adapter testing. |
+| `data-swipe.md` | Scrub internal infrastructure hostnames from git history. |
 
 ### completed/pipeline/ (5)
 
@@ -140,6 +137,14 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `agentic-framework-II.2-cycles.md` | Generative/destructive interaction cycles. Scheduler routing rules. |
 | `agentic-framework-III.1-personae.md` | AgentIdentity (Color x Element x Position x Alignment). 4 Light + 4 Shadow personas. |
 | `agentic-framework-III.2-masks.md` | Detachable capability modifiers (middleware). 4 Light masks. |
+
+### completed/mcp/ (3)
+
+| Contract | Goal |
+|----------|------|
+| `mcp-server-foundation.md` | `asterisk serve` MCP server over stdio with Cobra command and session management. |
+| `mcp-pipeline-tools.md` | MCP tools driving F0-F6 pipeline (get_next_step, submit_artifact). |
+| `mcp-calibration-mode.md` | Calibration-specific MCP tools (start_calibration, get_report, signal bus). |
 
 ### completed/output/ (6)
 

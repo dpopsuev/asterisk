@@ -1,8 +1,9 @@
 # Contract — MCP Server Foundation
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** `asterisk serve` starts a stateful MCP server over stdio that Cursor can connect to, with placeholder tools proving the integration works.  
-**Serves:** MCP integration
+**Serves:** MCP integration  
+**Closure:** De facto implemented during calibration MCP work. `internal/mcp/server.go` (6 tools), `cmd/asterisk/cmd_serve.go`, `.cursor/mcp.json` all exist and functional. Tests passing.
 
 ## Contract rules
 

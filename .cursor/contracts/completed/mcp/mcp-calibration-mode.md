@@ -1,8 +1,9 @@
 # Contract — MCP Calibration Mode
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** MCP tools for calibration-specific workflows: ground truth scoring, blind evaluation preamble, transcript weaving, TokiMeter.  
-**Serves:** MCP integration
+**Serves:** MCP integration  
+**Closure:** De facto implemented. `start_calibration`, `get_next_step`, `submit_artifact`, `get_report`, `emit_signal`, `get_signals` tools all operational in `internal/mcp/server.go`. Signal bus, session management, parallel workers functional.
 
 ## Contract rules
 
