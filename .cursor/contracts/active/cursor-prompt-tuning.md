@@ -1,4 +1,4 @@
-# Contract — Cursor Prompt Tuning
+# Contract — Cursor Prompt Tuning (Domain)
 
 **Status:** active  
 **Goal:** Improve CursorAdapter accuracy on Phase 5a (18 verified cases) through targeted prompt edits. Measured by M19 delta against baseline (0.50).  
@@ -10,6 +10,7 @@
 - Each fix: implement, rebuild, re-run Phase 5a via MCP, measure delta.
 - Do NOT modify ground truth.
 - Iterative: stop when M19 >= 0.85 or diminishing returns.
+- This contract is **domain-specific** to Asterisk RCA. Framework-level prompt tuning infrastructure lives in `contracts/draft/prompt-calibration.md`.
 
 ## Context
 
@@ -36,4 +37,5 @@
 
 ## Notes
 
+- 2026-02-21 15:00 — Split from original contract. Domain-specific tasks stay here; framework-level prompt calibration concept extracted to `contracts/draft/prompt-calibration.md`.
 - 2026-02-19 — Contract created. Motivated by Phase 5a FAIL (M19=0.50). Top two fixes: taxonomy mismatch (M2=0.00, est. +0.10) and component blindness (M15=0.44, est. +0.05). No existing contract covers cursor-adapter prompt fixes — poc-tuning-loop targets BasicAdapter and activates after gate passes.

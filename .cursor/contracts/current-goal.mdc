@@ -77,6 +77,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | **vision — Framework Tome IV** | `meta-calibration` | draft | Task-based behavioral assessment of LLM models. Empirical ModelProfiles replace hardcoded persona traits. |
 | **vision** | `domain-calibration` | draft | Scope calibration as per-domain. Asterisk RCA + Origami extraction as distinct calibration systems. |
 | **vision** | `metacal-mcp-server` | active | MCP server for meta-calibration discovery loop; Cursor drives negation iterations end-to-end. Implemented. |
+| **vision** | `prompt-calibration` | draft | Framework-level prompt tuning loop. Split from cursor-prompt-tuning (domain). Extends Tome III + IV. |
 | ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.1-ontology`~~ | **complete** | Node/Edge/Walker/Graph interfaces in `internal/framework/`. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.2-characteristica`~~ | **complete** | Pipeline DSL (YAML/Go). Orchestrate bridge. Moved to `completed/framework/`. |
 | ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.1-elements`~~ | **complete** | 6 elements with quantified behavioral traits. Moved to `completed/framework/`. |
