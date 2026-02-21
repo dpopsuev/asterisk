@@ -12,11 +12,8 @@ import (
 func TestBuildExclusionPrompt_NoExclusions(t *testing.T) {
 	prompt := BuildExclusionPrompt(nil)
 
-	if !strings.Contains(prompt, "select any model") {
-		t.Error("should contain 'select any model'")
-	}
-	if strings.Contains(prompt, "Excluding") {
-		t.Error("iteration 0 should have no exclusions")
+	if prompt != "" {
+		t.Errorf("iteration 0 should produce empty exclusion prompt, got: %q", prompt)
 	}
 }
 
@@ -42,30 +39,29 @@ func TestBuildExclusionPrompt_WithExclusions(t *testing.T) {
 func TestBuildFullPrompt_CombinesAll(t *testing.T) {
 	prompt := BuildFullPrompt(nil)
 
-	if !strings.Contains(prompt, "select any model") {
-		t.Error("missing exclusion section")
-	}
 	if !strings.Contains(prompt, "model_name") {
 		t.Error("missing identity prompt")
 	}
 	if !strings.Contains(prompt, "Refactor") {
 		t.Error("missing probe prompt")
 	}
+	if !strings.Contains(prompt, "FOUNDATION") {
+		t.Error("missing foundation model instruction")
+	}
 }
 
 // TestBuildFullPrompt_IdentityFirst ensures identity is placed before the
-// exclusion line ("You are on auto") so the model is not primed to answer
-// "auto" as model_name. See TestCombinedPrompt_ReturnsFoundation.
+// probe so the model identifies itself before being primed by task instructions.
 func TestBuildFullPrompt_IdentityFirst(t *testing.T) {
 	prompt := BuildFullPrompt(nil)
 
 	idxIdentity := strings.Index(prompt, "Before doing anything else")
-	idxAuto := strings.Index(prompt, "You are on auto")
-	if idxIdentity < 0 || idxAuto < 0 {
-		t.Fatalf("prompt missing identity or exclusion block")
+	idxProbe := strings.Index(prompt, "Refactor")
+	if idxIdentity < 0 || idxProbe < 0 {
+		t.Fatalf("prompt missing identity or probe block")
 	}
-	if idxIdentity > idxAuto {
-		t.Errorf("identity block must come before 'You are on auto'; identity at %d, auto at %d", idxIdentity, idxAuto)
+	if idxIdentity > idxProbe {
+		t.Errorf("identity block must come before probe; identity at %d, probe at %d", idxIdentity, idxProbe)
 	}
 }
 
@@ -110,8 +106,8 @@ func TestIdentityOnly_ReturnsFoundation(t *testing.T) {
 }
 
 // TestCombinedPrompt_BeforeFix_ReturnsWrapper reproduces the problem: when the
-// identity prompt was combined with the refactor task and "You are on auto"
-// appeared first, the model returned "auto" (wrapper). Golden: response_combined_before_fix.txt.
+// identity prompt was combined with the refactor task and auto-priming appeared,
+// the model returned "auto" (wrapper). Golden: response_combined_before_fix.txt.
 func TestCombinedPrompt_BeforeFix_ReturnsWrapper(t *testing.T) {
 	data, err := os.ReadFile(filepath.Join("testdata", "response_combined_before_fix.txt"))
 	if err != nil {

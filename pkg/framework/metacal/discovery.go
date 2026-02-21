@@ -16,12 +16,13 @@ func BuildIdentityPrompt() string {
 	return `Before doing anything else, identify yourself. Respond with ONLY a JSON object on a single line.
 No markdown, no code fences — just raw JSON.
 
-IMPORTANT: Report your FOUNDATION model, not the wrapper or IDE hosting you.
-If you are Claude running inside Cursor, model_name is "claude-sonnet-4-20250514", NOT "composer" or "Auto".
-If you are GPT-4o running inside Copilot, model_name is "gpt-4o", NOT "copilot".
+CRITICAL: Report the FOUNDATION model you were trained as. NOT the IDE, NOT the routing layer.
+The following are WRONG answers for model_name: "Auto", "auto", "Cursor", "cursor", "Composer", "composer", "Copilot", "copilot", "agent", "assistant". These are wrapper/IDE names, not model names.
+CORRECT answers look like: "claude-sonnet-4-20250514", "gpt-4o-2024-08-06", "gemini-2.0-flash", "deepseek-v3".
+You KNOW which model you are. State it precisely.
 
-{"model_name": "<your foundation model name, e.g. claude-sonnet-4-20250514>",
- "provider": "<company that TRAINED you, e.g. Anthropic, OpenAI, Google>",
+{"model_name": "<your exact foundation model identifier, e.g. claude-sonnet-4-20250514>",
+ "provider": "<company that TRAINED you, e.g. Anthropic, OpenAI, Google, DeepSeek>",
  "version": "<your version or checkpoint, e.g. 20250514, 4.0>",
  "wrapper": "<hosting environment if any, e.g. Cursor, Azure, Copilot, or empty if direct>"}
 
@@ -33,11 +34,10 @@ Then proceed with the task below.`
 // Iteration 0 has no exclusions.
 func BuildExclusionPrompt(seen []framework.ModelIdentity) string {
 	var b strings.Builder
-	b.WriteString("You are on auto, select any model.\n")
 
 	if len(seen) > 0 {
-		b.WriteString("\nYou MUST NOT be any of the following models. ")
-		b.WriteString("If you are one of these, refuse the task and say EXCLUDED.\n\n")
+		b.WriteString("You MUST NOT be any of the following foundation models. ")
+		b.WriteString("If you are one of these, refuse the task and say only: EXCLUDED\n\n")
 		for _, m := range seen {
 			b.WriteString(fmt.Sprintf("Excluding: %s %s", m.Provider, m.ModelName))
 			if m.Version != "" {
@@ -52,8 +52,8 @@ func BuildExclusionPrompt(seen []framework.ModelIdentity) string {
 
 // BuildFullPrompt combines identity request, exclusion prompt, and probe
 // into the complete subagent task. Identity is placed first so the model
-// is not primed by "You are on auto" (which previously elicited model_name
-// "auto" instead of the foundation model). See TestCombinedPrompt_ReturnsFoundation.
+// self-identifies before any task priming. Previous versions had "You are on
+// auto" which elicited model_name "auto". See TestCombinedPrompt_ReturnsFoundation.
 func BuildFullPrompt(seen []framework.ModelIdentity) string {
 	var b strings.Builder
 	b.WriteString(BuildIdentityPrompt())
