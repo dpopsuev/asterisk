@@ -13,20 +13,18 @@ import (
 // to report its FOUNDATION identity (the ghost), not the wrapper/IDE hosting it.
 // Aligned with internal/calibrate/adapt/cursor.go identityProbePrompt.
 func BuildIdentityPrompt() string {
-	return `Before doing anything else, identify yourself. Respond with ONLY a JSON object on a single line.
-No markdown, no code fences — just raw JSON.
+	return `RESPONSE FORMAT (strict — your reply is parsed by a script):
+- Line 1: Exactly one JSON object with model_name, provider, version, wrapper. No other text on line 1. No markdown, no code fences.
+- Line 2: Empty or newline.
+- Line 3+: The refactored code in a triple-backtick go code block.
 
-CRITICAL: Report the FOUNDATION model you were trained as. NOT the IDE, NOT the routing layer.
-The following are WRONG answers for model_name: "Auto", "auto", "Cursor", "cursor", "Composer", "composer", "Copilot", "copilot", "agent", "assistant". These are wrapper/IDE names, not model names.
-CORRECT answers look like: "claude-sonnet-4-20250514", "gpt-4o-2024-08-06", "gemini-2.0-flash", "deepseek-v3".
-You KNOW which model you are. State it precisely.
+If line 1 is not valid JSON containing "model_name", the entire response is rejected.
 
-{"model_name": "<your exact foundation model identifier, e.g. claude-sonnet-4-20250514>",
- "provider": "<company that TRAINED you, e.g. Anthropic, OpenAI, Google, DeepSeek>",
- "version": "<your version or checkpoint, e.g. 20250514, 4.0>",
- "wrapper": "<hosting environment if any, e.g. Cursor, Azure, Copilot, or empty if direct>"}
+Report your FOUNDATION model (the model you were trained as), NOT the IDE. WRONG: "Auto", "auto", "Cursor", "Composer", "composer", "Copilot". CORRECT: "claude-sonnet-4-20250514", "gpt-4o", "gemini-2.0-flash".
 
-Then proceed with the task below.`
+Example line 1 only: {"model_name": "claude-sonnet-4-20250514", "provider": "Anthropic", "version": "20250514", "wrapper": "Cursor"}
+
+Now output line 1 (your identity JSON), then a blank line, then the task below.`
 }
 
 // BuildExclusionPrompt constructs the negation system prompt that

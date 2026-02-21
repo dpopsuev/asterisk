@@ -55,7 +55,7 @@ func TestBuildFullPrompt_CombinesAll(t *testing.T) {
 func TestBuildFullPrompt_IdentityFirst(t *testing.T) {
 	prompt := BuildFullPrompt(nil)
 
-	idxIdentity := strings.Index(prompt, "Before doing anything else")
+	idxIdentity := strings.Index(prompt, "RESPONSE FORMAT")
 	idxProbe := strings.Index(prompt, "Refactor")
 	if idxIdentity < 0 || idxProbe < 0 {
 		t.Fatalf("prompt missing identity or probe block")
