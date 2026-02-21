@@ -14,6 +14,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
 | `metacal-run-1.md` | Discover all Cursor auto-select models via prompt negation, run one behavioral probe on each, persist as first meta-calibration dataset. | Framework showcase (gate) |
 | `mcp-underload-decouple.md` | Underload & decouple: framework-level MCP (Server, SignalBus, WatchStdin); Asterisk domain keeps session and tool handlers only. ROGYB per component. | Architecture evolution |
+| `metacal-mcp-server.md` | MCP server for meta-calibration discovery loop (`metacal serve`); Cursor drives negation iterations end-to-end. | Architecture evolution |
 
 ## draft/ -- Planned, not yet being executed
 
@@ -30,7 +31,6 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `agentmux-decoupling.md` | Extract generic agent orchestration. **Absorbed by `agentic-framework-I.1-ontology.md`.** | Architecture evolution |
 | `meta-calibration.md` | Task-based behavioral assessment of LLM models, producing empirical ModelProfiles that replace hardcoded persona traits. | Architecture evolution |
 | `domain-calibration.md` | Explicitly scope calibration as per-domain; establish Origami's domain calibration alongside Asterisk's. | Architecture evolution |
-| `metacal-mcp-server.md` | MCP server for meta-calibration discovery loop (`metacal serve`); Cursor drives negation iterations end-to-end. | Architecture evolution |
 
 ## completed/ -- Historical record (65 completed contracts)
 

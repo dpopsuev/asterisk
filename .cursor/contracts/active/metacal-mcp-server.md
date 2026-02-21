@@ -1,6 +1,6 @@
 # Contract — metacal-mcp-server
 
-**Status:** draft  
+**Status:** active  
 **Goal:** Expose meta-calibration discovery as an MCP server (`metacal serve`) so Cursor can drive the negation loop end-to-end without human CLI steps between iterations.  
 **Serves:** Architecture evolution / Framework showcase
 
@@ -124,3 +124,4 @@ No trust boundaries affected. MCP server runs in-process over stdio; discovery s
 ## Notes
 
 2026-02-21 — Contract created as draft. Not blocking metacal-run-1 (which works via CLI). Activates when agent-driven discovery loop is needed or when meta-calibration vision contract (multi-probe, ModelProfiles) progresses.
+2026-02-21 — Implemented and activated. internal/metacalmcp package with Session + Server + 6 tool handlers. Tests pass. `metacal serve` subcommand added. .cursor/mcp.json updated with metacal entry. Package uses internal/metacalmcp (Go-valid name instead of internal/metacal-mcp).

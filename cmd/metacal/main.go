@@ -1,15 +1,22 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
+	"log/slog"
 	"os"
+	"os/signal"
 	"path/filepath"
 
+	"asterisk/internal/metacalmcp"
 	"asterisk/pkg/framework"
 	"asterisk/pkg/framework/metacal"
+	fwmcp "asterisk/pkg/framework/mcp"
+
+	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
 func main() {
@@ -26,6 +33,8 @@ func main() {
 		err = cmdAnalyze(os.Args[2:])
 	case "save":
 		err = cmdSave(os.Args[2:])
+	case "serve":
+		err = cmdServe(os.Args[2:])
 	default:
 		printUsage()
 		os.Exit(1)
@@ -44,11 +53,13 @@ Subcommands:
   prompt   Build the full discovery prompt (identity + exclusions + probe)
   analyze  Parse a subagent response: extract identity, code, and score
   save     Persist a RunReport JSON to the append-only store
+  serve    Start the metacal MCP server over stdio for Cursor integration
 
 Usage:
   metacal prompt [--exclude-file FILE]
   metacal analyze --response-file FILE   (use - for stdin)
   metacal save --report-file FILE [--runs-dir DIR]   (use - for stdin)
+  metacal serve [--runs-dir DIR]
 `)
 }
 
@@ -175,4 +186,23 @@ func cmdSave(args []string) error {
 
 	fmt.Fprintf(os.Stderr, "saved run %q to %s\n", report.RunID, *runsDir)
 	return nil
+}
+
+func cmdServe(args []string) error {
+	fs := flag.NewFlagSet("serve", flag.ContinueOnError)
+	runsDir := fs.String("runs-dir", filepath.Join("pkg", "framework", "metacal", "runs"), "directory to save discovery run reports")
+	if err := fs.Parse(args); err != nil {
+		return err
+	}
+
+	srv := metacalmcp.NewServer(*runsDir)
+	defer srv.Shutdown()
+
+	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt)
+	defer cancel()
+
+	fwmcp.WatchStdin(ctx, nil, cancel)
+
+	slog.Info("starting metacal MCP server over stdio", "runs_dir", *runsDir)
+	return srv.MCPServer.Run(ctx, &sdkmcp.StdioTransport{})
 }
