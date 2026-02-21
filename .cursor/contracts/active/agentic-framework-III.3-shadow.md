@@ -228,9 +228,9 @@ Shadow personas with distinct system prompts via MCP.
 
 ### Phase 4 -- LLM-based court (future)
 
-- [ ] Prosecution, defense, and judge system prompts
-- [ ] Multi-round hearing with structured JSON exchange
-- [ ] Remand feedback integration with Light F2/F3
+- [x] Prosecution, defense, and judge system prompts
+- [x] Multi-round hearing with structured JSON exchange
+- [x] Remand feedback integration with Light F2/F3
 
 ### Validation
 
