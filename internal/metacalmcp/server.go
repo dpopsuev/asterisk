@@ -19,9 +19,10 @@ type Server struct {
 	MCPServer *sdkmcp.Server
 	RunsDir   string
 
-	mu      sync.Mutex
-	session *Session
-	log     *slog.Logger
+	mu        sync.Mutex
+	session   *Session
+	persisted bool
+	log       *slog.Logger
 }
 
 // NewServer creates a metacal MCP server with discovery tools registered.
@@ -73,7 +74,7 @@ func (s *Server) registerTools() {
 type startDiscoveryInput struct {
 	MaxIterations     int    `json:"max_iterations,omitempty" jsonschema:"max discovery iterations (default 15)"`
 	ProbeID           string `json:"probe_id,omitempty" jsonschema:"probe identifier (default refactor-v1)"`
-	TerminateOnRepeat bool   `json:"terminate_on_repeat,omitempty" jsonschema:"stop when a model repeats (default true)"`
+	TerminateOnRepeat *bool  `json:"terminate_on_repeat,omitempty" jsonschema:"stop when a model repeats (default true)"`
 }
 
 type startDiscoveryOutput struct {
@@ -163,13 +164,13 @@ func (s *Server) handleStartDiscovery(_ context.Context, _ *sdkmcp.CallToolReque
 	if input.ProbeID != "" {
 		config.ProbeID = input.ProbeID
 	}
-	config.TerminateOnRepeat = true
-	if !input.TerminateOnRepeat {
-		config.TerminateOnRepeat = input.TerminateOnRepeat
+	if input.TerminateOnRepeat != nil {
+		config.TerminateOnRepeat = *input.TerminateOnRepeat
 	}
 
 	sess := NewSession(config)
 	s.session = sess
+	s.persisted = false
 	s.log.Info("discovery session started", "id", sess.ID, "max_iterations", config.MaxIterations)
 
 	return nil, startDiscoveryOutput{
@@ -239,12 +240,19 @@ func (s *Server) handleGetDiscoveryReport(_ context.Context, _ *sdkmcp.CallToolR
 		return nil, getDiscoveryReportOutput{Status: "no_report"}, nil
 	}
 
-	if s.RunsDir != "" {
+	s.mu.Lock()
+	alreadyPersisted := s.persisted
+	s.mu.Unlock()
+
+	if s.RunsDir != "" && !alreadyPersisted {
 		store, storeErr := metacal.NewFileRunStore(s.RunsDir)
 		if storeErr == nil {
 			if saveErr := store.SaveRun(*report); saveErr != nil {
 				s.log.Warn("failed to persist run report", "error", saveErr)
 			} else {
+				s.mu.Lock()
+				s.persisted = true
+				s.mu.Unlock()
 				s.log.Info("run report persisted", "run_id", report.RunID, "dir", s.RunsDir)
 			}
 		}
