@@ -30,6 +30,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `agentmux-decoupling.md` | Extract generic agent orchestration. **Absorbed by `agentic-framework-I.1-ontology.md`.** | Architecture evolution |
 | `meta-calibration.md` | Task-based behavioral assessment of LLM models, producing empirical ModelProfiles that replace hardcoded persona traits. | Architecture evolution |
 | `domain-calibration.md` | Explicitly scope calibration as per-domain; establish Origami's domain calibration alongside Asterisk's. | Architecture evolution |
+| `metacal-mcp-server.md` | MCP server for meta-calibration discovery loop (`metacal serve`); Cursor drives negation iterations end-to-end. | Architecture evolution |
 
 ## completed/ -- Historical record (65 completed contracts)
 
