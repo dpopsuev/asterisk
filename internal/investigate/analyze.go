@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"os"
 
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 // Analyzer runs investigation: envelope → cases + artifact. Mock implementation only.

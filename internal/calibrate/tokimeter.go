@@ -1,9 +1,9 @@
 package calibrate
 
 import (
-	"asterisk/internal/calibrate/dispatch"
+	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/display"
-	"asterisk/internal/format"
+	"github.com/dpopsuev/origami/format"
 	"fmt"
 	"sort"
 	"strings"

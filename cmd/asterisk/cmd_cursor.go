@@ -8,7 +8,7 @@ import (
 	"asterisk/internal/display"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 var cursorFlags struct {

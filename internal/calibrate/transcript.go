@@ -9,7 +9,7 @@ import (
 	"time"
 
 	"asterisk/internal/display"
-	"asterisk/internal/format"
+	"github.com/dpopsuev/origami/format"
 	"asterisk/internal/orchestrate"
 )
 

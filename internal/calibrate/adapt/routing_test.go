@@ -11,7 +11,7 @@ import (
 	"asterisk/internal/calibrate"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 // fakeAdapter is a minimal ModelAdapter for testing the recorder.

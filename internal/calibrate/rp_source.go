@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"strings"
 
-	"asterisk/internal/logging"
+	"github.com/dpopsuev/origami/logging"
 	"asterisk/internal/preinvest"
 )
 

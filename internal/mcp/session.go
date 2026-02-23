@@ -12,14 +12,14 @@ import (
 
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/adapt"
-	"asterisk/internal/calibrate/dispatch"
+	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/calibrate/scenarios"
-	"asterisk/internal/logging"
+	"github.com/dpopsuev/origami/logging"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/preinvest"
 	"asterisk/internal/rp"
 	"asterisk/internal/store"
-	fwmcp "asterisk/pkg/framework/mcp"
+	fwmcp "github.com/dpopsuev/origami/mcp"
 )
 
 // SessionState tracks the lifecycle of a calibration session.
@@ -55,6 +55,10 @@ type Session struct {
 	// batchPeak is the maximum agentInFlight reached in the current batch.
 	// Reset to 0 when agentInFlight drops to 0 (batch complete).
 	batchPeak int
+	// sessionPeakInFlight is the all-time max agentInFlight seen in this session.
+	// Unlike batchPeak, this never resets. Once it reaches desiredCapacity,
+	// the capacity gate stays open permanently.
+	sessionPeakInFlight int
 	// concurrentPullers tracks how many get_next_step calls are blocked
 	// right now waiting for a step. If >= desiredCapacity, the agent has
 	// proven concurrency (independent worker model) and the gate opens.
@@ -105,6 +109,9 @@ func (s *Session) AgentPull() int {
 	if s.agentInFlight > s.batchPeak {
 		s.batchPeak = s.agentInFlight
 	}
+	if s.agentInFlight > s.sessionPeakInFlight {
+		s.sessionPeakInFlight = s.agentInFlight
+	}
 	return s.agentInFlight
 }
 
@@ -135,6 +142,7 @@ func (s *Session) SetGateExempt() {
 //   - desiredCapacity <= 1 (serial mode is legitimate)
 //   - gateExempt (pipeline draining, fewer steps than capacity)
 //   - batchPeak >= desiredCapacity (batch pattern: pulled N before submitting)
+//   - sessionPeakInFlight >= desiredCapacity (session-wide proof of parallelism)
 //   - peakPullers >= desiredCapacity (worker pattern: N concurrent get_next_step callers observed)
 func (s *Session) CheckCapacityGate() error {
 	s.mu.Lock()
@@ -149,15 +157,18 @@ func (s *Session) CheckCapacityGate() error {
 	if s.batchPeak >= s.DesiredCapacity {
 		return nil
 	}
+	if s.sessionPeakInFlight >= s.DesiredCapacity {
+		return nil
+	}
 	if s.peakPullers >= s.DesiredCapacity {
 		return nil
 	}
 
 	return fmt.Errorf(
-		"CAPACITY GATE CLOSED: you pulled %d/%d steps this batch (peak concurrent callers: %d/%d). "+
+		"CAPACITY GATE ADVISORY: you pulled %d/%d steps this batch (session peak: %d, peak concurrent callers: %d/%d). "+
 			"Pull %d more steps via get_next_step before submitting, or run %d concurrent workers. "+
 			"If you don't bring more workers, the TTL watchdog will terminate this session",
-		s.batchPeak, s.DesiredCapacity, s.peakPullers, s.DesiredCapacity,
+		s.batchPeak, s.DesiredCapacity, s.sessionPeakInFlight, s.peakPullers, s.DesiredCapacity,
 		s.DesiredCapacity-s.batchPeak, s.DesiredCapacity)
 }
 
@@ -385,6 +396,11 @@ func (s *Session) Cancel() {
 	}
 }
 
+// Done returns a channel that closes when the runner goroutine exits.
+func (s *Session) Done() <-chan struct{} {
+	return s.doneCh
+}
+
 // run executes RunCalibration in a goroutine and captures the result.
 func (s *Session) run(ctx context.Context, cfg calibrate.RunConfig) {
 	defer close(s.doneCh)
@@ -436,11 +452,11 @@ func (s *Session) GetNextStep(ctx context.Context, timeout time.Duration) (dc di
 		if !ok {
 			return dispatch.DispatchContext{}, true, false, nil
 		}
-		s.log.Info("step delivered",
+		s.log.Debug("step delivered",
 			"case_id", dc.CaseID, "step", dc.Step, "dispatch_id", dc.DispatchID, "wait", time.Since(start))
 		return dc, false, true, nil
 	case <-timer:
-		s.log.Warn("get_next_step timed out, no step available", "timeout", timeout)
+		s.log.Debug("get_next_step timed out, no step available", "timeout", timeout)
 		return dispatch.DispatchContext{}, false, false, nil
 	}
 }
@@ -467,11 +483,6 @@ func (s *Session) Err() error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.err
-}
-
-// Done returns a channel that closes when the calibration completes.
-func (s *Session) Done() <-chan struct{} {
-	return s.doneCh
 }
 
 func loadScenario(name string) (*calibrate.Scenario, error) {

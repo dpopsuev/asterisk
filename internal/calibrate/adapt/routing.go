@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"asterisk/internal/calibrate"
-	"asterisk/internal/logging"
+	"github.com/dpopsuev/origami/logging"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 // RoutingEntry records a single adapter routing decision.

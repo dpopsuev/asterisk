@@ -3,7 +3,7 @@ package orchestrate
 import (
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 // TemplateParams holds all parameter groups injected into prompt templates.

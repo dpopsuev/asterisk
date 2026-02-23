@@ -1,7 +1,0 @@
-repos:
-  - name: backend
-    path: ../../my-backend
-    branch: main
-  - name: frontend
-    url: https://github.com/org/frontend.git
-    purpose: UI components

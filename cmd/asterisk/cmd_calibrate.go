@@ -12,7 +12,7 @@ import (
 
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/adapt"
-	"asterisk/internal/calibrate/dispatch"
+	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/preinvest"
@@ -137,7 +137,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		var dispatcher dispatch.Dispatcher
 		switch calibrateFlags.dispatchMode {
 		case "stdin":
-			dispatcher = dispatch.NewStdinDispatcher()
+			dispatcher = dispatch.NewStdinDispatcherWithTemplate(asteriskStdinTemplate())
 		case "file":
 			cfg := dispatch.DefaultFileDispatcherConfig()
 			cfg.Logger = debugLogger

@@ -3,77 +3,12 @@ package orchestrate
 import (
 	"context"
 	"fmt"
-	"os"
 
-	"asterisk/pkg/framework"
+	"github.com/dpopsuev/origami"
 )
 
-// PipelineGraph wraps a framework.Graph with the heuristic evaluation logic
-// needed by the orchestrate runner. It is the bridge between the YAML-defined
-// graph topology and the Go-defined heuristic closures.
-type PipelineGraph struct {
-	graph framework.Graph
-	def   *framework.PipelineDef
-}
-
-// LoadPipelineGraph loads a pipeline YAML and wires heuristic closures into it.
-func LoadPipelineGraph(pipelineData []byte, th Thresholds) (*PipelineGraph, error) {
-	def, err := framework.LoadPipeline(pipelineData)
-	if err != nil {
-		return nil, fmt.Errorf("load pipeline: %w", err)
-	}
-	if err := def.Validate(); err != nil {
-		return nil, fmt.Errorf("validate pipeline: %w", err)
-	}
-
-	nodeReg := buildNodeRegistry()
-	edgeFactory := BuildEdgeFactory(th)
-
-	graph, err := def.BuildGraph(nodeReg, edgeFactory)
-	if err != nil {
-		return nil, fmt.Errorf("build graph: %w", err)
-	}
-
-	return &PipelineGraph{graph: graph, def: def}, nil
-}
-
-// LoadPipelineGraphFromFile loads a pipeline YAML from a file path.
-func LoadPipelineGraphFromFile(path string, th Thresholds) (*PipelineGraph, error) {
-	data, err := os.ReadFile(path)
-	if err != nil {
-		return nil, fmt.Errorf("read pipeline file %s: %w", path, err)
-	}
-	return LoadPipelineGraph(data, th)
-}
-
-// Graph returns the underlying framework.Graph.
-func (pg *PipelineGraph) Graph() framework.Graph { return pg.graph }
-
-// Def returns the parsed pipeline definition.
-func (pg *PipelineGraph) Def() *framework.PipelineDef { return pg.def }
-
-// EvaluateEdges evaluates edges from the given step's node against the artifact
-// and state. Returns the matching action and edge ID, or a fallback action.
-func (pg *PipelineGraph) EvaluateEdges(
-	step PipelineStep,
-	artifact any,
-	state *CaseState,
-) (action *HeuristicAction, matchedRule string) {
-	nodeName := StepToNodeName(step)
-	edges := pg.graph.EdgesFrom(nodeName)
-
-	wrappedArtifact := wrapArtifact(step, artifact)
-	wrappedState := caseStateToWalkerState(state)
-
-	for _, e := range edges {
-		t := e.Evaluate(wrappedArtifact, wrappedState)
-		if t != nil {
-			return transitionToAction(t), e.ID()
-		}
-	}
-
-	return defaultFallback(step), "FALLBACK"
-}
+// DoneNodeName is the terminal pseudo-node name used in pipeline definitions.
+const DoneNodeName = "DONE"
 
 // StepToNodeName converts a PipelineStep enum to a YAML node name.
 func StepToNodeName(step PipelineStep) string {
@@ -92,6 +27,8 @@ func StepToNodeName(step PipelineStep) string {
 		return "review"
 	case StepF6Report:
 		return "report"
+	case StepDone:
+		return DoneNodeName
 	default:
 		return ""
 	}
@@ -162,6 +99,11 @@ func (e *heuristicEdge) Evaluate(a framework.Artifact, s *framework.WalkerState)
 		return nil
 	}
 
+	if e.def.Loop {
+		key := loopKeyForNode(e.def.From)
+		s.IncrementLoop(key)
+	}
+
 	return &framework.Transition{
 		NextNode:         StepToNodeName(result.NextStep),
 		ContextAdditions: result.ContextAdditions,
@@ -169,15 +111,27 @@ func (e *heuristicEdge) Evaluate(a framework.Artifact, s *framework.WalkerState)
 	}
 }
 
+func loopKeyForNode(nodeName string) string {
+	switch nodeName {
+	case "investigate":
+		return "investigate"
+	case "review":
+		return "reassess"
+	default:
+		return nodeName
+	}
+}
+
 func transitionToAction(t *framework.Transition) *HeuristicAction {
 	return &HeuristicAction{
-		NextStep:         nodeNameToStep(t.NextNode),
+		NextStep:         NodeNameToStep(t.NextNode),
 		ContextAdditions: t.ContextAdditions,
 		Explanation:      t.Explanation,
 	}
 }
 
-func nodeNameToStep(name string) PipelineStep {
+// NodeNameToStep converts a YAML node name back to a PipelineStep enum.
+func NodeNameToStep(name string) PipelineStep {
 	switch name {
 	case "recall":
 		return StepF0Recall
@@ -198,8 +152,8 @@ func nodeNameToStep(name string) PipelineStep {
 	}
 }
 
-// wrapArtifact wraps a typed orchestrate artifact as a framework.Artifact.
-func wrapArtifact(step PipelineStep, artifact any) framework.Artifact {
+// WrapArtifact wraps a typed orchestrate artifact as a framework.Artifact.
+func WrapArtifact(step PipelineStep, artifact any) framework.Artifact {
 	if artifact == nil {
 		return nil
 	}
@@ -228,9 +182,11 @@ func caseStateToWalkerState(state *CaseState) *framework.WalkerState {
 	return ws
 }
 
+// walkerStateToCaseState converts a framework WalkerState to a domain CaseState
+// so heuristic closures can inspect loop counts and status.
 func walkerStateToCaseState(ws *framework.WalkerState) *CaseState {
 	state := &CaseState{
-		CurrentStep: nodeNameToStep(ws.CurrentNode),
+		CurrentStep: NodeNameToStep(ws.CurrentNode),
 		Status:      ws.Status,
 		LoopCounts:  make(map[string]int, len(ws.LoopCounts)),
 	}
@@ -240,7 +196,7 @@ func walkerStateToCaseState(ws *framework.WalkerState) *CaseState {
 	return state
 }
 
-// bridgeNode is a passthrough Node used by the graph bridge.
+// bridgeNode is a passthrough Node used by the framework graph.
 // Processing is handled externally by the orchestrate runner.
 type bridgeNode struct {
 	name    string

@@ -3,7 +3,7 @@ package mcp
 import (
 	"context"
 
-	fwmcp "asterisk/pkg/framework/mcp"
+	fwmcp "github.com/dpopsuev/origami/mcp"
 )
 
 // WatchStdin monitors for parent process death in a background goroutine.

@@ -1,6 +1,6 @@
 package calibrate
 
-import "asterisk/internal/workspace"
+import "github.com/dpopsuev/origami/workspace"
 
 // ScenarioToWorkspace converts a calibrate.WorkspaceConfig to a workspace.Workspace
 // so store-aware adapters can use it for BuildParams.

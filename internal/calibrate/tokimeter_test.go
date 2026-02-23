@@ -1,7 +1,7 @@
 package calibrate
 
 import (
-	"asterisk/internal/calibrate/dispatch"
+	"github.com/dpopsuev/origami/dispatch"
 	"strings"
 	"testing"
 )

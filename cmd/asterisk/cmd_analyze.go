@@ -13,10 +13,10 @@ import (
 
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/adapt"
-	"asterisk/internal/calibrate/dispatch"
+	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 var analyzeFlags struct {
@@ -160,7 +160,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		var dispatcher dispatch.Dispatcher
 		switch analyzeFlags.dispatchMode {
 		case "stdin":
-			dispatcher = dispatch.NewStdinDispatcher()
+			dispatcher = dispatch.NewStdinDispatcherWithTemplate(asteriskStdinTemplate())
 		case "file":
 			dispatcher = dispatch.NewFileDispatcher(dispatch.DefaultFileDispatcherConfig())
 		default:

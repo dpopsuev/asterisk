@@ -16,7 +16,7 @@ import (
 	"runtime"
 	"strings"
 
-	fw "asterisk/pkg/framework"
+	fw "github.com/dpopsuev/origami"
 )
 
 func main() {
@@ -43,8 +43,8 @@ func main() {
 	section("7. ELEMENT CYCLES — Generative and Destructive Interactions")
 	showCycles()
 
-	section("8. SHADOW COURT — Adversarial Deliberation Pipeline")
-	showCourt()
+	section("8. ADVERSARIAL DIALECTIC — Thesis-Antithesis-Synthesis Pipeline")
+	showDialectic()
 
 	section("9. TEAM WALK — Multi-Persona Scheduling with Live Trace")
 	teamWalkDemo(triageDef)
@@ -152,7 +152,7 @@ func elementColor(e fw.Element) string {
 
 func showPersonas() {
 	fmt.Printf("Personas are pre-configured agent identities. Each has a %scolor%s,\n", bold, reset)
-	fmt.Printf("an %selement%s, a court %sposition%s, and either %sLight%s or %sShadow%s alignment.\n\n", bold, reset, bold, reset, green, reset, red, reset)
+	fmt.Printf("an %selement%s, a dialectic %sposition%s, and either %sLight%s or %sShadow%s alignment.\n\n", bold, reset, bold, reset, green, reset, red, reset)
 
 	fmt.Printf("  %sLight (Cadai) — the investigation team:%s\n", green, reset)
 	for _, p := range fw.LightPersonas() {
@@ -163,7 +163,7 @@ func showPersonas() {
 	}
 
 	fmt.Println()
-	fmt.Printf("  %sShadow (Cytharai) — the adversarial court:%s\n", red, reset)
+	fmt.Printf("  %sShadow (Cytharai) — the adversarial dialectic:%s\n", red, reset)
 	for _, p := range fw.ShadowPersonas() {
 		id := p.Identity
 		fmt.Printf("    %s%-12s%s %-10s %-10s %-12s %s\n",
@@ -237,12 +237,12 @@ func showMermaid(title string, def *fw.PipelineDef) {
 	fmt.Printf("  %sPaste this into any Mermaid viewer (https://mermaid.live):%s\n\n", dim, reset)
 	fmt.Println(indent(mermaid))
 
-	courtData, err := os.ReadFile(findPipelinesDir() + "/defect-court.yaml")
+	dialecticData, err := os.ReadFile(findPipelinesDir() + "/defect-dialectic.yaml")
 	if err == nil {
-		courtDef, err := fw.LoadPipeline(courtData)
+		dialecticDef, err := fw.LoadPipeline(dialecticData)
 		if err == nil {
-			fmt.Printf("\n  %sBonus — the production Defect Court pipeline:%s\n\n", dim, reset)
-			fmt.Println(indent(fw.Render(courtDef)))
+			fmt.Printf("\n  %sBonus — the Adversarial Dialectic pipeline:%s\n\n", dim, reset)
+			fmt.Println(indent(fw.Render(dialecticDef)))
 		}
 	}
 }
@@ -511,50 +511,50 @@ func showCycles() {
 }
 
 // ---------------------------------------------------------------------------
-// 8. Shadow Court
+// 8. Adversarial Dialectic
 // ---------------------------------------------------------------------------
 
-func showCourt() {
+func showDialectic() {
 	fmt.Printf("  When the Light pipeline's confidence is uncertain (0.50-0.85),\n")
-	fmt.Printf("  the Shadow Court activates for adversarial review.\n\n")
+	fmt.Printf("  the adversarial dialectic activates for thesis-antithesis-synthesis review.\n\n")
 
-	cfg := fw.DefaultCourtConfig()
+	cfg := fw.DefaultDialecticConfig()
 	cfg.Enabled = true
-	fmt.Printf("  Court config: activation=%.2f, max_handoffs=%d, max_remands=%d, ttl=%s\n\n",
-		cfg.ActivationThreshold, cfg.MaxHandoffs, cfg.MaxRemands, cfg.TTL)
+	fmt.Printf("  Dialectic config: contradiction_threshold=%.2f, max_turns=%d, max_negations=%d, ttl=%s\n\n",
+		cfg.ContradictionThreshold, cfg.MaxTurns, cfg.MaxNegations, cfg.TTL)
 
-	fmt.Printf("  Activation check:\n")
+	fmt.Printf("  Antithesis activation check:\n")
 	for _, conf := range []float64{0.40, 0.55, 0.75, 0.90} {
-		activated := cfg.ShouldActivate(conf)
+		activated := cfg.NeedsAntithesis(conf)
 		marker := dim + "no" + reset
 		if activated {
 			marker = red + "YES" + reset
 		}
-		fmt.Printf("    confidence=%.2f  activate? %s\n", conf, marker)
+		fmt.Printf("    confidence=%.2f  needs antithesis? %s\n", conf, marker)
 	}
 
-	courtData, err := os.ReadFile(findPipelinesDir() + "/defect-court.yaml")
+	dialecticData, err := os.ReadFile(findPipelinesDir() + "/defect-dialectic.yaml")
 	if err != nil {
-		fmt.Printf("\n  %sCould not load defect-court.yaml: %v%s\n", dim, err, reset)
+		fmt.Printf("\n  %sCould not load defect-dialectic.yaml: %v%s\n", dim, err, reset)
 		return
 	}
 
-	courtDef, err := fw.LoadPipeline(courtData)
+	dialecticDef, err := fw.LoadPipeline(dialecticData)
 	if err != nil {
-		fmt.Printf("\n  %sCould not parse court pipeline: %v%s\n", dim, err, reset)
+		fmt.Printf("\n  %sCould not parse dialectic pipeline: %v%s\n", dim, err, reset)
 		return
 	}
 
 	fmt.Println()
-	fmt.Printf("  %sShadow Court pipeline (D0-D4):%s\n", bold, reset)
-	for _, n := range courtDef.Nodes {
+	fmt.Printf("  %sAdversarial Dialectic pipeline (D0-D4):%s\n", bold, reset)
+	for _, n := range dialecticDef.Nodes {
 		fmt.Printf("    %s%-14s%s element=%-10s\n",
 			elementColor(fw.Element(n.Element)), n.Name, reset, n.Element)
 	}
 
 	fmt.Println()
-	fmt.Printf("  %sCourt verdicts:%s\n", bold, reset)
-	verdicts := []struct {
+	fmt.Printf("  %sSynthesis decisions:%s\n", bold, reset)
+	decisions := []struct {
 		name string
 		desc string
 	}{
@@ -562,16 +562,16 @@ func showCourt() {
 		{"amend", "Classification changed based on evidence"},
 		{"acquit", "Insufficient evidence — produce gap brief"},
 		{"remand", "Send back to Light path for reinvestigation"},
-		{"mistrial", "Irreconcilable — handoff limit or judge declares"},
+		{"unresolved", "Irreconcilable contradiction — turn limit or arbiter declares"},
 	}
-	for _, v := range verdicts {
-		fmt.Printf("    %-12s %s%s%s\n", v.name, dim, v.desc, reset)
+	for _, d := range decisions {
+		fmt.Printf("    %-12s %s%s%s\n", d.name, dim, d.desc, reset)
 	}
 
 	fmt.Println()
-	fmt.Printf("  %sThe court uses typed artifacts (Indictment, DefenseBrief, HearingRecord,\n", dim)
-	fmt.Printf("  Verdict) and HD1-HD12 heuristic edges — the same Edge interface used\n")
-	fmt.Printf("  by the Light pipeline. Shadow is just another graph walk.%s\n", reset)
+	fmt.Printf("  %sThe dialectic uses typed artifacts (ThesisChallenge, AntithesisResponse,\n", dim)
+	fmt.Printf("  DialecticRecord, Synthesis) and HD1-HD12 heuristic edges — the same Edge\n")
+	fmt.Printf("  interface used by the Light pipeline. Shadow is just another graph walk.%s\n", reset)
 }
 
 // ---------------------------------------------------------------------------

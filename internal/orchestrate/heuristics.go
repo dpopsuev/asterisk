@@ -23,8 +23,8 @@ func DefaultThresholds() Thresholds {
 }
 
 // DefaultHeuristics returns the 17 heuristic rules from the prompt-families contract §4.1.
-// Deprecated: prefer PipelineGraph.EvaluateEdges() for graph-based evaluation.
-// Kept exported for calibrate package compatibility during migration.
+// Used by BuildEdgeFactory to wire heuristic closures into framework edges,
+// and as a fallback for direct evaluation in tests.
 func DefaultHeuristics(th Thresholds) []HeuristicRule {
 	return []HeuristicRule{
 		// --- F0 Recall stage ---
@@ -331,8 +331,6 @@ func DefaultHeuristics(th Thresholds) []HeuristicRule {
 // EvaluateHeuristics runs the heuristic rules for the given stage against
 // the current artifact, returning the first matching action.
 // Rules are evaluated in order (most specific first per §4.2).
-// Deprecated: prefer PipelineGraph.EvaluateEdges() for graph-based evaluation.
-// Kept exported for calibrate package compatibility during migration.
 func EvaluateHeuristics(
 	rules []HeuristicRule,
 	stage PipelineStep,

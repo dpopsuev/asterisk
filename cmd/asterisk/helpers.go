@@ -7,10 +7,22 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/dpopsuev/origami/dispatch"
+
 	"asterisk/internal/preinvest"
 	"asterisk/internal/rp"
 	"asterisk/internal/store"
 )
+
+func asteriskStdinTemplate() dispatch.StdinTemplate {
+	return dispatch.StdinTemplate{
+		Instructions: []string{
+			"1. Open the prompt file and paste it into Cursor",
+			"2. Save Cursor's JSON response to the artifact path above",
+			"3. Press Enter to continue",
+		},
+	}
+}
 
 func checkTokenFile(path string) error {
 	info, err := os.Stat(path)

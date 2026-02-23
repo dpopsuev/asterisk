@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"asterisk/internal/calibrate"
-	"asterisk/internal/calibrate/dispatch"
-	"asterisk/pkg/framework"
+	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/origami"
 )
 
 // mockProbeDispatcher returns a fixed response for any dispatch.

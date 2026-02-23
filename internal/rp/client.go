@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	"asterisk/internal/logging"
+	"github.com/dpopsuev/origami/logging"
 )
 
 // Client is a high-level client for the Report Portal API.

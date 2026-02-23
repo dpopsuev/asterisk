@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"asterisk/internal/display"
-	"asterisk/internal/format"
+	"github.com/dpopsuev/origami/format"
 )
 
 // RenderRCAReport produces a human-readable Markdown RCA report from an AnalysisReport.

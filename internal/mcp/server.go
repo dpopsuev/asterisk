@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"asterisk/internal/calibrate"
-	"asterisk/internal/logging"
-	fwmcp "asterisk/pkg/framework/mcp"
+	"github.com/dpopsuev/origami/logging"
+	fwmcp "github.com/dpopsuev/origami/mcp"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -258,7 +258,7 @@ func (s *Server) handleGetNextStep(ctx context.Context, _ *sdkmcp.CallToolReques
 			"UNDER CAPACITY: %d/%d agent workers active — you MUST launch %d more parallel subagents before submitting",
 			inFlight, desired, desired-inFlight)
 		logger := logging.New("mcp-session")
-		logger.Warn("agent under capacity",
+		logger.Debug("agent under capacity",
 			"in_flight", inFlight, "desired", desired, "deficit", desired-inFlight)
 	}
 
@@ -272,7 +272,13 @@ func (s *Server) handleSubmitArtifact(ctx context.Context, _ *sdkmcp.CallToolReq
 	}
 
 	if gateErr := sess.CheckCapacityGate(); gateErr != nil {
-		return nil, submitArtifactOutput{}, gateErr
+		logger := logging.New("mcp-session")
+		logger.Warn("capacity gate advisory on submit",
+			"session_id", input.SessionID, "dispatch_id", input.DispatchID, "detail", gateErr.Error())
+	}
+
+	if input.DispatchID == 0 {
+		return nil, submitArtifactOutput{}, fmt.Errorf("dispatch_id is required (got 0); did you submit after available=false?")
 	}
 
 	data := []byte(input.ArtifactJSON)
@@ -345,7 +351,7 @@ func (s *Server) handleEmitSignal(ctx context.Context, _ *sdkmcp.CallToolRequest
 
 	sess.Bus.Emit(input.Event, input.Agent, input.CaseID, input.Step, input.Meta)
 	idx := sess.Bus.Len()
-	logger.Info("signal emitted", "index", idx, "event", input.Event, "agent", input.Agent, "case_id", input.CaseID, "step", input.Step)
+	logger.Debug("signal emitted", "index", idx, "event", input.Event, "agent", input.Agent, "case_id", input.CaseID, "step", input.Step)
 
 	return nil, emitSignalOutput{
 		OK:    "signal emitted",
@@ -389,10 +395,13 @@ func (s *Server) SessionID() string {
 // Shutdown cancels any active session, releasing runner goroutines.
 func (s *Server) Shutdown() {
 	s.mu.Lock()
-	defer s.mu.Unlock()
-	if s.session != nil {
-		s.session.Cancel()
-		s.session = nil
+	sess := s.session
+	s.session = nil
+	s.mu.Unlock()
+
+	if sess != nil {
+		sess.Cancel()
+		<-sess.Done()
 	}
 }
 

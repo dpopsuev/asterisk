@@ -3,10 +3,10 @@ package calibrate
 import (
 	"encoding/json"
 
-	"asterisk/pkg/framework"
+	"github.com/dpopsuev/origami"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 // ModelAdapter is the interface for sending prompts and receiving responses.

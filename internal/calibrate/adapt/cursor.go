@@ -7,12 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
-	"asterisk/internal/calibrate/dispatch"
-	"asterisk/pkg/framework"
+	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/origami/workspace"
+
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
 )
 
 // calibrationPreamble is prepended to every prompt during cursor-based calibration.
@@ -84,7 +85,7 @@ func NewCursorAdapter(promptDir string, opts ...CursorAdapterOption) *CursorAdap
 		promptDir:  promptDir,
 		basePath:   orchestrate.DefaultBasePath,
 		cases:      make(map[string]*cursorCaseCtx),
-		dispatcher: dispatch.NewStdinDispatcher(),
+		dispatcher: dispatch.NewStdinDispatcherWithTemplate(AsteriskStdinTemplate()),
 	}
 	for _, opt := range opts {
 		opt(a)
@@ -253,3 +254,14 @@ func (a *CursorAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep,
 	return json.RawMessage(data), nil
 }
 
+// AsteriskStdinTemplate returns the Asterisk-specific instructions for
+// interactive stdin dispatch (Cursor agent workflow).
+func AsteriskStdinTemplate() dispatch.StdinTemplate {
+	return dispatch.StdinTemplate{
+		Instructions: []string{
+			"1. Open the prompt file and paste it into Cursor",
+			"2. Save Cursor's JSON response to the artifact path above",
+			"3. Press Enter to continue",
+		},
+	}
+}

@@ -1,9 +1,9 @@
 package calibrate
 
 import (
-	"asterisk/internal/calibrate/dispatch"
-	"asterisk/pkg/framework"
-	"asterisk/internal/logging"
+	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/logging"
 	"asterisk/internal/preinvest"
 	"context"
 	"encoding/json"
@@ -28,7 +28,7 @@ type RunConfig struct {
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
 	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
 	RPFetcher    preinvest.Fetcher // optional; when set, RP-sourced cases fetch real failure data
-	CourtConfig  framework.CourtConfig // Shadow court pipeline config; disabled by default
+	DialecticConfig  framework.DialecticConfig // Shadow dialectic pipeline config; disabled by default
 }
 
 // DefaultRunConfig returns defaults for calibration.
@@ -282,10 +282,10 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 	}
 }
 
-// runCasePipeline drives the orchestrator for a single case until done.
-// Instead of using RunStep (which requires prompt template files), this drives
-// the pipeline directly using lower-level orchestrate primitives: state management,
-// artifact I/O, heuristic evaluation, and store side effects.
+// runCasePipeline drives the pipeline for a single case using framework
+// Runner.Walk(). The calibrationWalker handles adapter dispatch, artifact
+// parsing, metric extraction, and store side effects. The framework graph
+// walk handles edge evaluation (heuristics) and state advancement.
 func runCasePipeline(
 	ctx context.Context,
 	st store.Store,
@@ -309,95 +309,51 @@ func runCasePipeline(
 		return result, fmt.Errorf("ensure case dir: %w", err)
 	}
 
-	// Initialize state
-	state := orchestrate.InitState(caseData.ID, suiteID)
-	orchestrate.AdvanceStep(state, orchestrate.StepF0Recall, "INIT", "start pipeline")
-	if err := orchestrate.SaveState(caseDir, state); err != nil {
-		return result, fmt.Errorf("save state: %w", err)
+	hooks := orchestrate.StoreHooks(st, caseData)
+	runner, err := orchestrate.BuildRunner(cfg.Thresholds, hooks)
+	if err != nil {
+		return result, fmt.Errorf("build runner: %w", err)
 	}
 
-	rules := orchestrate.DefaultHeuristics(cfg.Thresholds)
-	maxSteps := 20
+	walker := newCalibrationWalker(calibrationWalkerConfig{
+		Adapter:  cfg.Adapter,
+		Store:    st,
+		CaseData: caseData,
+		GTCase:   gtCase,
+		RunCfg:   cfg,
+		Result:   result,
+		CaseDir:  caseDir,
+		SuiteID:  suiteID,
+	})
 
-	for step := 0; step < maxSteps; step++ {
-		if err := ctx.Err(); err != nil {
-			return result, err
-		}
-		if state.CurrentStep == orchestrate.StepDone {
-			break
-		}
-
-		currentStep := state.CurrentStep
-		result.ActualPath = append(result.ActualPath, stepName(currentStep))
-
-		// Get the adapter response for this step
-		response, err := cfg.Adapter.SendPrompt(gtCase.ID, currentStep, "")
-		if err != nil {
-			return result, fmt.Errorf("adapter.SendPrompt(%s, %s): %w", gtCase.ID, currentStep, err)
-		}
-
-		// Parse the raw JSON into the appropriate typed artifact
-		var artifact any
-		switch currentStep {
-		case orchestrate.StepF0Recall:
-			artifact, err = parseJSON[orchestrate.RecallResult](response)
-		case orchestrate.StepF1Triage:
-			artifact, err = parseJSON[orchestrate.TriageResult](response)
-		case orchestrate.StepF2Resolve:
-			artifact, err = parseJSON[orchestrate.ResolveResult](response)
-		case orchestrate.StepF3Invest:
-			artifact, err = parseJSON[orchestrate.InvestigateArtifact](response)
-		case orchestrate.StepF4Correlate:
-			artifact, err = parseJSON[orchestrate.CorrelateResult](response)
-		case orchestrate.StepF5Review:
-			artifact, err = parseJSON[orchestrate.ReviewDecision](response)
-		case orchestrate.StepF6Report:
-			artifact, err = parseJSON[map[string]any](response)
-		}
-		if err != nil {
-			return result, fmt.Errorf("parse artifact for %s: %w", currentStep, err)
-		}
-
-		// Write artifact to case directory
-		artifactFile := orchestrate.ArtifactFilename(currentStep)
-		if err := orchestrate.WriteArtifact(caseDir, artifactFile, artifact); err != nil {
-			return result, fmt.Errorf("write artifact: %w", err)
-		}
-
-		// Extract per-step metrics
-		extractStepMetrics(result, currentStep, artifact, gtCase)
-
-		// Evaluate heuristics
-		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
-		logging.New("calibrate").Info("heuristic evaluated",
-			"step", string(currentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
-
-		// Handle loop counters
-		if currentStep == orchestrate.StepF3Invest && action.NextStep == orchestrate.StepF2Resolve {
-			orchestrate.IncrementLoop(state, "investigate")
-		}
-		if currentStep == orchestrate.StepF5Review &&
-			action.NextStep != orchestrate.StepF6Report &&
-			action.NextStep != orchestrate.StepDone {
-			orchestrate.IncrementLoop(state, "reassess")
-		}
-
-		// Apply store side effects via the orchestrator's exported function
-		if err := orchestrate.ApplyStoreEffects(st, caseData, currentStep, artifact); err != nil {
-			logging.New("calibrate").Warn("store side-effect error", "step", string(currentStep), "error", err)
-		}
-
-		// Advance state
-		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
-		if err := orchestrate.SaveState(caseDir, state); err != nil {
-			return result, fmt.Errorf("save state: %w", err)
-		}
+	if err := runner.Walk(ctx, walker, "recall"); err != nil {
+		return result, fmt.Errorf("pipeline walk: %w", err)
 	}
 
-	// Final state extraction
-	result.ActualLoops = orchestrate.LoopCount(state, "investigate")
+	// Persist the case state to disk so transcript weaving can read it.
+	history := make([]orchestrate.StepRecord, 0, len(walker.state.History))
+	for _, h := range walker.state.History {
+		history = append(history, orchestrate.StepRecord{
+			Step:        orchestrate.NodeNameToStep(h.Node),
+			Outcome:     h.Outcome,
+			HeuristicID: h.EdgeID,
+			Timestamp:   h.Timestamp,
+		})
+	}
+	caseState := &orchestrate.CaseState{
+		CaseID:      caseData.ID,
+		SuiteID:     suiteID,
+		CurrentStep: orchestrate.NodeNameToStep(walker.state.CurrentNode),
+		Status:      walker.state.Status,
+		LoopCounts:  walker.state.LoopCounts,
+		History:     history,
+	}
+	if err := orchestrate.SaveState(caseDir, caseState); err != nil {
+		logging.New("calibrate").Warn("save final state", "error", err)
+	}
 
-	// Refresh case data from store for final field values
+	result.ActualLoops = walker.state.LoopCounts["investigate"]
+
 	updatedCase, err := st.GetCaseV2(caseData.ID)
 	if err == nil && updatedCase != nil {
 		result.ActualRCAID = updatedCase.RCAID

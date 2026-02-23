@@ -2,14 +2,15 @@ package calibrate
 
 import (
 	"asterisk/internal/display"
-	"asterisk/internal/logging"
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
 
+	"github.com/dpopsuev/origami/logging"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -67,7 +68,8 @@ func runParallelCalibration(ctx context.Context, cfg RunConfig, st *store.MemSto
 	logger := logging.New("parallel")
 
 	// Phase 1: Triage (F0 + F1) with worker pool
-	logger.Info("Phase 1: Triage", "workers", cfg.Parallel, "token_budget", cfg.TokenBudget)
+	logger.Info("phase started", "phase", 1, "name", "Triage", "cases", len(cfg.Scenario.Cases), "workers", cfg.Parallel, "token_budget", cfg.TokenBudget)
+	triageStart := time.Now()
 
 	triageResults := make([]TriageResult, len(cfg.Scenario.Cases))
 
@@ -113,19 +115,24 @@ func runParallelCalibration(ctx context.Context, cfg RunConfig, st *store.MemSto
 	}
 	_ = triageG.Wait() // errors captured in TriageResult.Err
 
-	// Check for triage errors
+	triageErrors := 0
 	for i, tr := range triageResults {
 		if tr.Err != nil {
+			triageErrors++
 			logger.Error("triage failed", "case_id", cfg.Scenario.Cases[i].ID, "error", tr.Err)
 		}
 	}
+	logger.Info("phase complete", "phase", 1, "name", "Triage",
+		"cases", len(cfg.Scenario.Cases), "errors", triageErrors, "elapsed", time.Since(triageStart))
 
 	// Phase 2: Cluster cases by symptom
-	logger.Info("Phase 2: Symptom clustering")
 	clusters := ClusterCases(triageResults, cfg.Scenario)
+	logger.Info("phase complete", "phase", 2, "name", "Clustering", "clusters", len(clusters))
 
 	// Phase 3: Investigation (F2-F6) with worker pool
-	logger.Info("Phase 3: Investigation", "clusters", len(clusters), "workers", cfg.Parallel)
+	logger.Info("phase started", "phase", 3, "name", "Investigation",
+		"clusters", len(clusters), "workers", cfg.Parallel)
+	investStart := time.Now()
 
 	investResults := make(map[int]*CaseResult) // index -> result
 	var investMu sync.Mutex
@@ -153,8 +160,17 @@ func runParallelCalibration(ctx context.Context, cfg RunConfig, st *store.MemSto
 	}
 	_ = investG.Wait() // errors captured in CaseResult
 
+	investErrors := 0
+	for _, r := range investResults {
+		if r != nil && r.PipelineError != "" {
+			investErrors++
+		}
+	}
+	logger.Info("phase complete", "phase", 3, "name", "Investigation",
+		"representatives", len(clusters), "errors", investErrors, "elapsed", time.Since(investStart))
+
 	// Phase 4: Assemble final results
-	logger.Info("Phase 4: Assembling results")
+	logger.Info("phase started", "phase", 4, "name", "Assembly")
 	results := make([]CaseResult, len(cfg.Scenario.Cases))
 
 	// First pass: populate all results from their source (investigation or triage-only)
@@ -283,7 +299,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 	}
 
 	action, ruleID := orchestrate.EvaluateHeuristics(rules, orchestrate.StepF0Recall, recallResult, state)
-	logger.Info("heuristic evaluated",
+	logger.Debug("heuristic evaluated",
 		"case_id", gtCase.ID, "step", "Recall", "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
 	orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 	_ = orchestrate.SaveState(caseDir, state)
@@ -336,7 +352,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 		}
 
 		action, ruleID = orchestrate.EvaluateHeuristics(rules, orchestrate.StepF1Triage, triageResult, state)
-		logger.Info("heuristic evaluated",
+		logger.Debug("heuristic evaluated",
 			"case_id", gtCase.ID, "step", "Triage", "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
 		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		_ = orchestrate.SaveState(caseDir, state)
@@ -411,7 +427,7 @@ func runRemainingSteps(ctx context.Context, st store.Store, caseData *store.Case
 		}
 
 		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
-		logger.Info("heuristic evaluated",
+		logger.Debug("heuristic evaluated",
 			"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
 		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		_ = orchestrate.SaveState(caseDir, state)
@@ -498,7 +514,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 			if action.NextStep == orchestrate.StepF2Resolve {
 				orchestrate.IncrementLoop(state, "investigate")
 			}
-			logger.Info("heuristic evaluated",
+			logger.Debug("heuristic evaluated",
 				"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		} else {
@@ -508,7 +524,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 				action.NextStep != orchestrate.StepDone {
 				orchestrate.IncrementLoop(state, "reassess")
 			}
-			logger.Info("heuristic evaluated",
+			logger.Debug("heuristic evaluated",
 				"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		}

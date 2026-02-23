@@ -3,18 +3,17 @@ package orchestrate
 import (
 	"fmt"
 
-	"asterisk/internal/logging"
+	"github.com/dpopsuev/origami/logging"
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 // RunnerConfig holds configuration for the pipeline runner.
 type RunnerConfig struct {
-	PromptDir  string         // directory containing prompt templates (e.g. ".cursor/prompts")
-	Thresholds Thresholds     // configurable thresholds for heuristics
-	BasePath   string         // root directory for investigation artifacts; defaults to DefaultBasePath
-	Graph      *PipelineGraph // YAML-defined pipeline graph with heuristic edge evaluation
+	PromptDir  string     // directory containing prompt templates (e.g. ".cursor/prompts")
+	Thresholds Thresholds // configurable thresholds for heuristics
+	BasePath   string     // root directory for investigation artifacts; defaults to DefaultBasePath
 }
 
 // DefaultRunnerConfig returns a RunnerConfig with sensible defaults.
@@ -480,14 +479,29 @@ func applyReviewEffects(st store.Store, caseData *store.Case, artifact any) erro
 	return nil
 }
 
-// evaluateStep dispatches heuristic evaluation through the graph bridge when
-// a PipelineGraph is configured, otherwise falls back to legacy heuristics.
+// evaluateStep evaluates heuristic edges using the framework graph built from
+// AsteriskPipelineDef. The graph uses the same heuristic closures as Runner.Walk().
 func (cfg RunnerConfig) evaluateStep(step PipelineStep, artifact any, state *CaseState) (*HeuristicAction, string) {
-	if cfg.Graph != nil {
-		return cfg.Graph.EvaluateEdges(step, artifact, state)
+	runner, err := BuildRunner(cfg.Thresholds)
+	if err != nil {
+		logging.New("orchestrate").Warn("build runner for edge eval failed, using legacy heuristics", "error", err)
+		rules := DefaultHeuristics(cfg.Thresholds)
+		return EvaluateHeuristics(rules, step, artifact, state)
 	}
-	rules := DefaultHeuristics(cfg.Thresholds)
-	return EvaluateHeuristics(rules, step, artifact, state)
+
+	nodeName := StepToNodeName(step)
+	edges := runner.Graph.EdgesFrom(nodeName)
+	wrappedArtifact := WrapArtifact(step, artifact)
+	wrappedState := caseStateToWalkerState(state)
+
+	for _, e := range edges {
+		t := e.Evaluate(wrappedArtifact, wrappedState)
+		if t != nil {
+			return transitionToAction(t), e.ID()
+		}
+	}
+
+	return defaultFallback(step), "FALLBACK"
 }
 
 // ComputeFingerprint generates a deterministic fingerprint from failure attributes.

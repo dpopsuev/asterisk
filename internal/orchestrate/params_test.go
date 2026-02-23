@@ -5,7 +5,7 @@ import (
 
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
-	"asterisk/internal/workspace"
+	"github.com/dpopsuev/origami/workspace"
 )
 
 // TestBuildParams_RecallWithPriorSymptom verifies that when a prior symptom+RCA

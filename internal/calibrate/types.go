@@ -4,7 +4,7 @@
 package calibrate
 
 import (
-	"asterisk/internal/calibrate/dispatch"
+	"github.com/dpopsuev/origami/dispatch"
 )
 
 // Scenario defines a complete calibration scenario with ground truth data.
@@ -80,8 +80,8 @@ type GroundTruthCase struct {
 	RPIssueType    string `json:"rp_issue_type,omitempty"`    // populated at runtime by ResolveRPCases
 	RPAutoAnalyzed bool   `json:"rp_auto_analyzed,omitempty"` // populated at runtime by ResolveRPCases
 
-	// Shadow court expectations (optional)
-	ExpectedVerdict string `json:"expected_verdict,omitempty"` // expected VerdictDecision if court activates
+	// Shadow dialectic expectations (optional)
+	ExpectedSynthesis string `json:"expected_synthesis,omitempty"` // expected SynthesisDecision if dialectic activates
 }
 
 // ExpectedRecall defines the ideal F0 output for a case.
@@ -267,12 +267,12 @@ type CaseResult struct {
 	ComponentCorrect   bool    `json:"component_correct"`
 	SemanticScore      float64 `json:"semantic_score"` // 0-1
 
-	// Shadow court results (populated when court is enabled and activates)
-	CourtActivated  bool   `json:"court_activated,omitempty"`
-	CourtVerdict    string `json:"court_verdict,omitempty"`
-	CourtFlipped    bool   `json:"court_flipped,omitempty"`
-	CourtRemands    int    `json:"court_remands,omitempty"`
-	CourtFinalDefect string `json:"court_final_defect,omitempty"`
+	// Shadow dialectic results (populated when dialectic is enabled and activates)
+	DialecticActivated  bool   `json:"dialectic_activated,omitempty"`
+	DialecticSynthesis  string `json:"dialectic_synthesis,omitempty"`
+	DialecticFlipped    bool   `json:"dialectic_flipped,omitempty"`
+	DialecticNegations  int    `json:"dialectic_negations,omitempty"`
+	DialecticFinalDefect string `json:"dialectic_final_defect,omitempty"`
 
 	// Pipeline error (non-empty when the case failed during execution)
 	PipelineError string `json:"pipeline_error,omitempty"`

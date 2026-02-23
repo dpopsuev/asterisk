@@ -6,7 +6,7 @@ import (
 	"os"
 	"strings"
 
-	"asterisk/internal/logging"
+	"github.com/dpopsuev/origami/logging"
 
 	"github.com/spf13/cobra"
 )

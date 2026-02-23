@@ -1,8 +1,15 @@
 # F0-F6 Root Cause Analysis pipeline.
 # Source of truth for the RCA graph structure.
-# Edge evaluation logic is registered via EdgeFactory in Go.
+# Edge routing uses when: expressions evaluated by expr-lang/expr.
 pipeline: rca-investigation
 description: "F0-F6 root cause analysis pipeline"
+
+vars:
+  recall_hit: 0.80
+  recall_uncertain: 0.40
+  convergence_sufficient: 0.70
+  max_investigate_loops: 2
+  correlate_dup: 0.80
 
 zones:
   backcourt:
@@ -47,128 +54,122 @@ edges:
     from: recall
     to: review
     shortcut: true
-    condition: "confidence >= recall_hit_threshold"
+    when: 'output.match == true && output.confidence >= config.recall_hit'
 
   - id: H3
     name: recall-uncertain
     from: recall
     to: triage
-    condition: "recall_uncertain <= confidence < recall_hit"
+    when: 'output.match == true && output.confidence >= config.recall_uncertain && output.confidence < config.recall_hit'
 
   - id: H2
     name: recall-miss
     from: recall
     to: triage
-    condition: "confidence < recall_uncertain OR no match"
+    when: 'output.match != true'
 
   - id: H4
     name: triage-skip-infra
     from: triage
     to: review
     shortcut: true
-    condition: "symptom_category == infra"
+    when: 'output.symptom_category == "infra"'
 
   - id: H5
     name: triage-skip-flake
     from: triage
     to: review
     shortcut: true
-    condition: "symptom_category == flake"
+    when: 'output.symptom_category == "flake"'
 
   - id: H18
     name: triage-skip-investigation
     from: triage
     to: review
     shortcut: true
-    condition: "skip_investigation == true"
-
-  - id: H17
-    name: triage-clock-skew
-    from: triage
-    to: triage
-    condition: "clock_skew_suspected (advisory, no routing change)"
+    when: 'output.skip_investigation == true'
 
   - id: H7
     name: triage-single-repo
     from: triage
     to: investigate
     shortcut: true
-    condition: "single candidate repo, skip resolve"
+    when: 'output.skip_investigation != true && len(output.candidate_repos) == 1'
 
   - id: H6
     name: triage-investigate
     from: triage
     to: resolve
-    condition: "default (investigation needed)"
+    when: 'output.skip_investigation != true'
 
   - id: H8
     name: resolve-proceed
     from: resolve
     to: investigate
-    condition: "repos resolved, proceed to investigate"
+    when: 'true'
 
   - id: H9
     name: investigate-converged
     from: investigate
     to: correlate
-    condition: "convergence_score >= convergence_sufficient"
+    when: 'output.convergence_score >= config.convergence_sufficient'
 
   - id: H10a
     name: investigate-no-evidence-skip
     from: investigate
     to: correlate
-    condition: "low convergence but zero evidence refs"
+    when: 'output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) == 0'
 
   - id: H10
     name: investigate-loop
     from: investigate
     to: resolve
     loop: true
-    condition: "convergence_score < convergence_sufficient AND loops < max_loops"
+    when: 'output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) > 0 && state.loops.investigate < config.max_investigate_loops'
 
   - id: H11
     name: investigate-exhausted
     from: investigate
     to: review
-    condition: "loops >= max_loops"
+    when: 'output.convergence_score < config.convergence_sufficient && state.loops.investigate >= config.max_investigate_loops'
 
   - id: H15
     name: correlate-dup
     from: correlate
     to: _done
     shortcut: true
-    condition: "is_duplicate AND confidence >= correlate_dup_threshold"
+    when: 'output.is_duplicate == true && output.confidence >= config.correlate_dup'
 
   - id: H15b
     name: correlate-proceed
     from: correlate
     to: review
-    condition: "correlation complete, proceed to review"
+    when: 'true'
 
   - id: H12
     name: review-approve
     from: review
     to: report
-    condition: "decision == approve"
+    when: 'output.decision == "approve"'
 
   - id: H13
     name: review-reassess
     from: review
     to: resolve
     loop: true
-    condition: "decision == reassess"
+    when: 'output.decision == "reassess"'
 
   - id: H14
     name: review-overturn
     from: review
     to: report
-    condition: "decision == overturn"
+    when: 'output.decision == "overturn"'
 
   - id: H16
     name: report-done
     from: report
     to: _done
-    condition: "always (terminal)"
+    when: 'true'
 
 start: recall
 done: _done

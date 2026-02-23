@@ -22,7 +22,7 @@ const (
 	StepD2Defend  PipelineStep = "D2_DEFEND"
 	StepD3Hearing PipelineStep = "D3_HEARING"
 	StepD4Verdict PipelineStep = "D4_VERDICT"
-	StepCourtDone PipelineStep = "COURT_DONE"
+	StepDialecticDone PipelineStep = "DIALECTIC_DONE"
 )
 
 // Family returns the prompt family name (for directory/file naming).
@@ -57,8 +57,8 @@ func (s PipelineStep) Family() string {
 	}
 }
 
-// IsCourtStep returns true if the step belongs to the D0-D4 Shadow pipeline.
-func (s PipelineStep) IsCourtStep() bool {
+// IsDialecticStep returns true if the step belongs to the D0-D4 Shadow pipeline.
+func (s PipelineStep) IsDialecticStep() bool {
 	switch s {
 	case StepD0Indict, StepD1Discover, StepD2Defend, StepD3Hearing, StepD4Verdict:
 		return true

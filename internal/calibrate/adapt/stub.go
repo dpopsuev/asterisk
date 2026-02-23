@@ -6,7 +6,7 @@ import (
 	"sync"
 
 	"asterisk/internal/calibrate"
-	"asterisk/pkg/framework"
+	"github.com/dpopsuev/origami"
 	"asterisk/internal/orchestrate"
 )
 

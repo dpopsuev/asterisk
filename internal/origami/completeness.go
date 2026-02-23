@@ -2,7 +2,7 @@ package origami
 
 import (
 	"asterisk/internal/calibrate"
-	"asterisk/internal/curate"
+	"github.com/dpopsuev/origami/curate"
 )
 
 // CompletenessResult scores a single case's readiness for verification.

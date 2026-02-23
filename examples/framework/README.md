@@ -15,13 +15,13 @@ The playground walks through every major framework concept:
 | Section | What it demonstrates |
 |---------|---------------------|
 | **Elements** | 6 behavioral archetypes (Fire, Lightning, Earth, Diamond, Water, Air) with quantified traits |
-| **Personas** | 8 pre-configured agent identities — 4 Light (investigation) + 4 Shadow (adversarial court) |
+| **Personas** | 8 pre-configured agent identities — 4 Light (investigation) + 4 Shadow (adversarial dialectic) |
 | **Pipeline DSL** | YAML pipeline loading, validation, node/edge/zone structure |
 | **Mermaid** | Pipeline rendered as a diagram you can paste into [mermaid.live](https://mermaid.live) |
 | **Graph Walk** | A Herald (Fire/PG) walker traverses a 4-node pipeline with conditional edges |
 | **Masks** | Middleware capabilities that inject context at specific nodes |
 | **Cycles** | Generative and destructive element interactions (inspired by Wu Xing) |
-| **Shadow Court** | D0-D4 adversarial deliberation pipeline with 5 verdict types |
+| **Adversarial Dialectic** | D0-D4 thesis-antithesis-synthesis pipeline with 5 synthesis decisions |
 
 ## The Demo Pipeline
 
