@@ -22,6 +22,6 @@ Purpose: quick map for agentic AI to locate guidance without re-scanning repos.
 - `skills/` — project-specific skill definitions.
 
 ## Files
-- `index.mdc` — entry map for this directory.
 - `meta.mdc` — portable meta-engineering rules for .cursor structure.
 - `kombucha.mdc` — portable FSC seed; copy repo-to-repo to bootstrap .cursor.
+- `mcp.json` — MCP server configuration (e.g. Metacal, report-portal); used by Cursor to load tools.

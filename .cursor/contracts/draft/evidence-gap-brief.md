@@ -8,7 +8,7 @@
 
 - Global rules only.
 - The system must never silently produce a low-confidence or "unknown" result without an accompanying gap brief.
-- The `EvidenceGap` type is the shared contract between the F0-F6 pipeline and the future Defect Court. Court-specific metadata extends it but does not replace it.
+- The `EvidenceGap` type is the shared contract between the F0-F6 pipeline and the future Defect Dialectic. Dialectic-specific metadata extends it but does not replace it.
 - Gap items must be actionable: each one points to a specific type of evidence, where to get it, and why it matters.
 
 ## Context
@@ -16,7 +16,7 @@
 - **Current behavior:** when BasicAdapter cannot classify, it outputs `defect_type: "unknown"` and `component: "unknown"` in `transcript.go:138-141`. The `ConvergenceScore` is written but never read as a control signal. The `maxSteps := 20` cap in `runner.go:310` is a safety valve, not an intelligent quit.
 - **Gap:** no structured output explains *why* the system couldn't classify or *what* would help.
 - **CaseResult** in `internal/calibrate/types.go` has `ActualConvergence` but no evidence gap fields.
-- **Defect Court** (future) will need the same gap concept for its "mistrial" outcome. The `EvidenceGap` type is designed to be shared.
+- **Defect Dialectic** (future) will need the same gap concept for its "unresolved contradiction" outcome. The `EvidenceGap` type is designed to be shared.
 
 ## The Evidence Gap Brief
 
@@ -163,7 +163,7 @@ The gap brief is embedded in the RCA artifact written to FS. The `push` command 
 
 ## Architecture notes
 
-- The `EvidenceGap` type is designed to be reused by the Defect Court's mistrial artifact. Court adds `IdentifiedBy` (prosecution/defense/judge) and `AtStage` (D0-D4) metadata, but the core structure is shared.
+- The `EvidenceGap` type is designed to be reused by the Defect Dialectic's unresolved contradiction artifact. Dialectic adds `IdentifiedBy` (prosecution/defense/judge) and `AtStage` (D0-D4) metadata, but the core structure is shared.
 - The gap category taxonomy aligns with the artifact taxonomy in `workspace-revisited.md`: each gap category maps to an artifact domain, making gaps a demand signal for workspace expansion.
 
 ## Security assessment
@@ -179,4 +179,4 @@ Implement these mitigations when executing this contract.
 
 (Running log, newest first.)
 
-- 2026-02-18 23:30 — Contract created. Addresses the "when to quit" gap: the system should articulate what's missing rather than silently producing low-confidence results. Shared type with Defect Court's mistrial brief.
+- 2026-02-18 23:30 — Contract created. Addresses the "when to quit" gap: the system should articulate what's missing rather than silently producing low-confidence results. Shared type with Defect Dialectic's unresolved contradiction brief.

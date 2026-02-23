@@ -4,18 +4,18 @@ description: Active goal manifest — single-read orientation for agents to know
 
 # Current Goal
 
-**Goal:** Framework showcase (weekend side-quest)  
-**Reference:** Plan — Weekend Framework Side-Quest  
-**Summary:** Make the agentic framework discoverable, runnable, and documented for technically-oriented visitors. Three gate contracts: Framework Playground, Developer Guide, Open Source Polish. PoC goal is **suspended until Sunday 2026-02-23.**
+**Goal:** PoC completion (resumed)  
+**Summary:** Prove Asterisk can do real blind RCA on RP data with both BasicAdapter (heuristic) and CursorAdapter (AI via MCP). Framework showcase contracts (A, B, C) moved to `github.com/dpopsuev/origami`.
 
-## Weekend Side-Quest — Urgency Map
+## Asterisk Domain — Urgency Map
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| **gate** | `framework-playground` (Contract A) | active | `examples/framework/` — runnable demo of all framework concepts. Zero RP dependency. |
-| **gate** | `framework-developer-guide` (Contract B) | active | `docs/framework-guide.md` — conceptual design document for newcomers. |
-| **gate** | `oss-first-impression` (Contract C) | active | LICENSE, README update, CONTRIBUTING.md, `make playground` target. Depends on A + B. |
-| ~~gate~~ | ~~`metacal-run-1` (Contract D)~~ | **complete** | First empirical meta-calibration: model discovery via prompt negation + refactoring probe per model. Moved to `completed/framework/`. |
+| ~~gate~~ | ~~`distillation-endgame`~~ | **complete** | All 3 phases done. Pipeline uses Runner.Walk(), dispatch via origami/dispatch. |
+| ~~gate~~ | ~~`asterisk-origami-distillation`~~ | **complete** | Boundary validated. Achilles built. Moved to `completed/distillation/`. |
+| **next-milestone** | Origami DSL (5 contracts) | active (C1) | Evolves Origami into declarative pipeline DSL. Asterisk shrinks from ~18k to ~3k lines Go. See `origami/.cursor/contracts/current-goal.mdc`. |
+
+Framework contracts (playground, developer guide, OSS polish, Tomes I-IV, MCP, multi-subagent) moved to `github.com/dpopsuev/origami/.cursor/contracts/`.
 
 ---
 
@@ -34,7 +34,7 @@ Ordered by priority within each tier. Agents should work top-down: complete gate
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
 | **gate** | `rp-e2e-launch` | active | Final PoC gate. BasicAdapter M19=0.83. CursorAdapter Phase 5a FAIL M19=0.50. |
-| **gate** | `cursor-prompt-tuning` | active | Prompt fixes to lift CursorAdapter M19 from 0.50 toward 0.85. Taxonomy + component priors. |
+| **gate** | `domain-cursor-prompt-tuning` | active | Prompt fixes to lift CursorAdapter M19 from 0.50 toward 0.85. Taxonomy + component priors. |
 | ~~gate~~ | ~~`poc-scope-precision`~~ | **complete** | All 7 tasks done. Moved to `completed/poc-v2/`. |
 | ~~gate~~ | ~~`phase-5a-mitigation`~~ | **complete** | Umbrella closed. All 9 tasks done. Moved to `completed/poc-v2/`. |
 | ~~gate~~ | ~~`workspace-mvp`~~ | **complete** | 11 tasks done, 5 tests. Moved to `completed/poc-v2/`. |
@@ -50,9 +50,9 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | 2nd | `evidence-gap-brief` | draft | Ph1-3 (types + adapter + output) | Foundational "I don't know because X" infrastructure. Enables tuning QW-4. |
 | 4th | `poc-tuning-loop` | draft | QW-1 to QW-4 | Depends on E2E baseline + evidence-gap-brief. QW-1/QW-2 overlap with workspace-mvp. |
 | 5th | `origami-ground-truth-ingestor` | draft | **Ph1-2 + Ph7 only** (store + CLI + PR) | Defer Ph3-6 (AI extractors, MCP bridge). Dataset JSON export + GitHub PR. |
-| ~~6th~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | Full (4 tasks, test-only) | All 4 tasks done. 4-subagent MCP pipeline drain, zero duplicates, full report. |
-| ~~7th~~ | ~~`subagent-testing-framework`~~ | **complete** | Full (9 tasks) | All 9 tasks done. RoutingLog, RoutingRecorder, replay, color-tagged logs. |
-| ~~6th~~ | ~~`agent-adapter-overloading`~~ | **abandoned** | — | Phase 1 absorbed by III.1-personae. Moved to `completed/framework/`. |
+| ~~6th~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | — | Moved to Origami repo. |
+| ~~7th~~ | ~~`subagent-testing-framework`~~ | **complete** | — | Moved to Origami repo. |
+| ~~6th~~ | ~~`agent-adapter-overloading`~~ | **abandoned** | — | Moved to Origami repo. |
 | 6th | `workspace-catalog` | draft | **Defer** | Hard dep on workspace-mvp. Heaviest Go-code. Not PoC-blocking; MVP covers M12/M13. |
 
 ### Completed
@@ -63,28 +63,17 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | ~~quick-win~~ | ~~`architecture-snapshots`~~ | **complete** | 11 diagrams across 4 files. Moved to `completed/knowledge-store/`. |
 | ~~quick-win~~ | ~~`fsc-knowledge-compartmentalization`~~ | **complete** | 4 compartments, 3 alwaysApply. Moved to `completed/knowledge-store/`. |
 | ~~vision~~ | ~~`soul-red-hat-telco`~~ | **complete** | Red Hat identity, telco mission, OSS philosophy. Moved to `completed/knowledge-store/`. |
-| ~~SHOULD~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | Moved to `completed/poc-v2/`. |
-| ~~SHOULD~~ | ~~`subagent-testing-framework`~~ | **complete** | Moved to `completed/poc-v2/`. |
+| ~~SHOULD~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | Moved to Origami repo `completed/poc-v2/`. |
+| ~~SHOULD~~ | ~~`subagent-testing-framework`~~ | **complete** | Moved to Origami repo `completed/poc-v2/`. |
 
 ### NICE — Architecture evolution, post-PoC
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| ~~next-milestone~~ | ~~`mcp-server-foundation`~~ | **complete** | De facto done. Moved to `completed/mcp/`. |
-| ~~next-milestone~~ | ~~`mcp-pipeline-tools`~~ | **complete** | De facto done. Moved to `completed/mcp/`. |
-| ~~next-milestone~~ | ~~`mcp-calibration-mode`~~ | **complete** | De facto done. Moved to `completed/mcp/`. |
 | **vision** | `workspace-revisited` | draft | Long-term workspace vision: layered composition, dependency graph, summarization. Trimmed to Phases 3-4. |
-| **vision — Framework Tome IV** | `meta-calibration` | draft | Task-based behavioral assessment of LLM models. Empirical ModelProfiles replace hardcoded persona traits. |
-| **vision** | `domain-calibration` | draft | Scope calibration as per-domain. Asterisk RCA + Origami extraction as distinct calibration systems. |
-| ~~vision~~ | ~~`metacal-mcp-server`~~ | **complete** | MCP server for meta-calibration discovery loop. Moved to `completed/mcp/`. |
-| **vision** | `prompt-calibration` | draft | Framework-level prompt tuning loop. Split from cursor-prompt-tuning (domain). Extends Tome III + IV. |
-| ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.1-ontology`~~ | **complete** | Node/Edge/Walker/Graph interfaces in `internal/framework/`. Moved to `completed/framework/`. |
-| ~~vision — Framework Tome I~~ | ~~`agentic-framework-I.2-characteristica`~~ | **complete** | Pipeline DSL (YAML/Go). Orchestrate bridge. Moved to `completed/framework/`. |
-| ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.1-elements`~~ | **complete** | 6 elements with quantified behavioral traits. Moved to `completed/framework/`. |
-| ~~vision — Framework Tome II~~ | ~~`agentic-framework-II.2-cycles`~~ | **complete** | Generative/destructive interaction cycles. Moved to `completed/framework/`. |
-| ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.1-personae`~~ | **complete** | AgentIdentity 5-axis, 8 personas (4L+4S). Moved to `completed/framework/`. |
-| ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.2-masks`~~ | **complete** | Detachable middleware masks. 4 Light masks. Moved to `completed/framework/`. |
-| ~~vision — Framework Tome III~~ | ~~`agentic-framework-III.3-shadow`~~ | **complete** | All 4 phases done. D0-D4 steps, court runner, metrics, hearing loop, remand injection. Moved to `completed/framework/`. |
+| **vision** | `domain-calibration` | draft | Scope calibration as per-domain. Asterisk RCA calibration (Origami extraction calibration moved to Origami repo). |
+
+Framework contracts (Tomes I-IV, MCP, multi-subagent) moved to `github.com/dpopsuev/origami/.cursor/contracts/completed/`.
 
 ## Goal Transition Protocol
 

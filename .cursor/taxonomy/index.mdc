@@ -3,6 +3,5 @@
 Naming and classification rules.
 
 ## Files
-- `index.mdc` — index for this directory.
 - `taxonomy.mdc` — naming and classification conventions for .cursor artifacts.
 - `symptom-translator.mdc` — bidirectional mapping between Asterisk's "What" taxonomy and ReportPortal's "Who" taxonomy for defect classification scoring.

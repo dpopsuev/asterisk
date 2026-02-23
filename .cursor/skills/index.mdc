@@ -2,10 +2,11 @@
 
 Project-specific skill definitions.
 
+## Directories
+- `asterisk-analyze/` — full AI-driven RCA flow (launch binary, investigate via signal protocol, present report).
+- `bootstrap/` — bootstrap .cursor/ structure.
+- `index-integrity/` — scan and enforce index.mdc compliance.
+- `onboard/` — onboarding skill.
+- `survey/` — survey skill.
+
 ## Files
-- `index.mdc` — index for this directory.
-- `asterisk-analyze/` — skill folder containing `SKILL.md` + supporting docs; full AI-driven RCA flow (launch binary, investigate via signal protocol, present report).
-- `bootstrap/` — skill folder containing `SKILL.md`.
-- `index-integrity/` — skill folder containing `SKILL.md`; scan and enforce index.mdc compliance.
-- `onboard/` — skill folder containing `SKILL.md`.
-- `survey/` — skill folder containing `SKILL.md`.

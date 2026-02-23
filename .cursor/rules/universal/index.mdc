@@ -1,0 +1,12 @@
+# .cursor/rules/universal Index
+
+Generic IT engineering rules — portable across projects. Most are globs-scoped.
+
+## Files
+- `testing-methodology.mdc` — Coverage matrix, ROGYB cycle, BDD/Gherkin, security-as-test.
+- `security-analysis.mdc` — OWASP Top 10 checklist for features and trust-boundary changes.
+- `abstraction-boundaries.mdc` — Separate generic domain models from scenario-specific implementations.
+- `reviewability-first.mdc` — Prefer observable, git-diffable formats over opaque binary stores.
+- `off-the-shelf.mdc` — Prefer mature modules; maturity gate and decision matrix.
+- `go-test-conventions.mdc` — Go test framework (Ginkgo + stdlib hybrid), naming, fixtures.
+- `papert-paradigm.mdc` — Low floor / high ceiling / wide walls — design checklist for framework components.

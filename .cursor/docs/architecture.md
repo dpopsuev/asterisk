@@ -6,6 +6,7 @@ Asterisk is a standalone CLI tool (Go) that performs evidence-based Root Cause A
 
 ## Layers
 
+0. **Origami Framework** (`github.com/dpopsuev/origami`) — Zero domain imports. Provides: Nodes, Edges, Walkers, Graph, Pipeline DSL, Elements, Personas, Masks, Court types, Extractors (Tome V), Meta-calibration (Ouroboros), Observers, Schedulers, MCP base. Asterisk imports Origami as an external dependency.
 1. **Entry Points** (`cmd/`) — CLI commands: `analyze`, `push`, `cursor`, `save`, `status`, `calibrate`
 2. **Upper Packages** — High-level orchestration: `calibrate` (7,307 LOC), `rp` (762 LOC), `postinvest` (82 LOC), `wiring` (96 LOC)
 3. **Core Packages** — Domain logic: `store` (2,992 LOC), `orchestrate` (1,585 LOC), `investigate` (94 LOC)

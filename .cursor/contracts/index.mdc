@@ -10,8 +10,9 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Serves |
 |----------|------|--------|
-| `cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
+| `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
+| `distillation-endgame.md` | Migrate remaining framework packages from Asterisk to Origami; build artifact schemas, exec engine, generic dispatch. Successor to `asterisk-origami-distillation`. | Framework showcase |
 
 ## draft/ -- Planned, not yet being executed
 
@@ -19,14 +20,12 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|--------|
 | `workspace-catalog.md` | Artifact catalog with fetch-through, format registry, CI log readers. Split from workspace-revisited. | PoC quality (SHOULD) |
 | `poc-tuning-loop.md` | Improve BasicAdapter accuracy on blind cases via targeted prompt/pipeline improvements. Activates after rp-e2e-launch. | PoC completion |
-| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Court mistrial. | PoC completion |
+| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Dialectic unresolved contradiction. | PoC completion |
 | `origami-ground-truth-ingestor.md` | Agentic dataset curation: AI subagents consume unstructured evidence into structured ground truth. JSON files, CLI-first, MCP bridge. Target: 50+ verified cases + PR workflow. | Dataset growth |
 | `workspace-revisited.md` | Long-term workspace vision: layered composition, dependency graph, summarization. Phases 3-4 (trimmed after MVP + Catalog splits). | Architecture evolution |
-| `meta-calibration.md` | Task-based behavioral assessment of LLM models, producing empirical ModelProfiles that replace hardcoded persona traits. | Architecture evolution |
 | `domain-calibration.md` | Explicitly scope calibration as per-domain; establish Origami's domain calibration alongside Asterisk's. | Architecture evolution |
-| `prompt-calibration.md` | Framework-level prompt tuning loop: measure per-step accuracy, propose edits, re-calibrate. Split from cursor-prompt-tuning. | Architecture evolution |
 
-## completed/ -- Historical record (71 completed contracts)
+## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
 Grouped by original development phase. All contracts below are **complete** (or closed).
 
@@ -62,7 +61,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `prompt-families.md` | Prompt family taxonomy (F0-F6), pipelines, loops, routing heuristics. |
 | `investigation-context.md` | Two-tier data model: investigation tree + global knowledge. |
 
-### completed/poc-v2/ (12)
+### completed/poc-v2/ (9)
 
 | Contract | Goal |
 |----------|------|
@@ -73,20 +72,16 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `phase-5a-mitigation.md` | Phase 5a mitigation umbrella: taxonomy translator, color-coded agents, workspace MVP, dataset expansion. All 9 tasks complete. |
 | `workspace-mvp.md` | Wire RP launch attrs, Jira links, repo paths into prompts. Resolution status. M12/M13=0.00 → >0. 11 tasks, 5 tests. |
 | `poc-scope-precision.md` | Zero-friction PoC packaging: simplified CLI, Cursor skill, CEO-ready README. 7 tasks complete. |
-| `concurrent-subagents-determinism.md` | 4 concurrent Cursor subagents drain MCP pipeline deterministically. Zero collisions. |
-| `subagent-testing-framework.md` | RoutingLog, RoutingRecorder, replay, color-tagged logs for multi-adapter testing. |
 | `data-swipe.md` | Scrub internal infrastructure hostnames from git history. |
 | `improve-human-operator-output.md` | Human narration during calibration: vocabulary, templates, ETA, position tags. |
 
-### completed/pipeline/ (5)
+### completed/pipeline/ (3)
 
 | Contract | Goal |
 |----------|------|
 | `rp-adapter-v2.md` | Unified `internal/rp` package; scope-based client, APIError, context. |
-| `fs-dispatcher.md` | Dispatcher interface; StdinDispatcher + FileDispatcher; `--dispatch` flag. |
 | `cursor-skill.md` | `asterisk-investigate` Cursor skill; signal-based F0-F6 artifact production. |
 | `wet-calibration.md` | Dry/wet calibration taxonomy, 28 Test Cards, victory loop. **Closed.** |
-| `cleanup-lifecycle.md` | Automated pre-run cleanup, subprocess management, signal finalization. |
 
 ### completed/calibration/ (7)
 
@@ -100,14 +95,19 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `ground-truth-v2.md` | Correct scenario data to match Jira audit. |
 | `true-wet-calibration.md` | Blind calibration against Jira-verified truth. M19 = 0.93 achieved. |
 
-### completed/multi-subagent/ (4)
+### completed/distillation/ (1)
 
 | Contract | Goal |
 |----------|------|
-| `batch-dispatch-protocol.md` | Batch signal protocol: manifest, briefing, concurrent semantics. |
-| `batch-file-dispatcher.md` | Go implementation: `BatchFileDispatcher`, `ManifestWriter`, `--dispatch=batch-file`. |
-| `multi-subagent-skill.md` | Parent-child skill: Task subagent spawning (up to 4), batch lifecycle. |
-| `adaptive-subagent-scheduler.md` | Quality-driven batch sizing, token budget enforcement, cost model. |
+| `asterisk-origami-distillation.md` | Validate framework boundary by classifying every package and building Achilles as a second Origami tool with zero domain imports. |
+
+### Moved to Origami
+
+The following completed contract groups were moved to `github.com/dpopsuev/origami/.cursor/contracts/completed/`:
+- **framework/** (14 contracts) — Tomes I-IV: ontology, DSL, elements, cycles, personas, masks, adversarial dialectic, metacalibration, discovery.
+- **mcp/** (5 contracts) — MCP server, pipeline tools, calibration mode, underload decouple, metacal server.
+- **multi-subagent/** (4 contracts) — batch dispatch, adaptive scheduler, multi-subagent skill.
+- Cherry-picks from pipeline/ (fs-dispatcher, cleanup-lifecycle) and poc-v2/ (concurrent-subagents, subagent-testing).
 
 ### completed/architecture/ (4)
 
@@ -126,31 +126,6 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `architecture-snapshots.md` | Architecture diagrams as first-class artifacts; current/desired state snapshots; retrofit 3 contracts; extend `docs/architecture.md`. |
 | `soul-red-hat-telco.md` | Red Hat identity, telco mission, OSS philosophy, and scale awareness encoded into strategy, invariants, and standards. |
 
-### completed/framework/ (11)
-
-| Contract | Goal |
-|----------|------|
-| `agentic-framework-I.1-ontology.md` | Node/Edge/Walker/Graph interfaces in `internal/framework/`. Zero domain imports. |
-| `agentic-framework-I.2-characteristica.md` | Pipeline DSL (YAML/Go). F0-F6 and D0-D4 as declarative graphs. Orchestrate bridge. |
-| `agentic-framework-II.1-elements.md` | 6 elements with quantified behavioral traits. Iron as evolved Earth. |
-| `agentic-framework-II.2-cycles.md` | Generative/destructive interaction cycles. Scheduler routing rules. |
-| `agentic-framework-III.1-personae.md` | AgentIdentity (Color x Element x Position x Alignment). 4 Light + 4 Shadow personas. |
-| `agentic-framework-III.2-masks.md` | Detachable capability modifiers (middleware). 4 Light masks. |
-| `agentic-framework-III.3-shadow.md` | Adversarial Shadow pipeline. D0-D4 court, multi-round hearing, remand injection. |
-| `agent-adapter-overloading.md` | Multi-adapter orchestration. **Abandoned** — Phase 1 absorbed by III.1-personae. |
-| `defect-court.md` | Adversarial Defect Court (D0-D4). **Abandoned** — absorbed by III.3-shadow. |
-| `agentmux-decoupling.md` | Generic agent orchestration extraction. **Abandoned** — absorbed by I.1-ontology. |
-| `metacal-run-1.md` | Discover all Cursor auto-select models via prompt negation; one refactoring probe per model; first meta-calibration dataset. |
-
-### completed/mcp/ (5)
-
-| Contract | Goal |
-|----------|------|
-| `mcp-server-foundation.md` | `asterisk serve` MCP server over stdio with Cobra command and session management. |
-| `mcp-pipeline-tools.md` | MCP tools driving F0-F6 pipeline (get_next_step, submit_artifact). |
-| `mcp-calibration-mode.md` | Calibration-specific MCP tools (start_calibration, get_report, signal bus). |
-| `mcp-underload-decouple.md` | Framework-level MCP (Server, SignalBus, WatchStdin); Asterisk domain keeps session and tool handlers only. |
-| `metacal-mcp-server.md` | MCP server for meta-calibration discovery loop (`metacal serve`); Cursor drives negation iterations end-to-end. |
 
 ### completed/output/ (6)
 
@@ -173,6 +148,5 @@ Grouped by original development phase. All contracts below are **complete** (or 
 
 ## Files (root)
 
-- `index.mdc` -- This file.
-- `current-goal.mdc` -- Goal manifest: declares active goal and urgency map for all non-completed contracts.
+- `current-goal.mdc` — Goal manifest: declares active goal and urgency map for all non-completed contracts.
 - `_TEMPLATE.md` -- Contract template; copy to create new contracts.

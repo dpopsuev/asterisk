@@ -399,6 +399,17 @@ Ground truth cases use a `Verified` bool instead of a grading system. The scenar
 
 The `SmokingGun` field enables a new metric **M14b (Smoking Gun Hit Rate)** in `internal/calibrate/metrics.go`. It tokenizes the phrase (words > 3 chars), counts keyword matches in `ActualRCAMessage`, and scores a hit if >= 50% of words match. This directly measures whether the adapter reaches the same root-cause conclusion as the actual fix PR — the hardest possible accuracy test.
 
+## Coverage matrix
+
+| Layer | Applies | Rationale |
+|-------|---------|-----------|
+| **Unit** | yes | Metrics scoring (`metrics.go`), smoking-gun tokenizer, scenario constructors |
+| **Integration** | yes | RP API fetch (live launches), push (defect type update) |
+| **Contract** | no | RP API shapes are stable; no new adapter interfaces |
+| **E2E** | yes | The entire contract is E2E calibration (Phases 1-7) |
+| **Concurrency** | no | Calibration runner is sequential per adapter |
+| **Security** | yes | RP token handling (A02), push safety (A05), result leakage (A09) — detailed below |
+
 ## Security assessment
 
 Implement these mitigations when executing this contract.

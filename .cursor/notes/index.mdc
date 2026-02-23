@@ -3,7 +3,6 @@
 Short summaries and quick references.
 
 ## Files
-- `index.mdc` — index for this directory.
 - `cursor-workspace-structure.mdc` — Cursor Workspace (asterisk.code-workspace) folder structure and metadata for development; locked RP version; canonical RP instance URL; link to RP API research contract.
 - `rp-instance-and-version.mdc` — Canonical RP instance URL (saved in FSC); version/info API (accurate version down to git hash).
 - `workspace-references.mdc` — workspace repos helpful for PoC/MVP (report-portal-cli, testo-resumado-agento).
@@ -22,7 +21,6 @@ Short summaries and quick references.
 - `fsc-suggestions.mdc` — FSC backlog (what to add when needed); what’s already in docs.
 - `future-service-symptoms-model.mdc` — **Future design idea:** Issue → Symptom(s) → Root Cause; symptoms table when Asterik is a service with multiple agents; concurrency (duplicate symptoms, waiting, edge cases). Pure idea to look at later; not PoC/MVP.
 - `jira-audit-report.md` — Full audit of 30 ptp-real-ingest cases against Jira tickets; evidence quality, FixPR validation, ground truth accuracy.
-- `mux-dispatcher-architecture.md` — MuxDispatcher design: MCP dispatch via signal bus, concurrent artifact routing, session lifecycle.
-- `parallel-subagent-test-results.md` — Parallel subagent dispatch test results; MuxDispatcher concurrency validation.
+- `rp-api-usage.mdc` — RP API usage for fetch (launch, test items) and push (defect-type update); pinned to 5.11/24.1.
 - `test-cards-assessment.md` — Assessment of 30 calibration test cards; verified vs candidate classification, evidence gaps.
 - `phase-5a-post-run-analysis.md` — **Post-run analysis of Phase 5a CursorAdapter blind test.** FAIL M19=0.50. Systemic failures: taxonomy mismatch (M2=0.00), no subagent delegation, no code investigation, component frequency blindness, token waste. Wins: M14b=0.22 (smoking gun), M14=0.76 (relevance). Priority fixes ranked.

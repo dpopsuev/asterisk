@@ -1,4 +1,4 @@
-# Contract — Cursor Prompt Tuning (Domain)
+# Contract — Domain Cursor Prompt Tuning
 
 **Status:** active  
 **Goal:** Improve CursorAdapter accuracy on Phase 5a (18 verified cases) through targeted prompt edits. Measured by M19 delta against baseline (0.50).  
@@ -17,6 +17,17 @@
 - **Baseline:** Phase 5a (2026-02-18) M19=0.50, 8/21 metrics pass
 - **Analysis:** `.cursor/notes/phase-5a-post-run-analysis.md`
 - **Gate contract:** `.cursor/contracts/active/rp-e2e-launch.md`
+
+## Coverage matrix
+
+| Layer | Applies | Rationale |
+|-------|---------|-----------|
+| **Unit** | no | Prompt-only changes; no Go code modified |
+| **Integration** | no | No cross-boundary changes |
+| **Contract** | no | No API schema changes |
+| **E2E** | yes | Phase 5a re-runs via MCP measure M2 and M15 deltas |
+| **Concurrency** | no | No shared state changes |
+| **Security** | no | Prompt edits do not touch trust boundaries |
 
 ## Tasks
 

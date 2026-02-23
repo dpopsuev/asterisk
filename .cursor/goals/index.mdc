@@ -16,7 +16,6 @@ Goal checklist and per-goal details.
 - **MVP**: CLI may evolve into side-car service (Go); CLI as thin client; RP API client (fetch launch, push result); same UX.
 
 ## Files
-- `index.mdc` — this checklist.
 - `poc.mdc` — PoC goal (CLI, artifact, context workspace).
 - `mvp.mdc` — MVP goal (CLI, possibly side-car, RP API client).
 

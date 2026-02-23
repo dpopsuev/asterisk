@@ -79,7 +79,7 @@ Effective workspace = Base + Version(case.Version) + Investigation(launch_id). E
 - **Real CI artifacts on disk:** `archive/ci/4.21/16_feb_26/` contains `#5400.txt` (1.4 MB job console log) and `failed_ptp_suite_test.zip` (9 MB test bundle). These are never ingested by the pipeline.
 - **RP data not surfaced:** `LaunchResource.Attributes` (OCP version, operator versions, cluster name, CI lane), `ExternalSystemIssues` (Jira links), RP logs, RP attachments — all parsed or parseable but not reaching prompts.
 - **CI notification email:** Contains RP launch URL, Jenkins URL, S3 collect URL, Polarion URL. Documented in `notes/ci-notification-and-fetch.mdc`.
-- **Related contracts:** `defect-court.md` (prosecution and defense share an artifact pool), `persona-system.md` (workspace-bound personas), `rp-adapter-v2.md` (LogScope stretch goal), `mcp-pipeline-tools.md` (MCP tools for artifact access).
+- **Related contracts:** `defect-dialectic.md` (prosecution and defense share an artifact pool), `persona-system.md` (workspace-bound personas), `rp-adapter-v2.md` (LogScope stretch goal), `mcp-pipeline-tools.md` (MCP tools for artifact access).
 
 ## Connection to Evidence Gap Brief
 
@@ -417,7 +417,7 @@ This naturally supports the persona workspace-binding concept: base and version 
 | Contract | Relationship |
 |----------|-------------|
 | **Persona system** | Persona workspace-binding maps directly to base/version layers. Domain-expert personas reference the same OCP docs and operator repos. |
-| **Defect Court** | Prosecution and defense must see the same artifact pool. The catalog guarantees consistent evidence for adversarial review. Discovery phase (D1) = expose catalog to defense. |
+| **Defect Dialectic** | Prosecution and defense must see the same artifact pool. The catalog guarantees consistent evidence for adversarial review. Discovery phase (D1) = expose catalog to defense. |
 | **MCP dispatcher** | MCP tools can expose catalog queries: `search_catalog`, `fetch_artifact`, `get_artifact_summary`. Pipeline tools consume artifacts via catalog. |
 | **rp-adapter-v2** | `LogScope` (stretch goal) naturally feeds into the catalog as a new source type. |
 | **RP E2E launch** | First real consumer of a multi-source workspace (RP data + workspace repos + ground truth). |

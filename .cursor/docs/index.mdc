@@ -4,13 +4,15 @@ Deep library references (long-form).
 
 ## Files
 - `architecture.md` — Asterisk architecture: layers, dependency graph, component inventory, data flows, coupling hotspots, test coverage, modernization.
-- `index.mdc` — index for this directory.
+- `artifact-schema.mdc` — Artifact schema: analyze output and push input (JSON).
 - `examples.mdc` — example data and fixtures (Pre-investigation 33195/4.21, envelope); paths under `examples/`.
 - `cli-data-model.mdc` — CLI core ideas: storage adapter (SQLite for now), investigation case per envelope, hierarchy (failure ⊂ job ⊂ pipeline), RCA and pattern (many cases → one RCA), RCA → Jira extension point.
 - `envelope-mental-model.mdc` — Envelope: pure model (generic hierarchy + artifact concept) vs current use case (PTP Operator CI layout and meta labels). See `rules/abstraction-boundaries.mdc`.
 - `context-workspace.mdc` — context workspace data structure (key-value, repo pointers, optional branch override).
+- `cursor-handoff.mdc` — Cursor handoff flow: get prompt, paste in Cursor, save artifact (no Cursor API).
 - `prompts.mdc` — file-based RCA prompt templates; dev (.cursor/prompts/) vs CLI prompt directory; red–green–blue iteration.
 - `data-io.mdc` — core inputs and outputs for Asterik.
+- `distillation-manifest.md` — Asterisk-Origami distillation: package classification, framework boundary assessment.
 - `execution-envelope.mdc` — adapter-normalized run container; includes vital git metadata.
 - `parallel-architecture.mdc` — parallel investigation pipeline: three-stage fan-out/barrier/fan-out with worker pools, token semaphore, symptom clustering, batch dispatch for multi-subagent mode.
 - `subagent-cost-model.mdc` — cost model for serial vs batch vs batch+clustering calibration modes; token usage, wall-clock, and cost estimates.

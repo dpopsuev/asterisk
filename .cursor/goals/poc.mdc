@@ -33,7 +33,7 @@ Asterisk PoC is a **Go CLI + MCP server** that proves real-world RCA capability:
 ## Out of scope (for PoC)
 
 - Standalone service (MVP).
-- Adversarial RCA / Defect Court (future).
+- Adversarial RCA / Defect Dialectic (future).
 - Universal artifact workspace (future).
 - Persona system (future).
 - Full MCP tool suite (analyze, push via MCP — post-PoC).
