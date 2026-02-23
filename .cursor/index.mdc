@@ -24,4 +24,4 @@ Purpose: quick map for agentic AI to locate guidance without re-scanning repos.
 ## Files
 - `meta.mdc` — portable meta-engineering rules for .cursor structure.
 - `kombucha.mdc` — portable FSC seed; copy repo-to-repo to bootstrap .cursor.
-- `mcp.json` — MCP server configuration (e.g. Metacal, report-portal); used by Cursor to load tools.
+- `mcp.json` — MCP server configuration (e.g. Ouroboros, report-portal); used by Cursor to load tools.

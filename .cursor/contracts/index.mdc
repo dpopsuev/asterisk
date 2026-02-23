@@ -104,8 +104,8 @@ Grouped by original development phase. All contracts below are **complete** (or 
 ### Moved to Origami
 
 The following completed contract groups were moved to `github.com/dpopsuev/origami/.cursor/contracts/completed/`:
-- **framework/** (14 contracts) — Tomes I-IV: ontology, DSL, elements, cycles, personas, masks, adversarial dialectic, metacalibration, discovery.
-- **mcp/** (5 contracts) — MCP server, pipeline tools, calibration mode, underload decouple, metacal server.
+- **framework/** (14 contracts) — Tomes I-IV: ontology, DSL, elements, cycles, personas, masks, adversarial dialectic, Ouroboros (metacalibration), discovery.
+- **mcp/** (5 contracts) — MCP server, pipeline tools, calibration mode, underload decouple, Ouroboros server.
 - **multi-subagent/** (4 contracts) — batch dispatch, adaptive scheduler, multi-subagent skill.
 - Cherry-picks from pipeline/ (fs-dispatcher, cleanup-lifecycle) and poc-v2/ (concurrent-subagents, subagent-testing).
 

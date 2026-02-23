@@ -103,7 +103,7 @@ Phase 1 scopes and documents the distinction (no code changes to existing calibr
 
 ### Phase 4 — Meta-calibration consumption (optional)
 
-- [ ] Define `ModelProfileProvider` interface in `internal/framework/metacal/`
+- [ ] Define `ModelProfileProvider` interface in `github.com/dpopsuev/origami/ouroboros/`
 - [ ] Add optional `ModelProfileProvider` to `calibrate.RunConfig`
 - [ ] When present, log model profile alongside calibration results
 - [ ] When present, use `CostProfile` for token budget estimation

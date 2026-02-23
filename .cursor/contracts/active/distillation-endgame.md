@@ -46,7 +46,7 @@ flowchart TD
         graph["Graph Walk"]
         ext["Extractors"]
         mcpFw["mcp/ signal + server"]
-        metacal["metacal/"]
+        ouroboros["ouroboros/"]
     end
     metacalmcp --> origamiNow
     curate --> origamiNow
@@ -66,8 +66,8 @@ flowchart TD
         graph["Graph Walk"]
         ext["Extractors"]
         mcpFw["mcp/"]
-        metacalPkg["metacal/"]
-        metacalmcpPkg["metacalmcp/"]
+        ouroborosPkg["ouroboros/"]
+        ouroborosmcpPkg["ouroborosmcp/"]
         curatePkg["curate/"]
         loggingPkg["logging/"]
         fmtPkg["format/"]
@@ -113,8 +113,8 @@ Three phases, each independently valuable. Phase 1 is pure migration (no API cha
 
 ### Phase 1 — Code Migration (6 packages)
 
-- [ ] Move `internal/metacalmcp/` to `origami/metacalmcp/`; update Asterisk imports
-- [ ] Move `cmd/metacal/` to `origami/cmd/metacal/`; update module paths
+- [x] Move `internal/metacalmcp/` to `origami/ouroborosmcp/`; update Asterisk imports
+- [x] Move `cmd/metacal/` to `origami/cmd/origami` (ouroboros subcommand); update module paths
 - [ ] Move `internal/curate/` to `origami/curate/`; update Asterisk and `internal/origami/` imports
 - [ ] Move `internal/logging/` to `origami/logging/`; update all 14 Asterisk importers
 - [ ] Move `internal/format/` to `origami/format/`; update all 9 Asterisk importers
@@ -149,7 +149,7 @@ Three phases, each independently valuable. Phase 1 is pure migration (no API cha
 - `asterisk/internal/` contains only domain packages: `calibrate/`, `orchestrate/` (heuristics + side effects only), `mcp/`, `rp/`, `investigate/`, `display/`, `origami/`
 - `asterisk/internal/metacalmcp/`, `internal/curate/`, `internal/logging/`, `internal/format/`, `internal/workspace/` no longer exist
 - `asterisk/cmd/metacal/` no longer exists
-- `origami/metacalmcp/`, `origami/curate/`, `origami/logging/`, `origami/format/`, `origami/workspace/`, `origami/dispatch/` exist with tests
+- `origami/ouroborosmcp/`, `origami/curate/`, `origami/logging/`, `origami/format/`, `origami/workspace/`, `origami/dispatch/` exist with tests
 - Origami provides `Runner.Walk()` that drives node `Process()` and evaluates edges
 - Origami provides artifact schema validation from YAML node declarations
 - `graph_bridge.go` and `bridgeNode` are deleted from Asterisk

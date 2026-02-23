@@ -10,8 +10,8 @@ Assessment date: 2026-02-22
 |---------|-----------|-----------|------------------------|
 | `github.com/dpopsuev/origami` | 2660 | 3797 | — |
 | `github.com/dpopsuev/origami/mcp/` | 124 | 123 | — |
-| `github.com/dpopsuev/origami/metacal/` | 1103 | 1780 | `origami` |
-| `github.com/dpopsuev/origami/metacal/probes/` | 602 | 445 | `origami/metacal` |
+| `github.com/dpopsuev/origami/ouroboros/` | 1103 | 1780 | `origami` |
+| `github.com/dpopsuev/origami/ouroboros/probes/` | 602 | 445 | `origami/ouroboros` |
 | **Total** | **4489** | **6145** | |
 
 Framework boundary is clean: all imports stay within `github.com/dpopsuev/origami` subtree. Zero references to `internal/`. Origami is a separate repo; Asterisk imports it as an external dependency.
@@ -57,10 +57,10 @@ flowchart TD
     subgraph origami [Origami Framework - 4489 LOC]
         fw["github.com/dpopsuev/origami<br/>2660 LOC"]
         fwmcp["origami/mcp<br/>124 LOC"]
-        metacal["origami/metacal<br/>1103 LOC"]
-        probes["origami/metacal/probes<br/>602 LOC"]
-        metacal --> fw
-        probes --> metacal
+        ouroboros["origami/ouroboros<br/>1103 LOC"]
+        probes["origami/ouroboros/probes<br/>602 LOC"]
+        ouroboros --> fw
+        probes --> ouroboros
     end
 
     subgraph domain [Asterisk Domain - 19145 LOC]
@@ -99,7 +99,7 @@ flowchart TD
 
         subgraph servers [MCP Servers]
             mcpsvr["mcp<br/>913 LOC"]
-            metacalmcpsvr["metacalmcp<br/>796 LOC"]
+            ouroborosmcpsvr["ouroborosmcp<br/>796 LOC"]
         end
 
         subgraph utility [Utility]
@@ -150,10 +150,10 @@ flowchart TD
     orch --> fw
     curate --> fw
     mcpsvr --> fwmcp
-    metacalmcpsvr --> fw
-    metacalmcpsvr --> fwmcp
-    metacalmcpsvr --> metacal
-    metacalmcpsvr --> probes
+    ouroborosmcpsvr --> fw
+    ouroborosmcpsvr --> fwmcp
+    ouroborosmcpsvr --> ouroboros
+    ouroborosmcpsvr --> probes
 ```
 
 ## Boundary Violations
@@ -171,7 +171,7 @@ Packages currently in `internal/` that could be promoted to `pkg/` or `github.co
 | `internal/logging/` | 33 | None — zero imports from asterisk | Trivial | **Promote to `pkg/logging/`** — though tiny, every tool needs structured logging setup |
 | `internal/display/` | 221 | Content is RP-specific (defect types, F0-F6 stages) | N/A | **Keep in domain** — display names are Asterisk vocabulary |
 | `internal/calibrate/dispatch/` | 1219 | `DispatchContext` references `format` and `logging` (both promotable) | Medium | **Candidate for `origami/dispatch/`** after format/logging promotion. Generic dispatcher pattern. |
-| `internal/metacalmcp/` | 796 | Imports only `github.com/dpopsuev/origami` subtree | Low | **Candidate for `origami/metacal/mcp/`** — already framework-only |
+| `internal/metacalmcp/` | 796 | Imports only `github.com/dpopsuev/origami` subtree | Low | **Migrated to `origami/ouroborosmcp/`** — already framework-only |
 
 ## Summary
 
@@ -220,7 +220,7 @@ Both tools use the same Origami primitives:
 - Masks (middleware capabilities)
 - Team Walk (multi-persona scheduling)
 - Cycles (generative/destructive)
-- Metacal (model profiling)
+- Ouroboros (model profiling)
 
 These are available but unused — progressive disclosure working as intended (P7).
 
