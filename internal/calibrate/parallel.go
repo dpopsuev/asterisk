@@ -460,18 +460,30 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 	rules := orchestrate.DefaultHeuristics(cfg.Thresholds)
 	maxSteps := 20
 
+	logger.Info("investigation started",
+		"case_id", gtCase.ID, "entry_step", string(state.CurrentStep), "max_steps", maxSteps)
+
 	for step := 0; step < maxSteps; step++ {
 		if ctx.Err() != nil {
+			logger.Warn("investigation context cancelled",
+				"case_id", gtCase.ID, "iteration", step, "step", string(state.CurrentStep), "error", ctx.Err())
 			break
 		}
 		if state.CurrentStep == orchestrate.StepDone {
+			logger.Info("investigation reached DONE",
+				"case_id", gtCase.ID, "iteration", step)
 			break
 		}
 
 		currentStep := state.CurrentStep
 		result.ActualPath = append(result.ActualPath, stepName(currentStep))
 
+		logger.Info("investigation step dispatching",
+			"case_id", gtCase.ID, "iteration", step, "step", string(currentStep))
+
 		if err := acquireToken(ctx, tokenSem); err != nil {
+			logger.Warn("investigation token acquire failed",
+				"case_id", gtCase.ID, "iteration", step, "step", string(currentStep), "error", err)
 			break
 		}
 		response, err := cfg.Adapter.SendPrompt(gtCase.ID, currentStep, "")
@@ -498,8 +510,17 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 			artifact, err = parseJSON[map[string]any](response)
 		}
 		if err != nil {
-			logger.Error("investigation parse error", "case_id", gtCase.ID, "step", string(currentStep), "error", err)
-			break
+			// Typed parse failed — try generic parse so the heuristic FALLBACK
+			// can still advance the pipeline instead of truncating here.
+			logger.Warn("investigation typed parse failed, trying generic",
+				"case_id", gtCase.ID, "step", string(currentStep), "error", err,
+				"response_len", len(response), "response_prefix", truncateBytes(response, 200))
+			artifact, err = parseJSON[map[string]any](response)
+			if err != nil {
+				logger.Error("investigation parse error (generic fallback also failed)",
+					"case_id", gtCase.ID, "step", string(currentStep), "error", err)
+				break
+			}
 		}
 
 		artifactFile := orchestrate.ArtifactFilename(currentStep)
@@ -514,7 +535,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 			if action.NextStep == orchestrate.StepF2Resolve {
 				orchestrate.IncrementLoop(state, "investigate")
 			}
-			logger.Debug("heuristic evaluated",
+			logger.Info("heuristic evaluated",
 				"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		} else {
@@ -524,7 +545,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 				action.NextStep != orchestrate.StepDone {
 				orchestrate.IncrementLoop(state, "reassess")
 			}
-			logger.Debug("heuristic evaluated",
+			logger.Info("heuristic evaluated",
 				"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		}
@@ -558,6 +579,14 @@ func refreshCaseResults(st store.Store, caseID int64, result *CaseResult) {
 			result.ActualConvergence = rca.ConvergenceScore
 		}
 	}
+}
+
+// truncateBytes returns at most n bytes of data as a string for logging.
+func truncateBytes(data []byte, n int) string {
+	if len(data) <= n {
+		return string(data)
+	}
+	return string(data[:n]) + "..."
 }
 
 // acquireToken acquires a token from the semaphore, respecting context cancellation.

@@ -881,6 +881,18 @@ func callToolE(ctx context.Context, session *sdkmcp.ClientSession, name string, 
 	return nil, fmt.Errorf("no text content in %s result", name)
 }
 
+// artifactForStepViaResolve returns minimal valid JSON like artifactForStep
+// but the F1 artifact forces the pipeline through F2 (Resolve) instead of
+// skipping directly to F3. This exercises the F2 → F3 heuristic path.
+func artifactForStepViaResolve(step string, subagentID int) string {
+	switch step {
+	case "F1_TRIAGE":
+		return `{"symptom_category":"product","severity":"high","defect_type_hypothesis":"pb001","candidate_repos":["repo-a","repo-b"],"skip_investigation":false,"cascade_suspected":false}`
+	default:
+		return artifactForStep(step, subagentID)
+	}
+}
+
 // artifactForStep returns minimal valid JSON for a given pipeline step.
 func artifactForStep(step string, subagentID int) string {
 	switch step {
@@ -1025,6 +1037,105 @@ func TestServer_FourSubagents_FullDrain(t *testing.T) {
 		t.Error("expected case_results in report")
 	}
 	t.Logf("report: status=%s, case_results=%d", status, len(caseResults))
+}
+
+func TestServer_FourSubagents_ViaResolve(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	var mu sync.Mutex
+	stepLog := make(map[string][]string) // caseID -> list of steps
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(subID int) {
+			defer wg.Done()
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+					"timeout_ms": 200,
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("subagent-%d get_next_step: %w", subID, err)
+					return
+				}
+				if done, _ := res["done"].(bool); done {
+					return
+				}
+				if avail, _ := res["available"].(bool); !avail {
+					continue
+				}
+
+				caseID, _ := res["case_id"].(string)
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+
+				artifact := artifactForStepViaResolve(step, subID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("subagent-%d submit(%s/%s): %w", subID, caseID, step, err)
+					return
+				}
+
+				mu.Lock()
+				stepLog[caseID] = append(stepLog[caseID], step)
+				mu.Unlock()
+			}
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Errorf("subagent error: %v", err)
+	}
+
+	// At least one case should have gone through F2_RESOLVE -> F3_INVESTIGATE
+	var f2Count, f3Count int
+	for caseID, steps := range stepLog {
+		t.Logf("case %s: %v", caseID, steps)
+		for _, s := range steps {
+			if s == "F2_RESOLVE" {
+				f2Count++
+			}
+			if s == "F3_INVESTIGATE" {
+				f3Count++
+			}
+		}
+	}
+
+	if f2Count == 0 {
+		t.Error("no cases went through F2_RESOLVE — triage artifacts may not trigger the resolve path")
+	}
+	if f3Count == 0 {
+		t.Error("no cases reached F3_INVESTIGATE — the F2→F3 transition is broken")
+	}
+	t.Logf("F2 dispatches: %d, F3 dispatches: %d", f2Count, f3Count)
+
+	reportResult := callTool(t, ctx, session, "get_report", map[string]any{
+		"session_id": sessionID,
+	})
+	status, _ := reportResult["status"].(string)
+	if status != "done" {
+		t.Fatalf("expected status=done, got %s", status)
+	}
 }
 
 func TestServer_FourSubagents_NoDuplicateDispatch(t *testing.T) {

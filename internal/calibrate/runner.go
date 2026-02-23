@@ -1,6 +1,7 @@
 package calibrate
 
 import (
+	"bytes"
 	"github.com/dpopsuev/origami/dispatch"
 	"github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/logging"
@@ -452,11 +453,36 @@ func stepName(s orchestrate.PipelineStep) string {
 }
 
 func parseJSON[T any](data json.RawMessage) (*T, error) {
+	cleaned := cleanJSON(data)
 	var result T
-	if err := json.Unmarshal(data, &result); err != nil {
+	if err := json.Unmarshal(cleaned, &result); err != nil {
 		return nil, err
 	}
 	return &result, nil
+}
+
+// cleanJSON strips markdown code fences and leading/trailing whitespace from
+// LLM responses. Models often wrap JSON in ```json ... ``` blocks. This
+// handles: ```json\n{...}\n```, ```\n{...}\n```, and bare JSON.
+func cleanJSON(data []byte) []byte {
+	s := bytes.TrimSpace(data)
+	if len(s) == 0 {
+		return s
+	}
+
+	if bytes.HasPrefix(s, []byte("```")) {
+		// Strip opening fence line
+		if idx := bytes.IndexByte(s, '\n'); idx >= 0 {
+			s = s[idx+1:]
+		}
+		// Strip closing fence
+		if bytes.HasSuffix(s, []byte("```")) {
+			s = s[:len(s)-3]
+		}
+		s = bytes.TrimSpace(s)
+	}
+
+	return s
 }
 
 // pathsEqual compares two pipeline paths (e.g. ["F0","F1","F2","F3","F5","F6"]).

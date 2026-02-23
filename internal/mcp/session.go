@@ -1,6 +1,7 @@
 package mcp
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
@@ -463,12 +464,33 @@ func (s *Session) GetNextStep(ctx context.Context, timeout time.Duration) (dc di
 
 // SubmitArtifact routes the agent's artifact to the correct Dispatch caller.
 // If dispatchID is 0, falls back to legacy unrouted submit (serial mode only).
+// Strips markdown code fences from LLM responses before validation.
 func (s *Session) SubmitArtifact(ctx context.Context, dispatchID int64, data []byte) error {
+	data = cleanArtifactJSON(data)
 	if !json.Valid(data) {
 		return fmt.Errorf("invalid JSON in artifact")
 	}
 	s.touchActivity()
 	return s.dispatcher.SubmitArtifact(ctx, dispatchID, data)
+}
+
+// cleanArtifactJSON strips markdown code fences that LLMs often wrap around
+// JSON output (e.g. ```json\n{...}\n```).
+func cleanArtifactJSON(data []byte) []byte {
+	s := bytes.TrimSpace(data)
+	if len(s) == 0 {
+		return s
+	}
+	if bytes.HasPrefix(s, []byte("```")) {
+		if idx := bytes.IndexByte(s, '\n'); idx >= 0 {
+			s = s[idx+1:]
+		}
+		if bytes.HasSuffix(s, []byte("```")) {
+			s = s[:len(s)-3]
+		}
+		s = bytes.TrimSpace(s)
+	}
+	return s
 }
 
 // Report returns the calibration report, or nil if not yet done.
