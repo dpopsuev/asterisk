@@ -1,4 +1,4 @@
-// Framework Playground — a self-contained demo of the Asterisk agentic framework.
+// Framework Playground — a self-contained demo of the Origami agentic framework.
 //
 // Run it:
 //
@@ -80,7 +80,7 @@ func printHeader() {
 func printFooter() {
 	fmt.Println()
 	fmt.Printf("%s%s=== End of Playground ===%s\n\n", bold, cyan, reset)
-	fmt.Printf("To explore the framework source: %spkg/framework/%s\n", bold, reset)
+	fmt.Printf("To explore the framework source: %sgithub.com/dpopsuev/origami%s\n", bold, reset)
 	fmt.Printf("Production pipelines:            %spipelines/*.yaml%s\n", bold, reset)
 	fmt.Printf("Developer guide:                 %sdocs/framework-guide.md%s\n\n", bold, reset)
 }

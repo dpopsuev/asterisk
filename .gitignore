@@ -30,11 +30,6 @@
 # Local runtime directory
 .asterisk/
 
-# Meta-calibration run data (empirical, append-only, not committed)
-pkg/framework/metacal/runs/*.json
-# Local metacal binary (go build output, repo root only)
-/metacal
-
 # Go
 *.test
 *.out

@@ -43,4 +43,4 @@ This is NOT the production RCA pipeline — it's a teaching example using the sa
 
 ## Source
 
-The framework lives in `internal/framework/` (~1,500 lines of source, ~2,400 lines of tests, zero external dependencies beyond stdlib + YAML parser). Production pipelines are in `pipelines/*.yaml`.
+The framework lives in `github.com/dpopsuev/origami`. Production pipelines are in `pipelines/*.yaml`.
