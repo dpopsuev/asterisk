@@ -4,6 +4,7 @@ Project-specific skill definitions.
 
 ## Directories
 - `asterisk-analyze/` — full AI-driven RCA flow (launch binary, investigate via signal protocol, present report).
+- `asterisk-calibrate/` — wet LLM calibration via MCP (start session, delegate steps to subagents, present metrics).
 - `bootstrap/` — bootstrap .cursor/ structure.
 - `index-integrity/` — scan and enforce index.mdc compliance.
 - `onboard/` — onboarding skill.
