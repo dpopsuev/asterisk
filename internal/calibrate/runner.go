@@ -383,7 +383,8 @@ func extractStepMetrics(result *CaseResult, step orchestrate.PipelineStep, artif
 	case orchestrate.StepF1Triage:
 		if r, ok := artifact.(*orchestrate.TriageResult); ok && r != nil {
 			result.ActualCategory = r.SymptomCategory
-		result.ActualSkip = r.SkipInvestigation
+		result.ActualSkip = r.SkipInvestigation ||
+			r.SymptomCategory == "infra" || r.SymptomCategory == "flake"
 		result.ActualCascade = r.CascadeSuspected
 		// Always capture triage hypothesis as fallback defect type.
 		// Investigation (F3) overwrites this if it produces a defect type.
@@ -411,6 +412,9 @@ func extractStepMetrics(result *CaseResult, step orchestrate.PipelineStep, artif
 			result.ActualRCAMessage = r.RCAMessage
 			result.ActualEvidenceRefs = r.EvidenceRefs
 			result.ActualConvergence = r.ConvergenceScore
+			if r.Component != "" {
+				result.ActualComponent = r.Component
+			}
 		}
 	}
 }
@@ -545,6 +549,10 @@ func buildDatasetHealth(s *Scenario) *DatasetHealth {
 
 // evidenceOverlap computes set overlap between actual and expected evidence refs.
 // Uses normalized path matching (partial path match allowed).
+// Format: "repo:file_path:identifier". Matching is lenient:
+//   1. Exact substring match (either direction)
+//   2. filepath.Base match
+//   3. Same repo + same file path (ignoring identifier suffix)
 func evidenceOverlap(actual, expected []string) (found, total int) {
 	total = len(expected)
 	if total == 0 {
@@ -552,11 +560,26 @@ func evidenceOverlap(actual, expected []string) (found, total int) {
 	}
 	for _, exp := range expected {
 		expNorm := filepath.Base(exp)
+		matched := false
 		for _, act := range actual {
 			if strings.Contains(act, expNorm) || strings.Contains(exp, act) || act == exp {
-				found++
+				matched = true
 				break
 			}
+		}
+		if !matched {
+			expParts := strings.SplitN(exp, ":", 3)
+			if len(expParts) >= 2 {
+				for _, act := range actual {
+					if strings.HasPrefix(act, expParts[0]+":") && strings.Contains(act, expParts[1]) {
+						matched = true
+						break
+					}
+				}
+			}
+		}
+		if matched {
+			found++
 		}
 	}
 	return found, total

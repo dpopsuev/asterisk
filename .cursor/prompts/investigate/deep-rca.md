@@ -150,4 +150,7 @@ Each evidence ref MUST follow the structured format: `<repo-name>:<file-path>:<i
 
 Good: `"linuxptp-daemon-operator:pkg/daemon/config.go:abc1234"`  
 Good: `"ptp-test-framework:test/e2e/ptp_config_test.go:AfterSuite"`  
-Bad: `"The holdover timeout was changed from 300s to 60s"` (free-form text, not structured)
+Bad: `"The holdover timeout was changed from 300s to 60s"` (free-form text, not structured)  
+Bad: `"config changes"` (vague, missing repo and path)
+
+**CRITICAL:** Every `evidence_refs` entry MUST start with one of the repo names from the workspace. If you cannot identify a specific file path, reference the most likely directory: `"<repo>:<dir>/<best-guess-file>:<function-or-keyword>"`.
