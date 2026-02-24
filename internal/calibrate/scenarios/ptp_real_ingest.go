@@ -829,7 +829,7 @@ func ptpRealIngestAllCases() []calibrate.GroundTruthCase {
 			ExpectedLoops:   0,
 			ExpectedRecall: &calibrate.ExpectedRecall{Match: false, Confidence: 0.0},
 			ExpectedTriage: &calibrate.ExpectedTriage{
-				SymptomCategory:      "environment",
+				SymptomCategory:      "infra",
 				Severity:             "medium",
 				DefectTypeHypothesis: "en001",
 				CandidateRepos:       []string{"cloud-event-proxy"},
@@ -999,7 +999,7 @@ func ptpRealIngestAllCases() []calibrate.GroundTruthCase {
 			ExpectedLoops:   0,
 			ExpectedRecall: &calibrate.ExpectedRecall{Match: false, Confidence: 0.0},
 			ExpectedTriage: &calibrate.ExpectedTriage{
-				SymptomCategory:      "environment",
+				SymptomCategory:      "infra",
 				Severity:             "medium",
 				DefectTypeHypothesis: "en001",
 				CandidateRepos:       []string{"linuxptp-daemon"},

@@ -41,6 +41,10 @@ type TemplateParams struct {
 	// Historical context
 	History *HistoryParams
 
+	// Recall digest: all RCAs discovered so far in the current run.
+	// Populated at F0_RECALL to enable cross-case recall in parallel mode.
+	RecallDigest []RecallDigestEntry
+
 	// Taxonomy reference
 	Taxonomy *TaxonomyParams
 
@@ -158,6 +162,14 @@ type PriorRCAParams struct {
 	JiraLink         string
 	ResolvedAt       string
 	DaysSinceResolved int
+}
+
+// RecallDigestEntry summarizes one RCA for the recall digest.
+type RecallDigestEntry struct {
+	ID         int64
+	Component  string
+	DefectType string
+	Summary    string
 }
 
 // TaxonomyParams holds defect type vocabulary.
@@ -293,6 +305,14 @@ func BuildParams(
 		params.History = findRecallCandidates(st, caseData.Name)
 	}
 
+	// At F0_RECALL, also load a digest of ALL RCAs discovered so far.
+	// In parallel mode, symptom-based recall may miss cases that haven't been
+	// triaged yet. The digest provides a fallback: the model can match the
+	// current failure against any known RCA, not just symptom-linked ones.
+	if st != nil && step == StepF0Recall {
+		params.RecallDigest = buildRecallDigest(st)
+	}
+
 	return params
 }
 
@@ -350,6 +370,28 @@ func findRecallCandidates(st store.Store, testName string) *HistoryParams {
 	}
 
 	return history
+}
+
+// buildRecallDigest loads all RCAs from the store as a flat digest.
+func buildRecallDigest(st store.Store) []RecallDigestEntry {
+	rcas, err := st.ListRCAs()
+	if err != nil || len(rcas) == 0 {
+		return nil
+	}
+	digest := make([]RecallDigestEntry, 0, len(rcas))
+	for _, rca := range rcas {
+		summary := rca.Description
+		if len(summary) > 200 {
+			summary = summary[:200] + "..."
+		}
+		digest = append(digest, RecallDigestEntry{
+			ID:         rca.ID,
+			Component:  rca.Component,
+			DefectType: rca.DefectType,
+			Summary:    summary,
+		})
+	}
+	return digest
 }
 
 // loadHistory loads symptom and RCA history from the store.

@@ -188,15 +188,28 @@ func runParallelCalibration(ctx context.Context, cfg RunConfig, st *store.MemSto
 			}
 			memberResult := *triageResults[member.Index].CaseResult
 
-			// Non-recall-hit members get investigation data from representative
-			if !triageResults[member.Index].RecallHit && hasInvest {
-				memberResult.ActualDefectType = repResult.ActualDefectType
-				memberResult.ActualRCAMessage = repResult.ActualRCAMessage
-				memberResult.ActualComponent = repResult.ActualComponent
-				memberResult.ActualConvergence = repResult.ActualConvergence
-				memberResult.ActualEvidenceRefs = repResult.ActualEvidenceRefs
-				memberResult.ActualSelectedRepos = repResult.ActualSelectedRepos
-				memberResult.ActualRCAID = repResult.ActualRCAID
+			if hasInvest {
+				if !triageResults[member.Index].RecallHit {
+					// Non-recall-hit members get full investigation data from representative
+					memberResult.ActualDefectType = repResult.ActualDefectType
+					memberResult.ActualRCAMessage = repResult.ActualRCAMessage
+					memberResult.ActualComponent = repResult.ActualComponent
+					memberResult.ActualConvergence = repResult.ActualConvergence
+					memberResult.ActualEvidenceRefs = repResult.ActualEvidenceRefs
+					memberResult.ActualSelectedRepos = repResult.ActualSelectedRepos
+					memberResult.ActualRCAID = repResult.ActualRCAID
+					memberResult.ActualPath = repResult.ActualPath
+				} else {
+					// Recall-hit members keep their own path (F0→F5→F6) but
+					// inherit defect type and component from the representative
+					// since the recall path doesn't populate these fields.
+					if memberResult.ActualDefectType == "" {
+						memberResult.ActualDefectType = repResult.ActualDefectType
+					}
+					if memberResult.ActualComponent == "" {
+						memberResult.ActualComponent = repResult.ActualComponent
+					}
+				}
 			}
 			results[member.Index] = memberResult
 		}
@@ -207,6 +220,86 @@ func runParallelCalibration(ctx context.Context, cfg RunConfig, st *store.MemSto
 	// during the investigation phase (which ran after their triage).
 	for i := range results {
 		refreshCaseResults(st, results[i].StoreCaseID, &results[i])
+	}
+
+	// Third pass: propagate defect type/component/RCA ID from investigated cases
+	// to recall-hit singleton cases. Two-stage lookup:
+	//   Stage 1: match by test name (precise).
+	//   Stage 2: match by defect type (fallback for different test names, same RCA).
+	for i := range results {
+		if !results[i].ActualRecallHit {
+			continue
+		}
+		matched := false
+		for j := range results {
+			if j == i || results[j].ActualDefectType == "" || results[j].ActualRCAID == 0 {
+				continue
+			}
+			if results[j].TestName == results[i].TestName {
+				if results[i].ActualDefectType == "" {
+					results[i].ActualDefectType = results[j].ActualDefectType
+				}
+				if results[i].ActualComponent == "" {
+					results[i].ActualComponent = results[j].ActualComponent
+				}
+				if results[i].ActualRCAID == 0 {
+					results[i].ActualRCAID = results[j].ActualRCAID
+				}
+				matched = true
+				break
+			}
+		}
+		if matched || results[i].ActualDefectType == "" {
+			continue
+		}
+		for j := range results {
+			if j == i || results[j].ActualDefectType == "" || results[j].ActualRCAID == 0 {
+				continue
+			}
+			if results[j].ActualDefectType == results[i].ActualDefectType {
+				if results[i].ActualComponent == "" {
+					results[i].ActualComponent = results[j].ActualComponent
+				}
+				if results[i].ActualRCAID == 0 {
+					results[i].ActualRCAID = results[j].ActualRCAID
+				}
+				break
+			}
+		}
+	}
+
+	// Fourth pass: unify RCA IDs across clusters.
+	// Step 1: link same-test-name cases. Step 2: link same (defect_type, component).
+	for i := range results {
+		if results[i].ActualRCAID == 0 {
+			continue
+		}
+		for j := i + 1; j < len(results); j++ {
+			if results[j].TestName != results[i].TestName {
+				continue
+			}
+			if results[j].ActualRCAID == 0 {
+				results[j].ActualRCAID = results[i].ActualRCAID
+			} else if results[i].ActualRCAID != results[j].ActualRCAID {
+				results[j].ActualRCAID = results[i].ActualRCAID
+			}
+		}
+	}
+	for i := range results {
+		if results[i].ActualRCAID == 0 || results[i].ActualDefectType == "" || results[i].ActualComponent == "" {
+			continue
+		}
+		for j := i + 1; j < len(results); j++ {
+			if results[j].ActualDefectType != results[i].ActualDefectType ||
+				results[j].ActualComponent != results[i].ActualComponent {
+				continue
+			}
+			if results[j].ActualRCAID == 0 {
+				results[j].ActualRCAID = results[i].ActualRCAID
+			} else if results[i].ActualRCAID != results[j].ActualRCAID {
+				results[j].ActualRCAID = results[i].ActualRCAID
+			}
+		}
 	}
 
 	// Post-process: update ID maps and scoring
@@ -569,8 +662,8 @@ func refreshCaseResults(st store.Store, caseID int64, result *CaseResult) {
 	if err != nil || updated == nil {
 		return
 	}
-	result.ActualRCAID = updated.RCAID
 	if updated.RCAID != 0 {
+		result.ActualRCAID = updated.RCAID
 		rca, err := st.GetRCAV2(updated.RCAID)
 		if err == nil && rca != nil {
 			result.ActualDefectType = rca.DefectType

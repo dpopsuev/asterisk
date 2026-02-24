@@ -383,13 +383,15 @@ func extractStepMetrics(result *CaseResult, step orchestrate.PipelineStep, artif
 	case orchestrate.StepF1Triage:
 		if r, ok := artifact.(*orchestrate.TriageResult); ok && r != nil {
 			result.ActualCategory = r.SymptomCategory
-			result.ActualSkip = r.SkipInvestigation
-			result.ActualCascade = r.CascadeSuspected
-			// Capture defect type hypothesis from triage so skip cases get
-			// credit for correct classification even without investigation.
-			if r.SkipInvestigation && r.DefectTypeHypothesis != "" {
-				result.ActualDefectType = r.DefectTypeHypothesis
-			}
+		result.ActualSkip = r.SkipInvestigation
+		result.ActualCascade = r.CascadeSuspected
+		// Always capture triage hypothesis as fallback defect type.
+		// Investigation (F3) overwrites this if it produces a defect type.
+		// This ensures cases that skip investigation via heuristics (e.g. infra/flake
+		// routed F1→F5 by H14) still get credit for correct classification.
+		if r.DefectTypeHypothesis != "" && result.ActualDefectType == "" {
+			result.ActualDefectType = r.DefectTypeHypothesis
+		}
 			// When H7 fires (single candidate repo), F2 is skipped but the repo is
 			// effectively selected by triage. Capture it for repo selection metrics.
 			if len(r.CandidateRepos) == 1 && !r.SkipInvestigation {
@@ -398,6 +400,7 @@ func extractStepMetrics(result *CaseResult, step orchestrate.PipelineStep, artif
 		}
 	case orchestrate.StepF2Resolve:
 		if r, ok := artifact.(*orchestrate.ResolveResult); ok && r != nil {
+			result.ActualSelectedRepos = result.ActualSelectedRepos[:0]
 			for _, repo := range r.SelectedRepos {
 				result.ActualSelectedRepos = append(result.ActualSelectedRepos, repo.Name)
 			}
