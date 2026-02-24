@@ -72,6 +72,11 @@ type Session struct {
 	// signaling the pipeline can't fill capacity. Resets each batch.
 	gateExempt bool
 
+	// registeredWorkers maps worker_id to declared mode (e.g. "stream").
+	// Populated when emit_signal receives a worker_started event with
+	// meta.worker_id and meta.mode. Used to enforce v2 choreography.
+	registeredWorkers map[string]string
+
 	mu sync.Mutex
 }
 
@@ -166,11 +171,8 @@ func (s *Session) CheckCapacityGate() error {
 	}
 
 	return fmt.Errorf(
-		"CAPACITY GATE ADVISORY: you pulled %d/%d steps this batch (session peak: %d, peak concurrent callers: %d/%d). "+
-			"Pull %d more steps via get_next_step before submitting, or run %d concurrent workers. "+
-			"If you don't bring more workers, the TTL watchdog will terminate this session",
-		s.batchPeak, s.DesiredCapacity, s.sessionPeakInFlight, s.peakPullers, s.DesiredCapacity,
-		s.DesiredCapacity-s.batchPeak, s.DesiredCapacity)
+		"capacity gate: %d/%d concurrent workers observed (peak: %d, concurrent callers: %d). System expects %d workers",
+		s.batchPeak, s.DesiredCapacity, s.sessionPeakInFlight, s.peakPullers, s.DesiredCapacity)
 }
 
 // AgentInFlight returns how many steps the agent has pulled but not yet submitted.
@@ -178,6 +180,85 @@ func (s *Session) AgentInFlight() int {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.agentInFlight
+}
+
+// RegisterWorker records a worker's declared mode from a worker_started signal.
+func (s *Session) RegisterWorker(id, mode string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.registeredWorkers == nil {
+		s.registeredWorkers = make(map[string]string)
+	}
+	s.registeredWorkers[id] = mode
+}
+
+// WorkerModeStats returns the total registered workers and how many declared "stream" mode.
+func (s *Session) WorkerModeStats() (total, stream int) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	total = len(s.registeredWorkers)
+	for _, mode := range s.registeredWorkers {
+		if mode == "stream" {
+			stream++
+		}
+	}
+	return
+}
+
+// WorkerPrompt generates the complete worker loop instructions for v2 choreography.
+// The supervisor passes this verbatim to each Task subagent. Workers own
+// get_next_step/submit_artifact — the parent never relays.
+func (s *Session) WorkerPrompt() string {
+	return fmt.Sprintf(`You are an Asterisk calibration worker. Process pipeline steps by calling MCP tools directly in a loop until the pipeline is drained.
+
+## Protocol
+
+Follow this exact sequence:
+
+1. Emit start signal:
+   emit_signal(session_id="%[1]s", event="worker_started", agent="worker",
+               meta={"worker_id": "<unique_id>", "mode": "stream"})
+
+2. Worker loop — repeat until done:
+   response = get_next_step(session_id="%[1]s", timeout_ms=30000)
+
+   if response.done → break
+   if not response.available → retry immediately
+
+   Read the prompt from response.prompt_content (full text inline).
+   If prompt_content is empty, read from the file at response.prompt_path.
+
+   Analyze the failure data in the prompt and produce a JSON artifact
+   matching the step schema below.
+
+   submit_artifact(session_id="%[1]s", artifact_json=<your JSON>,
+                   dispatch_id=response.dispatch_id)
+
+3. Emit stop signal:
+   emit_signal(session_id="%[1]s", event="worker_stopped", agent="worker",
+               meta={"worker_id": "<unique_id>"})
+
+## Step schemas
+
+| Step | Required fields |
+|------|----------------|
+| F0_RECALL | match (bool), confidence (float), reasoning (string) |
+| F1_TRIAGE | symptom_category, severity, defect_type_hypothesis, candidate_repos[], skip_investigation (bool), cascade_suspected (bool) |
+| F2_RESOLVE | selected_repos[{name, reason}] |
+| F3_INVESTIGATE | rca_message, defect_type, component, convergence_score (float), evidence_refs[] |
+| F4_CORRELATE | is_duplicate (bool), confidence (float) |
+| F5_REVIEW | decision ("approve", "reassess", or "overturn") |
+| F6_REPORT | defect_type, case_id, summary |
+
+## Rules
+
+- CALIBRATION MODE: respond based ONLY on the prompt content provided.
+- Do NOT read scenario files, ground truth, test code, or prior artifacts.
+- Each artifact MUST be valid JSON. No markdown fences, no commentary.
+- You call get_next_step and submit_artifact DIRECTLY. The parent does NOT relay for you.
+- If available=false, retry immediately — the pipeline may be between rounds.
+- Process each step independently based on the prompt content.
+`, s.ID)
 }
 
 // StartCalibrationInput mirrors the tool arguments for start_calibration.

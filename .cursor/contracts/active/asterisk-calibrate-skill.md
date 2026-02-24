@@ -69,3 +69,5 @@ No trust boundaries affected. MCP server already validated in prior contracts (`
 ## Notes
 
 2026-02-23 23:10 — Created. SKILL.md written with MCP-based architecture. Corrected from initial FileDispatcher approach after reviewing CRISIS documentation in poc.mdc.
+
+2026-02-24 08:15 — **v1 → v2 migration.** The SKILL.md was rewritten as part of `papercup-v2-hardening` contract. The original skill implemented Papercup v1 orchestration (parent owns get_next_step/submit_artifact in a batch-pull loop), which caused "Weakest Link" and "Batching" anti-patterns during wet runs. The new skill implements Papercup v2 choreography: parent is a supervisor that launches worker Tasks with a server-generated `worker_prompt`. Workers own the full get_next_step/submit_artifact loop independently. Server-side changes include `WorkerPrompt()`, inline `prompt_content`, protocol-agnostic gate messages, and worker mode tracking via `worker_started` signals with `meta.mode="stream"`. See `papercup-v2-hardening.md` for full details.

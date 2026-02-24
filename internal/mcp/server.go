@@ -84,10 +84,12 @@ type startCalibrationInput struct {
 }
 
 type startCalibrationOutput struct {
-	SessionID  string `json:"session_id"`
-	TotalCases int    `json:"total_cases"`
-	Scenario   string `json:"scenario"`
-	Status     string `json:"status"`
+	SessionID    string `json:"session_id"`
+	TotalCases   int    `json:"total_cases"`
+	Scenario     string `json:"scenario"`
+	Status       string `json:"status"`
+	WorkerPrompt string `json:"worker_prompt,omitempty"`
+	WorkerCount  int    `json:"worker_count,omitempty"`
 }
 
 type getNextStepInput struct {
@@ -96,16 +98,17 @@ type getNextStepInput struct {
 }
 
 type getNextStepOutput struct {
-	Done              bool   `json:"done"`
-	Available         bool   `json:"available,omitempty"`
-	CaseID            string `json:"case_id,omitempty"`
-	Step              string `json:"step,omitempty"`
-	PromptPath        string `json:"prompt_path,omitempty"`
-	ArtifactPath      string `json:"artifact_path,omitempty"`
-	DispatchID        int64  `json:"dispatch_id,omitempty"`
-	ActiveDispatches  int    `json:"active_dispatches"`
-	DesiredCapacity   int    `json:"desired_capacity"`
-	CapacityWarning   string `json:"capacity_warning,omitempty"`
+	Done             bool   `json:"done"`
+	Available        bool   `json:"available,omitempty"`
+	CaseID           string `json:"case_id,omitempty"`
+	Step             string `json:"step,omitempty"`
+	PromptPath       string `json:"prompt_path,omitempty"`
+	PromptContent    string `json:"prompt_content,omitempty"`
+	ArtifactPath     string `json:"artifact_path,omitempty"`
+	DispatchID       int64  `json:"dispatch_id,omitempty"`
+	ActiveDispatches int    `json:"active_dispatches"`
+	DesiredCapacity  int    `json:"desired_capacity"`
+	CapacityWarning  string `json:"capacity_warning,omitempty"`
 }
 
 type submitArtifactInput struct {
@@ -195,12 +198,18 @@ func (s *Server) handleStartCalibration(ctx context.Context, _ *sdkmcp.CallToolR
 	s.session = sess
 	s.mu.Unlock()
 
-	return nil, startCalibrationOutput{
+	out := startCalibrationOutput{
 		SessionID:  sess.ID,
 		TotalCases: sess.TotalCases,
 		Scenario:   sess.Scenario,
 		Status:     string(StateRunning),
-	}, nil
+	}
+	if sess.DesiredCapacity > 1 {
+		out.WorkerPrompt = sess.WorkerPrompt()
+		out.WorkerCount = sess.DesiredCapacity
+	}
+
+	return nil, out, nil
 }
 
 func (s *Server) handleGetNextStep(ctx context.Context, _ *sdkmcp.CallToolRequest, input getNextStepInput) (*sdkmcp.CallToolResult, getNextStepOutput, error) {
@@ -253,12 +262,18 @@ func (s *Server) handleGetNextStep(ctx context.Context, _ *sdkmcp.CallToolReques
 		DesiredCapacity:  desired,
 	}
 
+	if dc.PromptPath != "" {
+		if content, err := os.ReadFile(dc.PromptPath); err == nil {
+			out.PromptContent = string(content)
+		}
+	}
+
 	if desired > 1 && inFlight < desired {
 		out.CapacityWarning = fmt.Sprintf(
-			"UNDER CAPACITY: %d/%d agent workers active — you MUST launch %d more parallel subagents before submitting",
-			inFlight, desired, desired-inFlight)
+			"system under capacity: %d/%d workers active",
+			inFlight, desired)
 		logger := logging.New("mcp-session")
-		logger.Debug("agent under capacity",
+		logger.Debug("under capacity",
 			"in_flight", inFlight, "desired", desired, "deficit", desired-inFlight)
 	}
 
@@ -351,6 +366,16 @@ func (s *Server) handleEmitSignal(ctx context.Context, _ *sdkmcp.CallToolRequest
 
 	sess.Bus.Emit(input.Event, input.Agent, input.CaseID, input.Step, input.Meta)
 	idx := sess.Bus.Len()
+
+	if input.Event == "worker_started" {
+		workerID := input.Meta["worker_id"]
+		mode := input.Meta["mode"]
+		if workerID != "" {
+			sess.RegisterWorker(workerID, mode)
+			logger.Debug("worker registered", "worker_id", workerID, "mode", mode)
+		}
+	}
+
 	logger.Debug("signal emitted", "index", idx, "event", input.Event, "agent", input.Agent, "case_id", input.CaseID, "step", input.Step)
 
 	return nil, emitSignalOutput{

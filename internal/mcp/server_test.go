@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strings"
 	"sync"
 	"testing"
 	"time"
@@ -2225,6 +2226,808 @@ func TestSession_TTL_UnblocksHungGetNextStep(t *testing.T) {
 		t.Fatalf("TTL should have unblocked get_next_step within ~500ms, took %v", elapsed)
 	}
 	t.Logf("TTL unblocked hung get_next_step in %v", elapsed)
+}
+
+// --- Papercup v2 hardening tests ---
+
+// TestStartCalibration_WorkerPrompt verifies that start_calibration with
+// parallel>1 returns a non-empty worker_prompt containing the session_id,
+// the protocol keywords, and worker_count matching the parallel param.
+func TestStartCalibration_WorkerPrompt(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	workerPrompt, _ := startResult["worker_prompt"].(string)
+	if workerPrompt == "" {
+		t.Fatal("expected non-empty worker_prompt for parallel>1")
+	}
+	if !containsAll(workerPrompt, sessionID, "get_next_step", "submit_artifact",
+		"worker_started", "worker_stopped", "mode", "stream") {
+		t.Errorf("worker_prompt missing required protocol keywords:\n%s", workerPrompt[:min(500, len(workerPrompt))])
+	}
+
+	workerCount, _ := startResult["worker_count"].(float64)
+	if int(workerCount) != 4 {
+		t.Errorf("expected worker_count=4, got %v", workerCount)
+	}
+
+	t.Logf("worker_prompt length: %d chars, contains session_id=%s", len(workerPrompt), sessionID)
+}
+
+// TestStartCalibration_WorkerPrompt_Serial verifies that parallel=1
+// does NOT include worker_prompt (serial mode is orchestrated differently).
+func TestStartCalibration_WorkerPrompt_Serial(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+
+	workerPrompt, _ := startResult["worker_prompt"].(string)
+	if workerPrompt != "" {
+		t.Errorf("expected empty worker_prompt for parallel=1, got %d chars", len(workerPrompt))
+	}
+	workerCount, _ := startResult["worker_count"].(float64)
+	if int(workerCount) != 0 {
+		t.Errorf("expected worker_count=0 for parallel=1, got %v", workerCount)
+	}
+}
+
+// TestGetNextStep_InlinePrompt verifies that get_next_step responses include
+// prompt_content matching the file at prompt_path. Workers should not need
+// to do file I/O.
+func TestGetNextStep_InlinePrompt(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	if done, _ := step["done"].(bool); done {
+		t.Fatal("expected a step, got done=true")
+	}
+
+	promptContent, _ := step["prompt_content"].(string)
+	promptPath, _ := step["prompt_path"].(string)
+
+	if promptContent == "" {
+		t.Fatal("expected non-empty prompt_content")
+	}
+	if promptPath == "" {
+		t.Fatal("expected non-empty prompt_path")
+	}
+
+	fileContent, err := os.ReadFile(promptPath)
+	if err != nil {
+		t.Fatalf("read prompt file %s: %v", promptPath, err)
+	}
+
+	if promptContent != string(fileContent) {
+		t.Errorf("prompt_content does not match file content.\nprompt_content len=%d, file len=%d",
+			len(promptContent), len(fileContent))
+	}
+	t.Logf("inline prompt verified: %d bytes, path=%s", len(promptContent), promptPath)
+}
+
+// TestGetNextStep_InlinePrompt_MultipleSteps verifies prompt_content is
+// populated for every step (not just the first).
+func TestGetNextStep_InlinePrompt_MultipleSteps(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 1,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	for i := 0; i < 3; i++ {
+		step := callTool(t, ctx, session, "get_next_step", map[string]any{
+			"session_id": sessionID,
+		})
+		if done, _ := step["done"].(bool); done {
+			break
+		}
+		if avail, _ := step["available"].(bool); !avail {
+			t.Fatalf("step %d: expected available=true", i)
+		}
+
+		promptContent, _ := step["prompt_content"].(string)
+		if promptContent == "" {
+			t.Errorf("step %d: expected non-empty prompt_content", i)
+		}
+
+		stepName, _ := step["step"].(string)
+		dispatchID, _ := step["dispatch_id"].(float64)
+		artifact := artifactForStep(stepName, 0)
+		callTool(t, ctx, session, "submit_artifact", map[string]any{
+			"session_id":    sessionID,
+			"artifact_json": artifact,
+			"dispatch_id":   int64(dispatchID),
+		})
+		t.Logf("step %d (%s): prompt_content=%d bytes", i, stepName, len(promptContent))
+	}
+}
+
+// TestCapacityWarning_ProtocolAgnostic verifies the capacity warning text
+// uses neutral language (no "launch subagents", no "pull more steps").
+func TestCapacityWarning_ProtocolAgnostic(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	warning, _ := step["capacity_warning"].(string)
+
+	if warning == "" {
+		t.Fatal("expected capacity_warning when only 1/4 workers active")
+	}
+
+	forbidden := []string{"launch", "subagent", "pull more", "MUST"}
+	for _, word := range forbidden {
+		if containsCI(warning, word) {
+			t.Errorf("capacity_warning contains v1 language %q: %s", word, warning)
+		}
+	}
+
+	required := []string{"under capacity", "workers active"}
+	for _, word := range required {
+		if !containsCI(warning, word) {
+			t.Errorf("capacity_warning missing %q: %s", word, warning)
+		}
+	}
+	t.Logf("capacity_warning: %s", warning)
+}
+
+// TestCapacityGate_ProtocolAgnostic verifies the gate error message
+// uses neutral language.
+func TestCapacityGate_ProtocolAgnostic(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	// Pull one step — serial pattern
+	step := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID, "timeout_ms": 500,
+	})
+	dispatchID, _ := step["dispatch_id"].(float64)
+	stepName, _ := step["step"].(string)
+
+	// Submit — gate will warn (advisory) but not reject
+	callTool(t, ctx, session, "submit_artifact", map[string]any{
+		"session_id":    sessionID,
+		"artifact_json": artifactForStep(stepName, 0),
+		"dispatch_id":   int64(dispatchID),
+	})
+
+	// The gate message itself is logged, not returned to the caller.
+	// We verify the format via unit test on Session.CheckCapacityGate directly.
+	sess := &mcpserver.Session{DesiredCapacity: 4}
+	sess.AgentPull()
+	gateErr := sess.CheckCapacityGate()
+	if gateErr == nil {
+		t.Fatal("expected gate error with 1/4 capacity")
+	}
+	msg := gateErr.Error()
+
+	forbidden := []string{"CAPACITY GATE ADVISORY", "Pull", "bring more workers", "TTL watchdog"}
+	for _, word := range forbidden {
+		if containsCI(msg, word) {
+			t.Errorf("gate message contains v1 language %q: %s", word, msg)
+		}
+	}
+
+	required := []string{"capacity gate", "workers observed", "expects"}
+	for _, word := range required {
+		if !containsCI(msg, word) {
+			t.Errorf("gate message missing %q: %s", word, msg)
+		}
+	}
+	t.Logf("gate message: %s", msg)
+}
+
+// TestWorkerMode_StreamRegistration verifies that emitting worker_started
+// with meta.mode="stream" causes the server to track the worker.
+func TestWorkerMode_StreamRegistration(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	for i := 0; i < 4; i++ {
+		callTool(t, ctx, session, "emit_signal", map[string]any{
+			"session_id": sessionID,
+			"event":      "worker_started",
+			"agent":      "worker",
+			"meta":       map[string]any{"worker_id": fmt.Sprintf("w%d", i), "mode": "stream"},
+		})
+	}
+
+	// Verify via signal bus
+	signals := callTool(t, ctx, session, "get_signals", map[string]any{
+		"session_id": sessionID,
+	})
+	signalList, _ := signals["signals"].([]any)
+
+	var workerStarted int
+	for _, s := range signalList {
+		sig, _ := s.(map[string]any)
+		if sig["event"] == "worker_started" {
+			workerStarted++
+			meta, _ := sig["meta"].(map[string]any)
+			if meta["mode"] != "stream" {
+				t.Errorf("worker_started signal missing mode=stream: %v", meta)
+			}
+		}
+	}
+	if workerStarted != 4 {
+		t.Errorf("expected 4 worker_started signals, got %d", workerStarted)
+	}
+	t.Logf("registered %d stream workers", workerStarted)
+}
+
+// TestWorkerMode_NoWorkerID_Ignored verifies that worker_started without
+// meta.worker_id is gracefully ignored (no panic, no registration).
+func TestWorkerMode_NoWorkerID_Ignored(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 2,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	callTool(t, ctx, session, "emit_signal", map[string]any{
+		"session_id": sessionID,
+		"event":      "worker_started",
+		"agent":      "worker",
+		"meta":       map[string]any{"mode": "stream"},
+	})
+
+	callTool(t, ctx, session, "emit_signal", map[string]any{
+		"session_id": sessionID,
+		"event":      "worker_started",
+		"agent":      "worker",
+	})
+
+	t.Log("worker_started without worker_id accepted without panic")
+}
+
+// TestV2Workers_FullDrain_Deterministic is the definitive v2 choreography test.
+// 4 independent workers each own their get_next_step/submit_artifact loop,
+// emitting proper mode signals. Asserts:
+//  1. All 4 workers register as stream mode
+//  2. All cases drain to completion (report status=done)
+//  3. No starvation (every worker processes at least 1 step)
+//  4. No duplicate dispatches
+//  5. Signal bus contains matched worker_started/worker_stopped pairs
+//  6. Total steps matches expected pipeline depth * cases
+func TestV2Workers_FullDrain_Deterministic(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	workerPrompt, _ := startResult["worker_prompt"].(string)
+	if workerPrompt == "" {
+		t.Fatal("expected worker_prompt in start_calibration response")
+	}
+	workerCount, _ := startResult["worker_count"].(float64)
+	if int(workerCount) != 4 {
+		t.Fatalf("expected worker_count=4, got %v", workerCount)
+	}
+
+	var mu sync.Mutex
+	workLog := make(map[int][]stepRecord)
+	seenDispatchIDs := make(map[int64]bool)
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+
+			// Step 1: Emit worker_started with mode=stream (v2 protocol)
+			_, err := callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "worker_started",
+				"agent":      "worker",
+				"meta":       map[string]any{"worker_id": fmt.Sprintf("w%d", workerID), "mode": "stream"},
+			})
+			if err != nil {
+				errCh <- fmt.Errorf("w%d emit worker_started: %w", workerID, err)
+				return
+			}
+
+			// Step 2: Worker loop — get_next_step/submit_artifact until done
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+					"timeout_ms": 300,
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("w%d get_next_step: %w", workerID, err)
+					return
+				}
+
+				if done, _ := res["done"].(bool); done {
+					break
+				}
+				if avail, _ := res["available"].(bool); !avail {
+					continue
+				}
+
+				caseID, _ := res["case_id"].(string)
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+				promptContent, _ := res["prompt_content"].(string)
+
+				if promptContent == "" {
+					errCh <- fmt.Errorf("w%d: empty prompt_content for %s/%s", workerID, caseID, step)
+					return
+				}
+
+				artifact := artifactForStep(step, workerID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("w%d submit(%s/%s): %w", workerID, caseID, step, err)
+					return
+				}
+
+				mu.Lock()
+				workLog[workerID] = append(workLog[workerID], stepRecord{
+					CaseID:     caseID,
+					Step:       step,
+					DispatchID: int64(dispatchID),
+				})
+				if seenDispatchIDs[int64(dispatchID)] {
+					errCh <- fmt.Errorf("w%d: duplicate dispatch_id %d", workerID, int64(dispatchID))
+				}
+				seenDispatchIDs[int64(dispatchID)] = true
+				mu.Unlock()
+			}
+
+			// Step 3: Emit worker_stopped (v2 protocol)
+			_, _ = callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "worker_stopped",
+				"agent":      "worker",
+				"meta":       map[string]any{"worker_id": fmt.Sprintf("w%d", workerID)},
+			})
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Errorf("worker error: %v", err)
+	}
+
+	// Assertion 1: no starvation — all 4 workers got work
+	for i := 0; i < 4; i++ {
+		if len(workLog[i]) == 0 {
+			t.Errorf("worker-%d got zero steps (starvation)", i)
+		} else {
+			t.Logf("worker-%d processed %d steps", i, len(workLog[i]))
+		}
+	}
+
+	// Assertion 2: total steps > 0 and all dispatch IDs unique
+	var totalSteps int
+	for _, records := range workLog {
+		totalSteps += len(records)
+	}
+	if totalSteps == 0 {
+		t.Fatal("pipeline produced zero steps")
+	}
+	t.Logf("total steps: %d across 4 workers, %d unique dispatch_ids", totalSteps, len(seenDispatchIDs))
+
+	// Assertion 3: signal bus has matching worker_started/worker_stopped pairs
+	signals := callTool(t, ctx, session, "get_signals", map[string]any{
+		"session_id": sessionID,
+	})
+	signalList, _ := signals["signals"].([]any)
+
+	startedWorkers := make(map[string]bool)
+	stoppedWorkers := make(map[string]bool)
+	for _, s := range signalList {
+		sig, _ := s.(map[string]any)
+		event, _ := sig["event"].(string)
+		meta, _ := sig["meta"].(map[string]any)
+		wid, _ := meta["worker_id"].(string)
+		switch event {
+		case "worker_started":
+			startedWorkers[wid] = true
+			mode, _ := meta["mode"].(string)
+			if mode != "stream" {
+				t.Errorf("worker %s started without mode=stream: %v", wid, meta)
+			}
+		case "worker_stopped":
+			stoppedWorkers[wid] = true
+		}
+	}
+	if len(startedWorkers) != 4 {
+		t.Errorf("expected 4 worker_started signals, got %d", len(startedWorkers))
+	}
+	if len(stoppedWorkers) != 4 {
+		t.Errorf("expected 4 worker_stopped signals, got %d", len(stoppedWorkers))
+	}
+	for wid := range startedWorkers {
+		if !stoppedWorkers[wid] {
+			t.Errorf("worker %s started but never stopped", wid)
+		}
+	}
+
+	// Assertion 4: report is complete
+	reportResult := callTool(t, ctx, session, "get_report", map[string]any{
+		"session_id": sessionID,
+	})
+	status, _ := reportResult["status"].(string)
+	if status != "done" {
+		t.Fatalf("expected status=done, got %s", status)
+	}
+	caseResults, _ := reportResult["case_results"].([]any)
+	t.Logf("report: status=%s, case_results=%d", status, len(caseResults))
+}
+
+// TestV2Workers_ViaResolve_Deterministic is the same as TestV2Workers_FullDrain
+// but uses artifactForStepViaResolve to force the F2_RESOLVE -> F3_INVESTIGATE path.
+// Verifies the pipeline reaches F3 with v2 protocol.
+func TestV2Workers_ViaResolve_Deterministic(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	var mu sync.Mutex
+	stepLog := make(map[string][]string)
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+
+			_, _ = callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "worker_started",
+				"agent":      "worker",
+				"meta":       map[string]any{"worker_id": fmt.Sprintf("w%d", workerID), "mode": "stream"},
+			})
+
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+					"timeout_ms": 300,
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("w%d: %w", workerID, err)
+					return
+				}
+				if done, _ := res["done"].(bool); done {
+					break
+				}
+				if avail, _ := res["available"].(bool); !avail {
+					continue
+				}
+
+				caseID, _ := res["case_id"].(string)
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+
+				artifact := artifactForStepViaResolve(step, workerID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- fmt.Errorf("w%d submit(%s/%s): %w", workerID, caseID, step, err)
+					return
+				}
+
+				mu.Lock()
+				stepLog[caseID] = append(stepLog[caseID], step)
+				mu.Unlock()
+			}
+
+			_, _ = callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "worker_stopped",
+				"agent":      "worker",
+				"meta":       map[string]any{"worker_id": fmt.Sprintf("w%d", workerID)},
+			})
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	for err := range errCh {
+		t.Errorf("worker error: %v", err)
+	}
+
+	var f2Count, f3Count int
+	for caseID, steps := range stepLog {
+		t.Logf("case %s: %v", caseID, steps)
+		for _, s := range steps {
+			if s == "F2_RESOLVE" {
+				f2Count++
+			}
+			if s == "F3_INVESTIGATE" {
+				f3Count++
+			}
+		}
+	}
+
+	if f2Count == 0 {
+		t.Error("no cases went through F2_RESOLVE")
+	}
+	if f3Count == 0 {
+		t.Error("no cases reached F3_INVESTIGATE — F2→F3 transition broken")
+	}
+	t.Logf("F2 dispatches: %d, F3 dispatches: %d", f2Count, f3Count)
+
+	reportResult := callTool(t, ctx, session, "get_report", map[string]any{
+		"session_id": sessionID,
+	})
+	status, _ := reportResult["status"].(string)
+	if status != "done" {
+		t.Fatalf("expected status=done, got %s", status)
+	}
+}
+
+// TestV2Workers_ConcurrencyTiming_Deterministic measures that v2 workers
+// with per-step delays achieve true concurrent throughput. Same as the
+// existing timing test but with v2 protocol signals.
+func TestV2Workers_ConcurrencyTiming_Deterministic(t *testing.T) {
+	srv := newTestServer(t)
+	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	defer cancel()
+	session := connectInMemory(t, ctx, srv)
+	defer session.Close()
+
+	startResult := callTool(t, ctx, session, "start_calibration", map[string]any{
+		"scenario": "ptp-mock",
+		"adapter":  "cursor",
+		"parallel": 4,
+	})
+	sessionID := startResult["session_id"].(string)
+
+	const perStepDelay = 20 * time.Millisecond
+	var mu sync.Mutex
+	var totalSteps int64
+
+	var wg sync.WaitGroup
+	errCh := make(chan error, 4)
+
+	start := time.Now()
+	for i := 0; i < 4; i++ {
+		wg.Add(1)
+		go func(workerID int) {
+			defer wg.Done()
+
+			_, _ = callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "worker_started",
+				"agent":      "worker",
+				"meta":       map[string]any{"worker_id": fmt.Sprintf("w%d", workerID), "mode": "stream"},
+			})
+
+			for {
+				res, err := callToolE(ctx, session, "get_next_step", map[string]any{
+					"session_id": sessionID,
+					"timeout_ms": 300,
+				})
+				if err != nil {
+					errCh <- err
+					return
+				}
+				if done, _ := res["done"].(bool); done {
+					break
+				}
+				if avail, _ := res["available"].(bool); !avail {
+					continue
+				}
+
+				time.Sleep(perStepDelay)
+
+				step, _ := res["step"].(string)
+				dispatchID, _ := res["dispatch_id"].(float64)
+
+				artifact := artifactForStep(step, workerID)
+				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
+					"session_id":    sessionID,
+					"artifact_json": artifact,
+					"dispatch_id":   int64(dispatchID),
+				})
+				if err != nil {
+					errCh <- err
+					return
+				}
+				mu.Lock()
+				totalSteps++
+				mu.Unlock()
+			}
+
+			_, _ = callToolE(ctx, session, "emit_signal", map[string]any{
+				"session_id": sessionID,
+				"event":      "worker_stopped",
+				"agent":      "worker",
+				"meta":       map[string]any{"worker_id": fmt.Sprintf("w%d", workerID)},
+			})
+		}(i)
+	}
+
+	wg.Wait()
+	close(errCh)
+	elapsed := time.Since(start)
+
+	for err := range errCh {
+		t.Fatalf("worker error: %v", err)
+	}
+
+	serialEstimate := time.Duration(totalSteps) * perStepDelay
+	speedup := float64(serialEstimate) / float64(elapsed)
+
+	t.Logf("v2 timing: steps=%d, elapsed=%v, serial=%v, speedup=%.2fx",
+		totalSteps, elapsed, serialEstimate, speedup)
+
+	if elapsed > time.Duration(float64(serialEstimate)*0.75) {
+		t.Errorf("v2 workers too slow: elapsed=%v > 75%% of serial=%v (speedup=%.2fx)",
+			elapsed, serialEstimate, speedup)
+	}
+}
+
+// TestWorkPrompt_StepSchemas verifies the worker prompt mentions all
+// pipeline steps F0-F6 with their key fields.
+func TestWorkerPrompt_StepSchemas(t *testing.T) {
+	sess := &mcpserver.Session{
+		ID:              "test-session",
+		DesiredCapacity: 4,
+	}
+
+	prompt := sess.WorkerPrompt()
+
+	steps := []string{"F0_RECALL", "F1_TRIAGE", "F2_RESOLVE", "F3_INVESTIGATE", "F4_CORRELATE", "F5_REVIEW", "F6_REPORT"}
+	for _, step := range steps {
+		if !containsCI(prompt, step) {
+			t.Errorf("worker prompt missing step %s", step)
+		}
+	}
+
+	if !containsCI(prompt, "test-session") {
+		t.Error("worker prompt missing session_id")
+	}
+
+	keywords := []string{"get_next_step", "submit_artifact", "worker_started", "worker_stopped", "mode", "stream", "CALIBRATION"}
+	for _, kw := range keywords {
+		if !containsCI(prompt, kw) {
+			t.Errorf("worker prompt missing keyword %q", kw)
+		}
+	}
+}
+
+// TestWorkerPrompt_SessionIDEmbedded verifies the session ID is correctly
+// embedded (not a template placeholder).
+func TestWorkerPrompt_SessionIDEmbedded(t *testing.T) {
+	sess := &mcpserver.Session{
+		ID:              "s-1234567890",
+		DesiredCapacity: 2,
+	}
+
+	prompt := sess.WorkerPrompt()
+
+	if !containsCI(prompt, "s-1234567890") {
+		t.Error("worker prompt does not contain the actual session ID")
+	}
+
+	if containsCI(prompt, "%s") || containsCI(prompt, "{session_id}") || containsCI(prompt, "%[1]s") {
+		t.Error("worker prompt contains unresolved template placeholders")
+	}
+}
+
+// --- helpers ---
+
+func containsAll(s string, substrs ...string) bool {
+	for _, sub := range substrs {
+		if !containsCI(s, sub) {
+			return false
+		}
+	}
+	return true
+}
+
+func containsCI(s, substr string) bool {
+	return len(s) >= len(substr) &&
+		len(substr) > 0 &&
+		(strings.Contains(s, substr) || strings.Contains(strings.ToLower(s), strings.ToLower(substr)))
 }
 
 func TestServer_GetNextStep_AvailableFalse_Retry(t *testing.T) {

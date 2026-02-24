@@ -1,26 +1,26 @@
 ---
 name: asterisk-calibrate
 description: >
-  Run wet LLM calibration via MCP. The Cursor agent IS the reasoning engine:
-  it calls start_calibration, then delegates each F0-F6 step to subagents
-  that read prompts and produce artifacts via MCP tool calls. Zero file
-  writes, zero approval gates. Use when the user types
-  "/asterisk-calibrate <SCENARIO>" or asks to run wet calibration.
+  Run wet LLM calibration via MCP using Papercup v2 choreography. The parent
+  agent is a supervisor: it starts the session, launches worker subagents with
+  the server-generated worker_prompt, monitors progress via signals, and
+  presents the final report. Workers own the get_next_step/submit_artifact
+  loop independently. Use when the user types "/asterisk-calibrate <SCENARIO>"
+  or asks to run wet calibration.
 ---
 
-# Asterisk Calibrate
+# Asterisk Calibrate (Papercup v2)
 
 Run wet (LLM-driven) calibration against a ground-truth scenario using the
-Asterisk MCP server. The Cursor agent orchestrates the pipeline: it calls
-MCP tools to start the run, pull steps, delegate reasoning to subagents,
-submit artifacts, and present the final metrics report.
+Asterisk MCP server. The parent agent is a **supervisor** — it never calls
+`get_next_step` or `submit_artifact`. Workers handle that directly.
 
 ## Trigger
 
 The user types one of:
 
 - `/asterisk-calibrate ptp-mock` — calibrate against ptp-mock (12 cases)
-- `/asterisk-calibrate ptp-mock --parallel=4` — parallel with 4 subagents
+- `/asterisk-calibrate ptp-mock --parallel=4` — parallel with 4 workers
 - `/asterisk-calibrate help` — show usage guide
 - `/asterisk-calibrate` — (no arg) show usage guide
 - "run wet calibration", "cursor calibration", "calibrate with LLM"
@@ -76,145 +76,66 @@ start_calibration(
 )
 ```
 
-This returns `session_id` and `total_cases`. Store the `session_id` — every
-subsequent tool call requires it.
+This returns:
+- `session_id` — required for all subsequent calls.
+- `total_cases` — number of ground-truth cases.
+- `worker_prompt` — **server-generated worker loop instructions**. Pass verbatim to Task subagents.
+- `worker_count` — number of workers to launch.
 
-Emit a dispatch signal for observability:
-
-```
-emit_signal(session_id, event: "dispatch", agent: "main")
-```
+Store `session_id`, `worker_prompt`, and `worker_count`.
 
 ---
 
-## Part 2 — Investigate (MCP pull loop)
+## Part 2 — Launch workers (supervisor pattern)
 
-You are the **dispatcher**, not the executor. Every pipeline step MUST be
-delegated to a Task subagent. Processing a step inline is a violation of
-the agent bus protocol.
+You are the **supervisor**, not the executor. You MUST NOT call `get_next_step`
+or `submit_artifact` yourself. Workers handle the entire pipeline loop.
 
-### Main agent loop
+### Launch worker subagents
 
-```
-while true:
-  response = get_next_step(session_id, timeout_ms: 30000)
-
-  if response.done:
-    break
-
-  if not response.available:
-    # Pipeline is between batches or draining; retry
-    continue
-
-  # Extract step details
-  case_id      = response.case_id
-  step         = response.step
-  prompt_path  = response.prompt_path
-  dispatch_id  = response.dispatch_id
-
-  # Emit dispatch signal
-  emit_signal(session_id, "dispatch", "main", case_id, step)
-
-  # Delegate to subagent
-  artifact_json = spawn_subagent(session_id, case_id, step, prompt_path, dispatch_id)
-
-  # Submit the artifact
-  submit_artifact(session_id, artifact_json: artifact_json, dispatch_id: dispatch_id)
-```
-
-### Parallel mode (4 subagents)
-
-When `parallel > 1`, pull multiple steps before submitting. The MCP server
-tracks capacity and warns if you under-pull.
+Launch exactly `worker_count` Task subagents in a **single message** (Cursor
+platform supports up to 4 concurrent Tasks). Each Task receives the
+`worker_prompt` from the server verbatim:
 
 ```
-while true:
-  # Pull up to N steps
-  batch = []
-  for i in range(parallel):
-    response = get_next_step(session_id, timeout_ms: 10000)
-    if response.done:
-      break
-    if response.available:
-      batch.append(response)
-
-  if pipeline_done:
-    break
-
-  if len(batch) == 0:
-    continue
-
-  # Launch all subagents concurrently (up to 4 Task calls in one message)
-  results = launch_subagents_parallel(batch)
-
-  # Submit all artifacts
-  for result in results:
-    submit_artifact(session_id, artifact_json: result.artifact, dispatch_id: result.dispatch_id)
+for i in range(worker_count):
+  Task(
+    description="calibration worker {i}",
+    prompt=worker_prompt,
+    subagent_type="generalPurpose"
+  )
 ```
 
-Use the Task tool to spawn up to 4 concurrent subagents in a **single
-message** (Cursor platform limit: 4 concurrent Task calls).
+Workers will:
+1. Emit `worker_started` signal with `mode: "stream"`
+2. Loop: `get_next_step` → analyze `prompt_content` → `submit_artifact`
+3. Exit when `get_next_step` returns `done=true`
+4. Emit `worker_stopped` signal
 
-### Sticky subagents
+### Monitor progress
 
-Subagents persist across pipeline steps for the same case using the Task
-tool's `resume` parameter. Maintain a `case_id -> agent_id` map:
-
-- **First step for a case:** spawn a fresh Task subagent; store `agent_id`.
-- **Subsequent steps:** `Task(resume=agent_id)` — the subagent retains prior
-  context (triage, repos, error messages).
-- **Eviction:** when the map exceeds `parallel * 2`, evict LRU entries;
-  evicted cases get fresh subagents.
-
-### Subagent prompt
-
-Each Task subagent receives:
+While workers are running, periodically poll signals for observability:
 
 ```
-You are an Asterisk calibration subagent analyzing case {case_id} at step {step}.
-
-## MCP tools available
-You have access to emit_signal and get_signals MCP tools.
-
-## Instructions
-
-1. Emit start signal:
-   emit_signal(session_id="{session_id}", event="start", agent="sub",
-               case_id="{case_id}", step="{step}")
-
-2. Read the prompt file at: {prompt_path}
-   This contains all failure data, error messages, logs, and context.
-
-3. Identify the step from "{step}" and use the matching artifact schema.
-
-4. CALIBRATION MODE: The prompt begins with a calibration preamble.
-   Respond ONLY based on information in the prompt.
-   Do NOT read ground truth files, test files, or prior calibration artifacts.
-
-5. Analyze the failure data and produce the JSON artifact.
-
-6. Emit done signal:
-   emit_signal(session_id="{session_id}", event="done", agent="sub",
-               case_id="{case_id}", step="{step}",
-               meta={"bytes": "<artifact_size>"})
-
-7. Return the artifact JSON string to the parent agent.
-   Do NOT call submit_artifact yourself — the parent handles submission.
+get_signals(session_id, since: last_index)
 ```
 
-### Pipeline steps
+Look for:
+- `worker_started` — all workers registered
+- `step_ready` / `artifact_submitted` — pipeline progress
+- `session_error` — fatal error, report to user immediately
+- `worker_stopped` — worker exited loop
+- `session_done` / `pipeline_done` — all work complete
 
-| Step | Question | Key output |
-|------|----------|------------|
-| **F0 Recall** | Have I seen this before? | `match`, `confidence`, `reasoning` |
-| **F1 Triage** | What kind of failure? | `symptom_category`, `defect_type_hypothesis`, `candidate_repos` |
-| **F2 Resolve** | Which repos to investigate? | `selected_repos` |
-| **F3 Investigate** | Root cause? | `rca_message`, `defect_type`, `component`, `evidence_refs` |
-| **F4 Correlate** | Duplicate of prior case? | `is_duplicate`, `linked_rca_id` |
-| **F5 Review** | Is conclusion correct? | `decision` (approve/reassess/overturn) |
-| **F6 Report** | Final summary | `summary`, `defect_type`, `component` |
+Report progress to the user after each poll. Never let the user see silence
+for more than 30 seconds.
 
-For complete field-level schemas, see [artifact-schemas.md](../asterisk-analyze/artifact-schemas.md).
+### Worker replacement
+
+If a worker Task fails or is aborted:
+1. Log the failure via `emit_signal(event="error", agent="main")`
+2. Launch a replacement Task with the same `worker_prompt`
+3. The replacement picks up from wherever the pipeline is — no state to recover
 
 ---
 
@@ -222,7 +143,8 @@ For complete field-level schemas, see [artifact-schemas.md](../asterisk-analyze/
 
 ### Get the calibration report
 
-Once the pull loop exits (done=true), call:
+Once all workers exit (all `worker_stopped` signals received), or the pipeline
+signals `session_done`, call:
 
 ```
 get_report(session_id)
@@ -248,40 +170,41 @@ Display the `report` field verbatim to the user. Then summarize:
 >
 > 1. **Prompt tuning** — if M2 or M15 are low, see `domain-cursor-prompt-tuning` contract
 > 2. **Re-run** — `/asterisk-calibrate ptp-mock` to verify fixes
-> 3. **Full scenario** — `/asterisk-calibrate ptp-mock --parallel=4` for 30-case run
+> 3. **Full scenario** — `/asterisk-calibrate ptp-mock --parallel=4` for full run
 
 ---
 
-## Progress reporting
+## Pipeline steps (reference)
 
-After every `submit_artifact`, print progress: steps completed, cases
-processed, error count. Never let the operator see silence for more than
-one step's processing time.
+| Step | Question | Key output |
+|------|----------|------------|
+| **F0 Recall** | Have I seen this before? | `match`, `confidence`, `reasoning` |
+| **F1 Triage** | What kind of failure? | `symptom_category`, `defect_type_hypothesis`, `candidate_repos` |
+| **F2 Resolve** | Which repos to investigate? | `selected_repos` |
+| **F3 Investigate** | Root cause? | `rca_message`, `defect_type`, `component`, `evidence_refs` |
+| **F4 Correlate** | Duplicate of prior case? | `is_duplicate`, `linked_rca_id` |
+| **F5 Review** | Is conclusion correct? | `decision` (approve/reassess/overturn) |
+| **F6 Report** | Final summary | `summary`, `defect_type`, `component` |
 
-Monitor via signal bus:
-
-```
-get_signals(session_id, since: last_index)
-```
-
-Use this to detect errors, capacity warnings, and pipeline progress.
+For complete field-level schemas, see [artifact-schemas.md](../asterisk-analyze/artifact-schemas.md).
 
 ---
 
 ## Error handling
 
-### Subagent failure
+### Worker failure
 
-If a subagent fails to produce an artifact:
+If a worker Task fails or is aborted:
 
-1. Emit error signal: `emit_signal(session_id, "error", "main", case_id, step, meta={"error": "description"})`
-2. Submit a minimal fallback artifact (e.g. `{"decision": "reassess"}` for F5)
-3. Continue with the next step — don't stop the entire run
+1. Emit error signal: `emit_signal(session_id, "error", "main", meta={"error": "description"})`
+2. Launch a replacement worker with the same `worker_prompt`
+3. Continue monitoring — the pipeline is resilient to individual worker loss
 
 ### Session timeout
 
 The MCP server has a 5-minute inactivity watchdog. If no `submit_artifact`
-arrives for 5 minutes, the session aborts. Keep submitting to stay alive.
+arrives for 5 minutes, the session aborts. Workers keep submitting to stay
+alive.
 
 ### MCP disconnection
 
@@ -294,14 +217,14 @@ user to restart and re-run.
 
 When triggered with no args, "help", or unrecognized input:
 
-> **Asterisk Calibrate** — Wet LLM calibration via MCP
+> **Asterisk Calibrate** — Wet LLM calibration via MCP (Papercup v2)
 >
 > **Usage:** `/asterisk-calibrate <SCENARIO> [--parallel=N]`
 >
 > **Examples:**
 >
-> - `/asterisk-calibrate ptp-mock` — 12 cases, serial
-> - `/asterisk-calibrate ptp-mock --parallel=4` — 12 cases, 4 subagents
+> - `/asterisk-calibrate ptp-mock` — 12 cases, 4 workers (default)
+> - `/asterisk-calibrate ptp-mock --parallel=2` — 12 cases, 2 workers
 > - `/asterisk-calibrate daemon-mock` — daemon scenario
 >
 > **Prerequisites:**
@@ -312,9 +235,10 @@ When triggered with no args, "help", or unrecognized input:
 >
 > **What it does:**
 >
-> Runs the F0-F6 evidence pipeline against ground-truth cases with the
-> Cursor agent as the AI reasoning engine (via MCP tool calls). Produces
-> an M1-M21 metrics scorecard measuring pipeline accuracy.
+> Runs the F0-F6 evidence pipeline against ground-truth cases. Worker
+> subagents are launched with server-generated prompts. Each worker calls
+> `get_next_step` and `submit_artifact` directly (Papercup v2 choreography).
+> Produces an M1-M21 metrics scorecard measuring pipeline accuracy.
 >
 > **Available scenarios:** `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest`
 
@@ -324,4 +248,4 @@ When triggered with no args, "help", or unrecognized input:
 - **Never** read ground truth files (`internal/calibrate/scenarios/`, `*_test.go`)
   during calibration — this corrupts the blind evaluation.
 - **Never** read prior calibration artifacts from other cases mid-run.
-- Subagents must respect the calibration preamble in prompts.
+- Workers must respect the calibration preamble in prompts.

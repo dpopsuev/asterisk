@@ -143,22 +143,23 @@ Rewrite the skill to v2 supervisor pattern. Update Origami guide. Update the `as
 
 ### Phase 1 — Server-side embedding
 
-- [ ] **P1.1** Add `WorkerPrompt()` method to `Session` in `internal/mcp/session.go` — generates complete worker loop instructions with session_id, step schemas (F0-F6), signal protocol, inline prompt usage hint.
-- [ ] **P1.2** Add `worker_prompt` and `worker_count` fields to `startCalibrationOutput`; wire `WorkerPrompt()` into `handleStartCalibration`.
-- [ ] **P1.3** Add `prompt_content` field to `getNextStepOutput`; read prompt file inline in `handleGetNextStep`. Graceful fallback if file read fails.
-- [ ] **P1.4** Reword `CapacityWarning` in `handleGetNextStep` (`server.go` line 258) to protocol-agnostic: `"system under capacity: %d/%d workers active"`.
-- [ ] **P1.5** Reword `CheckCapacityGate` error message in `session.go` (line 169-173) to neutral language: `"capacity gate: %d/%d concurrent workers observed (peak: %d). System expects %d."`.
-- [ ] **P1.6** Add tests: `TestStartCalibration_WorkerPrompt` (non-empty, contains session_id), `TestGetNextStep_InlinePrompt` (prompt_content matches file at prompt_path).
-- [ ] **P1.7** Validate (green) — `go build ./...` && `go test ./internal/mcp/...` && `go test ./...`.
+- [x] **P1.1** Add `WorkerPrompt()` method to `Session` in `internal/mcp/session.go` — generates complete worker loop instructions with session_id, step schemas (F0-F6), signal protocol, inline prompt usage hint.
+- [x] **P1.2** Add `worker_prompt` and `worker_count` fields to `startCalibrationOutput`; wire `WorkerPrompt()` into `handleStartCalibration`.
+- [x] **P1.3** Add `prompt_content` field to `getNextStepOutput`; read prompt file inline in `handleGetNextStep`. Graceful fallback if file read fails.
+- [x] **P1.4** Reword `CapacityWarning` in `handleGetNextStep` to protocol-agnostic: `"system under capacity: %d/%d workers active"`.
+- [x] **P1.5** Reword `CheckCapacityGate` error message in `session.go` to neutral language: `"capacity gate: %d/%d concurrent workers observed (peak: %d). System expects %d workers"`.
+- [x] **P1.6** Add tests: `TestStartCalibration_WorkerPrompt`, `TestGetNextStep_InlinePrompt`, `TestCapacityWarning_ProtocolAgnostic`, `TestCapacityGate_ProtocolAgnostic`, `TestWorkerMode_StreamRegistration`, `TestWorkerMode_NoWorkerID_Ignored`, `TestV2Workers_FullDrain_Deterministic`, `TestV2Workers_ViaResolve_Deterministic`, `TestV2Workers_ConcurrencyTiming_Deterministic`, `TestWorkerPrompt_StepSchemas`, `TestWorkerPrompt_SessionIDEmbedded`.
+- [x] **P1.7** Validate (green) — `go build ./...` && `go test ./internal/mcp/...` && `go test ./...`.
+- [x] **P1.NEW** Worker mode tracking: `RegisterWorker()` method, `WorkerModeStats()`, server intercepts `worker_started` signals to register workers with declared mode.
 
 ### Phase 2 — Skill rewrite and docs
 
-- [ ] **P2.1** Rewrite `.cursor/skills/asterisk-calibrate/SKILL.md` to v2 supervisor pattern: call `start_calibration` -> launch `worker_count` Tasks with `worker_prompt` -> monitor via `get_signals` -> `get_report`. Remove all `get_next_step`/`submit_artifact` calls from skill. Remove "Parallel mode" batch-pull section.
-- [ ] **P2.2** Update `origami/docs/cursor-skill-guide.md` "Agent Bus Protocol" section (lines 89-118): flip responsibility table to v2, replace "Parallel mode" with supervisor/worker pattern, reference server-generated `worker_prompt`.
-- [ ] **P2.3** Update `asterisk-calibrate-skill.md` contract notes with v1 -> v2 migration note.
-- [ ] **P2.4** Validate (green) — `go build ./...` in both Asterisk and Origami.
-- [ ] **P2.5** Tune (blue) — review skill and guide for clarity.
-- [ ] **P2.6** Validate (green) — all tests still pass.
+- [x] **P2.1** Rewrite `.cursor/skills/asterisk-calibrate/SKILL.md` to v2 supervisor pattern: call `start_calibration` -> launch `worker_count` Tasks with `worker_prompt` -> monitor via `get_signals` -> `get_report`. Removed all `get_next_step`/`submit_artifact` calls from skill. Removed "Parallel mode" batch-pull section.
+- [x] **P2.2** Update `origami/docs/cursor-skill-guide.md` "Agent Bus Protocol" section: flipped responsibility table to v2, replaced "Parallel mode" with supervisor/worker pattern, referenced server-generated `worker_prompt`.
+- [x] **P2.3** Update `asterisk-calibrate-skill.md` contract notes with v1 -> v2 migration note.
+- [x] **P2.4** Validate (green) — `go build ./...` in both Asterisk and Origami.
+- [x] **P2.5** Tune (blue) — reviewed skill and guide for clarity; both follow v2 pattern consistently.
+- [x] **P2.6** Validate (green) — all tests pass in both repos.
 
 ## Acceptance criteria
 
