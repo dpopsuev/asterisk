@@ -98,4 +98,6 @@ No trust boundaries affected.
 
 ## Notes
 
+- 2026-02-24 16:00 — **Domain assessment: Asterisk-only.** No Origami changes needed. Origami provides correct walk loop, edge evaluation, and loop-count infrastructure. All fixes are Asterisk pipeline orchestration (M3 recall digest timing), prompt content (M9 F2 Resolve), and scenario data (M10 ground truth). See plan: `domain_assessment_m3-m18`.
+- 2026-02-24 16:00 — M10 already expanded: ExpectedResolve added to C4, C10, C12 in prior commit `8f52b38`. Task removed from this contract.
 - 2026-02-24 15:00 — Contract created. Split from `wet-calibration-tuning.md` Round 5 remaining gaps. M3 and M9 are related (both depend on worker using context correctly) and can be tuned together.

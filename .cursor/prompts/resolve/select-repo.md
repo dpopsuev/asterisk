@@ -90,7 +90,17 @@ The convergence was too low. Select a different repo or broader scope for the re
 4. If multiple repos are needed, describe a cross-reference strategy.
 5. If this is a loop retry, select a **different** repo or broader scope than the previous attempt.
 
-**Precision over breadth:** Selecting too many repos dilutes investigation focus. A wrong repo wastes an investigation step. When in doubt, pick the single repo whose purpose most closely matches the triage symptom.
+**Repo selection by defect type:**
+
+| Triage hypothesis | Preferred repo type | Reasoning |
+|---|---|---|
+| Product bug | Product / operator repo | The root cause lives in the product code, not in the test that revealed it. |
+| Automation bug | Test / framework repo | The root cause is in test logic, assertions, or setup code. |
+| Environment issue | CI config / infra repo | The root cause is in environment configuration. |
+
+**CRITICAL:** Test frameworks contain assertions that **reveal** symptoms. When the hypothesis is a product bug, the test framework shows **what failed** but not **why** — the root cause is in the product repo where the buggy code lives. Use the `Purpose` column in the Available repos table to identify which repos contain product code vs test code.
+
+**Precision over breadth:** Selecting too many repos dilutes investigation focus. A wrong repo wastes an investigation step. When in doubt, pick the single repo whose purpose most closely matches the triage hypothesis and defect type.
 
 ## Output format
 

@@ -265,7 +265,7 @@ func TestHeuristic_InvestigateLowLoop(t *testing.T) {
 	rules := DefaultHeuristics(th)
 	state := InitState(10, 1)
 
-	artifact := &InvestigateArtifact{ConvergenceScore: 0.5, EvidenceRefs: []string{"some-evidence"}}
+	artifact := &InvestigateArtifact{ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"}}
 	action, ruleID := EvaluateHeuristics(rules, StepF3Invest, artifact, state)
 	if action.NextStep != StepF2Resolve || ruleID != "H10" {
 		t.Errorf("investigate-low: got step=%s rule=%s", action.NextStep, ruleID)
@@ -276,9 +276,9 @@ func TestHeuristic_InvestigateExhausted(t *testing.T) {
 	th := DefaultThresholds()
 	rules := DefaultHeuristics(th)
 	state := InitState(10, 1)
-	state.LoopCounts["investigate"] = 2 // exhausted
+	state.LoopCounts["investigate"] = 1 // exhausted (MaxInvestigateLoops=1)
 
-	artifact := &InvestigateArtifact{ConvergenceScore: 0.5, EvidenceRefs: []string{"some-evidence"}}
+	artifact := &InvestigateArtifact{ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"}}
 	action, ruleID := EvaluateHeuristics(rules, StepF3Invest, artifact, state)
 	if action.NextStep != StepF5Review || ruleID != "H11" {
 		t.Errorf("investigate-exhausted: got step=%s rule=%s", action.NextStep, ruleID)

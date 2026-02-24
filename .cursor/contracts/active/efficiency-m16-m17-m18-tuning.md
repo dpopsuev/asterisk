@@ -114,4 +114,6 @@ No trust boundaries affected.
 
 ## Notes
 
+- 2026-02-24 16:00 — **Domain assessment: Asterisk-only.** No Origami changes needed. Convergence threshold (`ConvergenceSufficient: 0.70`) and loop budget (`MaxInvestigateLoops: 2`) live in `internal/orchestrate/heuristics.go`. 4/7 M16 path failures are M3 recall misses; 3/7 are convergence loops. Fix M3 first, then tune heuristics. See plan: `domain_assessment_m3-m18`.
+- 2026-02-24 16:00 — Corrected contract: actual convergence threshold is 0.70 (not 0.75), actual loop budget is 2 retries allowing 3 F3 passes (not 3 retries).
 - 2026-02-24 15:00 — Contract created. Split from `wet-calibration-tuning.md` Round 5 remaining gaps. M16/M17/M18 are causally linked (loops → paths → tokens). Strong dependency on M3 recall fix — execute `m3-m9-tuning.md` first.

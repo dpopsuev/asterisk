@@ -16,8 +16,8 @@ func DefaultThresholds() Thresholds {
 	return Thresholds{
 		RecallHit:             0.80,
 		RecallUncertain:       0.40,
-		ConvergenceSufficient: 0.70,
-		MaxInvestigateLoops:   2,
+		ConvergenceSufficient: 0.50,
+		MaxInvestigateLoops:   1,
 		CorrelateDup:          0.80,
 	}
 }

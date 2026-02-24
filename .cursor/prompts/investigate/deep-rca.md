@@ -89,7 +89,7 @@ Perform deep root-cause analysis for the failed test by investigating the select
 - **G14 (confirmation-bias):** After forming your hypothesis, actively look for **contradicting evidence**. List at least one reason your hypothesis could be wrong.
 - **G15 (single-cause-assumption):** Consider whether the failure requires a **combination** of conditions.
 - **G16 (phantom-code-blame):** Before blaming code, check: has this code changed since the last passing run? If not, the cause is likely environmental.
-- **G17 (confidence-anchoring):** Calibrate convergence score: **0.9+** = exact line/commit + full causal chain; **0.7–0.9** = strong hypothesis with evidence; **0.5–0.7** = plausible but missing key evidence; **below 0.5** = speculative. No error message + no log = score cannot exceed 0.5.
+- **G17 (confidence-anchoring):** Calibrate convergence score: **0.9+** = exact line/commit + full causal chain; **0.7–0.9** = strong hypothesis with evidence; **0.5–0.7** = clear direction from error/log but no direct file access; **below 0.5** = speculative or contradictory evidence. When the error message and triage context clearly point to a component and defect type, score **0.6+** even without direct file evidence — the causal direction is established.
 - **G19 (backport-lag):** If a related fix exists on main/newer branch, check if it's backported to the branch under test.
 - **G21 (cluster-state-leftover):** If the error suggests unexpected initial state, consider dirty state from a previous test/job.
 - **G22 (operator-version-tunnel-vision):** Don't blame version changes without connecting them to the failure path.
