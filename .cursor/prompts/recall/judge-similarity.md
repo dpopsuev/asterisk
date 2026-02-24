@@ -51,6 +51,16 @@ Determine whether this failure has been seen before by comparing it against prio
 
 {{end}}{{end}}{{end}}
 
+{{if .RecallDigest}}## All known RCAs in this run
+
+These RCAs were discovered from other cases in the current calibration run. If the current failure's error pattern matches any of these, set `match: true` with the matching RCA ID and high confidence.
+
+| RCA ID | Component | Defect Type | Summary |
+|--------|-----------|-------------|---------|
+{{range .RecallDigest}}| #{{.ID}} | {{.Component}} | {{.DefectType}} | {{.Summary}} |
+{{end}}
+{{end}}
+
 ## Guards
 
 {{if .Failure.LogTruncated}}- **G1 (truncated-log):** The log snippet ends abruptly. State that the log is incomplete and lower your confidence. Do NOT infer root cause from truncated output alone.{{end}}

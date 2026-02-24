@@ -97,7 +97,7 @@ Perform deep root-cause analysis for the failed test by investigating the select
 - **G29 (hallucinated-evidence):** Every evidence ref MUST be real and verifiable. Do not fabricate commit SHAs, file paths, or log excerpts.
 - **G30 (red-herring-refactor):** Distinguish behavioral changes from refactoring in recent commits.
 - **G31 (missing-git-context):** If no branch/commit from envelope, state the uncertainty.
-- **G32 (vague-rca-message):** RCA must be specific and actionable: name exact component/function/config, describe causal mechanism, state what would fix it.
+- **G32 (vague-rca-message):** RCA must be specific and actionable: name exact component/function/config, describe causal mechanism, state what would fix it. Include concrete values (e.g. "timeout changed from 300s to 60s"), function/method names (e.g. "AfterSuite"), and the component name (e.g. "linuxptp-daemon"). Generic phrases like "configuration issue" or "test failure" are insufficient.
 - **G33 (wrong-defect-type-code):** Use ONLY codes from the taxonomy above. If none fit, use `ti001`.
 - **G34 (evidence-without-reasoning):** For each evidence ref, explain **how** it supports the conclusion.
 
@@ -131,10 +131,23 @@ Save as `artifact.json`:
   "case_ids": [{{.CaseID}}],
   "rca_message": "Specific root cause description: component X fails because Y changed in commit Z, causing W.",
   "defect_type": "pb001",
+  "component": "linuxptp-daemon",
   "convergence_score": 0.85,
   "evidence_refs": [
-    "path/to/file.go:42 — changed threshold from 300s to 60s (commit abc123)",
-    "log line: 'FREERUN transition detected' at T+3m (first error)"
+    "linuxptp-daemon-operator:pkg/daemon/config.go:abc1234",
+    "ptp-test-framework:test/e2e/ptp_config_test.go:AfterSuite"
   ]
 }
 ```
+
+### Evidence ref format
+
+Each evidence ref MUST follow the structured format: `<repo-name>:<file-path>:<identifier>`
+
+- `repo-name`: the repository name from the workspace (e.g. `linuxptp-daemon-operator`)
+- `file-path`: path within the repo to the relevant file (e.g. `pkg/daemon/config.go`)
+- `identifier`: a commit SHA, function name, or keyword (e.g. `abc1234`, `AfterSuite`)
+
+Good: `"linuxptp-daemon-operator:pkg/daemon/config.go:abc1234"`  
+Good: `"ptp-test-framework:test/e2e/ptp_config_test.go:AfterSuite"`  
+Bad: `"The holdover timeout was changed from 300s to 60s"` (free-form text, not structured)

@@ -75,14 +75,25 @@ Classify by **root cause domain** — where does the bug live?
 |----------|---------|----------------|-------------------|
 | `product` | Bug in the product under test (operator, daemon, proxy). Code logic error, wrong state machine transition, incorrect value mapping. | Assertion failures on SUT behavior ("Expected X got Y" on product state), panic/segfault in product code, incorrect sync state, wrong clock class, holdover re-entry timing | pb001 |
 | `automation` | Bug in the test framework or test code itself. The product is correct but the test is wrong. | Test harness misconfiguration, wrong test assertion, test setup error, test timeout due to bad polling interval, test code referencing wrong resource | au001 |
-| `environment` | Bug in the infrastructure, cluster, or CI environment. Neither product nor test code is at fault. | Node not ready, DNS failure, connection refused, resource quota exceeded, operator not installed, missing CRD, cluster state leftover from prior test | en001 |
+| `infra` | Bug in the infrastructure, cluster, or CI environment. Neither product nor test code is at fault. | Node not ready, DNS failure, connection refused, resource quota exceeded, operator not installed, missing CRD, NTP/chrony unreachable, cluster state leftover from prior test | en001 |
+| `flake` | Transient, non-reproducible failure. Product and test are both correct but timing or environment conditions caused a one-off failure. | Intermittent timeout, offset variance spike, Eventually timeout on edge-case timing, known unstable test, non-deterministic ordering | nd001 |
 | `firmware` | Bug in firmware or hardware-adjacent code (NIC, FPGA, PHC). Not product-level software. | NIC firmware mismatch, FPGA register misconfiguration, PHC clock source error | fw001 |
 
 **Decision guide:**
 1. If the error traces to product source code (operator, daemon, proxy) -> `product`
 2. If the error is in test assertions, test setup, or test fixtures -> `automation`
-3. If the error is from infrastructure, cluster state, or CI environment -> `environment`
-4. When uncertain, prefer `product` — in this domain, ~80% of verified bugs are product bugs.
+3. If the error is from infrastructure, cluster state, or CI environment -> `infra`
+4. If the failure is intermittent and non-reproducible, with no clear code or infra fault -> `flake`
+5. When uncertain, prefer `product` — in this domain, ~80% of verified bugs are product bugs.
+
+**Key disambiguation — product vs automation:**
+- If the error shows a **product behavior discrepancy** (e.g. timeout value changed from 300s to 60s, wrong state transition, incorrect clock class), classify as `product` even if the failure manifests as a test assertion ("Expected X got Y"). The product is doing the wrong thing; the test is correctly catching it.
+- Reserve `automation` only for cases where the **test code itself** is wrong: missing cleanup (stale CRDs), wrong assertion target, test setup error, bad polling interval. The product behavior is correct but the test is broken.
+- A holdover/sync timeout discrepancy (e.g. "expected 300s" vs "after 60s") is a product configuration change, not a test bug.
+
+**Key disambiguation — infra vs flake:**
+- `infra`: the failure has a clear, persistent infrastructure cause (NTP unreachable, node not ready, missing CRD). Re-running would likely fail again unless the infra is fixed.
+- `flake`: the failure is transient and non-reproducible — a timing window was missed, a race condition in the environment, or variance caused a threshold violation. Re-running would likely pass. Use `flake` only when there is no persistent root cause.
 
 {{.Taxonomy.DefectTypes}}
 

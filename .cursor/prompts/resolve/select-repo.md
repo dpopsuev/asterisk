@@ -84,10 +84,13 @@ The convergence was too low. Select a different repo or broader scope for the re
 
 ## Instructions
 
-1. Using the triage result and repo purposes, select the most relevant repo(s).
-2. For each repo, specify focus paths (directories/files to look at) and why.
-3. If multiple repos are needed, describe a cross-reference strategy.
-4. If this is a loop retry, select a **different** repo or broader scope than the previous attempt.
+1. Using the triage result and repo purposes, select the **single most relevant repo** for the root cause.
+2. Only add a second repo if the error **clearly spans two components** (e.g. test code calls product API incorrectly — need both). In most cases, one repo is sufficient.
+3. For each repo, specify focus paths (directories/files to look at) and why.
+4. If multiple repos are needed, describe a cross-reference strategy.
+5. If this is a loop retry, select a **different** repo or broader scope than the previous attempt.
+
+**Precision over breadth:** Selecting too many repos dilutes investigation focus. A wrong repo wastes an investigation step. When in doubt, pick the single repo whose purpose most closely matches the triage symptom.
 
 ## Output format
 
