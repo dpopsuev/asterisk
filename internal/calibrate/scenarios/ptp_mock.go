@@ -7,12 +7,13 @@ import "asterisk/internal/calibrate"
 // 3 versions, 3 pipelines, 12 cases, 4 symptoms, 3 RCAs.
 func PTPMockScenario() *calibrate.Scenario {
 	return &calibrate.Scenario{
-		Name:        "ptp-mock",
-		Description: "PTP Calibration World: synthetic ground truth with 12 cases, 4 symptoms, 3 RCAs across 3 versions",
-		RCAs:        ptpMockRCAs(),
-		Symptoms:    ptpMockSymptoms(),
-		Cases:       ptpMockCases(),
-		Workspace:   ptpMockWorkspace(),
+		Name:             "ptp-mock",
+		Description:      "PTP Calibration World: synthetic ground truth with 12 cases, 4 symptoms, 3 RCAs across 3 versions",
+		DryCappedMetrics: []string{"M12", "M13"},
+		RCAs:             ptpMockRCAs(),
+		Symptoms:         ptpMockSymptoms(),
+		Cases:            ptpMockCases(),
+		Workspace:        ptpMockWorkspace(),
 	}
 }
 
@@ -175,6 +176,9 @@ func ptpMockCases() []calibrate.GroundTruthCase {
 				DefectTypeHypothesis: "au001",
 				CandidateRepos:       []string{"ptp-test-framework"},
 			},
+			ExpectedResolve: &calibrate.ExpectedResolve{
+				SelectedRepos: ptpResolveRepos("ptp-test-framework"),
+			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "AfterSuite cleanup in ptp_config_test.go is commented out. Stale PtpConfig CRDs from previous test suites are not deleted, causing assertion failures when the next suite checks for config isolation.",
 				DefectType:       "au001",
@@ -284,6 +288,9 @@ func ptpMockCases() []calibrate.GroundTruthCase {
 				DefectTypeHypothesis: "pb001",
 				CandidateRepos:       []string{"linuxptp-daemon-operator"},
 			},
+			ExpectedResolve: &calibrate.ExpectedResolve{
+				SelectedRepos: ptpResolveRepos("linuxptp-daemon-operator"),
+			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "PTP lock recovery fails because the holdover timeout was reduced from 300s to 60s. The ptp4l process enters FREERUN after 60s and never recovers. Same root cause as the sync stability failures — commit abc1234 on release-4.21.",
 				DefectType:       "pb001",
@@ -336,6 +343,9 @@ func ptpMockCases() []calibrate.GroundTruthCase {
 				DefectTypeHypothesis: "au001",
 				CandidateRepos:       []string{"ptp-test-framework"},
 				CascadeSuspected:     true,
+			},
+			ExpectedResolve: &calibrate.ExpectedResolve{
+				SelectedRepos: ptpResolveRepos("ptp-test-framework"),
 			},
 			ExpectedInvest: &calibrate.ExpectedInvest{
 				RCAMessage:       "Cascade from stale PtpConfig CRD. Same root cause as OCP-83299 — AfterSuite cleanup missing.",

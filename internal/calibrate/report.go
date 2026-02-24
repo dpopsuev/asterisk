@@ -32,12 +32,16 @@ func FormatReport(report *CalibrationReport) string {
 			format.ColumnConfig{Number: 6, Align: format.AlignLeft},
 		)
 		for _, m := range metrics {
+			passMark := format.BoolMark(m.Pass)
+			if m.DryCapped {
+				passMark = "~"
+			}
 			tbl.Row(
 				m.ID,
 				display.Metric(m.ID),
 				fmt.Sprintf("%.2f", m.Value),
 				m.Detail,
-				format.BoolMark(m.Pass),
+				passMark,
 				formatThreshold(m),
 			)
 		}

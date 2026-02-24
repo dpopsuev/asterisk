@@ -15,12 +15,13 @@ import "asterisk/internal/calibrate"
 // DaemonMockScenario returns the second mock scenario for calibration.
 func DaemonMockScenario() *calibrate.Scenario {
 	return &calibrate.Scenario{
-		Name:        "daemon-mock",
-		Description: "Daemon Process Management: 2 RCAs (broken pipe + config hang), 3 symptoms, 8 cases",
-		RCAs:        daemonMockRCAs(),
-		Symptoms:    daemonMockSymptoms(),
-		Cases:       daemonMockCases(),
-		Workspace:   daemonMockWorkspace(),
+		Name:             "daemon-mock",
+		Description:      "Daemon Process Management: 2 RCAs (broken pipe + config hang), 3 symptoms, 8 cases",
+		DryCappedMetrics: []string{"M12", "M13"},
+		RCAs:             daemonMockRCAs(),
+		Symptoms:         daemonMockSymptoms(),
+		Cases:            daemonMockCases(),
+		Workspace:        daemonMockWorkspace(),
 	}
 }
 

@@ -9,13 +9,14 @@ import (
 
 // Scenario defines a complete calibration scenario with ground truth data.
 type Scenario struct {
-	Name        string               `json:"name"`
-	Description string               `json:"description"`
-	RCAs        []GroundTruthRCA     `json:"rcas"`
-	Symptoms    []GroundTruthSymptom `json:"symptoms"`
-	Cases       []GroundTruthCase    `json:"cases"`
-	Candidates  []GroundTruthCase    `json:"candidates,omitempty"` // unverified cases tracked for dataset growth, never scored
-	Workspace   WorkspaceConfig      `json:"workspace"`
+	Name             string               `json:"name"`
+	Description      string               `json:"description"`
+	RCAs             []GroundTruthRCA     `json:"rcas"`
+	Symptoms         []GroundTruthSymptom `json:"symptoms"`
+	Cases            []GroundTruthCase    `json:"cases"`
+	Candidates       []GroundTruthCase    `json:"candidates,omitempty"` // unverified cases tracked for dataset growth, never scored
+	Workspace        WorkspaceConfig      `json:"workspace"`
+	DryCappedMetrics []string             `json:"dry_capped_metrics,omitempty"` // metrics structurally unsolvable without real repo content
 }
 
 // GroundTruthRCA is a known root cause for calibration scoring.
@@ -161,7 +162,8 @@ type Metric struct {
 	Value     float64 `json:"value"`
 	Threshold float64 `json:"threshold"`
 	Pass      bool    `json:"pass"`
-	Detail    string  `json:"detail"` // e.g. "10/12"
+	Detail    string  `json:"detail"`               // e.g. "10/12"
+	DryCapped bool    `json:"dry_capped,omitempty"`  // structurally unsolvable in dry calibration
 }
 
 // MetricSet holds all computed metrics for a calibration run.
@@ -186,16 +188,20 @@ func (ms *MetricSet) AllMetrics() []Metric {
 	return all
 }
 
-// PassCount returns (passed, total).
+// PassCount returns (passed, total), excluding dry-capped metrics from both counts.
 func (ms *MetricSet) PassCount() (int, int) {
 	all := ms.AllMetrics()
-	passed := 0
+	passed, total := 0, 0
 	for _, m := range all {
+		if m.DryCapped {
+			continue
+		}
+		total++
 		if m.Pass {
 			passed++
 		}
 	}
-	return passed, len(all)
+	return passed, total
 }
 
 // DatasetHealth summarizes the ground truth dataset composition.

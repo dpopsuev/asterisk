@@ -67,7 +67,31 @@ func computeMetrics(scenario *Scenario, results []CaseResult) MetricSet {
 			Pass: true, Detail: "single run"},
 	}
 
+	applyDryCaps(&ms, scenario.DryCappedMetrics)
+
 	return ms
+}
+
+// applyDryCaps marks metrics that are structurally unsolvable in dry calibration.
+func applyDryCaps(ms *MetricSet, capped []string) {
+	if len(capped) == 0 {
+		return
+	}
+	set := make(map[string]bool, len(capped))
+	for _, id := range capped {
+		set[id] = true
+	}
+	sections := []*[]Metric{
+		&ms.Structured, &ms.Workspace, &ms.Evidence,
+		&ms.Semantic, &ms.Pipeline, &ms.Aggregate,
+	}
+	for _, sec := range sections {
+		for i := range *sec {
+			if set[(*sec)[i].ID] {
+				(*sec)[i].DryCapped = true
+			}
+		}
+	}
 }
 
 // --- M1: Defect type accuracy ---
