@@ -12,9 +12,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|--------|
 | `asterisk-calibrate-skill.md` | Ship an `asterisk-calibrate` Cursor Skill that drives wet LLM calibration via MCP — zero file writes, zero approval gates. | PoC completion (gate) |
 | `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
-| `papercup-v2-hardening.md` | Embed Papercup v2 choreography into Go code: server-generated worker prompt, inline prompt content, protocol-agnostic gate messages, v2 supervisor skill. | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
-| `distillation-endgame.md` | Migrate remaining framework packages from Asterisk to Origami; build artifact schemas, exec engine, generic dispatch. Successor to `asterisk-origami-distillation`. | Framework showcase |
 
 ## draft/ -- Planned, not yet being executed
 
@@ -85,7 +83,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `cursor-skill.md` | `asterisk-investigate` Cursor skill; signal-based F0-F6 artifact production. |
 | `wet-calibration.md` | Dry/wet calibration taxonomy, 28 Test Cards, victory loop. **Closed.** |
 
-### completed/calibration/ (7)
+### completed/calibration/ (8)
 
 | Contract | Goal |
 |----------|------|
@@ -96,12 +94,14 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `parallel-investigation.md` | Fan-out F0-F1, symptom clustering, 3x speedup. |
 | `ground-truth-v2.md` | Correct scenario data to match Jira audit. |
 | `true-wet-calibration.md` | Blind calibration against Jira-verified truth. M19 = 0.93 achieved. |
+| `papercup-v2-hardening.md` | Embed Papercup v2 choreography: server-generated worker prompt, inline prompt content, mode tracking, v2 supervisor skill. |
 
-### completed/distillation/ (1)
+### completed/distillation/ (2)
 
 | Contract | Goal |
 |----------|------|
 | `asterisk-origami-distillation.md` | Validate framework boundary by classifying every package and building Achilles as a second Origami tool with zero domain imports. |
+| `distillation-endgame.md` | Migrate remaining framework packages from Asterisk to Origami; build artifact schemas, exec engine, generic dispatch. |
 
 ### Moved to Origami
 

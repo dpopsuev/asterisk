@@ -1,6 +1,6 @@
 # Contract — distillation-endgame
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Migrate remaining framework-disguised packages from Asterisk to Origami and build three framework capabilities so domain tools register behavior, not execution machinery.  
 **Serves:** Framework showcase (current goal)
 

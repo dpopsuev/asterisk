@@ -1,6 +1,6 @@
 # Contract — papercup-v2-hardening
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Embed the Papercup v2 choreography protocol into Go code so the agent cannot misinterpret it: server-generated worker prompt, inline prompt content, protocol-agnostic gate messages, and a thin v2 supervisor skill.  
 **Serves:** PoC completion (gate)
 
