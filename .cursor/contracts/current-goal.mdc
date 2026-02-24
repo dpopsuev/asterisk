@@ -37,7 +37,9 @@ Ordered by priority within each tier. Agents should work top-down: complete gate
 | **gate** | `asterisk-calibrate-skill` | active | MCP-based Cursor Skill for wet calibration. Skill rewritten to v2 supervisor pattern; needs wet validation. |
 | **gate** | `rp-e2e-launch` | active | Final PoC gate. BasicAdapter M19=0.83. CursorAdapter Phase 5a FAIL M19=0.50. |
 | **gate** | `domain-cursor-prompt-tuning` | active | Prompt fixes to lift CursorAdapter M19 from 0.50 toward 0.85. Taxonomy + component priors. |
-| **gate** | `wet-calibration-tuning` | active | Lift ptp-mock M19 from 0.49 to >= 0.65. Path scoring, evidence format, recall digest, component priors. |
+| ~~gate~~ | ~~`wet-calibration-tuning`~~ | **complete** | Dry M19: 0.49 → 0.74. Terminology corrected: runs were dry, not wet. |
+| **gate** | `m3-m9-tuning` | active | Lift M3 (recall) from 0.33→0.70, M9 (repo precision) from 0.62→0.70. |
+| **gate** | `efficiency-m16-m17-m18-tuning` | active | Path/loops/tokens. Depends on M3 fix. M16: 0.42→0.60, M17: 8→[0.5,2.0], M18: 91k→60k. |
 | ~~gate~~ | ~~`poc-scope-precision`~~ | **complete** | All 7 tasks done. Moved to `completed/poc-v2/`. |
 | ~~gate~~ | ~~`phase-5a-mitigation`~~ | **complete** | Umbrella closed. All 9 tasks done. Moved to `completed/poc-v2/`. |
 | ~~gate~~ | ~~`workspace-mvp`~~ | **complete** | 11 tasks done, 5 tests. Moved to `completed/poc-v2/`. |

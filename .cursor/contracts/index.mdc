@@ -13,7 +13,9 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `asterisk-calibrate-skill.md` | Ship an `asterisk-calibrate` Cursor Skill that drives wet LLM calibration via MCP — zero file writes, zero approval gates. | PoC completion (gate) |
 | `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
-| `wet-calibration-tuning.md` | Lift CursorAdapter ptp-mock M19 from 0.49 to >= 0.65 via path scoring, evidence format, recall digest, component priors. | PoC completion (gate) |
+| `wet-calibration-tuning.md` | Lift CursorAdapter ptp-mock dry M19 from 0.49 to >= 0.65. **Complete** (M19=0.74). Terminology corrected: runs were dry, not wet. | PoC completion (gate) |
+| `m3-m9-tuning.md` | Lift M3 (Recall Hit Rate) from 0.33 to >= 0.70 and M9 (Repo Selection Precision) from 0.62 to >= 0.70. | PoC completion (gate) |
+| `efficiency-m16-m17-m18-tuning.md` | Lift M16 (Path Accuracy) >= 0.60, M17 (Loop Efficiency) into 0.5–2.0, M18 (Tokens) <= 60000. Depends on M3 fix. | PoC completion (gate) |
 
 ## draft/ -- Planned, not yet being executed
 

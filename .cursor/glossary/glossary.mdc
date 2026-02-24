@@ -24,6 +24,20 @@ description: Shared domain definitions for Asterisk
 - **Cursor mode** — `asterisk --cursor`: Asterisk uses Cursor as the backing model. See `notes/poc-flow.mdc`.
 - **Sensitive data** — Execution Envelope / launch data, artifact contents, context workspace config (including repo URLs and tokens), RP API tokens, AI provider keys, and any PII.
 
+## Calibration terminology
+
+Three calibration modes form a progression. Each adds a variable.
+
+| Mode | Adapter | Scenario | What it validates |
+|------|---------|----------|-------------------|
+| **Stub** | Stub (canned responses) | Mock (synthetic) | Pipeline machinery, heuristics, scoring math. Deterministic. |
+| **Dry** | Cursor (real LLM) | Mock (synthetic) | Prompt quality and model behavior against synthetic ground truth. LLM fires, but at blank targets. Army analogy: dry fire — weapon cycles, no live ammo. |
+| **Wet** | Cursor (real LLM) | Real (production data) | End-to-end production accuracy. LLM fires at real RP failures with real repos. Army analogy: wet fire — loaded guns, live range. |
+
+- **Stub calibration** (`--adapter stub`) — No LLM involved. `StubAdapter` returns pre-authored ideal responses. Tests that the scoring, heuristic routing, and metric computation work correctly. Always runs first.
+- **Dry calibration** (`--adapter cursor --scenario ptp-mock`) — Real LLM produces real responses, but the data it reasons over is synthetic (fabricated test failures, no actual repo content). Validates prompts, model reasoning, and artifact format. Workers cannot cite real file paths because no real repos are accessible — evidence metrics (M12/M13) are structurally capped.
+- **Wet calibration** (`--adapter cursor --scenario ptp-real*`) — Real LLM, real RP launch data, real repos on disk. The definitive accuracy measurement. Workers can browse actual files and cite real evidence. This is the finish line.
+
 ## Two-tier data model
 
 The data model has two tiers: **investigation-scoped** entities (the execution tree) and **global knowledge** entities (institutional memory). See `docs/cli-data-model.mdc`.

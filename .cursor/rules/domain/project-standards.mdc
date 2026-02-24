@@ -25,12 +25,15 @@ alwaysApply: true
 
 ## Calibration ordering
 
-1. **Mock calibration** (synthetic ground truth) runs continuously and guides refactoring.
-2. **Real calibration** (production Jira bugs, RP launches, production repos) is the **final step** — attempted only when:
+Three modes form a progression (see `glossary/glossary.mdc` for definitions):
+
+1. **Stub** — deterministic, no LLM. Validates pipeline machinery. Runs after every code change.
+2. **Dry** (real LLM + synthetic data) — validates prompts and model behavior. Runs continuously during tuning. Evidence metrics (M12/M13) are structurally capped because workers cannot access real repos.
+3. **Wet** (real LLM + production data) — the **final step**, attempted only when:
    - All implementation contracts are complete.
    - The codebase is refactored and testable.
-   - Mock calibration consistently passes acceptance thresholds.
-3. Rationale: real-data calibration validates the finished system. Running it on mid-refactor code produces misleading metrics.
+   - Dry calibration consistently passes acceptance thresholds.
+4. Rationale: wet calibration validates the finished system. Running it on mid-refactor code produces misleading metrics.
 
 ## Data handling
 
