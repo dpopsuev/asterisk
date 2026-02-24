@@ -13,6 +13,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `asterisk-calibrate-skill.md` | Ship an `asterisk-calibrate` Cursor Skill that drives wet LLM calibration via MCP — zero file writes, zero approval gates. | PoC completion (gate) |
 | `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
+| `wet-calibration-tuning.md` | Lift CursorAdapter ptp-mock M19 from 0.49 to >= 0.65 via path scoring, evidence format, recall digest, component priors. | PoC completion (gate) |
 
 ## draft/ -- Planned, not yet being executed
 
