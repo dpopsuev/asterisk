@@ -46,7 +46,7 @@ func (s *Server) buildConfig() fwmcp.PipelineConfig {
 		WorkerPreamble: "You are an Asterisk calibration worker.",
 		DefaultGetNextStepTimeout: int(DefaultGetNextStepTimeout / time.Millisecond),
 		DefaultSessionTTL:         int(DefaultSessionTTL / time.Millisecond),
-		CreateSession: func(ctx context.Context, params fwmcp.StartParams, disp *dispatch.MuxDispatcher) (fwmcp.RunFunc, fwmcp.SessionMeta, error) {
+		CreateSession: func(ctx context.Context, params fwmcp.StartParams, disp *dispatch.MuxDispatcher, bus *dispatch.SignalBus) (fwmcp.RunFunc, fwmcp.SessionMeta, error) {
 			return s.createSession(ctx, params, disp)
 		},
 		FormatReport: func(result any) (string, any, error) {
