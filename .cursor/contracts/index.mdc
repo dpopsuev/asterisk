@@ -12,6 +12,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|--------|
 | `asterisk-calibrate-skill.md` | Ship an `asterisk-calibrate` Cursor Skill that drives wet LLM calibration via MCP — zero file writes, zero approval gates. | PoC completion (gate) |
 | `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
+| `papercup-v2-hardening.md` | Embed Papercup v2 choreography into Go code: server-generated worker prompt, inline prompt content, protocol-agnostic gate messages, v2 supervisor skill. | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
 | `distillation-endgame.md` | Migrate remaining framework packages from Asterisk to Origami; build artifact schemas, exec engine, generic dispatch. Successor to `asterisk-origami-distillation`. | Framework showcase |
 

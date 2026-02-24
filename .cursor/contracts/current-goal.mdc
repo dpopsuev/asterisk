@@ -33,7 +33,8 @@ Ordered by priority within each tier. Agents should work top-down: complete gate
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| **gate** | `asterisk-calibrate-skill` | active | MCP-based Cursor Skill for wet calibration. Prerequisite for running CursorAdapter wet runs. |
+| **gate** | `papercup-v2-hardening` | active | Embed v2 choreography in Go code: server-generated worker prompt, inline prompt, v2 supervisor skill. Blocks wet calibration. |
+| **gate** | `asterisk-calibrate-skill` | active | MCP-based Cursor Skill for wet calibration. Depends on `papercup-v2-hardening`. |
 | **gate** | `rp-e2e-launch` | active | Final PoC gate. BasicAdapter M19=0.83. CursorAdapter Phase 5a FAIL M19=0.50. |
 | **gate** | `domain-cursor-prompt-tuning` | active | Prompt fixes to lift CursorAdapter M19 from 0.50 toward 0.85. Taxonomy + component priors. |
 | ~~gate~~ | ~~`poc-scope-precision`~~ | **complete** | All 7 tasks done. Moved to `completed/poc-v2/`. |
