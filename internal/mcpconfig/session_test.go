@@ -1,4 +1,4 @@
-package mcp_test
+package mcpconfig_test
 
 import (
 	"context"

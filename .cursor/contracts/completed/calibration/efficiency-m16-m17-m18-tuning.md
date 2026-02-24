@@ -1,6 +1,6 @@
 # Contract — Efficiency [M16/M17/M18] Tuning
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Lift M16 (Pipeline Path Accuracy) from 0.42 to >= 0.60, bring M17 (Loop Efficiency) into the 0.5–2.0 range, and reduce M18 (Total Prompt Tokens) to <= 60000.  
 **Serves:** PoC completion (gate: rp-e2e-launch)
 
@@ -114,6 +114,7 @@ No trust boundaries affected.
 
 ## Notes
 
+- 2026-02-24 19:00 — **M16 improvement expected from `m9-m10-four-pain-points.md`.** Hypothesis-based repo routing (H7b) eliminates unnecessary F2 Resolve dispatches, shortening paths. Cases that previously went F1→F2→F3 now go F1→F2(synthetic)→F3 with deterministic repo selection. This should reduce path mismatches and token spend.
 - 2026-02-24 16:00 — **Domain assessment: Asterisk-only.** No Origami changes needed. Convergence threshold (`ConvergenceSufficient: 0.70`) and loop budget (`MaxInvestigateLoops: 2`) live in `internal/orchestrate/heuristics.go`. 4/7 M16 path failures are M3 recall misses; 3/7 are convergence loops. Fix M3 first, then tune heuristics. See plan: `domain_assessment_m3-m18`.
 - 2026-02-24 16:00 — Corrected contract: actual convergence threshold is 0.70 (not 0.75), actual loop budget is 2 retries allowing 3 F3 passes (not 3 retries).
 - 2026-02-24 15:00 — Contract created. Split from `wet-calibration-tuning.md` Round 5 remaining gaps. M16/M17/M18 are causally linked (loops → paths → tokens). Strong dependency on M3 recall fix — execute `m3-m9-tuning.md` first.

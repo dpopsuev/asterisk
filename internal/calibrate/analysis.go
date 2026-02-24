@@ -119,7 +119,7 @@ func runAnalysisCasePipeline(
 		currentStep := state.CurrentStep
 		result.Path = append(result.Path, stepName(currentStep))
 
-		response, err := cfg.Adapter.SendPrompt(caseLabel, currentStep, "")
+		response, err := cfg.Adapter.SendPrompt(caseLabel, string(currentStep), "")
 		if err != nil {
 			return result, fmt.Errorf("adapter.SendPrompt(%s, %s): %w", caseLabel, currentStep, err)
 		}

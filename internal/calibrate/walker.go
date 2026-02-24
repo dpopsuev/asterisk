@@ -72,7 +72,7 @@ func (w *calibrationWalker) Handle(ctx context.Context, node framework.Node, nc 
 	step := orchestrate.NodeNameToStep(node.Name())
 	w.result.ActualPath = append(w.result.ActualPath, stepName(step))
 
-	response, err := w.adapter.SendPrompt(w.gtCase.ID, step, "")
+	response, err := w.adapter.SendPrompt(w.gtCase.ID, string(step), "")
 	if err != nil {
 		return nil, fmt.Errorf("adapter.SendPrompt(%s, %s): %w", w.gtCase.ID, step, err)
 	}

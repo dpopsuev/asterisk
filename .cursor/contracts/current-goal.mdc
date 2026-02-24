@@ -35,11 +35,13 @@ Ordered by priority within each tier. Agents should work top-down: complete gate
 |------|----------|--------|-------|
 | ~~gate~~ | ~~`asterisk-papercup-v2-hardening`~~ | **complete** | Embedded v2 choreography into MCP server + skill. Companion: `origami-papercup-v2-hardening`. Moved to `completed/calibration/`. |
 | **gate** | `asterisk-calibrate-skill` | active | MCP-based Cursor Skill for wet calibration. Skill rewritten to v2 supervisor pattern; needs wet validation. |
-| **gate** | `rp-e2e-launch` | active | Final PoC gate. BasicAdapter M19=0.83. CursorAdapter Phase 5a FAIL M19=0.50. |
-| **gate** | `domain-cursor-prompt-tuning` | active | Prompt fixes to lift CursorAdapter M19 from 0.50 toward 0.85. Taxonomy + component priors. |
-| ~~gate~~ | ~~`wet-calibration-tuning`~~ | **complete** | Dry M19: 0.49 → 0.74. Terminology corrected: runs were dry, not wet. |
-| **gate** | `m3-m9-tuning` | active | Lift M3 (recall) from 0.33→0.70, M9 (repo precision) from 0.62→0.70. |
-| **gate** | `efficiency-m16-m17-m18-tuning` | active | Path/loops/tokens. Depends on M3 fix. M16: 0.42→0.60, M17: 8→[0.5,2.0], M18: 91k→60k. |
+| **gate** | `rp-e2e-launch` | active | Final PoC gate. BasicAdapter M19=0.83. CursorAdapter Phase 5a R11 M19=0.58 (up from 0.50). |
+| **gate** | `phase-5a-v2-analysis` | active | R11 analysis + mitigation. M19: 0.58→0.65+ (intermediate) / 0.85+ (pass). Supersedes domain-cursor-prompt-tuning. |
+| **gate** | `domain-cursor-prompt-tuning` | active | Prompt fixes. Superseded by phase-5a-v2-analysis (prompt tasks folded in). |
+| ~~gate~~ | ~~`wet-calibration-tuning`~~ | **complete** | Dry M19: 0.49 → 0.83. Moved to `completed/calibration/`. |
+| ~~gate~~ | ~~`m3-m9-tuning`~~ | **complete** | M3: 0.33→0.83 (Phase 3.5 recall inference). M9 superseded by m9-m10-four-pain-points. Moved to `completed/calibration/`. |
+| ~~gate~~ | ~~`efficiency-m16-m17-m18-tuning`~~ | **complete** | M16: 0.42→0.67, M17: 8.00→1.00, M18: 91k→55.6k. All passing. Moved to `completed/calibration/`. |
+| ~~gate~~ | ~~`m9-m10-four-pain-points`~~ | **complete** | M9: 0.20→1.00, M10: 0.00→1.00. Deterministic hypothesis-based repo routing. Moved to `completed/calibration/`. |
 | ~~gate~~ | ~~`poc-scope-precision`~~ | **complete** | All 7 tasks done. Moved to `completed/poc-v2/`. |
 | ~~gate~~ | ~~`phase-5a-mitigation`~~ | **complete** | Umbrella closed. All 9 tasks done. Moved to `completed/poc-v2/`. |
 | ~~gate~~ | ~~`workspace-mvp`~~ | **complete** | 11 tasks done, 5 tests. Moved to `completed/poc-v2/`. |
@@ -59,6 +61,8 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | ~~7th~~ | ~~`subagent-testing-framework`~~ | **complete** | — | Moved to Origami repo. |
 | ~~6th~~ | ~~`agent-adapter-overloading`~~ | **abandoned** | — | Moved to Origami repo. |
 | 6th | `workspace-catalog` | draft | **Defer** | Hard dep on workspace-mvp. Heaviest Go-code. Not PoC-blocking; MVP covers M12/M13. |
+| — | `deadcode-dedup-architecture` | active | Dead code removal + boundary map. Achilles heuristic for dedup candidates. |
+| ~~—~~ | ~~`marshaller-step-schema-factory`~~ | **complete** | Enriched step schemas with FieldDef; calibrate skill updated for submit_step. Moved to `completed/calibration/`. |
 
 ### Completed
 
@@ -76,6 +80,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
 | **vision** | `workspace-revisited` | draft | Long-term workspace vision: layered composition, dependency graph, summarization. Trimmed to Phases 3-4. |
+| ~~next-milestone~~ | ~~`calibration-primitives-consumer`~~ | **complete** | Import `origami/calibrate` types; type aliases, embedded report, `cal.AggregateRunMetrics`, `cal.FormatReport`. Companion: Origami `calibration-primitives`. Moved to `completed/calibration/`. |
 | **vision** | `domain-calibration` | draft | Scope calibration as per-domain. Asterisk RCA calibration (Origami extraction calibration moved to Origami repo). |
 
 Framework contracts (Tomes I-IV, MCP, multi-subagent) moved to `github.com/dpopsuev/origami/.cursor/contracts/completed/`.

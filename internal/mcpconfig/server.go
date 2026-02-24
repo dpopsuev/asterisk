@@ -1,4 +1,4 @@
-package mcp
+package mcpconfig
 
 import (
 	"context"
@@ -124,7 +124,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		}
 		adapter = ba
 	default:
-		adapter = adapt.NewCursorAdapter(
+		adapter = adapt.NewLLMAdapter(
 			promptDir,
 			adapt.WithDispatcher(tracked),
 			adapt.WithBasePath(basePath),
@@ -168,20 +168,76 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 // asteriskStepSchemas returns the F0-F6 step schemas for Asterisk calibration.
 func asteriskStepSchemas() []fwmcp.StepSchema {
 	return []fwmcp.StepSchema{
-		{Name: "F0_RECALL", Fields: map[string]string{"match": "bool", "confidence": "float", "reasoning": "string"}},
-		{Name: "F1_TRIAGE", Fields: map[string]string{
-			"symptom_category": "string", "severity": "string",
-			"defect_type_hypothesis": "string", "candidate_repos[]": "string[]",
-			"skip_investigation": "bool", "cascade_suspected": "bool",
-		}},
-		{Name: "F2_RESOLVE", Fields: map[string]string{"selected_repos[]": "{name, reason}"}},
-		{Name: "F3_INVESTIGATE", Fields: map[string]string{
-			"rca_message": "string", "defect_type": "string", "component": "string",
-			"convergence_score": "float", "evidence_refs[]": "string[]",
-		}},
-		{Name: "F4_CORRELATE", Fields: map[string]string{"is_duplicate": "bool", "confidence": "float"}},
-		{Name: "F5_REVIEW", Fields: map[string]string{"decision": "approve|reassess|overturn"}},
-		{Name: "F6_REPORT", Fields: map[string]string{"defect_type": "string", "case_id": "string", "summary": "string"}},
+		{
+			Name:   "F0_RECALL",
+			Fields: map[string]string{"match": "bool", "confidence": "float", "reasoning": "string"},
+			Defs: []fwmcp.FieldDef{
+				{Name: "match", Type: "bool", Required: true},
+				{Name: "confidence", Type: "float", Required: true},
+				{Name: "reasoning", Type: "string", Required: true},
+			},
+		},
+		{
+			Name: "F1_TRIAGE",
+			Fields: map[string]string{
+				"symptom_category": "string", "severity": "string",
+				"defect_type_hypothesis": "string", "candidate_repos[]": "string[]",
+				"skip_investigation": "bool", "cascade_suspected": "bool",
+			},
+			Defs: []fwmcp.FieldDef{
+				{Name: "symptom_category", Type: "string", Required: true},
+				{Name: "severity", Type: "string", Required: true},
+				{Name: "defect_type_hypothesis", Type: "string", Required: true},
+				{Name: "candidate_repos", Type: "array", Required: false},
+				{Name: "skip_investigation", Type: "bool", Required: false},
+				{Name: "cascade_suspected", Type: "bool", Required: false},
+			},
+		},
+		{
+			Name:   "F2_RESOLVE",
+			Fields: map[string]string{"selected_repos[]": "{name, reason}"},
+			Defs: []fwmcp.FieldDef{
+				{Name: "selected_repos", Type: "array", Required: true},
+			},
+		},
+		{
+			Name: "F3_INVESTIGATE",
+			Fields: map[string]string{
+				"rca_message": "string", "defect_type": "string", "component": "string",
+				"convergence_score": "float", "evidence_refs[]": "string[]",
+			},
+			Defs: []fwmcp.FieldDef{
+				{Name: "rca_message", Type: "string", Required: true},
+				{Name: "defect_type", Type: "string", Required: true},
+				{Name: "component", Type: "string", Required: true},
+				{Name: "convergence_score", Type: "float", Required: false},
+				{Name: "evidence_refs", Type: "array", Required: false},
+			},
+		},
+		{
+			Name:   "F4_CORRELATE",
+			Fields: map[string]string{"is_duplicate": "bool", "confidence": "float"},
+			Defs: []fwmcp.FieldDef{
+				{Name: "is_duplicate", Type: "bool", Required: true},
+				{Name: "confidence", Type: "float", Required: true},
+			},
+		},
+		{
+			Name:   "F5_REVIEW",
+			Fields: map[string]string{"decision": "approve|reassess|overturn"},
+			Defs: []fwmcp.FieldDef{
+				{Name: "decision", Type: "string", Required: true},
+			},
+		},
+		{
+			Name:   "F6_REPORT",
+			Fields: map[string]string{"defect_type": "string", "case_id": "string", "summary": "string"},
+			Defs: []fwmcp.FieldDef{
+				{Name: "defect_type", Type: "string", Required: true},
+				{Name: "case_id", Type: "string", Required: true},
+				{Name: "summary", Type: "string", Required: true},
+			},
+		},
 	}
 }
 

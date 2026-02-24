@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"math"
 	"strings"
+
+	cal "github.com/dpopsuev/origami/calibrate"
 )
 
 // computeMetrics calculates all 20 calibration metrics from case results.
@@ -639,6 +641,8 @@ func scoreOverallAccuracy(ms MetricSet) Metric {
 }
 
 // aggregateRunMetrics computes the mean and variance across multiple runs.
+// It delegates to cal.AggregateRunMetrics for averaging, then replaces the
+// Aggregate group with domain-specific M19 (mean) and M20 (variance).
 func aggregateRunMetrics(runs []MetricSet) MetricSet {
 	if len(runs) == 0 {
 		return MetricSet{}
@@ -647,34 +651,22 @@ func aggregateRunMetrics(runs []MetricSet) MetricSet {
 		return runs[0]
 	}
 
-	// Average each metric across runs
-	agg := runs[0] // start with first run's structure
-	allByID := make(map[string][]float64)
+	agg := cal.AggregateRunMetrics(runs, evaluatePass)
+
+	// Collect M19 values across runs for domain-specific aggregate computation
+	var m19vals []float64
 	for _, run := range runs {
 		for _, m := range run.AllMetrics() {
-			allByID[m.ID] = append(allByID[m.ID], m.Value)
+			if m.ID == "M19" {
+				m19vals = append(m19vals, m.Value)
+			}
 		}
 	}
-
-	updateMetrics := func(metrics []Metric) {
-		for i := range metrics {
-			vals := allByID[metrics[i].ID]
-			metrics[i].Value = mean(vals)
-			metrics[i].Pass = evaluatePass(metrics[i])
-		}
-	}
-	updateMetrics(agg.Structured)
-	updateMetrics(agg.Workspace)
-	updateMetrics(agg.Evidence)
-	updateMetrics(agg.Semantic)
-	updateMetrics(agg.Pipeline)
-
-	// M20: run variance = stddev of M19 across runs
-	m19vals := allByID["M19"]
-	variance := stddev(m19vals)
+	m19mean := cal.Mean(m19vals)
+	variance := cal.Stddev(m19vals)
 	agg.Aggregate = []Metric{
-		{ID: "M19", Name: "overall_accuracy", Value: mean(m19vals), Threshold: 0.65,
-			Pass: mean(m19vals) >= 0.65, Detail: fmt.Sprintf("mean of %d runs", len(runs))},
+		{ID: "M19", Name: "overall_accuracy", Value: m19mean, Threshold: 0.65,
+			Pass: m19mean >= 0.65, Detail: fmt.Sprintf("mean of %d runs", len(runs))},
 		{ID: "M20", Name: "run_variance", Value: variance, Threshold: 0.15,
 			Pass: variance <= 0.15, Detail: fmt.Sprintf("stddev=%.3f over %d runs", variance, len(runs))},
 	}
@@ -709,44 +701,13 @@ func evaluatePass(m Metric) bool {
 	}
 }
 
-// --- Math helpers ---
-
-func safeDiv(num, denom int) float64 {
-	if denom == 0 {
-		return 1.0 // 0/0 = perfect (nothing to measure)
-	}
-	return float64(num) / float64(denom)
-}
-
-func safeDiv2(num, denom float64) float64 {
-	if denom == 0 {
-		return 1.0
-	}
-	return num / denom
-}
-
-func mean(vals []float64) float64 {
-	if len(vals) == 0 {
-		return 0
-	}
-	sum := 0.0
-	for _, v := range vals {
-		sum += v
-	}
-	return sum / float64(len(vals))
-}
-
-func stddev(vals []float64) float64 {
-	if len(vals) < 2 {
-		return 0
-	}
-	m := mean(vals)
-	sum := 0.0
-	for _, v := range vals {
-		sum += (v - m) * (v - m)
-	}
-	return math.Sqrt(sum / float64(len(vals)-1))
-}
+// Math helper aliases — delegate to the generic calibrate package.
+var (
+	safeDiv  = cal.SafeDiv
+	safeDiv2 = cal.SafeDivFloat
+	mean     = cal.Mean
+	stddev   = cal.Stddev
+)
 
 func pearsonCorrelation(x, y []float64) float64 {
 	if len(x) != len(y) || len(x) < 2 {

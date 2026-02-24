@@ -209,7 +209,7 @@ func buildCaseTranscript(report *CalibrationReport, cr *CaseResult) (*CaseTransc
 			Timestamp:   record.Timestamp,
 		}
 
-		// Best-effort: read prompt from disk (CursorAdapter writes these).
+		// Best-effort: read prompt from disk (LLMAdapter writes these).
 		promptFile := orchestrate.PromptFilename(step, 0)
 		if promptFile != "" {
 			if data, err := os.ReadFile(filepath.Join(caseDir, promptFile)); err == nil {

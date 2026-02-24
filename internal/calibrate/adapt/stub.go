@@ -66,14 +66,14 @@ func (a *StubAdapter) getSymptomID(gtID string) int64 {
 }
 
 // SendPrompt returns the pre-authored ideal artifact for the given case and step.
-func (a *StubAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep, _ string) (json.RawMessage, error) {
+func (a *StubAdapter) SendPrompt(caseID string, step string, _ string) (json.RawMessage, error) {
 	gtCase := a.findCase(caseID)
 	if gtCase == nil {
 		return nil, fmt.Errorf("stub: unknown case %q", caseID)
 	}
 
 	var artifact any
-	switch step {
+	switch orchestrate.PipelineStep(step) {
 	case orchestrate.StepF0Recall:
 		artifact = a.buildRecall(gtCase)
 	case orchestrate.StepF1Triage:

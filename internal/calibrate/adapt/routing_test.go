@@ -25,12 +25,12 @@ type fakeAdapter struct {
 
 type fakeCall struct {
 	CaseID string
-	Step   orchestrate.PipelineStep
+	Step   string
 }
 
 func (f *fakeAdapter) Name() string { return f.name }
 
-func (f *fakeAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep, _ string) (json.RawMessage, error) {
+func (f *fakeAdapter) SendPrompt(caseID string, step string, _ string) (json.RawMessage, error) {
 	f.mu.Lock()
 	f.calls = append(f.calls, fakeCall{caseID, step})
 	f.mu.Unlock()
@@ -91,7 +91,7 @@ func TestRoutingRecorder_Records(t *testing.T) {
 	inner := &fakeAdapter{name: "test-adapter"}
 	rec := NewRoutingRecorder(inner, "crimson")
 
-	resp, err := rec.SendPrompt("C1", orchestrate.StepF1Triage, "prompt")
+	resp, err := rec.SendPrompt("C1", string(orchestrate.StepF1Triage), "prompt")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -130,7 +130,7 @@ func TestRoutingRecorder_DelegatesName(t *testing.T) {
 }
 
 func TestRoutingRecorder_DelegatesStoreAware(t *testing.T) {
-	inner := &fakeStoreAwareAdapter{fakeAdapter: fakeAdapter{name: "cursor"}}
+	inner := &fakeStoreAwareAdapter{fakeAdapter: fakeAdapter{name: "llm"}}
 	rec := NewRoutingRecorder(inner, "cerulean")
 
 	rec.SetStore(nil)
@@ -189,7 +189,7 @@ func TestRoutingRecorder_ConcurrentSafety(t *testing.T) {
 		wg.Add(1)
 		go func(n int) {
 			defer wg.Done()
-			_, _ = rec.SendPrompt("C1", orchestrate.StepF0Recall, "")
+			_, _ = rec.SendPrompt("C1", string(orchestrate.StepF0Recall), "")
 		}(i)
 	}
 	wg.Wait()

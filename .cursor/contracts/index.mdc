@@ -11,11 +11,10 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | Contract | Goal | Serves |
 |----------|------|--------|
 | `asterisk-calibrate-skill.md` | Ship an `asterisk-calibrate` Cursor Skill that drives wet LLM calibration via MCP — zero file writes, zero approval gates. | PoC completion (gate) |
-| `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** | PoC completion (gate) |
+| `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** Superseded by `phase-5a-v2-analysis.md`. | PoC completion (gate) |
+| `phase-5a-v2-analysis.md` | Lift CursorAdapter ptp-real-ingest M19 from 0.58 to >= 0.65 (intermediate) / >= 0.85 (Phase 5a pass). R11 analysis + structural fixes + prompt tuning. | PoC completion (gate) |
 | `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
-| `wet-calibration-tuning.md` | Lift CursorAdapter ptp-mock dry M19 from 0.49 to >= 0.65. **Complete** (M19=0.74). Terminology corrected: runs were dry, not wet. | PoC completion (gate) |
-| `m3-m9-tuning.md` | Lift M3 (Recall Hit Rate) from 0.33 to >= 0.70 and M9 (Repo Selection Precision) from 0.62 to >= 0.70. | PoC completion (gate) |
-| `efficiency-m16-m17-m18-tuning.md` | Lift M16 (Path Accuracy) >= 0.60, M17 (Loop Efficiency) into 0.5–2.0, M18 (Tokens) <= 60000. Depends on M3 fix. | PoC completion (gate) |
+| `deadcode-dedup-architecture.md` | Remove dead code, catalog deduplication candidates (Achilles heuristic), produce domain-vs-framework boundary map. | PoC completion |
 
 ## draft/ -- Planned, not yet being executed
 
@@ -86,7 +85,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `cursor-skill.md` | `asterisk-investigate` Cursor skill; signal-based F0-F6 artifact production. |
 | `wet-calibration.md` | Dry/wet calibration taxonomy, 28 Test Cards, victory loop. **Closed.** |
 
-### completed/calibration/ (8)
+### completed/calibration/ (13)
 
 | Contract | Goal |
 |----------|------|
@@ -97,7 +96,13 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `parallel-investigation.md` | Fan-out F0-F1, symptom clustering, 3x speedup. |
 | `ground-truth-v2.md` | Correct scenario data to match Jira audit. |
 | `true-wet-calibration.md` | Blind calibration against Jira-verified truth. M19 = 0.93 achieved. |
+| `wet-calibration-tuning.md` | Lift CursorAdapter ptp-mock dry M19 from 0.49 to >= 0.65. **Complete** (M19=0.74→0.83). |
+| `m3-m9-tuning.md` | Lift M3 (Recall Hit Rate) >= 0.70, M9 (Repo Selection Precision) >= 0.70. **Complete** (M3=0.83, M9=1.00). |
+| `efficiency-m16-m17-m18-tuning.md` | Lift M16 >= 0.60, M17 in [0.5,2.0], M18 <= 60000. **Complete** (M16=0.67, M17=1.00, M18=55609). |
+| `m9-m10-four-pain-points.md` | Lift M9 >= 0.70, M10 >= 0.80 via deterministic hypothesis-based repo routing. **Complete** (M9=1.00, M10=1.00). |
 | `asterisk-papercup-v2-hardening.md` | Embed Papercup v2 choreography into Asterisk MCP server: server-generated worker prompt, inline prompt content, mode tracking, v2 supervisor skill. Companion: `origami-papercup-v2-hardening` in Origami repo. |
+| `marshaller-step-schema-factory.md` | Enrich Asterisk step schemas with `FieldDef` entries for runtime validation; update calibrate skill for `submit_step`. Companion: Origami `marshaller-step-schema-factory`. |
+| `calibration-primitives-consumer.md` | Import generic calibration types from `origami/calibrate`; type aliases, embedded report, `cal.AggregateRunMetrics`, `cal.FormatReport`. Companion: Origami `calibration-primitives`. |
 
 ### completed/distillation/ (2)
 

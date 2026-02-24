@@ -1,13 +1,15 @@
 package calibrate
 
 import (
-	"github.com/dpopsuev/origami/dispatch"
 	"strings"
 	"testing"
+
+	cal "github.com/dpopsuev/origami/calibrate"
+	"github.com/dpopsuev/origami/dispatch"
 )
 
 func TestBuildTokiMeterBill_NilTokens(t *testing.T) {
-	report := &CalibrationReport{Scenario: "test", Adapter: "stub"}
+	report := &CalibrationReport{CalibrationReport: cal.CalibrationReport{Scenario: "test", Adapter: "stub"}}
 	bill := BuildTokiMeterBill(report)
 	if bill != nil {
 		t.Fatal("expected nil bill when Tokens is nil")
@@ -16,28 +18,30 @@ func TestBuildTokiMeterBill_NilTokens(t *testing.T) {
 
 func TestBuildTokiMeterBill_Basic(t *testing.T) {
 	report := &CalibrationReport{
-		Scenario: "ptp-real-ingest",
-		Adapter:  "cursor",
+		CalibrationReport: cal.CalibrationReport{
+			Scenario: "ptp-real-ingest",
+			Adapter:  "llm",
+			Tokens: &dispatch.TokenSummary{
+				TotalPromptTokens:   100_000,
+				TotalArtifactTokens: 5_000,
+				TotalTokens:         105_000,
+				TotalCostUSD:        0.375,
+				TotalSteps:          12,
+				TotalWallClockMs:    60_000,
+				PerCase: map[string]dispatch.CaseTokenSummary{
+					"C1": {PromptTokens: 60000, ArtifactTokens: 3000, TotalTokens: 63000, Steps: 7, WallClockMs: 35000},
+					"C2": {PromptTokens: 40000, ArtifactTokens: 2000, TotalTokens: 42000, Steps: 5, WallClockMs: 25000},
+				},
+				PerStep: map[string]dispatch.StepTokenSummary{
+					"F0_RECALL":      {PromptTokens: 20000, ArtifactTokens: 1000, TotalTokens: 21000, Invocations: 2},
+					"F1_TRIAGE":      {PromptTokens: 30000, ArtifactTokens: 2000, TotalTokens: 32000, Invocations: 2},
+					"F3_INVESTIGATE": {PromptTokens: 50000, ArtifactTokens: 2000, TotalTokens: 52000, Invocations: 8},
+				},
+			},
+		},
 		CaseResults: []CaseResult{
 			{CaseID: "C1", TestName: "TestPTP/sync_loss", Version: "4.16", Job: "e2e"},
 			{CaseID: "C2", TestName: "TestPTP/holdover", Version: "4.16", Job: "e2e"},
-		},
-		Tokens: &dispatch.TokenSummary{
-			TotalPromptTokens:   100_000,
-			TotalArtifactTokens: 5_000,
-			TotalTokens:         105_000,
-			TotalCostUSD:        0.375,
-			TotalSteps:          12,
-			TotalWallClockMs:    60_000,
-			PerCase: map[string]dispatch.CaseTokenSummary{
-				"C1": {PromptTokens: 60000, ArtifactTokens: 3000, TotalTokens: 63000, Steps: 7, WallClockMs: 35000},
-				"C2": {PromptTokens: 40000, ArtifactTokens: 2000, TotalTokens: 42000, Steps: 5, WallClockMs: 25000},
-			},
-			PerStep: map[string]dispatch.StepTokenSummary{
-				"F0_RECALL":      {PromptTokens: 20000, ArtifactTokens: 1000, TotalTokens: 21000, Invocations: 2},
-				"F1_TRIAGE":      {PromptTokens: 30000, ArtifactTokens: 2000, TotalTokens: 32000, Invocations: 2},
-				"F3_INVESTIGATE": {PromptTokens: 50000, ArtifactTokens: 2000, TotalTokens: 52000, Invocations: 8},
-			},
 		},
 	}
 
@@ -87,26 +91,28 @@ func TestFormatTokiMeter_Nil(t *testing.T) {
 
 func TestFormatTokiMeter_Markdown(t *testing.T) {
 	report := &CalibrationReport{
-		Scenario: "ptp-real-ingest",
-		Adapter:  "cursor",
+		CalibrationReport: cal.CalibrationReport{
+			Scenario: "ptp-real-ingest",
+			Adapter:  "llm",
+			Tokens: &dispatch.TokenSummary{
+				TotalPromptTokens:   100_000,
+				TotalArtifactTokens: 5_000,
+				TotalTokens:         105_000,
+				TotalCostUSD:        0.375,
+				TotalSteps:          12,
+				TotalWallClockMs:    90_000,
+				PerCase: map[string]dispatch.CaseTokenSummary{
+					"C1": {PromptTokens: 60000, ArtifactTokens: 3000, TotalTokens: 63000, Steps: 7, WallClockMs: 50000},
+					"C2": {PromptTokens: 40000, ArtifactTokens: 2000, TotalTokens: 42000, Steps: 5, WallClockMs: 40000},
+				},
+				PerStep: map[string]dispatch.StepTokenSummary{
+					"F1_TRIAGE": {PromptTokens: 30000, ArtifactTokens: 2000, TotalTokens: 32000, Invocations: 2},
+				},
+			},
+		},
 		CaseResults: []CaseResult{
 			{CaseID: "C1", TestName: "TestPTP/sync_loss", Version: "4.16", Job: "e2e"},
 			{CaseID: "C2", TestName: "TestPTP/holdover_timeout_very_long_name_test", Version: "4.16", Job: "e2e"},
-		},
-		Tokens: &dispatch.TokenSummary{
-			TotalPromptTokens:   100_000,
-			TotalArtifactTokens: 5_000,
-			TotalTokens:         105_000,
-			TotalCostUSD:        0.375,
-			TotalSteps:          12,
-			TotalWallClockMs:    90_000,
-			PerCase: map[string]dispatch.CaseTokenSummary{
-				"C1": {PromptTokens: 60000, ArtifactTokens: 3000, TotalTokens: 63000, Steps: 7, WallClockMs: 50000},
-				"C2": {PromptTokens: 40000, ArtifactTokens: 2000, TotalTokens: 42000, Steps: 5, WallClockMs: 40000},
-			},
-			PerStep: map[string]dispatch.StepTokenSummary{
-				"F1_TRIAGE": {PromptTokens: 30000, ArtifactTokens: 2000, TotalTokens: 32000, Invocations: 2},
-			},
 		},
 	}
 
@@ -124,7 +130,7 @@ func TestFormatTokiMeter_Markdown(t *testing.T) {
 		"| **TOTAL**",
 		"$3/M input",
 		"ptp-real-ingest",
-		"cursor",
+		"llm",
 		"C1",
 		"C2",
 		"Triage (F1)",
@@ -142,6 +148,3 @@ func TestFormatTokiMeter_Markdown(t *testing.T) {
 		t.Error("expected long test name to be truncated")
 	}
 }
-
-// fmtTokens and fmtDuration helpers moved to internal/format package.
-// See internal/format/format_test.go for their tests.

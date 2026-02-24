@@ -20,7 +20,7 @@ func TestBasicAdapter_UnknownCase(t *testing.T) {
 	st := store.NewMemStore()
 	a := NewBasicAdapter(st, nil)
 
-	_, err := a.SendPrompt("nonexistent", orchestrate.StepF0Recall, "")
+	_, err := a.SendPrompt("nonexistent", string(orchestrate.StepF0Recall), "")
 	if err == nil {
 		t.Error("expected error for unknown case")
 	}
@@ -48,7 +48,7 @@ func TestBasicAdapter_SendPrompt_AllSteps(t *testing.T) {
 
 	for _, step := range steps {
 		t.Run(string(step), func(t *testing.T) {
-			data, err := a.SendPrompt("C1", step, "")
+			data, err := a.SendPrompt("C1", string(step), "")
 			if err != nil {
 				t.Fatalf("SendPrompt(%s): %v", step, err)
 			}
@@ -69,7 +69,7 @@ func TestBasicAdapter_InvalidStep(t *testing.T) {
 	a := NewBasicAdapter(st, nil)
 	a.RegisterCase("C1", &BasicCaseInfo{Name: "test"})
 
-	_, err := a.SendPrompt("C1", orchestrate.PipelineStep("invalid"), "")
+	_, err := a.SendPrompt("C1", "invalid", "")
 	if err == nil {
 		t.Error("expected error for invalid step")
 	}
@@ -115,7 +115,7 @@ func TestBasicAdapter_Triage_PTPDomain(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a.RegisterCase("C1", tt.info)
-			data, err := a.SendPrompt("C1", orchestrate.StepF1Triage, "")
+			data, err := a.SendPrompt("C1", string(orchestrate.StepF1Triage), "")
 			if err != nil {
 				t.Fatalf("SendPrompt: %v", err)
 			}
@@ -170,7 +170,7 @@ func TestBasicAdapter_ComponentIdentification(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a.RegisterCase("C1", tt.info)
-			data, err := a.SendPrompt("C1", orchestrate.StepF3Invest, "")
+			data, err := a.SendPrompt("C1", string(orchestrate.StepF3Invest), "")
 			if err != nil {
 				t.Fatalf("SendPrompt: %v", err)
 			}
@@ -190,7 +190,7 @@ func TestBasicAdapter_Recall_NoMatch(t *testing.T) {
 	a := NewBasicAdapter(st, nil)
 	a.RegisterCase("C1", &BasicCaseInfo{Name: "test", ErrorMessage: "error"})
 
-	data, err := a.SendPrompt("C1", orchestrate.StepF0Recall, "")
+	data, err := a.SendPrompt("C1", string(orchestrate.StepF0Recall), "")
 	if err != nil {
 		t.Fatalf("SendPrompt: %v", err)
 	}
@@ -222,7 +222,7 @@ func TestBasicAdapter_Recall_SymptomMatch(t *testing.T) {
 	}
 
 	a.RegisterCase("C1", &BasicCaseInfo{Name: "test", ErrorMessage: "error"})
-	data, err := a.SendPrompt("C1", orchestrate.StepF0Recall, "")
+	data, err := a.SendPrompt("C1", string(orchestrate.StepF0Recall), "")
 	if err != nil {
 		t.Fatalf("SendPrompt: %v", err)
 	}
@@ -243,7 +243,7 @@ func TestBasicAdapter_Correlate_NoExistingRCA(t *testing.T) {
 	a := NewBasicAdapter(st, nil)
 	a.RegisterCase("C1", &BasicCaseInfo{ErrorMessage: "some error"})
 
-	data, err := a.SendPrompt("C1", orchestrate.StepF4Correlate, "")
+	data, err := a.SendPrompt("C1", string(orchestrate.StepF4Correlate), "")
 	if err != nil {
 		t.Fatalf("SendPrompt: %v", err)
 	}
@@ -319,7 +319,7 @@ func TestBasicAdapter_Correlate_MatchingRCA(t *testing.T) {
 		ErrorMessage: "clock sync failure detected",
 	})
 
-	data, err := a.SendPrompt("C1", orchestrate.StepF4Correlate, "")
+	data, err := a.SendPrompt("C1", string(orchestrate.StepF4Correlate), "")
 	if err != nil {
 		t.Fatalf("SendPrompt: %v", err)
 	}
@@ -348,7 +348,7 @@ func TestBasicAdapter_Correlate_EmptyErrorMessage(t *testing.T) {
 
 	a.RegisterCase("C1", &BasicCaseInfo{ErrorMessage: ""})
 
-	data, err := a.SendPrompt("C1", orchestrate.StepF4Correlate, "")
+	data, err := a.SendPrompt("C1", string(orchestrate.StepF4Correlate), "")
 	if err != nil {
 		t.Fatalf("SendPrompt: %v", err)
 	}
@@ -428,7 +428,7 @@ func TestBasicAdapter_ComponentIdentification_Extended(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			a.RegisterCase("C1", tt.info)
-			data, err := a.SendPrompt("C1", orchestrate.StepF3Invest, "")
+			data, err := a.SendPrompt("C1", string(orchestrate.StepF3Invest), "")
 			if err != nil {
 				t.Fatalf("SendPrompt: %v", err)
 			}
@@ -450,7 +450,7 @@ func TestBasicAdapter_Resolve_UnknownComponent(t *testing.T) {
 		ErrorMessage: "completely unrecognized issue",
 	})
 
-	data, err := a.SendPrompt("C1", orchestrate.StepF2Resolve, "")
+	data, err := a.SendPrompt("C1", string(orchestrate.StepF2Resolve), "")
 	if err != nil {
 		t.Fatalf("SendPrompt: %v", err)
 	}
@@ -471,7 +471,7 @@ func TestBasicAdapter_Investigate_UnknownComponent(t *testing.T) {
 		ErrorMessage: "completely unrecognized issue",
 	})
 
-	data, err := a.SendPrompt("C1", orchestrate.StepF3Invest, "")
+	data, err := a.SendPrompt("C1", string(orchestrate.StepF3Invest), "")
 	if err != nil {
 		t.Fatalf("SendPrompt: %v", err)
 	}

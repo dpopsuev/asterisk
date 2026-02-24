@@ -1,4 +1,4 @@
-package mcp_test
+package mcpconfig_test
 
 import (
 	"context"
@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	mcpserver "asterisk/internal/mcp"
+	mcpserver "asterisk/internal/mcpconfig"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
@@ -317,12 +317,12 @@ func TestServer_DoubleStart_WhileRunning(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startPipeline(t, ctx, session, "ptp-mock", "cursor", 0)
+	startPipeline(t, ctx, session, "ptp-mock", "llm", 0)
 
 	res, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
 		Name: "start_pipeline",
 		Arguments: map[string]any{
-			"extra": map[string]any{"scenario": "ptp-mock", "adapter": "cursor"},
+			"extra": map[string]any{"scenario": "ptp-mock", "adapter": "llm"},
 		},
 	})
 	if err != nil {
@@ -389,7 +389,7 @@ func TestServer_Parallel_GetNextStep_TwoConcurrent(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 2)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 2)
 	sessionID := startResult["session_id"].(string)
 
 	type stepResult struct {
@@ -434,7 +434,7 @@ func TestServer_FourSubagents_FullDrain(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 4)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 	t.Logf("started session %s", sessionID)
 
@@ -538,7 +538,7 @@ func TestServer_FourSubagents_ViaResolve(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 4)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 
 	var mu sync.Mutex
@@ -608,9 +608,9 @@ func TestServer_FourSubagents_ViaResolve(t *testing.T) {
 		}
 	}
 
-	if f2Count == 0 {
-		t.Error("no cases went through F2_RESOLVE")
-	}
+	// With hypothesis-based repo routing (H7b), F2 Resolve is bypassed
+	// deterministically when the triage hypothesis matches a workspace repo
+	// Purpose. F2 dispatches may be 0; F3 must still be reached.
 	if f3Count == 0 {
 		t.Error("no cases reached F3_INVESTIGATE")
 	}
@@ -632,7 +632,7 @@ func TestServer_FourSubagents_NoDuplicateDispatch(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "daemon-mock", "cursor", 4)
+	startResult := startPipeline(t, ctx, session, "daemon-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 
 	var mu sync.Mutex
@@ -725,7 +725,7 @@ func TestServer_FourSubagents_ConcurrencyTiming(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 4)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 
 	const perStepDelay = 20 * time.Millisecond
@@ -813,7 +813,7 @@ func TestGetNextStep_InlinePrompt(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 1)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID := startResult["session_id"].(string)
 
 	step := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -852,7 +852,7 @@ func TestGetNextStep_Timeout(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 1)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID := startResult["session_id"].(string)
 
 	step1 := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -888,7 +888,7 @@ func TestSession_TTL_Abort(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 1)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID := startResult["session_id"].(string)
 
 	step := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -933,7 +933,7 @@ func TestServer_StaleSession_StartReplacesStuck(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	start1 := startPipeline(t, ctx, session, "ptp-mock", "cursor", 1)
+	start1 := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
 	sid1 := start1["session_id"].(string)
 
 	step := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -980,7 +980,7 @@ func TestServer_StaleSession_TTLAutoAbort(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startPipeline(t, ctx, session, "ptp-mock", "cursor", 1)
+	startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
 	sid := srv.SessionID()
 
 	srv.SetSessionTTL(200 * time.Millisecond)
@@ -1007,7 +1007,7 @@ func TestGetNextStep_OverPull_Draining(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "cursor", 2)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 2)
 	sessionID := startResult["session_id"].(string)
 
 	type pullResult struct {

@@ -76,14 +76,18 @@ See `.cursor/rules/testing-methodology.mdc` for details.
 ## Project Structure
 
 ```
-cmd/asterisk/          CLI entrypoint
-internal/framework/    Agentic pipeline framework (zero domain imports)
-internal/orchestrate/  Step runner and heuristics
-internal/calibrate/    Calibration (M1-M20 metrics, scenarios)
-internal/curate/       Curation pipeline
+cmd/asterisk/          CLI entrypoint (Cobra subcommands)
+internal/orchestrate/  Pipeline definition, heuristics, templates, params
+internal/calibrate/    Calibration runner, metrics (M1-M20), scenarios, adapters
+internal/mcpconfig/    Marshaller MCP configuration (wraps Origami PipelineServer)
+internal/investigate/  RP-specific RCA investigation
+internal/preinvest/    Pre-investigation fetch (envelope, RP API)
+internal/postinvest/   Post-investigation push (RP, Jira)
+internal/rp/           ReportPortal API client
+internal/store/        Persistence (suite, pipeline, case, triage, RCA)
+internal/display/      Human-readable metric names and formatting
+internal/origami/      DatasetStore, mapper, completeness (curate bridge)
 pipelines/             YAML pipeline definitions
-examples/framework/    Framework playground (start here)
-docs/                  Developer guides
 ```
 
 ## License

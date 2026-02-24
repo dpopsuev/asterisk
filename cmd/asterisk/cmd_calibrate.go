@@ -50,7 +50,7 @@ with ground-truth expectations, computing accuracy metrics (M1-M20).`,
 func init() {
 	f := calibrateCmd.Flags()
 	f.StringVar(&calibrateFlags.scenario, "scenario", "ptp-mock", "Scenario name (ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)")
-	f.StringVar(&calibrateFlags.adapter, "adapter", "stub", "Model adapter (stub, basic, cursor)")
+	f.StringVar(&calibrateFlags.adapter, "adapter", "stub", "Model adapter (stub, basic, llm)")
 	f.StringVar(&calibrateFlags.dispatchMode, "dispatch", "stdin", "Dispatch mode for cursor adapter (stdin, file, batch-file)")
 	f.BoolVar(&calibrateFlags.agentDebug, "agent-debug", false, "Enable verbose debug logging for dispatcher/agent communication")
 	f.IntVar(&calibrateFlags.runs, "runs", 1, "Number of calibration runs")
@@ -133,7 +133,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			})
 		}
 		adapter = ba
-	case "cursor":
+	case "llm":
 		var dispatcher dispatch.Dispatcher
 		switch calibrateFlags.dispatchMode {
 		case "stdin":
@@ -156,9 +156,9 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			return fmt.Errorf("unknown dispatch mode: %s (available: stdin, file, batch-file)", calibrateFlags.dispatchMode)
 		}
 		trackedDispatcher := dispatch.NewTokenTrackingDispatcher(dispatcher, tokenTracker)
-		adapter = adapt.NewCursorAdapter(calibrateFlags.promptDir, adapt.WithDispatcher(trackedDispatcher), adapt.WithBasePath(calibDir))
+		adapter = adapt.NewLLMAdapter(calibrateFlags.promptDir, adapt.WithDispatcher(trackedDispatcher), adapt.WithBasePath(calibDir))
 	default:
-		return fmt.Errorf("unknown adapter: %s (available: stub, basic, cursor)", calibrateFlags.adapter)
+		return fmt.Errorf("unknown adapter: %s (available: stub, basic, llm)", calibrateFlags.adapter)
 	}
 
 	var routingRecorder *adapt.RoutingRecorder
@@ -168,7 +168,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	}
 
 	var basePath string
-	if calibrateFlags.adapter == "cursor" {
+	if calibrateFlags.adapter == "llm" {
 		if calibrateFlags.clean {
 			if info, err := os.Stat(calibDir); err == nil && info.IsDir() {
 				fmt.Fprintf(cmd.OutOrStdout(), "[cleanup] removing previous calibration artifacts: %s/\n", calibDir)
@@ -189,7 +189,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		basePath = calibDir
 		out := cmd.OutOrStdout()
 		fmt.Fprintf(out, "Calibration artifacts: %s/\n", calibDir)
-		fmt.Fprintf(out, "Adapter: cursor (dispatch=%s, clean=%v)\n", calibrateFlags.dispatchMode, calibrateFlags.clean)
+		fmt.Fprintf(out, "Adapter: llm (dispatch=%s, clean=%v)\n", calibrateFlags.dispatchMode, calibrateFlags.clean)
 		fmt.Fprintf(out, "Scenario: %s (%d cases)\n\n", scenario.Name, len(scenario.Cases))
 	} else {
 		tmpDir, err := os.MkdirTemp("", "asterisk-calibrate-*")
@@ -200,11 +200,11 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		basePath = tmpDir
 	}
 
-	if calibrateFlags.adapter == "cursor" && calibrateFlags.runs > 1 {
-		return fmt.Errorf("cursor adapter only supports --runs=1 (interactive mode)")
+	if calibrateFlags.adapter == "llm" && calibrateFlags.runs > 1 {
+		return fmt.Errorf("llm adapter only supports --runs=1 (interactive mode)")
 	}
 
-	if calibrateFlags.adapter == "cursor" && calibrateFlags.dispatchMode == "file" {
+	if calibrateFlags.adapter == "llm" && calibrateFlags.dispatchMode == "file" {
 		fmt.Fprintln(cmd.OutOrStdout(), "[lifecycle] dispatch=file: ensure Cursor agent or MCP server is responding to signals")
 	}
 
@@ -232,7 +232,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 
 	report, err := calibrate.RunCalibration(cmd.Context(), cfg)
 
-	if calibrateFlags.adapter == "cursor" && calibrateFlags.dispatchMode == "file" {
+	if calibrateFlags.adapter == "llm" && calibrateFlags.dispatchMode == "file" {
 		dispatch.FinalizeSignals(calibDir)
 	}
 
@@ -312,7 +312,7 @@ func adapterColor(name string) string {
 	switch name {
 	case "basic":
 		return "crimson"
-	case "cursor":
+	case "llm":
 		return "cerulean"
 	default:
 		return name

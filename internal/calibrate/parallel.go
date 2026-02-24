@@ -393,7 +393,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 		tr.Err = err
 		return tr
 	}
-	response, err := cfg.Adapter.SendPrompt(gtCase.ID, orchestrate.StepF0Recall, "")
+	response, err := cfg.Adapter.SendPrompt(gtCase.ID, string(orchestrate.StepF0Recall), "")
 	<-tokenSem
 
 	if err != nil {
@@ -447,7 +447,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 			tr.Err = err
 			return tr
 		}
-		response, err = cfg.Adapter.SendPrompt(gtCase.ID, orchestrate.StepF1Triage, "")
+		response, err = cfg.Adapter.SendPrompt(gtCase.ID, string(orchestrate.StepF1Triage), "")
 		<-tokenSem
 
 		if err != nil {
@@ -517,7 +517,7 @@ func runRemainingSteps(ctx context.Context, st store.Store, caseData *store.Case
 		if err := acquireToken(ctx, tokenSem); err != nil {
 			return err
 		}
-		response, err := cfg.Adapter.SendPrompt(gtCase.ID, currentStep, "")
+		response, err := cfg.Adapter.SendPrompt(gtCase.ID, string(currentStep), "")
 		<-tokenSem
 
 		if err != nil {
@@ -603,12 +603,34 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 		logger.Info("investigation step dispatching",
 			"case_id", gtCase.ID, "iteration", step, "step", string(currentStep))
 
+		// Hypothesis-based repo routing: when the pipeline reaches Resolve,
+		// try to deterministically select repos from the workspace using the
+		// triage hypothesis. Bypasses the AI decision when a match is found.
+		if currentStep == orchestrate.StepF2Resolve && tr.TriageArtifact != nil {
+			if matched := selectRepoByHypothesis(tr.TriageArtifact.DefectTypeHypothesis, cfg.Scenario.Workspace.Repos); len(matched) > 0 {
+				var selections []orchestrate.RepoSelection
+				for _, name := range matched {
+					selections = append(selections, orchestrate.RepoSelection{Name: name, Reason: "hypothesis-based routing"})
+				}
+				syntheticArtifact := &orchestrate.ResolveResult{SelectedRepos: selections}
+
+				extractStepMetrics(result, currentStep, syntheticArtifact, gtCase)
+				action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, syntheticArtifact, state)
+				logger.Info("hypothesis repo routing",
+					"case_id", gtCase.ID, "hypothesis", tr.TriageArtifact.DefectTypeHypothesis,
+					"matched", matched, "rule", ruleID, "next", string(action.NextStep))
+				orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
+				_ = orchestrate.SaveState(caseDir, state)
+				continue
+			}
+		}
+
 		if err := acquireToken(ctx, tokenSem); err != nil {
 			logger.Warn("investigation token acquire failed",
 				"case_id", gtCase.ID, "iteration", step, "step", string(currentStep), "error", err)
 			break
 		}
-		response, err := cfg.Adapter.SendPrompt(gtCase.ID, currentStep, "")
+		response, err := cfg.Adapter.SendPrompt(gtCase.ID, string(currentStep), "")
 		<-tokenSem
 
 		if err != nil {

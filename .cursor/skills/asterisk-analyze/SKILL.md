@@ -79,7 +79,7 @@ Stop if any prerequisite is missing.
 bin/asterisk-analyze-rp-cursor LAUNCH_ID
 ```
 
-This runs `asterisk analyze LAUNCH_ID --adapter=cursor --dispatch=file --report`
+This runs `asterisk analyze LAUNCH_ID --adapter=llm --dispatch=file --report`
 with RP config from environment. The command fetches failures from RP, then
 writes signal.json files in `.asterisk/analyze/` and waits for artifacts.
 

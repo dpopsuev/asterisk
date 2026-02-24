@@ -43,48 +43,48 @@ const calibrationPreamble = `> **CALIBRATION MODE — BLIND EVALUATION**
 
 `
 
-// CursorAdapter is an interactive adapter for real calibration.
+// LLMAdapter is an interactive adapter for real calibration.
 // Instead of returning canned answers, it generates a filled prompt from the
 // template, delivers it via a dispatch.Dispatcher, waits for the external agent to
 // produce an artifact, and reads it back. The calibrate runner then scores
 // the AI's real output against ground truth.
-type CursorAdapter struct {
+type LLMAdapter struct {
 	st         store.Store
 	promptDir  string
 	ws         *workspace.Workspace
 	suiteID    int64
 	basePath   string
-	cases      map[string]*cursorCaseCtx
+	cases      map[string]*llmCaseCtx
 	dispatcher dispatch.Dispatcher
 }
 
-// CursorAdapterOption configures the CursorAdapter.
-type CursorAdapterOption func(*CursorAdapter)
+// LLMAdapterOption configures the LLMAdapter.
+type LLMAdapterOption func(*LLMAdapter)
 
 // WithDispatcher sets the transport dispatcher for prompt delivery and
 // artifact collection. Defaults to StdinDispatcher if not set.
-func WithDispatcher(d dispatch.Dispatcher) CursorAdapterOption {
-	return func(a *CursorAdapter) { a.dispatcher = d }
+func WithDispatcher(d dispatch.Dispatcher) LLMAdapterOption {
+	return func(a *LLMAdapter) { a.dispatcher = d }
 }
 
 // WithBasePath sets the root directory for investigation artifacts.
-func WithBasePath(p string) CursorAdapterOption {
-	return func(a *CursorAdapter) { a.basePath = p }
+func WithBasePath(p string) LLMAdapterOption {
+	return func(a *LLMAdapter) { a.basePath = p }
 }
 
-type cursorCaseCtx struct {
+type llmCaseCtx struct {
 	storeCase *store.Case
 	env       *preinvest.Envelope
 }
 
-// NewCursorAdapter creates an interactive adapter.
+// NewLLMAdapter creates an interactive adapter.
 // st and ws will be overwritten by the runner via SetStore; pass nil initially.
 // Default dispatcher is StdinDispatcher (interactive terminal).
-func NewCursorAdapter(promptDir string, opts ...CursorAdapterOption) *CursorAdapter {
-	a := &CursorAdapter{
+func NewLLMAdapter(promptDir string, opts ...LLMAdapterOption) *LLMAdapter {
+	a := &LLMAdapter{
 		promptDir:  promptDir,
 		basePath:   orchestrate.DefaultBasePath,
-		cases:      make(map[string]*cursorCaseCtx),
+		cases:      make(map[string]*llmCaseCtx),
 		dispatcher: dispatch.NewStdinDispatcherWithTemplate(AsteriskStdinTemplate()),
 	}
 	for _, opt := range opts {
@@ -94,7 +94,7 @@ func NewCursorAdapter(promptDir string, opts ...CursorAdapterOption) *CursorAdap
 }
 
 // Name returns the adapter identifier.
-func (a *CursorAdapter) Name() string { return "cursor" }
+func (a *LLMAdapter) Name() string { return "llm" }
 
 // identityProbePrompt asks the model to report its FOUNDATION identity,
 // not the wrapper/IDE that hosts it. The distinction matters: "composer"
@@ -113,13 +113,13 @@ If you are GPT-4o running inside Copilot, model_name is "gpt-4o", NOT "copilot".
 
 // Identify sends a probe prompt through the dispatcher to discover which
 // LLM model is behind this adapter. The model self-reports its name and provider.
-func (a *CursorAdapter) Identify() (framework.ModelIdentity, error) {
+func (a *LLMAdapter) Identify() (framework.ModelIdentity, error) {
 	tmpDir := os.TempDir()
 	promptFile := filepath.Join(tmpDir, "asterisk-identity-probe.md")
 	artifactFile := filepath.Join(tmpDir, "asterisk-identity-probe.json")
 
 	if err := os.WriteFile(promptFile, []byte(identityProbePrompt), 0644); err != nil {
-		return framework.ModelIdentity{}, fmt.Errorf("cursor: write identity probe: %w", err)
+		return framework.ModelIdentity{}, fmt.Errorf("llm: write identity probe: %w", err)
 	}
 	defer os.Remove(promptFile)
 	defer os.Remove(artifactFile)
@@ -131,7 +131,7 @@ func (a *CursorAdapter) Identify() (framework.ModelIdentity, error) {
 		ArtifactPath: artifactFile,
 	})
 	if err != nil {
-		return framework.ModelIdentity{}, fmt.Errorf("cursor: identity probe dispatch: %w", err)
+		return framework.ModelIdentity{}, fmt.Errorf("llm: identity probe dispatch: %w", err)
 	}
 
 	return ParseModelIdentity(data)
@@ -170,18 +170,18 @@ func truncate(s string, n int) string {
 }
 
 // SetStore is called by the calibrate runner to inject the per-run MemStore.
-func (a *CursorAdapter) SetStore(st store.Store) { a.st = st }
+func (a *LLMAdapter) SetStore(st store.Store) { a.st = st }
 
 // SetSuiteID is called by the calibrate runner after creating the suite.
-func (a *CursorAdapter) SetSuiteID(id int64) { a.suiteID = id }
+func (a *LLMAdapter) SetSuiteID(id int64) { a.suiteID = id }
 
 // SetWorkspace sets the workspace for prompt param building.
-func (a *CursorAdapter) SetWorkspace(ws *workspace.Workspace) { a.ws = ws }
+func (a *LLMAdapter) SetWorkspace(ws *workspace.Workspace) { a.ws = ws }
 
 // RegisterCase registers a store case mapped to a ground truth case ID,
 // so the adapter can look it up when SendPrompt is called.
-func (a *CursorAdapter) RegisterCase(gtCaseID string, storeCase *store.Case) {
-	a.cases[gtCaseID] = &cursorCaseCtx{
+func (a *LLMAdapter) RegisterCase(gtCaseID string, storeCase *store.Case) {
+	a.cases[gtCaseID] = &llmCaseCtx{
 		storeCase: storeCase,
 		env: &preinvest.Envelope{
 			Name: storeCase.Name,
@@ -194,10 +194,12 @@ func (a *CursorAdapter) RegisterCase(gtCaseID string, storeCase *store.Case) {
 
 // SendPrompt generates a filled prompt, presents it to the user, waits for the
 // artifact to be saved, and returns the raw JSON.
-func (a *CursorAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep, _ string) (json.RawMessage, error) {
+func (a *LLMAdapter) SendPrompt(caseID string, step string, _ string) (json.RawMessage, error) {
+	ps := orchestrate.PipelineStep(step)
+
 	ctx := a.cases[caseID]
 	if ctx == nil {
-		return nil, fmt.Errorf("cursor: unknown case %q", caseID)
+		return nil, fmt.Errorf("llm: unknown case %q", caseID)
 	}
 
 	// Refresh case from store to get latest symptom/RCA links
@@ -209,42 +211,42 @@ func (a *CursorAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep,
 	// Build case dir
 	caseDir, err := orchestrate.EnsureCaseDir(a.basePath, a.suiteID, ctx.storeCase.ID)
 	if err != nil {
-		return nil, fmt.Errorf("cursor: ensure case dir: %w", err)
+		return nil, fmt.Errorf("llm: ensure case dir: %w", err)
 	}
 
 	// Build prompt params and fill template
-	params := orchestrate.BuildParams(a.st, ctx.storeCase, ctx.env, a.ws, step, caseDir)
-	templatePath := orchestrate.TemplatePathForStep(a.promptDir, step)
+	params := orchestrate.BuildParams(a.st, ctx.storeCase, ctx.env, a.ws, ps, caseDir)
+	templatePath := orchestrate.TemplatePathForStep(a.promptDir, ps)
 	if templatePath == "" {
-		return nil, fmt.Errorf("cursor: no template for step %s", step)
+		return nil, fmt.Errorf("llm: no template for step %s", step)
 	}
 
 	prompt, err := orchestrate.FillTemplate(templatePath, params)
 	if err != nil {
-		return nil, fmt.Errorf("cursor: fill template for %s: %w", step, err)
+		return nil, fmt.Errorf("llm: fill template for %s: %w", step, err)
 	}
 
 	// Prepend calibration notice so the AI knows the rules
 	prompt = calibrationPreamble + prompt
 
 	// Write prompt file
-	promptFile := filepath.Join(caseDir, fmt.Sprintf("prompt-%s.md", step.Family()))
+	promptFile := filepath.Join(caseDir, fmt.Sprintf("prompt-%s.md", ps.Family()))
 	if err := os.WriteFile(promptFile, []byte(prompt), 0644); err != nil {
-		return nil, fmt.Errorf("cursor: write prompt: %w", err)
+		return nil, fmt.Errorf("llm: write prompt: %w", err)
 	}
 
 	// Expected artifact path
-	artifactFile := filepath.Join(caseDir, orchestrate.ArtifactFilename(step))
+	artifactFile := filepath.Join(caseDir, orchestrate.ArtifactFilename(ps))
 
 	// Dispatch: deliver prompt and collect artifact via the configured dispatcher
 	data, err := a.dispatcher.Dispatch(dispatch.DispatchContext{
 		CaseID:       caseID,
-		Step:         string(step),
+		Step:         step,
 		PromptPath:   promptFile,
 		ArtifactPath: artifactFile,
 	})
 	if err != nil {
-		return nil, fmt.Errorf("cursor: dispatch %s/%s: %w", caseID, step, err)
+		return nil, fmt.Errorf("llm: dispatch %s/%s: %w", caseID, step, err)
 	}
 
 	if f := dispatch.UnwrapFinalizer(a.dispatcher); f != nil {

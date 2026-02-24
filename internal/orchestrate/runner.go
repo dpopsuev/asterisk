@@ -497,7 +497,12 @@ func (cfg RunnerConfig) evaluateStep(step PipelineStep, artifact any, state *Cas
 	for _, e := range edges {
 		t := e.Evaluate(wrappedArtifact, wrappedState)
 		if t != nil {
-			return transitionToAction(t), e.ID()
+			action := &HeuristicAction{
+				NextStep:         NodeNameToStep(t.NextNode),
+				ContextAdditions: t.ContextAdditions,
+				Explanation:      t.Explanation,
+			}
+			return action, e.ID()
 		}
 	}
 

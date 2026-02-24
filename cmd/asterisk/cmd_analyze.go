@@ -60,7 +60,7 @@ func init() {
 	f.StringVar(&analyzeFlags.workspacePath, "workspace", "", "Path to context workspace file (YAML/JSON)")
 	f.StringVarP(&analyzeFlags.artifactPath, "output", "o", "", "Output artifact path (default: .asterisk/output/rca-<launch>.json)")
 	f.StringVar(&analyzeFlags.dbPath, "db", store.DefaultDBPath, "Store DB path")
-	f.StringVar(&analyzeFlags.adapterName, "adapter", "basic", "Adapter: basic (heuristic) or cursor (AI via Cursor agent)")
+	f.StringVar(&analyzeFlags.adapterName, "adapter", "basic", "Adapter: basic (heuristic) or llm (AI via LLM agent)")
 	f.StringVar(&analyzeFlags.dispatchMode, "dispatch", "file", "Dispatch mode for cursor adapter (stdin, file)")
 	f.StringVar(&analyzeFlags.promptDir, "prompt-dir", ".cursor/prompts", "Prompt template directory")
 	f.StringVar(&analyzeFlags.rpBase, "rp-base-url", "", "RP base URL (default: $ASTERISK_RP_URL)")
@@ -156,7 +156,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 			})
 		}
 		adapter = ba
-	case "cursor":
+	case "llm":
 		var dispatcher dispatch.Dispatcher
 		switch analyzeFlags.dispatchMode {
 		case "stdin":
@@ -170,12 +170,12 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		if err := os.MkdirAll(basePath, 0755); err != nil {
 			return fmt.Errorf("create analyze dir: %w", err)
 		}
-		adapter = adapt.NewCursorAdapter(analyzeFlags.promptDir,
+		adapter = adapt.NewLLMAdapter(analyzeFlags.promptDir,
 			adapt.WithDispatcher(dispatcher),
 			adapt.WithBasePath(basePath),
 		)
 	default:
-		return fmt.Errorf("unknown adapter: %s (supported: basic, cursor)", analyzeFlags.adapterName)
+		return fmt.Errorf("unknown adapter: %s (supported: basic, llm)", analyzeFlags.adapterName)
 	}
 
 	cfg := calibrate.AnalysisConfig{

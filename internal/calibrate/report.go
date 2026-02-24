@@ -1,74 +1,39 @@
 package calibrate
 
 import (
-	"github.com/dpopsuev/origami/dispatch"
-	"asterisk/internal/display"
-	"github.com/dpopsuev/origami/format"
 	"fmt"
 	"strings"
+
+	cal "github.com/dpopsuev/origami/calibrate"
+	"github.com/dpopsuev/origami/format"
+
+	"asterisk/internal/display"
 )
 
 // FormatReport produces the human-readable calibration report.
+// It delegates metric table rendering to cal.FormatReport, then appends
+// domain-specific sections (dataset health, per-case breakdown).
 func FormatReport(report *CalibrationReport) string {
+	genericReport := &report.CalibrationReport
+
+	cfg := cal.FormatConfig{
+		Title: "Asterisk Calibration Report",
+		Sections: []cal.MetricSection{
+			{Title: "Structured Metrics", Metrics: report.Metrics.Structured},
+			{Title: "Workspace / Repo Selection", Metrics: report.Metrics.Workspace},
+			{Title: "Evidence Metrics", Metrics: report.Metrics.Evidence},
+			{Title: "Semantic Metrics", Metrics: report.Metrics.Semantic},
+			{Title: "Pipeline Metrics", Metrics: report.Metrics.Pipeline},
+			{Title: "Aggregate", Metrics: report.Metrics.Aggregate},
+		},
+		MetricNameFunc: display.Metric,
+		ThresholdFunc:  formatThreshold,
+	}
+
 	var b strings.Builder
+	b.WriteString(cal.FormatReport(genericReport, cfg))
 
-	b.WriteString("=== Asterisk Calibration Report ===\n")
-	b.WriteString(fmt.Sprintf("Scenario: %s\n", report.Scenario))
-	b.WriteString(fmt.Sprintf("Adapter:  %s\n", report.Adapter))
-	b.WriteString(fmt.Sprintf("Runs:     %d\n\n", report.Runs))
-
-	passed, total := report.Metrics.PassCount()
-
-	writeSection := func(title string, metrics []Metric) {
-		b.WriteString(fmt.Sprintf("--- %s ---\n", title))
-		tbl := format.NewTable(format.ASCII)
-		tbl.Header("ID", "Metric", "Value", "Detail", "Pass", "Threshold")
-		tbl.Columns(
-			format.ColumnConfig{Number: 1, Align: format.AlignLeft},
-			format.ColumnConfig{Number: 2, Align: format.AlignLeft},
-			format.ColumnConfig{Number: 3, Align: format.AlignRight},
-			format.ColumnConfig{Number: 4, Align: format.AlignLeft},
-			format.ColumnConfig{Number: 5, Align: format.AlignCenter},
-			format.ColumnConfig{Number: 6, Align: format.AlignLeft},
-		)
-		for _, m := range metrics {
-			passMark := format.BoolMark(m.Pass)
-			if m.DryCapped {
-				passMark = "~"
-			}
-			tbl.Row(
-				m.ID,
-				display.Metric(m.ID),
-				fmt.Sprintf("%.2f", m.Value),
-				m.Detail,
-				passMark,
-				formatThreshold(m),
-			)
-		}
-		b.WriteString(tbl.String())
-		b.WriteString("\n\n")
-	}
-
-	writeSection("Structured Metrics", report.Metrics.Structured)
-	writeSection("Workspace / Repo Selection", report.Metrics.Workspace)
-	writeSection("Evidence Metrics", report.Metrics.Evidence)
-	writeSection("Semantic Metrics", report.Metrics.Semantic)
-	writeSection("Pipeline Metrics", report.Metrics.Pipeline)
-	writeSection("Aggregate", report.Metrics.Aggregate)
-
-	result := "PASS"
-	if passed < total {
-		result = "FAIL"
-	}
-	b.WriteString(fmt.Sprintf("RESULT: %s (%d/%d metrics within threshold)\n\n", result, passed, total))
-
-	// Token & Cost section (when tracker was present)
-	if report.Tokens != nil {
-		b.WriteString(dispatch.FormatTokenSummary(*report.Tokens))
-		b.WriteString("\n")
-	}
-
-	// Dataset health
+	// Dataset health (domain-specific)
 	if report.Dataset != nil {
 		b.WriteString("--- Dataset Health ---\n")
 		b.WriteString(fmt.Sprintf("Verified cases (scored):   %d\n", report.Dataset.VerifiedCount))
@@ -88,7 +53,7 @@ func FormatReport(report *CalibrationReport) string {
 		b.WriteString("\n\n")
 	}
 
-	// Per-case breakdown
+	// Per-case breakdown (domain-specific)
 	b.WriteString("--- Per-case breakdown ---\n")
 	caseTbl := format.NewTable(format.ASCII)
 	caseTbl.Header("Case", "Test", "Ver/Job", "Defect", "DT", "RP", "Comp", "Path", "Path✓")

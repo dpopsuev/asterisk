@@ -59,14 +59,14 @@ func (a *BasicAdapter) RegisterCase(caseLabel string, info *BasicCaseInfo) {
 }
 
 // SendPrompt returns a heuristic-derived response for the given case and step.
-func (a *BasicAdapter) SendPrompt(caseID string, step orchestrate.PipelineStep, _ string) (json.RawMessage, error) {
+func (a *BasicAdapter) SendPrompt(caseID string, step string, _ string) (json.RawMessage, error) {
 	ci := a.cases[caseID]
 	if ci == nil {
 		return nil, fmt.Errorf("basic: unknown case %q", caseID)
 	}
 
 	var artifact any
-	switch step {
+	switch orchestrate.PipelineStep(step) {
 	case orchestrate.StepF0Recall:
 		artifact = a.buildRecall(ci)
 	case orchestrate.StepF1Triage:

@@ -3,9 +3,13 @@
 // and measures how closely the agent's conclusions match the known answers.
 package calibrate
 
-import (
-	"github.com/dpopsuev/origami/dispatch"
-)
+import cal "github.com/dpopsuev/origami/calibrate"
+
+// Metric is an alias for the generic calibrate.Metric type.
+type Metric = cal.Metric
+
+// MetricSet is an alias for the generic calibrate.MetricSet type.
+type MetricSet = cal.MetricSet
 
 // Scenario defines a complete calibration scenario with ground truth data.
 type Scenario struct {
@@ -153,57 +157,6 @@ type RepoConfig struct {
 	IsRedHerring   bool     `json:"is_red_herring,omitempty"`
 }
 
-// --- Metric types ---
-
-// Metric is a single calibration metric with value, threshold, and pass/fail.
-type Metric struct {
-	ID        string  `json:"id"`
-	Name      string  `json:"name"`
-	Value     float64 `json:"value"`
-	Threshold float64 `json:"threshold"`
-	Pass      bool    `json:"pass"`
-	Detail    string  `json:"detail"`               // e.g. "10/12"
-	DryCapped bool    `json:"dry_capped,omitempty"`  // structurally unsolvable in dry calibration
-}
-
-// MetricSet holds all computed metrics for a calibration run.
-type MetricSet struct {
-	Structured []Metric `json:"structured"` // M1-M8
-	Workspace  []Metric `json:"workspace"`  // M9-M11
-	Evidence   []Metric `json:"evidence"`   // M12-M13
-	Semantic   []Metric `json:"semantic"`   // M14-M15
-	Pipeline   []Metric `json:"pipeline"`   // M16-M18
-	Aggregate  []Metric `json:"aggregate"`  // M19-M20
-}
-
-// AllMetrics returns all metrics as a flat list.
-func (ms *MetricSet) AllMetrics() []Metric {
-	var all []Metric
-	all = append(all, ms.Structured...)
-	all = append(all, ms.Workspace...)
-	all = append(all, ms.Evidence...)
-	all = append(all, ms.Semantic...)
-	all = append(all, ms.Pipeline...)
-	all = append(all, ms.Aggregate...)
-	return all
-}
-
-// PassCount returns (passed, total), excluding dry-capped metrics from both counts.
-func (ms *MetricSet) PassCount() (int, int) {
-	all := ms.AllMetrics()
-	passed, total := 0, 0
-	for _, m := range all {
-		if m.DryCapped {
-			continue
-		}
-		total++
-		if m.Pass {
-			passed++
-		}
-	}
-	return passed, total
-}
-
 // DatasetHealth summarizes the ground truth dataset composition.
 type DatasetHealth struct {
 	VerifiedCount  int             `json:"verified_count"`
@@ -220,17 +173,14 @@ type CandidateInfo struct {
 }
 
 // CalibrationReport is the final output of a calibration run.
+// It embeds the generic cal.CalibrationReport (Scenario, Adapter, Runs,
+// Metrics, RunMetrics, Tokens) and adds domain-specific fields.
 type CalibrationReport struct {
-	Scenario     string           `json:"scenario"`
-	Adapter      string           `json:"adapter"`
-	Runs         int              `json:"runs"`
-	SuiteID      int64            `json:"suite_id"`               // last run's suite ID; used by transcript weaver
-	BasePath     string           `json:"-"`                      // artifact root; not serialized
-	Metrics      MetricSet        `json:"metrics"`
-	CaseResults  []CaseResult     `json:"case_results"`
-	RunMetrics   []MetricSet            `json:"run_metrics,omitempty"`  // per-run for variance
-	Tokens       *dispatch.TokenSummary  `json:"tokens,omitempty"`      // populated when TokenTracker is present
-	Dataset      *DatasetHealth          `json:"dataset,omitempty"`     // ground truth composition
+	cal.CalibrationReport
+	SuiteID     int64                   `json:"suite_id"`
+	BasePath    string                  `json:"-"`
+	CaseResults []CaseResult            `json:"case_results"`
+	Dataset     *DatasetHealth          `json:"dataset,omitempty"`
 }
 
 // CaseResult captures the per-case investigation outcome.
@@ -272,13 +222,6 @@ type CaseResult struct {
 	PathCorrect        bool    `json:"path_correct"`
 	ComponentCorrect   bool    `json:"component_correct"`
 	SemanticScore      float64 `json:"semantic_score"` // 0-1
-
-	// Shadow dialectic results (populated when dialectic is enabled and activates)
-	DialecticActivated  bool   `json:"dialectic_activated,omitempty"`
-	DialecticSynthesis  string `json:"dialectic_synthesis,omitempty"`
-	DialecticFlipped    bool   `json:"dialectic_flipped,omitempty"`
-	DialecticNegations  int    `json:"dialectic_negations,omitempty"`
-	DialecticFinalDefect string `json:"dialectic_final_defect,omitempty"`
 
 	// Pipeline error (non-empty when the case failed during execution)
 	PipelineError string `json:"pipeline_error,omitempty"`

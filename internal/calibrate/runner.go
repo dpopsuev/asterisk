@@ -2,17 +2,18 @@ package calibrate
 
 import (
 	"bytes"
-	"github.com/dpopsuev/origami/dispatch"
-	"github.com/dpopsuev/origami"
-	"github.com/dpopsuev/origami/logging"
-	"asterisk/internal/preinvest"
 	"context"
 	"encoding/json"
 	"fmt"
 	"path/filepath"
 	"strings"
 
+	cal "github.com/dpopsuev/origami/calibrate"
+	"github.com/dpopsuev/origami/dispatch"
+	"github.com/dpopsuev/origami/logging"
+
 	"asterisk/internal/orchestrate"
+	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
 )
 
@@ -29,7 +30,6 @@ type RunConfig struct {
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
 	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
 	RPFetcher    preinvest.Fetcher // optional; when set, RP-sourced cases fetch real failure data
-	DialecticConfig  framework.DialecticConfig // Shadow dialectic pipeline config; disabled by default
 }
 
 // DefaultRunConfig returns defaults for calibration.
@@ -53,9 +53,11 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 	}
 
 	report := &CalibrationReport{
-		Scenario: cfg.Scenario.Name,
-		Adapter:  cfg.Adapter.Name(),
-		Runs:     cfg.Runs,
+		CalibrationReport: cal.CalibrationReport{
+			Scenario: cfg.Scenario.Name,
+			Adapter:  cfg.Adapter.Name(),
+			Runs:     cfg.Runs,
+		},
 		BasePath: cfg.BasePath,
 		Dataset:  buildDatasetHealth(cfg.Scenario),
 	}
@@ -417,6 +419,72 @@ func extractStepMetrics(result *CaseResult, step orchestrate.PipelineStep, artif
 			}
 		}
 	}
+}
+
+// selectRepoByHypothesis maps a defect_type_hypothesis to workspace repos
+// using Purpose keyword matching. Returns nil if no match is found (caller
+// should fall through to the AI-driven Resolve step).
+func selectRepoByHypothesis(hypothesis string, repos []RepoConfig) []string {
+	if hypothesis == "" || len(repos) == 0 {
+		return nil
+	}
+
+	type rule struct {
+		include []string
+		exclude []string
+	}
+	prefix := strings.ToLower(hypothesis)
+
+	var r rule
+	switch {
+	case strings.HasPrefix(prefix, "pb"):
+		r = rule{
+			include: []string{"operator", "daemon", "product"},
+			exclude: []string{"test", "framework", "e2e", "deploy", "manifests"},
+		}
+	case strings.HasPrefix(prefix, "au"):
+		r = rule{
+			include: []string{"test", "framework", "e2e"},
+			exclude: []string{},
+		}
+	case strings.HasPrefix(prefix, "en"):
+		r = rule{
+			include: []string{"config", "infra", "ci "},
+			exclude: []string{},
+		}
+	default:
+		return nil
+	}
+
+	var matched []string
+	for _, repo := range repos {
+		if repo.IsRedHerring {
+			continue
+		}
+		purpose := strings.ToLower(repo.Purpose)
+
+		excluded := false
+		for _, kw := range r.exclude {
+			if strings.Contains(purpose, kw) {
+				excluded = true
+				break
+			}
+		}
+		if excluded {
+			continue
+		}
+
+		for _, kw := range r.include {
+			if strings.Contains(purpose, kw) {
+				matched = append(matched, repo.Name)
+				break
+			}
+		}
+	}
+	if len(matched) == 0 {
+		return nil
+	}
+	return matched
 }
 
 // updateIDMaps updates the adapter's RCA/symptom ID maps after a case

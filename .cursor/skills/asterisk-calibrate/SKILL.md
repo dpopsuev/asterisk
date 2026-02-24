@@ -4,7 +4,7 @@ description: >
   Run wet LLM calibration via MCP using Papercup v2 choreography. The parent
   agent is a supervisor: it starts the session, launches worker subagents with
   the server-generated worker_prompt, monitors progress via signals, and
-  presents the final report. Workers own the get_next_step/submit_artifact
+  presents the final report. Workers own the get_next_step/submit_step
   loop independently. Use when the user types "/asterisk-calibrate <SCENARIO>"
   or asks to run wet calibration.
 ---
@@ -13,7 +13,7 @@ description: >
 
 Run wet (LLM-driven) calibration against a ground-truth scenario using the
 Asterisk MCP server. The parent agent is a **supervisor** — it never calls
-`get_next_step` or `submit_artifact`. Workers handle that directly.
+`get_next_step` or `submit_step`. Workers handle that directly.
 
 ## Trigger
 
@@ -73,7 +73,7 @@ start_pipeline(
   force: true,
   extra: {
     "scenario": "ptp-mock",
-    "adapter": "cursor"
+    "adapter": "llm"
   }
 )
 ```
@@ -91,7 +91,7 @@ Store `session_id`, `worker_prompt`, and `worker_count`.
 ## Part 2 — Launch workers (supervisor pattern)
 
 You are the **supervisor**, not the executor. You MUST NOT call `get_next_step`
-or `submit_artifact` yourself. Workers handle the entire pipeline loop.
+or `submit_step` yourself. Workers handle the entire pipeline loop.
 
 ### Launch worker subagents
 
@@ -110,7 +110,7 @@ for i in range(worker_count):
 
 Workers will:
 1. Emit `worker_started` signal with `mode: "stream"`
-2. Loop: `get_next_step` → analyze `prompt_content` → `submit_artifact`
+2. Loop: `get_next_step` → analyze `prompt_content` → `submit_step`
 3. Exit when `get_next_step` returns `done=true`
 4. Emit `worker_stopped` signal
 
@@ -204,7 +204,7 @@ If a worker Task fails or is aborted:
 
 ### Session timeout
 
-The MCP server has a 5-minute inactivity watchdog. If no `submit_artifact`
+The MCP server has a 5-minute inactivity watchdog. If no `submit_step`
 arrives for 5 minutes, the session aborts. Workers keep submitting to stay
 alive.
 
@@ -239,7 +239,7 @@ When triggered with no args, "help", or unrecognized input:
 >
 > Runs the F0-F6 evidence pipeline against ground-truth cases. Worker
 > subagents are launched with server-generated prompts. Each worker calls
-> `get_next_step` and `submit_artifact` directly (Papercup v2 choreography).
+> `get_next_step` and `submit_step` directly (Papercup v2 choreography).
 > Produces an M1-M21 metrics scorecard measuring pipeline accuracy.
 >
 > **Available scenarios:** `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest`

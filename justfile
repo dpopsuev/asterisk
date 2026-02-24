@@ -5,7 +5,6 @@ set dotenv-load := false
 
 bin_dir     := "bin"
 cmd_asterisk := "./cmd/asterisk"
-cmd_mock     := "./cmd/run-mock-flow"
 db_path      := ".asterisk/asterisk.db"
 calib_dir    := ".asterisk/calibrate"
 
@@ -21,10 +20,6 @@ default:
 build:
     @mkdir -p {{ bin_dir }}
     go build -o {{ bin_dir }}/asterisk {{ cmd_asterisk }}
-
-# Build all binaries (asterisk + mock-flow)
-build-all: build
-    go build -o {{ bin_dir }}/run-mock-flow {{ cmd_mock }}
 
 # Install asterisk to GOPATH/bin
 install:
@@ -43,10 +38,6 @@ test-v:
 # Run all Ginkgo BDD suites
 test-ginkgo:
     go run github.com/onsi/ginkgo/v2/ginkgo -r
-
-# Run only the wiring Ginkgo suite
-test-ginkgo-wiring:
-    go run github.com/onsi/ginkgo/v2/ginkgo ./internal/wiring/...
 
 # Run tests for a specific package (e.g. just test-pkg orchestrate)
 test-pkg pkg:
@@ -79,7 +70,7 @@ calibrate-stub scenario="ptp-mock":
 calibrate-wet scenario="ptp-real-ingest":
     go run {{ cmd_asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=cursor \
+        --adapter=llm \
         --dispatch=file \
         --clean
 
@@ -87,7 +78,7 @@ calibrate-wet scenario="ptp-real-ingest":
 calibrate-debug scenario="ptp-real-ingest":
     go run {{ cmd_asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=cursor \
+        --adapter=llm \
         --dispatch=file \
         --clean \
         --agent-debug
@@ -100,7 +91,7 @@ calibrate-parallel scenario="ptp-mock" workers="4":
 calibrate-cost scenario="ptp-real-ingest":
     go run {{ cmd_asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=cursor \
+        --adapter=llm \
         --dispatch=file \
         --clean \
         --cost-report
@@ -109,7 +100,7 @@ calibrate-cost scenario="ptp-real-ingest":
 calibrate-batch scenario="ptp-real-ingest" batch="4":
     go run {{ cmd_asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=cursor \
+        --adapter=llm \
         --dispatch=batch-file \
         --batch-size={{ batch }} \
         --clean \
@@ -121,7 +112,7 @@ calibrate-save scenario="ptp-real-ingest" round="":
     set -euo pipefail
     output=$(go run {{ cmd_asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=cursor \
+        --adapter=llm \
         --dispatch=file \
         --clean 2>&1)
     echo "$output"

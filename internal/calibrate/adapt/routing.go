@@ -8,9 +8,8 @@ import (
 	"time"
 
 	"asterisk/internal/calibrate"
-	"github.com/dpopsuev/origami/logging"
-	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
+	"github.com/dpopsuev/origami/logging"
 	"github.com/dpopsuev/origami/workspace"
 )
 
@@ -71,12 +70,12 @@ func NewRoutingRecorder(inner calibrate.ModelAdapter, color string) *RoutingReco
 func (r *RoutingRecorder) Name() string { return r.inner.Name() }
 
 // SendPrompt records a routing entry, logs it with color tag, then delegates.
-func (r *RoutingRecorder) SendPrompt(caseID string, step orchestrate.PipelineStep, prompt string) (json.RawMessage, error) {
+func (r *RoutingRecorder) SendPrompt(caseID string, step string, prompt string) (json.RawMessage, error) {
 	r.mu.Lock()
 	r.seq++
 	entry := RoutingEntry{
 		CaseID:       caseID,
-		Step:         string(step),
+		Step:         step,
 		AdapterColor: r.color,
 		Timestamp:    time.Now(),
 		DispatchID:   r.seq,
@@ -84,7 +83,7 @@ func (r *RoutingRecorder) SendPrompt(caseID string, step orchestrate.PipelineSte
 	r.log = append(r.log, entry)
 	r.mu.Unlock()
 
-	logging.New("routing").Info("dispatch", "color", r.color, "case_id", caseID, "step", string(step))
+	logging.New("routing").Info("dispatch", "color", r.color, "case_id", caseID, "step", step)
 
 	return r.inner.SendPrompt(caseID, step, prompt)
 }

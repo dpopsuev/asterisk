@@ -1,6 +1,6 @@
 # Generic unstructured-to-structured curation pipeline.
 # Domain-agnostic — used by Asterisk's origami adapter and any future curation use case.
-# Edge evaluation logic is registered via EdgeFactory in Go (internal/curate/pipeline.go).
+# Edge evaluation logic is registered via EdgeFactory in Go (github.com/dpopsuev/origami/curate).
 pipeline: curation
 description: "Generic unstructured-to-structured curation pipeline"
 

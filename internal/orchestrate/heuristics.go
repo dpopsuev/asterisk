@@ -23,7 +23,7 @@ func DefaultThresholds() Thresholds {
 }
 
 // DefaultHeuristics returns the 17 heuristic rules from the prompt-families contract §4.1.
-// Used by BuildEdgeFactory to wire heuristic closures into framework edges,
+// Used by BuildRunner to compile expression edges from the pipeline definition,
 // and as a fallback for direct evaluation in tests.
 func DefaultHeuristics(th Thresholds) []HeuristicRule {
 	return []HeuristicRule{
@@ -151,8 +151,16 @@ func DefaultHeuristics(th Thresholds) []HeuristicRule {
 				}
 			},
 		},
-		{
-			ID: "H6", Name: "triage-investigate", Stage: StepF1Triage,
+	// H7b "triage-hypothesis-repo" is implemented as a runner-level
+	// interception in calibrate/parallel.go's investigation loop. When the
+	// pipeline reaches F2 Resolve, the runner checks selectRepoByHypothesis
+	// against the triage hypothesis and workspace repo Purpose metadata. If a
+	// match is found, a synthetic ResolveResult is created and F2 is resolved
+	// deterministically without an AI dispatch. The pipeline_def.go graph
+	// includes H7b for documentation.
+
+	{
+		ID: "H6", Name: "triage-investigate", Stage: StepF1Triage,
 			SignalField: "skip_investigation",
 			Evaluate: func(artifact any, state *CaseState) *HeuristicAction {
 				r, ok := artifact.(*TriageResult)

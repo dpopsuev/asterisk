@@ -64,11 +64,11 @@ func TestBasicAdapter_Identify_Determinism(t *testing.T) {
 	}
 }
 
-func TestCursorAdapter_Identify_ValidResponse(t *testing.T) {
+func TestLLMAdapter_Identify_ValidResponse(t *testing.T) {
 	mock := &mockProbeDispatcher{
 		response: []byte(`{"model_name":"claude-4-sonnet","provider":"Anthropic","version":"20250514","wrapper":"Cursor"}`),
 	}
-	adapter := NewCursorAdapter("", WithDispatcher(mock))
+	adapter := NewLLMAdapter("", WithDispatcher(mock))
 
 	mi, err := adapter.Identify()
 	if err != nil {
@@ -91,11 +91,11 @@ func TestCursorAdapter_Identify_ValidResponse(t *testing.T) {
 	}
 }
 
-func TestCursorAdapter_Identify_NoVersion(t *testing.T) {
+func TestLLMAdapter_Identify_NoVersion(t *testing.T) {
 	mock := &mockProbeDispatcher{
 		response: []byte(`{"model_name":"claude-4-sonnet","provider":"Anthropic"}`),
 	}
-	adapter := NewCursorAdapter("", WithDispatcher(mock))
+	adapter := NewLLMAdapter("", WithDispatcher(mock))
 
 	mi, err := adapter.Identify()
 	if err != nil {
@@ -106,11 +106,11 @@ func TestCursorAdapter_Identify_NoVersion(t *testing.T) {
 	}
 }
 
-func TestCursorAdapter_Identify_WrapperAsModelName(t *testing.T) {
+func TestLLMAdapter_Identify_WrapperAsModelName(t *testing.T) {
 	mock := &mockProbeDispatcher{
 		response: []byte(`{"model_name":"composer","provider":"Cursor"}`),
 	}
-	adapter := NewCursorAdapter("", WithDispatcher(mock))
+	adapter := NewLLMAdapter("", WithDispatcher(mock))
 
 	_, err := adapter.Identify()
 	if err == nil {
@@ -119,11 +119,11 @@ func TestCursorAdapter_Identify_WrapperAsModelName(t *testing.T) {
 	t.Logf("correctly rejected wrapper identity: %v", err)
 }
 
-func TestCursorAdapter_Identify_GarbageResponse(t *testing.T) {
+func TestLLMAdapter_Identify_GarbageResponse(t *testing.T) {
 	mock := &mockProbeDispatcher{
 		response: []byte(`I am Claude, made by Anthropic!`),
 	}
-	adapter := NewCursorAdapter("", WithDispatcher(mock))
+	adapter := NewLLMAdapter("", WithDispatcher(mock))
 
 	_, err := adapter.Identify()
 	if err == nil {
@@ -131,11 +131,11 @@ func TestCursorAdapter_Identify_GarbageResponse(t *testing.T) {
 	}
 }
 
-func TestCursorAdapter_Identify_EmptyModelName(t *testing.T) {
+func TestLLMAdapter_Identify_EmptyModelName(t *testing.T) {
 	mock := &mockProbeDispatcher{
 		response: []byte(`{"model_name":"","provider":"Anthropic"}`),
 	}
-	adapter := NewCursorAdapter("", WithDispatcher(mock))
+	adapter := NewLLMAdapter("", WithDispatcher(mock))
 
 	_, err := adapter.Identify()
 	if err == nil {
@@ -143,11 +143,11 @@ func TestCursorAdapter_Identify_EmptyModelName(t *testing.T) {
 	}
 }
 
-func TestCursorAdapter_Identify_EmptyProvider(t *testing.T) {
+func TestLLMAdapter_Identify_EmptyProvider(t *testing.T) {
 	mock := &mockProbeDispatcher{
 		response: []byte(`{"model_name":"claude","provider":""}`),
 	}
-	adapter := NewCursorAdapter("", WithDispatcher(mock))
+	adapter := NewLLMAdapter("", WithDispatcher(mock))
 
 	_, err := adapter.Identify()
 	if err == nil {
@@ -155,11 +155,11 @@ func TestCursorAdapter_Identify_EmptyProvider(t *testing.T) {
 	}
 }
 
-func TestCursorAdapter_Identify_DispatchError(t *testing.T) {
+func TestLLMAdapter_Identify_DispatchError(t *testing.T) {
 	mock := &mockProbeDispatcher{
 		err: fmt.Errorf("connection refused"),
 	}
-	adapter := NewCursorAdapter("", WithDispatcher(mock))
+	adapter := NewLLMAdapter("", WithDispatcher(mock))
 
 	_, err := adapter.Identify()
 	if err == nil {
@@ -245,7 +245,7 @@ func TestAdapters_ImplementIdentifiable(t *testing.T) {
 
 	var _ interface {
 		Identify() (framework.ModelIdentity, error)
-	} = (*CursorAdapter)(nil)
+	} = (*LLMAdapter)(nil)
 }
 
 func TestModelIdentity_Conciseness(t *testing.T) {

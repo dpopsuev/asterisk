@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"github.com/dpopsuev/origami/logging"
-	mcpserver "asterisk/internal/mcp"
+	mcpserver "asterisk/internal/mcpconfig"
 
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
