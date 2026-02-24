@@ -94,7 +94,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `parallel-investigation.md` | Fan-out F0-F1, symptom clustering, 3x speedup. |
 | `ground-truth-v2.md` | Correct scenario data to match Jira audit. |
 | `true-wet-calibration.md` | Blind calibration against Jira-verified truth. M19 = 0.93 achieved. |
-| `papercup-v2-hardening.md` | Embed Papercup v2 choreography: server-generated worker prompt, inline prompt content, mode tracking, v2 supervisor skill. |
+| `asterisk-papercup-v2-hardening.md` | Embed Papercup v2 choreography into Asterisk MCP server: server-generated worker prompt, inline prompt content, mode tracking, v2 supervisor skill. Companion: `origami-papercup-v2-hardening` in Origami repo. |
 
 ### completed/distillation/ (2)
 

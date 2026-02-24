@@ -1,8 +1,9 @@
-# Contract — papercup-v2-hardening
+# Contract — asterisk-papercup-v2-hardening
 
 **Status:** complete  
-**Goal:** Embed the Papercup v2 choreography protocol into Go code so the agent cannot misinterpret it: server-generated worker prompt, inline prompt content, protocol-agnostic gate messages, and a thin v2 supervisor skill.  
-**Serves:** PoC completion (gate)
+**Goal:** Embed Papercup v2 choreography into Asterisk's MCP server and rewrite the calibration skill so the agent cannot revert to v1 orchestration.  
+**Serves:** PoC completion (gate)  
+**Companion:** `origami-papercup-v2-hardening` (Origami repo — docs alignment)
 
 ## Contract rules
 
@@ -10,7 +11,6 @@
 - The `get_next_step` response MUST include a `prompt_content` field with the full prompt text inline. Workers MUST NOT need to call `Read` on a file path.
 - Gate mechanism logic (`peakPullers`, `batchPeak`, `sessionPeakInFlight`) is unchanged. Only warning message text changes.
 - The rewritten skill MUST NOT call `get_next_step` or `submit_artifact` from the parent agent. Workers own those calls (Papercup v2 choreography).
-- Cross-repo: Origami `docs/cursor-skill-guide.md` Agent Bus Protocol section flips from v1 to v2.
 
 ## Context
 
@@ -18,9 +18,6 @@
 - `internal/mcp/session.go` — `MuxDispatcher`-based session; capacity gate (`PullerEnter`/`PullerExit`, `peakPullers`, `CheckCapacityGate`), TTL watchdog.
 - `internal/mcp/server_test.go` — Integration tests for MCP server and subagent interaction.
 - `skills/asterisk-calibrate/SKILL.md` — Current v1 skill with batch-pull orchestration pattern.
-- `origami/rules/domain/agent-bus.mdc` — Papercup v2 protocol specification (worker loop, supervisor pattern, signal protocol).
-- `origami/contracts/active/papercup-protocol-maturity.md` — Papercup v2 contract; Phase 1 (choreography migration) is the relevant phase.
-- `origami/docs/cursor-skill-guide.md` — Cursor Skill developer guide; Agent Bus Protocol section (lines 89-118) still describes v1.
 
 ### Root cause analysis
 
@@ -109,25 +106,6 @@ The gate has three opening paths, all compatible with v2:
 
 The `peakPullers` path is the primary v2 detector — it latches at high-water mark and never resets. Gate mechanism needs zero code changes; only warning message text changes.
 
-## FSC artifacts
-
-| Artifact | Target | Compartment |
-|----------|--------|-------------|
-| Updated `asterisk-calibrate` skill (v2 supervisor pattern) | `skills/asterisk-calibrate/SKILL.md` | domain |
-| Updated Cursor Skill guide (v2 protocol) | `origami/docs/cursor-skill-guide.md` | domain (cross-repo) |
-
-## Execution strategy
-
-Two phases. Phase 1 is the server-side embedding (testable in isolation). Phase 2 is the skill rewrite and docs (depends on Phase 1 being wired).
-
-### Phase 1 — Server-side embedding
-
-Embed the v2 protocol into Go code: server-generated worker prompt, inline prompt content, protocol-agnostic gate messages. All testable via `go test ./internal/mcp/...`.
-
-### Phase 2 — Skill rewrite and docs
-
-Rewrite the skill to v2 supervisor pattern. Update Origami guide. Update the `asterisk-calibrate-skill` contract notes.
-
 ## Coverage matrix
 
 | Layer | Applies | Rationale |
@@ -152,14 +130,12 @@ Rewrite the skill to v2 supervisor pattern. Update Origami guide. Update the `as
 - [x] **P1.7** Validate (green) — `go build ./...` && `go test ./internal/mcp/...` && `go test ./...`.
 - [x] **P1.NEW** Worker mode tracking: `RegisterWorker()` method, `WorkerModeStats()`, server intercepts `worker_started` signals to register workers with declared mode.
 
-### Phase 2 — Skill rewrite and docs
+### Phase 2 — Skill rewrite
 
 - [x] **P2.1** Rewrite `.cursor/skills/asterisk-calibrate/SKILL.md` to v2 supervisor pattern: call `start_calibration` -> launch `worker_count` Tasks with `worker_prompt` -> monitor via `get_signals` -> `get_report`. Removed all `get_next_step`/`submit_artifact` calls from skill. Removed "Parallel mode" batch-pull section.
-- [x] **P2.2** Update `origami/docs/cursor-skill-guide.md` "Agent Bus Protocol" section: flipped responsibility table to v2, replaced "Parallel mode" with supervisor/worker pattern, referenced server-generated `worker_prompt`.
 - [x] **P2.3** Update `asterisk-calibrate-skill.md` contract notes with v1 -> v2 migration note.
-- [x] **P2.4** Validate (green) — `go build ./...` in both Asterisk and Origami.
-- [x] **P2.5** Tune (blue) — reviewed skill and guide for clarity; both follow v2 pattern consistently.
-- [x] **P2.6** Validate (green) — all tests pass in both repos.
+- [x] **P2.4** Validate (green) — `go build ./...`.
+- [x] **P2.6** Validate (green) — all tests pass.
 
 ## Acceptance criteria
 
@@ -189,13 +165,6 @@ Then the skill does NOT contain get_next_step or submit_artifact calls from the 
 ## Security assessment
 
 No trust boundaries affected. `prompt_content` is the same data as `prompt_path` — delivered inline instead of via file read. No new attack surface.
-
-## Not in scope
-
-- Zone-aware stickiness (Papercup P2) — separate phase in `origami/contracts/active/papercup-protocol-maturity.md`.
-- Work stealing (Papercup P3) — separate phase.
-- Adaptive worker lifecycle (Papercup P4) — separate phase; basic replacement via supervisor IS included in skill.
-- Origami skill scaffold template update (Papercup P1.2) — done in Origami repo separately.
 
 ## Notes
 
