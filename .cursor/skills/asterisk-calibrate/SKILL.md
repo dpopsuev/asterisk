@@ -68,11 +68,13 @@ Parse `--parallel=N` if present. Default: `4`.
 Call the MCP tool:
 
 ```
-start_calibration(
-  scenario: "ptp-mock",
-  adapter: "cursor",
+start_pipeline(
   parallel: 4,
-  force: true
+  force: true,
+  extra: {
+    "scenario": "ptp-mock",
+    "adapter": "cursor"
+  }
 )
 ```
 
