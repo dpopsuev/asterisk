@@ -1,20 +1,22 @@
 # Contract — Demo Presentation
 
 **Status:** draft  
-**Goal:** Build the "Inside Out"-themed PoC presentation using Origami's Kami debugger — police station theme, agent intros, interactive pipeline visualization, and a recorded replay for repeatable demos.  
+**Goal:** Implement Asterisk's Police Station presentation by providing a `PresentationConfig` + `Theme` to Origami's Kami presentation engine — personality-driven content, `asterisk demo` CLI, and a recorded replay for repeatable demos.  
 **Serves:** Polishing & Presentation (should)
 
 ## Contract rules
 
-- This contract depends on Origami's `kami-live-debugger` contract. Do not start Phase 2+ until the `kami.Theme` interface is defined.
+- This contract depends on **two** Origami contracts: `kami-live-debugger` (complete) and `kami-presentation-engine` (draft). Do not start Phase 2+ until Kami's `PresentationConfig` interface is defined and API endpoints exist.
+- **No standalone SPA in Asterisk.** The `internal/demo/frontend/` directory is deleted. All presentation rendering is done by Origami's Kami frontend. Asterisk only provides Go data structs.
 - Theme content (intro lines, node descriptions, cooperation dialogs) must be funny and personality-driven. Each persona's voice matches its element.
 - The recorded replay `.jsonl` is committed to the repo as a demo artifact. It must be reproducible from a real calibration run.
 - No hardcoded agent identities — the theme provides personality content, Kami provides the model identity (provider/model/version) from the actual run.
 
 ## Context
 
-- **Red Hat Presentation DNA** (`origami/.cursor/docs/rh-presentation-dna.md`): Color system (4 collections), web section patterns (12 types), design constraints, accessibility. The demo web app uses RH brand colors and layout patterns — not as a static slide deck, but as the design language for an interactive presentation SPA.
-- **Kami** (Origami): Live agentic debugger with triple-homed architecture (MCP + HTTP/SSE + WS). Provides `Theme` interface for domain-specific visualization content. See `origami/.cursor/contracts/draft/kami-live-debugger.md`.
+- **Kami Presentation Engine** (Origami, draft): Data-driven presentation SPA as a framework feature. Defines `PresentationConfig` interface, `/api/theme` + `/api/pipeline` + `/api/presentation` endpoints, scroll-snap section rendering, element selector. See `origami/.cursor/contracts/draft/kami-presentation-engine.md`. **This contract is the upstream dependency.**
+- **Kami Live Debugger** (Origami, complete): EventBridge, KamiServer, Debug API, MCP tools, Recorder/Replayer, React frontend.
+- **Red Hat Presentation DNA** (`origami/.cursor/docs/rh-presentation-dna.md`): Color system, web section patterns. Kami's presentation engine implements the layout; Asterisk provides the color tokens and content.
 - **Pipeline RCA** (`internal/orchestrate/pipeline_rca.yaml`): Asterisk's 7-node pipeline with 3 zones (Backcourt, Frontcourt, Paint). This is the graph visualized in the demo.
 - **Origami Personas** (`persona.go`): 8 personas (Herald, Seeker, Sentinel, Weaver + Shadow counterparts) with element affinities and personality traits.
 - **Origami Elements** (`element.go`): Fire (decisive), Water (thorough), Earth (methodical), Air (creative), Diamond (precise), Lightning (fast).
@@ -39,67 +41,63 @@
 
 ## Execution strategy
 
-Phase 0 scaffolds the RH-branded presentation web app — a single-page application that IS the demo, with section-based navigation mapping storyboard acts to RH web section patterns. The Kami live graph visualization is embedded directly in the "Live Demo" section. Phase 1 implements the `kami.Theme` interface with Asterisk's police station personality. Phase 2 wires the `asterisk demo` CLI command to serve the presentation SPA. Phase 3 records a canonical calibration run for repeatable demos. Phase 4 validates the full replay experience.
+Phase 0 is removed — there is no standalone SPA to build. Asterisk provides only Go data structs; Origami's Kami renders them. Phase 1 keeps the existing `PoliceStationTheme` and adds `PoliceStationPresentation` implementing Kami's `PresentationConfig`. Phase 2 wires the `asterisk demo` CLI to pass both to `kami.NewServer()`. Phase 3 records a canonical calibration run. Phase 4 validates the full replay experience. Phase 5 deletes `internal/demo/frontend/` and `internal/demo/embed.go`.
+
+**Dependency:** Origami's `kami-presentation-engine` contract must be complete before Phase 1 starts. The `PresentationConfig` interface, API endpoints, and data-driven frontend must exist in the framework first.
 
 ## Coverage matrix
 
 | Layer | Applies | Rationale |
 |-------|---------|-----------|
-| **Unit** | yes | Theme struct field completeness, intro line generation |
-| **Integration** | yes | `asterisk demo --replay` starts Kami, serves SPA, plays events |
-| **Contract** | yes | `kami.Theme` interface compliance |
-| **E2E** | yes | Full replay demo runs without errors |
+| **Unit** | yes | Theme + PresentationConfig struct completeness, section data generation |
+| **Integration** | yes | `asterisk demo --replay` starts Kami, serves framework SPA, plays events |
+| **Contract** | yes | `kami.Theme` + `kami.PresentationConfig` interface compliance |
+| **E2E** | yes | Full replay demo runs without errors, all sections render |
 | **Concurrency** | no | Single-user demo, no shared state |
 | **Security** | no | Localhost demo, no trust boundaries |
 
 ## Tasks
 
-### Phase 0 — Presentation Web App (RH-branded interactive SPA)
+### Phase 1 — Police Station Theme + PresentationConfig
 
-- [ ] **S1** Create web section structure document `docs/demo-web-sections.md` mapping storyboard acts to RH web section patterns per `origami/.cursor/docs/rh-presentation-dna.md` Section 5.1:
-  - Hero: **Title pattern** — full-viewport hero with animated Origami logo, "Asterisk: AI-Driven Root-Cause Analysis", presenter info
-  - Agenda: **Navigator pattern** — interactive section navigator with `▸` markers, click-to-jump between sections
-  - Problem: **SplitPane pattern** — CI failure stats left, animated counter right
-  - Solution: **IconGrid pattern** — pipeline graph preview (static Mermaid render), 7 nodes, 3 zones
-  - Agent Intros: **CardCarousel pattern** — 3D CSS polyhedra per agent, name, element, personality tags, model identity
-  - Transition: **Divider pattern** — full-screen animated text: "Time to investigate some crimes against CI"
-  - Live Demo: **EmbeddedKami pattern** — Kami graph visualization embedded directly, SSE-driven animation (the centerpiece)
-  - Results: **MetricCard pattern** — animated M19 bar comparison, metric cards, live-updating if `--live`
-  - Competitive: **InteractiveTable pattern** — Origami vs CrewAI vs OmO with hover highlights
-  - Architecture: **ImagePane pattern** — Mermaid diagram rendered client-side
-  - Roadmap: **HorizontalTimeline pattern** — animated milestone dots for Sprint 1-6
-  - Closing: **Closing pattern** — RH boilerplate, social links, CTA
-- [ ] **S2** Scaffold presentation SPA (React + Vite + TypeScript + Tailwind) in `internal/demo/frontend/` with section-based scroll navigation
-- [ ] **S3** Configure Tailwind theme with RH Color Collection 1 tokens (red-50 `#ee0000`, purple-50 `#5e40be`, teal-50 `#37a3a3`, neutrals) per `origami/.cursor/docs/rh-presentation-dna.md` Section 1
-- [ ] **S4** Verify accessibility: WCAG contrast ratios, keyboard navigation between sections (arrow keys / Page Up/Down), ARIA landmarks per section, no color-alone data differentiation
-
-### Phase 1 — Police Station Theme
-
-- [ ] **T1** Define `PoliceStationTheme` struct implementing `kami.Theme` interface in `internal/demo/theme.go`
-- [ ] **T2** Agent intro lines — one per persona, personality-driven, funny. Fire=impatient detective, Water=forensic analyst, Earth=desk sergeant, Air=undercover, Diamond=internal affairs, Lightning=dispatch
-- [ ] **T3** Node descriptions — map each pipeline node to a police metaphor (recall="Witness Interview", triage="Case Classification", investigate="Crime Scene Analysis", etc.)
-- [ ] **T4** Cooperation dialogs — funny argument templates for agent pairs working on the same case ("Herald: I already solved it. Seeker: You haven't even read the logs.")
-- [ ] **T5** Costume assets — police hat SVG overlay for agent shapes, badge icon for the domain header
-- [ ] **T6** Unit tests: theme implements interface, all nodes have descriptions, all personas have intros
+- [ ] **T1** Verify existing `PoliceStationTheme` (already implements `kami.Theme`) in `internal/demo/theme.go`
+- [ ] **T2** Create `PoliceStationPresentation` implementing `kami.PresentationConfig` in `internal/demo/presentation.go` — provides section data:
+  - `Hero()` — "Asterisk: AI-Driven Root-Cause Analysis", subtitle, presenter info
+  - `Problem()` — CI failure stats, pain points
+  - `Results()` — M19 metric comparisons, calibration outcomes
+  - `Competitive()` — Origami vs CrewAI vs OmO comparison rows
+  - `Roadmap()` — Sprint 1-6 milestones
+  - `Closing()` — CTA, social links
+  - `TransitionLine()` — "Time to investigate some crimes against CI"
+- [ ] **T3** Agent intro lines — one per persona, personality-driven, funny. Fire=impatient detective, Water=forensic analyst, Earth=desk sergeant, Air=undercover, Diamond=internal affairs, Lightning=dispatch
+- [ ] **T4** Node descriptions — map each pipeline node to a police metaphor
+- [ ] **T5** Cooperation dialogs — funny argument templates for agent pairs
+- [ ] **T6** Unit tests: theme + presentation implement interfaces, all sections return data, nil-safety
 
 ### Phase 2 — CLI command
 
-- [ ] **D1** Implement `cmd_demo.go` — `asterisk demo` Cobra command
+- [ ] **D1** Update `cmd_demo.go` — `asterisk demo` Cobra command to pass `PresentationConfig` to Kami
 - [ ] **D2** Flags: `--port` (default 3000), `--replay <path>` (JSONL file), `--speed` (default 1.0), `--live` (connect to running pipeline)
-- [ ] **D3** Wiring: load `pipeline_rca.yaml` graph, create `PoliceStationTheme`, pass both to `kami.NewKamiServer()`
+- [ ] **D3** Wiring: load `pipeline_rca.yaml` graph, create `PoliceStationTheme` + `PoliceStationPresentation`, pass to `kami.NewServer(kami.Config{Theme: theme, Presentation: config})`
 - [ ] **D4** Integration test: `asterisk demo --replay testdata/demo/sample.jsonl` starts and serves without error
 
 ### Phase 3 — Record canonical demo
 
-- [ ] **C1** Run a real calibration session (`just calibrate-wet` or equivalent) with Kami recording enabled
-- [ ] **C2** Trim the recording to a compelling 3-5 minute segment showing agent intros, graph traversal, cooperation, and RCA evidence
+- [ ] **C1** Run a real calibration session with Kami recording enabled
+- [ ] **C2** Trim the recording to a compelling 3-5 minute segment
 - [ ] **C3** Commit recording as `testdata/demo/ptp-real-ingest.jsonl`
-- [ ] **C4** Verify replay: `asterisk demo --replay testdata/demo/ptp-real-ingest.jsonl --speed 2.0` runs cleanly
+- [ ] **C4** Verify replay runs cleanly
 
-### Phase 4 — Validate and tune
+### Phase 4 — Clean up standalone SPA
+
+- [ ] **X1** Delete `internal/demo/frontend/` — all React code is now in Origami's Kami
+- [ ] **X2** Delete `internal/demo/embed.go` — no more `go:embed` for frontend assets
+- [ ] **X3** Update `.gitignore` — remove frontend-specific entries
+
+### Phase 5 — Validate and tune
 
 - [ ] **V1** Validate (green) — `go build ./...`, `go test ./...` all pass. Demo replay runs end-to-end.
-- [ ] **V2** Tune (blue) — Polish intro lines, adjust timing, improve cooperation dialog variety.
+- [ ] **V2** Tune (blue) — Polish intro lines, adjust timing, improve section content.
 - [ ] **V3** Validate (green) — all tests still pass after tuning.
 
 ## Acceptance criteria

@@ -24,7 +24,7 @@ Full PoC history: `notes/goal-history-poc.md`
 
 ## Execution Order
 
-Critical path: `consumer-ergonomics` (Origami) → `walker-experience` (Origami) → `ouroboros-seed-pipeline` (Origami) → `kami-live-debugger` (Origami) → `demo-presentation` (Asterisk).
+Critical path: `consumer-ergonomics` (Origami) → `walker-experience` (Origami) → `ouroboros-seed-pipeline` (Origami) → `kami-live-debugger` (Origami) → `kami-presentation-engine` (Origami) → `demo-presentation` (Asterisk).
 
 Strategic pauses (CHECKPOINT) verify Asterisk still works after Origami API changes. Asterisk imports Origami as a Go module — every Origami change can silently break the consumer.
 
@@ -99,11 +99,12 @@ Asterisk: go get github.com/dpopsuev/origami@latest
 
 Verify: Kami's EventBridge, KamiServer, and new MCP tools don't break Asterisk's existing MCP server. SignalBus changes are backward-compatible. This is the last checkpoint before starting the demo — Asterisk must be rock solid.
 
-### Sprint 5 — Demo (the presentation)
+### Sprint 5 — Presentation engine + Demo
 
 | # | Contract | Repo | Tier | Notes |
 |---|----------|------|------|-------|
-| 7 | `demo-presentation` | **Asterisk** | should | Depends on Kami (#6). Police Station theme, `asterisk demo` CLI, recorded replay. **This is the presentation.** |
+| 7a | `kami-presentation-engine` | Origami | should | Framework-level presentation SPA. Consumers provide PresentationConfig + Theme, Kami renders sections. Moves element selector from Asterisk. **Must complete before demo.** |
+| 7b | `demo-presentation` | **Asterisk** | should | Depends on #7a. Implements `PresentationConfig` with Police Station personality. `asterisk demo` CLI, recorded replay. **This is the presentation.** |
 
 ### CHECKPOINT E — Final gate
 
