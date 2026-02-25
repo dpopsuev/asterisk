@@ -43,6 +43,7 @@ func init() {
 	rootCmd.AddCommand(statusCmd)
 	rootCmd.AddCommand(calibrateCmd)
 	rootCmd.AddCommand(serveCmd)
+	rootCmd.AddCommand(demoCmd)
 	rootCmd.Version = version
 }
 
