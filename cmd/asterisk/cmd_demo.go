@@ -46,14 +46,15 @@ func runDemo(cmd *cobra.Command, _ []string) error {
 	defer bridge.Close()
 
 	theme := demo.PoliceStationTheme{}
+	kabuki := demo.PoliceStationKabuki{}
 	srv := kami.NewServer(kami.Config{
 		Port:   demoPort,
 		Bind:   demoBind,
 		Debug:  true,
 		Logger: log,
 		Bridge: bridge,
-		SPA:    demo.FrontendFS(),
 		Theme:  theme,
+		Kabuki: kabuki,
 	})
 
 	ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt)

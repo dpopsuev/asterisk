@@ -30,9 +30,6 @@
 # Local runtime directory
 .asterisk/
 
-# Frontend (dist/ committed for go:embed; rebuild with npm run build)
-internal/demo/frontend/node_modules/
-
 # Go
 *.test
 *.out
