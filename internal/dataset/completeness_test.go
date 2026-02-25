@@ -1,4 +1,4 @@
-package origami
+package dataset
 
 import (
 	"asterisk/internal/calibrate"

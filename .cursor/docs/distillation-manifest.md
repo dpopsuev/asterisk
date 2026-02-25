@@ -28,7 +28,7 @@ Framework boundary is clean: all imports stay within `github.com/dpopsuev/origam
 | `internal/rp/` | 855 | No | `investigate`, `logging`, `postinvest`, `preinvest` |
 | `internal/store/` | 2992 | No | `preinvest` |
 | `internal/curate/` | 599 | Yes (`github.com/dpopsuev/origami`) | — |
-| `internal/origami/` | 318 | No | `calibrate`, `curate` |
+| `internal/dataset/` | 318 | No | `calibrate`, `curate` |
 | `internal/mcp/` | 913 | Yes (`github.com/dpopsuev/origami/mcp`) | `calibrate`, `adapt`, `dispatch`, `scenarios`, `logging`, `orchestrate`, `preinvest`, `rp`, `store` |
 | `internal/metacalmcp/` | 796 | Yes (`github.com/dpopsuev/origami`, `mcp`, `metacal`, `probes`) | — |
 | `internal/display/` | 221 | No | — |

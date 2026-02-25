@@ -28,11 +28,7 @@ No ReportPortal needed:
 make playground
 ```
 
-Or directly:
-
-```bash
-go run ./examples/framework/
-```
+The framework playground is in the Origami repo: `go run ./examples/playground/` (in `github.com/dpopsuev/origami`).
 
 ## Calibration
 
@@ -86,7 +82,7 @@ internal/postinvest/   Post-investigation push (RP, Jira)
 internal/rp/           ReportPortal API client
 internal/store/        Persistence (suite, pipeline, case, triage, RCA)
 internal/display/      Human-readable metric names and formatting
-internal/origami/      DatasetStore, mapper, completeness (curate bridge)
+internal/dataset/      DatasetStore, mapper, completeness (curate bridge)
 pipelines/             YAML pipeline definitions
 ```
 

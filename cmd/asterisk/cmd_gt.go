@@ -1,7 +1,7 @@
 package main
 
 import (
-	"asterisk/internal/origami"
+	"asterisk/internal/dataset"
 	"context"
 	"fmt"
 	"os"
@@ -23,7 +23,7 @@ var gtStatusCmd = &cobra.Command{
 	Short: "Show dataset completeness overview",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store := origami.NewFileStore(gtDataDir)
+		store := dataset.NewFileStore(gtDataDir)
 		ctx := context.Background()
 
 		if len(args) == 0 {
@@ -47,7 +47,7 @@ var gtStatusCmd = &cobra.Command{
 			return err
 		}
 
-		results := origami.CheckScenario(scenario)
+		results := dataset.CheckScenario(scenario)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 		fmt.Fprintf(w, "Case\tRCA\tScore\tPromotable\tMissing\n")

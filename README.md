@@ -120,11 +120,10 @@ Type `/asterisk-analyze help` for setup instructions.
 
 Underneath the RCA product is a generic **agentic pipeline framework** — a graph-based agent orchestration engine with zero domain dependencies.
 
+The framework now lives in its own repository: [`github.com/dpopsuev/origami`](https://github.com/dpopsuev/origami).
+
 ```
-internal/framework/    ~1,500 lines of source, ~2,400 lines of tests
-pipelines/*.yaml       Declarative pipeline definitions (YAML → Graph → Walk)
-examples/framework/    Interactive playground
-docs/framework-guide.md   Design document
+pipelines/asterisk-rca.yaml   Domain-specific RCA pipeline definition
 ```
 
 **Key concepts:**

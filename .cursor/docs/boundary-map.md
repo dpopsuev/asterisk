@@ -12,7 +12,7 @@ Achilles heuristic: "Would Achilles (AI vulnerability discovery tool, second Ori
 | `preinvest` | Pre-investigation fetch: obtains execution envelope from stub or RP API | No | Envelope shape (launch, failure list, RP attributes) is RP-specific |
 | `postinvest` | Post-investigation push: records defect type to mock store, optional Jira fields | No | RP/Jira push is RP-specific; Achilles outputs SARIF/reports |
 | `rp` | ReportPortal 5.11 API client (launches, items, envelope, project) | No | RP API is RP-only |
-| `store` | Persistence facade: suite, pipeline, launch, job, case, triage, symptom, RCA | No | Schema is RP/RCA-specific; Achilles has its own persistence |
+| `store` | Persistence facade: suite, pipeline, launch, job, case, triage, symptom, RCA | No | **Investigated (2026-02-25):** 30+ method interface, v1/v2 coexist, all domain-specific. v1 is alive (5 callers). No generic patterns extractable. v1 disappears when interactive runner is removed. |
 
 ### Generic pattern, domain-specific schema (migration candidates)
 
