@@ -22,25 +22,24 @@ description: Active goal manifest — single-read orientation for agents to know
 
 Full PoC history: `notes/goal-history-poc.md`
 
-## Asterisk — Urgency Map
+## Execution Order
 
-| Tier | Contract | Status | Notes |
-|------|----------|--------|-------|
-| **should** | `demo-presentation` | draft | Inside Out-themed PoC presentation. Police station theme, Kami debugger, recorded replay. Companion to Origami `kami-live-debugger`. |
-| **should** | `knowledge-source-migration` | draft | Migrate 11 files from deprecated `origami/workspace` to `origami/knowledge`. Removes stale dependency. |
-| **should** | `ground-truth-dataset` | draft | Ph1-2 done. Ph7: export to JSON + GitHub PR. Presentation-ready dataset. |
-| **nice** | `evidence-gap-brief` | draft | Structured "I don't know" output. Polish for when confidence is low. |
-| **vision** | `knowledge-source-evolution` | draft | Layered composition, `Source.Tags`, token-budget summarization. Long-term architecture. |
+Critical path: `consumer-ergonomics` (Origami) → `walker-experience` (Origami) → `ouroboros-seed-pipeline` (Origami) → `kami-live-debugger` (Origami) → `demo-presentation` (Asterisk).
 
-## Origami — Urgency Map
-
-| Tier | Contract | Status | Notes |
-|------|----------|--------|-------|
-| **should** | `kami-live-debugger` | draft | Kami live agentic debugger (Demiurge pattern). Presentation-critical. |
-| **should** | `ouroboros-seed-pipeline` | draft | 3-node pipeline + YAML seeds + Persona Sheet. |
-| **nice** | `consumer-ergonomics` | draft | ResolvePipelinePath, WithOutputCapture, DefaultWalker. API polish. |
-| **nice** | `prompt-calibration` | draft | Framework-level prompt tuning loop. Per-step accuracy. Deferred. |
-| **nice** | `domain-calibration` | draft | Per-domain calibration scoping (Asterisk, Origami, Achilles); `curate/eval/`. |
+| # | Contract | Repo | Tier | Status | Notes |
+|---|----------|------|------|--------|-------|
+| 1 | `consumer-ergonomics` | Origami | nice | draft | Smallest scope. Stabilizes walker factory conventions. Quick win. |
+| 2 | `knowledge-source-migration` | **Asterisk** | should | draft | Removes stale `origami/workspace` imports. Prerequisite for clean build. Parallel with #1. |
+| 3 | `ground-truth-dataset` Ph7 | **Asterisk** | should | draft | JSON export for presentation-ready dataset. Parallel with #1. |
+| 4 | `walker-experience` | Origami | should | draft | WalkerDef + MemoryStore. High demo impact. Depends on #1. |
+| 5 | `ouroboros-seed-pipeline` | Origami | should | draft | Largest contract. Seeds, 3-node pipeline, PersonaSheet, auto-routing. Core of engine reveal. Depends on #4. |
+| 6 | `kami-live-debugger` | Origami | should | draft | Presentation-critical. Live graph visualization. Best after pipeline layer is stable (#5). |
+| 7 | `demo-presentation` | **Asterisk** | should | draft | Depends on Kami (#6). Police Station theme, `asterisk demo` CLI, recorded replay. **This is the presentation.** |
+| 8 | `provider-resilience` | Origami | nice | draft | Fallback chains + intent classifier. Polishes dispatch layer. Anytime after #5. |
+| 9 | `evidence-gap-brief` | **Asterisk** | nice | draft | Structured "I don't know" output. Polish, not blocking. |
+| 10 | `domain-calibration` | Origami | nice | draft | Per-domain eval types. Useful but not presentation-critical. |
+| 11 | `prompt-calibration` | Origami | nice | draft | Deferred. No urgency until post-presentation tuning. |
+| 12 | `knowledge-source-evolution` | **Asterisk** | vision | draft | Long-term architecture. No timeline. |
 
 ## What "presentation-ready" means
 
