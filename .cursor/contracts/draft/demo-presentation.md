@@ -13,6 +13,7 @@
 
 ## Context
 
+- **Red Hat Presentation DNA** (`origami/.cursor/docs/rh-presentation-dna.md`): Color system (4 collections), web section patterns (12 types), design constraints, accessibility. The demo web app uses RH brand colors and layout patterns — not as a static slide deck, but as the design language for an interactive presentation SPA.
 - **Kami** (Origami): Live agentic debugger with triple-homed architecture (MCP + HTTP/SSE + WS). Provides `Theme` interface for domain-specific visualization content. See `origami/.cursor/contracts/draft/kami-live-debugger.md`.
 - **Pipeline RCA** (`internal/orchestrate/pipeline_rca.yaml`): Asterisk's 7-node pipeline with 3 zones (Backcourt, Frontcourt, Paint). This is the graph visualized in the demo.
 - **Origami Personas** (`persona.go`): 8 personas (Herald, Seeker, Sentinel, Weaver + Shadow counterparts) with element affinities and personality traits.
@@ -34,10 +35,11 @@
 |----------|--------|-------------|
 | Demo recording (canonical `.jsonl`) | `testdata/demo/` | domain |
 | Police station theme reference | `docs/demo-theme.md` | domain |
+| Web section structure (act-to-component mapping) | `docs/demo-web-sections.md` | domain |
 
 ## Execution strategy
 
-Phase 1 implements the `kami.Theme` interface with Asterisk's police station personality. Phase 2 wires the `asterisk demo` CLI command. Phase 3 records a canonical calibration run for repeatable demos. Phase 4 validates the full replay experience.
+Phase 0 scaffolds the RH-branded presentation web app — a single-page application that IS the demo, with section-based navigation mapping storyboard acts to RH web section patterns. The Kami live graph visualization is embedded directly in the "Live Demo" section. Phase 1 implements the `kami.Theme` interface with Asterisk's police station personality. Phase 2 wires the `asterisk demo` CLI command to serve the presentation SPA. Phase 3 records a canonical calibration run for repeatable demos. Phase 4 validates the full replay experience.
 
 ## Coverage matrix
 
@@ -51,6 +53,25 @@ Phase 1 implements the `kami.Theme` interface with Asterisk's police station per
 | **Security** | no | Localhost demo, no trust boundaries |
 
 ## Tasks
+
+### Phase 0 — Presentation Web App (RH-branded interactive SPA)
+
+- [ ] **S1** Create web section structure document `docs/demo-web-sections.md` mapping storyboard acts to RH web section patterns per `origami/.cursor/docs/rh-presentation-dna.md` Section 5.1:
+  - Hero: **Title pattern** — full-viewport hero with animated Origami logo, "Asterisk: AI-Driven Root-Cause Analysis", presenter info
+  - Agenda: **Navigator pattern** — interactive section navigator with `▸` markers, click-to-jump between sections
+  - Problem: **SplitPane pattern** — CI failure stats left, animated counter right
+  - Solution: **IconGrid pattern** — pipeline graph preview (static Mermaid render), 7 nodes, 3 zones
+  - Agent Intros: **CardCarousel pattern** — 3D CSS polyhedra per agent, name, element, personality tags, model identity
+  - Transition: **Divider pattern** — full-screen animated text: "Time to investigate some crimes against CI"
+  - Live Demo: **EmbeddedKami pattern** — Kami graph visualization embedded directly, SSE-driven animation (the centerpiece)
+  - Results: **MetricCard pattern** — animated M19 bar comparison, metric cards, live-updating if `--live`
+  - Competitive: **InteractiveTable pattern** — Origami vs CrewAI vs OmO with hover highlights
+  - Architecture: **ImagePane pattern** — Mermaid diagram rendered client-side
+  - Roadmap: **HorizontalTimeline pattern** — animated milestone dots for Sprint 1-6
+  - Closing: **Closing pattern** — RH boilerplate, social links, CTA
+- [ ] **S2** Scaffold presentation SPA (React + Vite + TypeScript + Tailwind) in `internal/demo/frontend/` with section-based scroll navigation
+- [ ] **S3** Configure Tailwind theme with RH Color Collection 1 tokens (red-50 `#ee0000`, purple-50 `#5e40be`, teal-50 `#37a3a3`, neutrals) per `origami/.cursor/docs/rh-presentation-dna.md` Section 1
+- [ ] **S4** Verify accessibility: WCAG contrast ratios, keyboard navigation between sections (arrow keys / Page Up/Down), ARIA landmarks per section, no color-alone data differentiation
 
 ### Phase 1 — Police Station Theme
 
@@ -85,7 +106,11 @@ Phase 1 implements the `kami.Theme` interface with Asterisk's police station per
 
 **Given** `asterisk demo --replay testdata/demo/ptp-real-ingest.jsonl` is executed,  
 **When** a browser navigates to `http://localhost:3000`,  
-**Then** the visualization shows: Act 1 (agent intros with police theme), Act 2 (graph with zone labels and node tooltips), Act 3 (agents moving, monologues, cooperation pop-ups, evidence cards).
+**Then** the web app presents 12 RH-branded sections in scroll order: Hero, Agenda, Problem, Solution, Agent Intros, Transition, Live Demo (embedded Kami graph with SSE-driven animation), Results, Competitive, Architecture, Roadmap, Closing.
+
+**Given** the presentation web app is loaded,  
+**When** the user scrolls or uses keyboard navigation (arrow keys, Page Up/Down),  
+**Then** each section transitions smoothly, the Agenda navigator highlights the current section, and all ARIA landmarks are present.
 
 **Given** the `PoliceStationTheme` struct,  
 **When** it is passed to `kami.NewKamiServer()`,  
@@ -93,7 +118,7 @@ Phase 1 implements the `kami.Theme` interface with Asterisk's police station per
 
 **Given** a live calibration run with `--live` flag,  
 **When** `asterisk demo --live --port 3000` is started alongside `asterisk calibrate`,  
-**Then** the browser shows real-time pipeline execution with the police station theme applied.
+**Then** the Live Demo section shows real-time pipeline execution with the police station theme applied, embedded within the presentation SPA.
 
 ## Security assessment
 

@@ -80,7 +80,7 @@ Asterisk: go get github.com/dpopsuev/origami@latest
           just calibrate-wet --cases 3
 ```
 
-Verify: Ouroboros API changes (deprecated runner, new pipeline path) don't break Asterisk's meta-calibration integration. Wet calibration on 3 cases confirms the full stack still works end-to-end. This is the most critical checkpoint — Ouroboros touches the deepest framework layer.
+Verify: Ouroboros API changes (deprecated runner, new pipeline path) don't break Asterisk's meta-calibration integration. Wet calibration on 3 cases confirms the full stack still works end-to-end. This is the most critical checkpoint — Ouroboros touches the deepest framework layer. **E2E gate (Origami):** `go test -run TestE2E ./...` runs all scenario YAMLs + real-YAML walks.
 
 ### Sprint 4 — Kami debugger
 
@@ -115,7 +115,15 @@ Asterisk: go build ./... && go test ./...
           asterisk demo --replay
 ```
 
-Verify: Everything works. Demo replays cleanly. Calibration hasn't regressed. Ready to present.
+Verify: Everything works. Demo replays cleanly. Calibration hasn't regressed. **E2E gate (Origami):** full E2E sweep — all scenarios, all walks. Ready to present.
+
+### Sprint 6 — LSP (Origami, post-demo)
+
+| # | Contract | Repo | Tier | Notes |
+|---|----------|------|------|-------|
+| — | `origami-lsp` | Origami | vision | Language Server for pipeline YAML. Color coding, virtual text hints, Kami live connection. Last goal. |
+
+**CHECKPOINT F** — LSP validates all E2E scenario YAMLs. No Asterisk changes — Origami-only.
 
 ### Post-presentation polish (no checkpoints needed)
 
@@ -126,6 +134,7 @@ Verify: Everything works. Demo replays cleanly. Calibration hasn't regressed. Re
 | 10 | `domain-calibration` | Origami | nice | Per-domain eval types. Useful but not presentation-critical. |
 | 11 | `prompt-calibration` | Origami | nice | Deferred. No urgency until post-presentation tuning. |
 | 12 | `knowledge-source-evolution` | **Asterisk** | vision | Long-term architecture. No timeline. |
+| 13 | `origami-collections` | Origami | vision | Package manager + collection format. Prevents consumer duplication. No timeline. |
 
 ## What "presentation-ready" means
 

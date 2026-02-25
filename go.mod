@@ -5,7 +5,7 @@ go 1.24.0
 replace github.com/dpopsuev/origami => /home/dpopsuev/Workspace/origami
 
 require (
-	github.com/dpopsuev/origami v0.3.1-0.20260225145252-ea940fa8538c
+	github.com/dpopsuev/origami v0.3.1-0.20260225150856-cffff06dd7b3
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	github.com/onsi/ginkgo/v2 v2.28.1
 	github.com/onsi/gomega v1.39.1
