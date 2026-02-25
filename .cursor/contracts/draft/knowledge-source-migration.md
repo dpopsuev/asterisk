@@ -108,16 +108,16 @@ flowchart TD
 
 ### Phase 1 — Consumer migration
 
-- [ ] **M1** Update `cmd/asterisk/cmd_analyze.go`: `workspace.LoadFromPath` -> `knowledge.LoadFromPath`, `ws.Repos` -> `catalog.Sources`
-- [ ] **M2** Update `cmd/asterisk/cmd_cursor.go`: `workspace.LoadFromPath` -> `knowledge.LoadFromPath`, pass `catalog` to `RunStep`
-- [ ] **M3** Update `internal/calibrate/adapter.go`: `SetWorkspace(ws *workspace.Workspace)` -> `SetCatalog(cat *knowledge.KnowledgeSourceCatalog)`
-- [ ] **M4** Update `internal/calibrate/adapt/llm.go`: `ws *workspace.Workspace` field -> `catalog *knowledge.KnowledgeSourceCatalog`
-- [ ] **M5** Update `internal/calibrate/adapt/routing.go` + `routing_test.go`: `SetWorkspace` -> `SetCatalog`
-- [ ] **M6** Rename `internal/calibrate/workspace_convert.go` -> `catalog_convert.go`: `ScenarioToWorkspace` -> `ScenarioToCatalog`, return `*knowledge.KnowledgeSourceCatalog`
-- [ ] **M7** Update `internal/investigate/analyze.go`: `AnalyzeWithWorkspace` parameter type
-- [ ] **M8** Update `internal/orchestrate/params.go` + `params_test.go`: `BuildParams` signature, `WorkspaceParams` -> iterate `catalog.Sources`, `.Path`/`.URL` -> `.URI`
-- [ ] **M9** Update `internal/orchestrate/runner.go`: `RunStep` parameter type
-- [ ] **M10** Validate (green) — `go build ./...`, `go test ./...` all pass with zero `origami/workspace` imports remaining
+- [x] **M1** Update `cmd/asterisk/cmd_analyze.go`: `workspace.LoadFromPath` -> `knowledge.LoadFromPath`, `ws.Repos` -> `catalog.Sources`
+- [x] **M2** Update `cmd/asterisk/cmd_cursor.go`: `workspace.LoadFromPath` -> `knowledge.LoadFromPath`, pass `catalog` to `RunStep`
+- [x] **M3** Update `internal/calibrate/adapter.go`: `SetWorkspace(ws *workspace.Workspace)` -> `SetCatalog(cat *knowledge.KnowledgeSourceCatalog)`
+- [x] **M4** Update `internal/calibrate/adapt/llm.go`: `ws *workspace.Workspace` field -> `catalog *knowledge.KnowledgeSourceCatalog`
+- [x] **M5** Update `internal/calibrate/adapt/routing.go` + `routing_test.go`: `SetWorkspace` -> `SetCatalog`
+- [x] **M6** Rename `internal/calibrate/workspace_convert.go` -> `catalog_convert.go`: `ScenarioToWorkspace` -> `ScenarioToCatalog`, return `*knowledge.KnowledgeSourceCatalog`
+- [x] **M7** Update `internal/investigate/analyze.go`: `AnalyzeWithWorkspace` parameter type
+- [x] **M8** Update `internal/orchestrate/params.go` + `params_test.go`: `BuildParams` signature, `WorkspaceParams` -> iterate `catalog.Sources`, `.Path`/`.URL` -> `.URI`
+- [x] **M9** Update `internal/orchestrate/runner.go`: `RunStep` parameter type
+- [x] **M10** Validate (green) — `go build ./...`, `go test ./...` all pass with zero `origami/workspace` imports remaining
 
 ### Phase 2 — Artifact catalog
 
@@ -164,3 +164,5 @@ flowchart TD
 ## Notes
 
 - 2026-02-25 — Contract created. Replaces `workspace-catalog.md`. Adds Phase 1 (consumer migration from deprecated `origami/workspace` to `origami/knowledge`) as prerequisite. Phase 2 carries forward all 12 catalog tasks from the original contract, reframed on `Source`/`KnowledgeSourceCatalog` types. Motivated by completion of Origami `knowledge-source-catalog` contract which renamed `Workspace` -> `KnowledgeSourceCatalog`, `Repo` -> `Source`.
+
+- 2026-02-25 — Phase 1 (M1-M10) marked complete. Migration was completed prior to contract formalization — codebase already uses `origami/knowledge` with zero `origami/workspace` imports. Phase 0 (R1-R6) and Phase 2 (C1-C13) remain open.

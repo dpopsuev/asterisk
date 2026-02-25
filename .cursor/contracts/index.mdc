@@ -15,7 +15,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | Contract | Goal | Serves |
 |----------|------|--------|
 | `demo-presentation.md` | Inside Out-themed PoC presentation using Origami's Kami debugger — police station theme, agent intros, interactive pipeline visualization, recorded replay. | Polishing & Presentation (SHOULD) |
-| `knowledge-source-migration.md` | Migrate 11 files from `origami/workspace` to `origami/knowledge`, then build artifact catalog with fetch-through, format registry, CI readers. | PoC quality (SHOULD) |
+| `knowledge-source-migration.md` | Migrate from `origami/workspace` to `origami/knowledge` (Phase 1 complete), then build artifact catalog with fetch-through, format registry, CI readers. | PoC quality (SHOULD) |
 | `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Dialectic unresolved contradiction. | PoC completion |
 | `ground-truth-dataset.md` | Grow ground truth from 18 to 50+ verified cases via `asterisk gt` CLI + `curate/` primitives. JSON files, GitHub PR workflow. Phases 1-2 implemented. | Dataset growth |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. Reframed on `origami/knowledge` primitives. | Architecture evolution |
