@@ -46,6 +46,7 @@ Asterisk PoC is a **Go CLI + MCP server** that proves real-world RCA capability:
 4. **Cursor adapter baseline (via MCP):** Grade-A blind test (18 cases) completes via MCP tool loop. M19 >= 0.85, M12 >= 0.50, M14b >= 0.40. Head-to-head comparison with BasicAdapter documented. _(Contract: `rp-e2e-launch`, Phase 5a)_
 5. **Push verified:** Push best-quality artifact to RP after cursor adapter demonstrates genuine reasoning. _(Contract: `rp-e2e-launch`, Phase 6)_
 6. **No regression:** BasicAdapter calibration unchanged by MCP addition.
+7. **Policy flips executed:** When PoC is declared done, execute the checklist in Origami's `goals/poc-done-flips.md` — API stability reverts to deprecate-then-remove.
 
 ## What is done
 

@@ -23,6 +23,13 @@ alwaysApply: true
 
 - Focus on the current PoC goal. Defer future phases unless explicitly re-scoped.
 
+## API stability (Origami dependency)
+
+> **Applies only while PoC is the current goal.** When the "PoC Done" flag is raised (see `goals/`), flip this section to require coordinated migration windows for Origami API changes. See Origami's `goals/poc-done-flips.md` for the full checklist.
+
+- **Origami breaking changes are expected.** Asterisk is the sole consumer. When Origami removes or renames an API, update Asterisk immediately — do not maintain shims or backward-compat wrappers.
+- **Delete over deprecate.** If Origami deletes a package (e.g., `workspace/` → `knowledge/`), remove all references in the same session. No `// Deprecated:` markers survive.
+
 ## Calibration ordering
 
 Three modes form a progression (see `glossary/glossary.mdc` for definitions):
