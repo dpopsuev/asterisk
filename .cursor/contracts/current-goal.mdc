@@ -26,20 +26,106 @@ Full PoC history: `notes/goal-history-poc.md`
 
 Critical path: `consumer-ergonomics` (Origami) → `walker-experience` (Origami) → `ouroboros-seed-pipeline` (Origami) → `kami-live-debugger` (Origami) → `demo-presentation` (Asterisk).
 
-| # | Contract | Repo | Tier | Status | Notes |
-|---|----------|------|------|--------|-------|
-| 1 | `consumer-ergonomics` | Origami | nice | draft | Smallest scope. Stabilizes walker factory conventions. Quick win. |
-| 2 | `knowledge-source-migration` | **Asterisk** | should | draft | Removes stale `origami/workspace` imports. Prerequisite for clean build. Parallel with #1. |
-| 3 | `ground-truth-dataset` Ph7 | **Asterisk** | should | draft | JSON export for presentation-ready dataset. Parallel with #1. |
-| 4 | `walker-experience` | Origami | should | draft | WalkerDef + MemoryStore. High demo impact. Depends on #1. |
-| 5 | `ouroboros-seed-pipeline` | Origami | should | draft | Largest contract. Seeds, 3-node pipeline, PersonaSheet, auto-routing. Core of engine reveal. Depends on #4. |
-| 6 | `kami-live-debugger` | Origami | should | draft | Presentation-critical. Live graph visualization. Best after pipeline layer is stable (#5). |
-| 7 | `demo-presentation` | **Asterisk** | should | draft | Depends on Kami (#6). Police Station theme, `asterisk demo` CLI, recorded replay. **This is the presentation.** |
-| 8 | `provider-resilience` | Origami | nice | draft | Fallback chains + intent classifier. Polishes dispatch layer. Anytime after #5. |
-| 9 | `evidence-gap-brief` | **Asterisk** | nice | draft | Structured "I don't know" output. Polish, not blocking. |
-| 10 | `domain-calibration` | Origami | nice | draft | Per-domain eval types. Useful but not presentation-critical. |
-| 11 | `prompt-calibration` | Origami | nice | draft | Deferred. No urgency until post-presentation tuning. |
-| 12 | `knowledge-source-evolution` | **Asterisk** | vision | draft | Long-term architecture. No timeline. |
+Strategic pauses (CHECKPOINT) verify Asterisk still works after Origami API changes. Asterisk imports Origami as a Go module — every Origami change can silently break the consumer.
+
+### Sprint 1 — Foundation (parallel)
+
+| # | Contract | Repo | Tier | Notes |
+|---|----------|------|------|-------|
+| 1 | `consumer-ergonomics` | Origami | nice | Smallest scope. Stabilizes walker factory conventions. Quick win. |
+| 2 | `knowledge-source-migration` | **Asterisk** | should | Removes stale `origami/workspace` imports. Prerequisite for clean build. Parallel with #1. |
+| 3 | `ground-truth-dataset` Ph7 | **Asterisk** | should | JSON export for presentation-ready dataset. Parallel with #1. |
+
+### CHECKPOINT A — Asterisk health after foundation
+
+```
+Origami:  go build ./... && go test ./...
+Asterisk: go get github.com/dpopsuev/origami@latest
+          go build ./... && go test ./...
+          just calibrate-stub
+```
+
+Verify: Asterisk compiles with latest Origami. Stub calibration still passes. No regressions from `knowledge-source-migration` or Origami API changes.
+
+### Sprint 2 — Walker experience
+
+| # | Contract | Repo | Tier | Notes |
+|---|----------|------|------|-------|
+| 4 | `walker-experience` | Origami | should | WalkerDef + MemoryStore. High demo impact — "define agents in YAML." Depends on #1. |
+
+### CHECKPOINT B — Asterisk health after DSL extension
+
+```
+Origami:  go build ./... && go test ./...
+Asterisk: go get github.com/dpopsuev/origami@latest
+          go build ./... && go test ./...
+          just calibrate-stub
+```
+
+Verify: WalkerDef addition to PipelineDef doesn't break Asterisk's existing pipeline loading. `LoadPipeline` still works with Asterisk's YAML (which has no `walkers:` section). MemoryStore import is available but not required.
+
+### Sprint 3 — Ouroboros redesign (largest)
+
+| # | Contract | Repo | Tier | Notes |
+|---|----------|------|------|-------|
+| 5 | `ouroboros-seed-pipeline` | Origami | should | Largest contract. Seeds, 3-node pipeline, PersonaSheet, auto-routing. Core of engine reveal. Depends on #4. |
+
+### CHECKPOINT C — Asterisk health after Ouroboros overhaul
+
+```
+Origami:  go build ./... && go test ./...
+Asterisk: go get github.com/dpopsuev/origami@latest
+          go build ./... && go test ./...
+          just calibrate-stub
+          just calibrate-wet --cases 3
+```
+
+Verify: Ouroboros API changes (deprecated runner, new pipeline path) don't break Asterisk's meta-calibration integration. Wet calibration on 3 cases confirms the full stack still works end-to-end. This is the most critical checkpoint — Ouroboros touches the deepest framework layer.
+
+### Sprint 4 — Kami debugger
+
+| # | Contract | Repo | Tier | Notes |
+|---|----------|------|------|-------|
+| 6 | `kami-live-debugger` | Origami | should | Presentation-critical. Live graph visualization is the demo centerpiece. Pipeline layer must be stable (#5). |
+
+### CHECKPOINT D — Asterisk health before demo integration
+
+```
+Origami:  go build ./... && go test ./...
+Asterisk: go get github.com/dpopsuev/origami@latest
+          go build ./... && go test ./...
+          just calibrate-stub
+```
+
+Verify: Kami's EventBridge, KamiServer, and new MCP tools don't break Asterisk's existing MCP server. SignalBus changes are backward-compatible. This is the last checkpoint before starting the demo — Asterisk must be rock solid.
+
+### Sprint 5 — Demo (the presentation)
+
+| # | Contract | Repo | Tier | Notes |
+|---|----------|------|------|-------|
+| 7 | `demo-presentation` | **Asterisk** | should | Depends on Kami (#6). Police Station theme, `asterisk demo` CLI, recorded replay. **This is the presentation.** |
+
+### CHECKPOINT E — Final gate
+
+```
+Origami:  go build ./... && go test ./...
+Asterisk: go build ./... && go test ./...
+          just calibrate-stub
+          just calibrate-wet --cases 3
+          asterisk demo --replay
+```
+
+Verify: Everything works. Demo replays cleanly. Calibration hasn't regressed. Ready to present.
+
+### Post-presentation polish (no checkpoints needed)
+
+| # | Contract | Repo | Tier | Notes |
+|---|----------|------|------|-------|
+| 8 | `provider-resilience` | Origami | nice | Fallback chains + intent classifier. Polishes dispatch layer. |
+| 9 | `evidence-gap-brief` | **Asterisk** | nice | Structured "I don't know" output. Polish, not blocking. |
+| 10 | `domain-calibration` | Origami | nice | Per-domain eval types. Useful but not presentation-critical. |
+| 11 | `prompt-calibration` | Origami | nice | Deferred. No urgency until post-presentation tuning. |
+| 12 | `knowledge-source-evolution` | **Asterisk** | vision | Long-term architecture. No timeline. |
 
 ## What "presentation-ready" means
 
