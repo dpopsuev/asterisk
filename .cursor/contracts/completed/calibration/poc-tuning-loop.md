@@ -1,6 +1,6 @@
 # Contract — PoC Tuning Loop
 
-**Status:** draft  
+**Status:** abandoned  
 **Goal:** Improve BasicAdapter accuracy on RP-sourced blind cases through targeted prompt and pipeline improvements, measured by M19 delta on `ptp-real-ingest` scenario.  
 **Serves:** PoC completion
 
@@ -130,3 +130,4 @@ Low-risk contract overall — uses existing commands with no new trust boundarie
 
 - 2026-02-18 23:30 — Added QW-4: evidence gap-driven tuning. After `evidence-gap-brief.md` is implemented, gap output prioritizes tuning actions data-driven rather than heuristic-driven.
 - 2026-02-18 22:00 — Contract created. Activates after rp-e2e-launch gate passes. Three candidate quick wins identified from codebase analysis: RP attributes, Jira links, keyword tuning.
+- 2026-02-25 — **Abandoned.** QW-1 (RP attributes) and QW-2 (Jira links) were completed by `workspace-mvp`. QW-3 (keyword tuning) is absorbed into `phase-5a-v2-analysis` M1/M15 prompt tasks. QW-4 (evidence-gap-driven) is speculative and depends on unimplemented `evidence-gap-brief`. If evidence-gap-brief ships, its own contract can define the tuning approach.

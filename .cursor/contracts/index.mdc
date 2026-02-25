@@ -8,24 +8,17 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 ## active/ -- Contracts being executed
 
-| Contract | Goal | Serves |
-|----------|------|--------|
-| `asterisk-calibrate-skill.md` | Ship an `asterisk-calibrate` Cursor Skill that drives wet LLM calibration via MCP — zero file writes, zero approval gates. | PoC completion (gate) |
-| `domain-cursor-prompt-tuning.md` | Improve CursorAdapter accuracy via prompt edits: taxonomy alignment, component priors. Iterative Phase 5a re-runs. **(Domain)** Superseded by `phase-5a-v2-analysis.md`. | PoC completion (gate) |
-| `phase-5a-v2-analysis.md` | Lift CursorAdapter ptp-real-ingest M19 from 0.58 to >= 0.65 (intermediate) / >= 0.85 (Phase 5a pass). R11 analysis + structural fixes + prompt tuning. | PoC completion (gate) |
-| `rp-e2e-launch.md` | Real blind E2E run: fetch 4 RP-linked launches, analyze with BasicAdapter, score against Jira-verified ground truth, push at least 1 result back to RP. **Final PoC gate.** | PoC completion |
-| `deadcode-dedup-architecture.md` | Remove dead code, catalog deduplication candidates (Achilles heuristic), produce domain-vs-framework boundary map. | PoC completion |
+(No active contracts.)
 
 ## draft/ -- Planned, not yet being executed
 
 | Contract | Goal | Serves |
 |----------|------|--------|
-| `workspace-catalog.md` | Artifact catalog with fetch-through, format registry, CI log readers. Split from workspace-revisited. | PoC quality (SHOULD) |
-| `poc-tuning-loop.md` | Improve BasicAdapter accuracy on blind cases via targeted prompt/pipeline improvements. Activates after rp-e2e-launch. | PoC completion |
+| `demo-presentation.md` | Inside Out-themed PoC presentation using Origami's Kami debugger — police station theme, agent intros, interactive pipeline visualization, recorded replay. | Polishing & Presentation (SHOULD) |
+| `knowledge-source-migration.md` | Migrate 11 files from `origami/workspace` to `origami/knowledge`, then build artifact catalog with fetch-through, format registry, CI readers. | PoC quality (SHOULD) |
 | `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Dialectic unresolved contradiction. | PoC completion |
-| `origami-ground-truth-ingestor.md` | Agentic dataset curation: AI subagents consume unstructured evidence into structured ground truth. JSON files, CLI-first, MCP bridge. Target: 50+ verified cases + PR workflow. | Dataset growth |
-| `workspace-revisited.md` | Long-term workspace vision: layered composition, dependency graph, summarization. Phases 3-4 (trimmed after MVP + Catalog splits). | Architecture evolution |
-| `domain-calibration.md` | Explicitly scope calibration as per-domain; establish Origami's domain calibration alongside Asterisk's. | Architecture evolution |
+| `ground-truth-dataset.md` | Grow ground truth from 18 to 50+ verified cases via `asterisk gt` CLI + `curate/` primitives. JSON files, GitHub PR workflow. Phases 1-2 implemented. | Dataset growth |
+| `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. Reframed on `origami/knowledge` primitives. | Architecture evolution |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
@@ -85,7 +78,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `cursor-skill.md` | `asterisk-investigate` Cursor skill; signal-based F0-F6 artifact production. |
 | `wet-calibration.md` | Dry/wet calibration taxonomy, 28 Test Cards, victory loop. **Closed.** |
 
-### completed/calibration/ (13)
+### completed/calibration/ (15)
 
 | Contract | Goal |
 |----------|------|
@@ -103,6 +96,11 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `asterisk-papercup-v2-hardening.md` | Embed Papercup v2 choreography into Asterisk MCP server: server-generated worker prompt, inline prompt content, mode tracking, v2 supervisor skill. Companion: `origami-papercup-v2-hardening` in Origami repo. |
 | `marshaller-step-schema-factory.md` | Enrich Asterisk step schemas with `FieldDef` entries for runtime validation; update calibrate skill for `submit_step`. Companion: Origami `marshaller-step-schema-factory`. |
 | `calibration-primitives-consumer.md` | Import generic calibration types from `origami/calibrate`; type aliases, embedded report, `cal.AggregateRunMetrics`, `cal.FormatReport`. Companion: Origami `calibration-primitives`. |
+| `asterisk-calibrate-skill.md` | `asterisk-calibrate` Cursor Skill (v2 choreography, MCP-based, 4 parallel workers). **Complete.** |
+| `domain-cursor-prompt-tuning.md` | CursorAdapter prompt tuning. **Abandoned** — superseded by `phase-5a-v2-analysis`. |
+| `poc-tuning-loop.md` | BasicAdapter tuning quick wins. **Abandoned** — QW-1/2 done by workspace-mvp, QW-3 absorbed by phase-5a-v2-analysis. |
+| `phase-5a-v2-analysis.md` | CursorAdapter M19 analysis + mitigation. Baseline established at 0.58. Root causes documented. PoC proved. |
+| `rp-e2e-launch.md` | Real blind E2E calibration. BasicAdapter M19=0.83. CursorAdapter M19=0.58. Final PoC gate. |
 
 ### completed/distillation/ (2)
 
@@ -119,7 +117,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 - **multi-subagent/** (4 contracts) — batch dispatch, adaptive scheduler, multi-subagent skill.
 - Cherry-picks from pipeline/ (fs-dispatcher, cleanup-lifecycle) and poc-v2/ (concurrent-subagents, subagent-testing).
 
-### completed/architecture/ (4)
+### completed/architecture/ (7)
 
 | Contract | Goal |
 |----------|------|
@@ -127,6 +125,9 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `cobra-cli.md` | Cobra CLI migration; subcommands, help, shell completion. |
 | `critical-test-coverage.md` | Close 8 test gaps; 80%+ critical, 70%+ high, 60%+ medium. |
 | `concurrency-modernization.md` | errgroup + context.Context propagation; eliminate mutable globals. |
+| `deadcode-dedup-architecture.md` | Remove dead code, catalog deduplication candidates, produce boundary map. Stale framework files deleted. |
+| `rename-origami-to-dataset.md` | Rename `internal/origami/` to `internal/dataset/`. Mechanical rename, no behavior changes. |
+| `investigate-pipeline-artifact-store.md` | Investigated `internal/store/`: v1 alive (5 callers), no generic extraction, no interface split needed. Investigation-only. |
 
 ### completed/knowledge-store/ (3)
 

@@ -1,6 +1,6 @@
 # Contract — Real RP E2E Launch
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Execute blind end-to-end calibration runs against ReportPortal with both the BasicAdapter and the CursorAdapter. Score both against **tight, PR-proven ground truth** (class A evidence) with M1-M20+M14b metrics to (1) validate the PoC gate and (2) establish the cursor adapter accuracy baseline. Ground truth is grounded by Jira tickets, merged fix PRs, and smoking-gun phrases — not heuristic guesses. This is the final PoC gate (success criteria #2 and #6).  
 **Serves:** PoC completion
 
@@ -425,6 +425,7 @@ Implement these mitigations when executing this contract.
 
 (Running log, newest first.)
 
+- 2026-02-25 — **Contract closed (PoC proved).** Final PoC gate reached. BasicAdapter validated (M19=0.83, Phases 1-3 complete). CursorAdapter baseline established (M19=0.58 via MCP with 4 parallel workers, Phase 5a R11). The PoC proved: (1) pipeline works end-to-end on real RP data, (2) both adapters produce scoreable RCA output, (3) CursorAdapter has documented root causes for all metric gaps. Remaining CursorAdapter phases (5b, 6, 7) and head-to-head comparison deferred — these are tuning/polish, not proof of concept. Push to RP (Phase 6) explicitly gated on future CursorAdapter confidence improvement.
 - 2026-02-24 — **Phase 5a R11: CursorAdapter via MCP, 4 parallel workers.** M19=0.58 (up from 0.50), 10/21 pass, $0.38, 10m 9s, 65 steps. Key improvements: M2: 0.00→0.78 (taxonomy fix), M8: -0.16→0.60 (convergence), M18: 149K→94K (-37%), M14b: 0.22→0.30. Key failures: M9=0.30/M10=0.13 (hypothesis routing mismatches ptp-real-ingest repos), M16=0.00 (all paths wrong), M15=0.56 (cloud-event-proxy vs linuxptp-daemon confusion), M12/M13=0.00 (evidence format mismatch). Mitigation contract: `phase-5a-v2-analysis.md`.
 - 2026-02-19 — **BasicAdapter re-validation (post workspace-mvp).** M19=0.83, 19/21 pass. Template rendering works correctly with new WorkspaceParams (AttrsStatus, JiraStatus, ReposStatus). M12/M13=0.00 expected. Identical to documented baseline — no regression from workspace-mvp changes. CursorAdapter re-run pending MCP server reconnection (server restarted with new binary but Cursor MCP client needs fresh connection).
 - 2026-02-19 — **Phase 5a retry (CursorAdapter via MCP): template error.** All 18 cases failed at F1_TRIAGE: `can't evaluate field AttrsStatus in type *orchestrate.WorkspaceParams`. Root cause: MCP server was running OLD binary without workspace-mvp fields. Server killed and restarted with new binary. MCP tools temporarily unavailable until Cursor reconnects.

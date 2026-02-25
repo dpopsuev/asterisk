@@ -4,92 +4,64 @@ description: Active goal manifest — single-read orientation for agents to know
 
 # Current Goal
 
-**Goal:** PoC completion (resumed)  
-**Summary:** Prove Asterisk can do real blind RCA on RP data with both BasicAdapter (heuristic) and CursorAdapter (AI via MCP). Framework showcase contracts (A, B, C) moved to `github.com/dpopsuev/origami`.
+**Goal:** Polishing & Presentation  
+**Summary:** The PoC proved Asterisk works. Now make it shine. Asterisk should be a lean, impressive sports car — when viewers see it, they think "Wow, Sundays and Mondays are now for real work." Origami is the engine reveal: a stable, polished API that opens a new world of agentic pipeline orchestration. Both repos must be presentation-ready.
 
-## Asterisk Domain — Urgency Map
+## Vision
 
-| Tier | Contract | Status | Notes |
-|------|----------|--------|-------|
-| ~~gate~~ | ~~`distillation-endgame`~~ | **complete** | All 3 phases done. Pipeline uses Runner.Walk(), dispatch via origami/dispatch. |
-| ~~gate~~ | ~~`asterisk-origami-distillation`~~ | **complete** | Boundary validated. Achilles built. Moved to `completed/distillation/`. |
-| **next-milestone** | Origami DSL (5 contracts) | active (C1) | Evolves Origami into declarative pipeline DSL. Asterisk shrinks from ~18k to ~3k lines Go. See `origami/.cursor/contracts/current-goal.mdc`. |
+**Asterisk (the car):** Lean domain tool. Every line of code serves the RCA mission. No dead weight, no framework leakage, no rough edges. The CLI, the output, the calibration results — all must evoke confidence. "This thing just works."
 
-Framework contracts (playground, developer guide, OSS polish, Tomes I-IV, MCP, multi-subagent) moved to `github.com/dpopsuev/origami/.cursor/contracts/`.
+**Origami (the engine):** Stable API surface. Clean documentation. The playground runs, the DSL is expressive, the concepts (Elements, Personas, Masks, Dialectic) are coherent and discoverable. When the hood opens, people find something they didn't know existed.
 
----
+## PoC Results (proven)
 
-## Suspended Goal: PoC completion
+| Adapter | Scenario | M19 | Key metrics | Notes |
+|---------|----------|-----|-------------|-------|
+| BasicAdapter | ptp-real-ingest (18 verified) | **0.83** | M1=1.00, M2=1.00, M15=0.72 | Heuristic baseline. 19/21 metrics pass. |
+| CursorAdapter | ptp-real-ingest (18 verified) | **0.58** | M2=0.78, M8=0.60, M14b=0.30 | AI baseline. 10/21 pass. Root causes documented. |
 
-**Resumes:** Sunday 2026-02-23  
-**Reference:** `goals/poc.mdc`  
-**Summary:** Prove Asterisk can do real blind RCA on RP data with both BasicAdapter (heuristic) and CursorAdapter (AI via MCP), push results back to ReportPortal, then tune accuracy through targeted quick wins.
+Full PoC history: `notes/goal-history-poc.md`
 
-## PoC Urgency Map (suspended)
-
-Ordered by priority within each tier. Agents should work top-down: complete gates before quick-wins; quick-wins before should-haves; should-haves before next-milestone. Re-tiered per Phase 5a mitigation urgency audit (2026-02-19).
-
-### MUST — Blocks PoC gate or pitch
+## Asterisk — Urgency Map
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| ~~gate~~ | ~~`asterisk-papercup-v2-hardening`~~ | **complete** | Embedded v2 choreography into MCP server + skill. Companion: `origami-papercup-v2-hardening`. Moved to `completed/calibration/`. |
-| **gate** | `asterisk-calibrate-skill` | active | MCP-based Cursor Skill for wet calibration. Skill rewritten to v2 supervisor pattern; needs wet validation. |
-| **gate** | `rp-e2e-launch` | active | Final PoC gate. BasicAdapter M19=0.83. CursorAdapter Phase 5a R11 M19=0.58 (up from 0.50). |
-| **gate** | `phase-5a-v2-analysis` | active | R11 analysis + mitigation. M19: 0.58→0.65+ (intermediate) / 0.85+ (pass). Supersedes domain-cursor-prompt-tuning. |
-| **gate** | `domain-cursor-prompt-tuning` | active | Prompt fixes. Superseded by phase-5a-v2-analysis (prompt tasks folded in). |
-| ~~gate~~ | ~~`wet-calibration-tuning`~~ | **complete** | Dry M19: 0.49 → 0.83. Moved to `completed/calibration/`. |
-| ~~gate~~ | ~~`m3-m9-tuning`~~ | **complete** | M3: 0.33→0.83 (Phase 3.5 recall inference). M9 superseded by m9-m10-four-pain-points. Moved to `completed/calibration/`. |
-| ~~gate~~ | ~~`efficiency-m16-m17-m18-tuning`~~ | **complete** | M16: 0.42→0.67, M17: 8.00→1.00, M18: 91k→55.6k. All passing. Moved to `completed/calibration/`. |
-| ~~gate~~ | ~~`m9-m10-four-pain-points`~~ | **complete** | M9: 0.20→1.00, M10: 0.00→1.00. Deterministic hypothesis-based repo routing. Moved to `completed/calibration/`. |
-| ~~gate~~ | ~~`poc-scope-precision`~~ | **complete** | All 7 tasks done. Moved to `completed/poc-v2/`. |
-| ~~gate~~ | ~~`phase-5a-mitigation`~~ | **complete** | Umbrella closed. All 9 tasks done. Moved to `completed/poc-v2/`. |
-| ~~gate~~ | ~~`workspace-mvp`~~ | **complete** | 11 tasks done, 5 tests. Moved to `completed/poc-v2/`. |
+| **should** | `demo-presentation` | draft | Inside Out-themed PoC presentation. Police station theme, Kami debugger, recorded replay. Companion to Origami `kami-live-debugger`. |
+| **should** | `knowledge-source-migration` | draft | Migrate 11 files from deprecated `origami/workspace` to `origami/knowledge`. Removes stale dependency. |
+| **should** | `ground-truth-dataset` | draft | Ph1-2 done. Ph7: export to JSON + GitHub PR. Presentation-ready dataset. |
+| **nice** | `evidence-gap-brief` | draft | Structured "I don't know" output. Polish for when confidence is low. |
+| **vision** | `knowledge-source-evolution` | draft | Layered composition, `Source.Tags`, token-budget summarization. Long-term architecture. |
 
-### SHOULD — Significant PoC quality, pitch polish
-
-Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric impact, effort. Work top-down.
-
-| Order | Contract | Status | PoC scope | Notes |
-|-------|----------|--------|-----------|-------|
-| ~~1st~~ | ~~`improve-human-operator-output`~~ | **complete** | Full | Narration rules in agent-bus.mdc. Moved to `completed/poc-v2/`. |
-| ~~2nd~~ | ~~`logging-standardization`~~ | **complete** | Full | All migrated to `log/slog`. Moved to `completed/poc-v2/`. |
-| 2nd | `evidence-gap-brief` | draft | Ph1-3 (types + adapter + output) | Foundational "I don't know because X" infrastructure. Enables tuning QW-4. |
-| 4th | `poc-tuning-loop` | draft | QW-1 to QW-4 | Depends on E2E baseline + evidence-gap-brief. QW-1/QW-2 overlap with workspace-mvp. |
-| 5th | `origami-ground-truth-ingestor` | draft | **Ph1-2 + Ph7 only** (store + CLI + PR) | Defer Ph3-6 (AI extractors, MCP bridge). Dataset JSON export + GitHub PR. |
-| ~~6th~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | — | Moved to Origami repo. |
-| ~~7th~~ | ~~`subagent-testing-framework`~~ | **complete** | — | Moved to Origami repo. |
-| ~~6th~~ | ~~`agent-adapter-overloading`~~ | **abandoned** | — | Moved to Origami repo. |
-| 6th | `workspace-catalog` | draft | **Defer** | Hard dep on workspace-mvp. Heaviest Go-code. Not PoC-blocking; MVP covers M12/M13. |
-| — | `deadcode-dedup-architecture` | active | Dead code removal + boundary map. Achilles heuristic for dedup candidates. |
-| ~~—~~ | ~~`marshaller-step-schema-factory`~~ | **complete** | Enriched step schemas with FieldDef; calibrate skill updated for submit_step. Moved to `completed/calibration/`. |
-
-### Completed
+## Origami — Urgency Map
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| ~~quick-win~~ | ~~`data-swipe`~~ | **complete** | Scrubbed. Moved to `completed/poc-v2/`. |
-| ~~quick-win~~ | ~~`architecture-snapshots`~~ | **complete** | 11 diagrams across 4 files. Moved to `completed/knowledge-store/`. |
-| ~~quick-win~~ | ~~`fsc-knowledge-compartmentalization`~~ | **complete** | 4 compartments, 3 alwaysApply. Moved to `completed/knowledge-store/`. |
-| ~~vision~~ | ~~`soul-red-hat-telco`~~ | **complete** | Red Hat identity, telco mission, OSS philosophy. Moved to `completed/knowledge-store/`. |
-| ~~SHOULD~~ | ~~`concurrent-subagents-determinism`~~ | **complete** | Moved to Origami repo `completed/poc-v2/`. |
-| ~~SHOULD~~ | ~~`subagent-testing-framework`~~ | **complete** | Moved to Origami repo `completed/poc-v2/`. |
+| **should** | `kami-live-debugger` | draft | Kami live agentic debugger (Demiurge pattern). Presentation-critical. |
+| **should** | `ouroboros-seed-pipeline` | draft | 3-node pipeline + YAML seeds + Persona Sheet. |
+| **nice** | `consumer-ergonomics` | draft | ResolvePipelinePath, WithOutputCapture, DefaultWalker. API polish. |
+| **nice** | `prompt-calibration` | draft | Framework-level prompt tuning loop. Per-step accuracy. Deferred. |
+| **nice** | `domain-calibration` | draft | Per-domain calibration scoping (Asterisk, Origami, Achilles); `curate/eval/`. |
 
-### NICE — Architecture evolution, post-PoC
+## What "presentation-ready" means
 
-| Tier | Contract | Status | Notes |
-|------|----------|--------|-------|
-| **vision** | `workspace-revisited` | draft | Long-term workspace vision: layered composition, dependency graph, summarization. Trimmed to Phases 3-4. |
-| ~~next-milestone~~ | ~~`calibration-primitives-consumer`~~ | **complete** | Import `origami/calibrate` types; type aliases, embedded report, `cal.AggregateRunMetrics`, `cal.FormatReport`. Companion: Origami `calibration-primitives`. Moved to `completed/calibration/`. |
-| **vision** | `domain-calibration` | draft | Scope calibration as per-domain. Asterisk RCA calibration (Origami extraction calibration moved to Origami repo). |
+### Asterisk
+- [ ] Zero stale imports (no `origami/workspace` references)
+- [ ] Clean `go vet ./...`, `go build ./...`, `go test ./...`
+- [ ] README tells the story: problem, solution, results (M19 numbers)
+- [ ] `asterisk calibrate` demo runs cleanly with meaningful output
+- [ ] Ground truth dataset is JSON (reviewable), not just Go structs
 
-Framework contracts (Tomes I-IV, MCP, multi-subagent) moved to `github.com/dpopsuev/origami/.cursor/contracts/completed/`.
+### Origami
+- [ ] `examples/playground/` runs and demonstrates all concepts
+- [ ] API surface is stable — no breaking changes pending
+- [ ] `docs/framework-guide.md` is current and coherent
+- [ ] Test coverage on public API is solid
+- [ ] README positions Origami as a standalone framework
 
 ## Goal Transition Protocol
 
-When this goal is met (rp-e2e-launch complete + tuning loop stop condition reached):
+When presentation is delivered:
 
-1. Archive this manifest in `notes/` as `goal-history-poc.md`
-2. Create a new `current-goal.mdc` for the next goal (likely: MCP integration)
+1. Archive this manifest in `notes/` as `goal-history-polish.md`
+2. Create a new `current-goal.mdc` for the next goal
 3. Reassess all draft contracts — re-tier relative to the new goal
-4. Move completed contracts to `completed/` with appropriate phase subdirectory

@@ -1,6 +1,6 @@
 # Contract — deadcode-dedup-architecture
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Remove confirmed dead code, catalog deduplication candidates using the Achilles heuristic ("Would Achilles need this?"), and produce a boundary map of domain (Asterisk) vs framework (Origami).  
 **Serves:** PoC completion
 
@@ -118,7 +118,7 @@ flowchart TB
 - [x] Remove dialectic subsystem from `internal/calibrate/` (6 files: runner, hearing, metrics + tests) + dead struct fields (`DialecticConfig`, 5 `CaseResult` fields)
 - [x] Fix stale `internal/format` reference in `internal/calibrate/tokimeter_test.go` (lines 146-147)
 - [x] Fix stale `internal/curate` references in `CONTRIBUTING.md` and `pipelines/curation.yaml`
-- [ ] Move `examples/framework/` + `pipelines/*.yaml` to Origami repo — **deferred** to separate cross-repo contract (see notes)
+- [x] Move `examples/framework/` + `pipelines/*.yaml` to Origami repo — deleted stale copies from Asterisk; `defect-court.yaml` copied to Origami `testdata/`
 - [x] Delete `internal/wiring/` + `cmd/run-mock-flow/` — mock flow superseded by calibration pipeline; update Makefile/justfile
 - [x] Remove dead framework adapters: `BuildEdgeFactory`, `buildHeuristicMap`, `heuristicEdge`, `transitionToAction` from `internal/orchestrate/framework_adapters.go` — superseded by expression edges in `AsteriskPipelineDef`
 - [x] Remove `README.md.post` — stale draft README
@@ -160,8 +160,9 @@ No trust boundaries affected.
 
 ## Notes
 
+2026-02-25 — **Contract complete.** Final task done: deleted `examples/framework/` (3 files) and 3 stale pipeline YAMLs (`curation.yaml`, `defect-dialectic.yaml`, `defect-court.yaml`) from Asterisk. Copied `defect-court.yaml` to Origami `testdata/` (the others already existed in Origami). Updated `README.md` and `CONTRIBUTING.md`. Only `pipelines/asterisk-rca.yaml` (domain-specific) remains.
+
 2026-02-25 — Cleanup round 3 executed. Dialectic subsystem removed (6 files + dead struct fields), stale references fixed, stale files deleted. Boundary map and dedup catalog produced.
-- **Follow-up (cross-repo):** Move `examples/framework/` + 3 pipeline YAMLs (`curation.yaml`, `defect-dialectic.yaml`, `defect-court.yaml`) to Origami repo. These are pure framework demos; requires Origami-side work. Deferred to a separate contract.
 
 2026-02-25 — Cleanup round 2 executed. Deep codebase re-scan findings:
 - **Additional dead code:** `BuildEdgeFactory` + `heuristicEdge` (superseded by expression edges), `internal/wiring/` + `cmd/run-mock-flow/` (superseded by calibration pipeline), `README.md.post` (stale draft).

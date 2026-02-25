@@ -1,6 +1,6 @@
 # Contract — Domain Cursor Prompt Tuning
 
-**Status:** active  
+**Status:** abandoned  
 **Goal:** Improve CursorAdapter accuracy on Phase 5a (18 verified cases) through targeted prompt edits. Measured by M19 delta against baseline (0.50).  
 **Serves:** PoC completion (gate: rp-e2e-launch Phase 5a)
 
@@ -50,3 +50,4 @@
 
 - 2026-02-21 15:00 — Split from original contract. Domain-specific tasks stay here; framework-level prompt calibration concept extracted to `contracts/draft/prompt-calibration.md`.
 - 2026-02-19 — Contract created. Motivated by Phase 5a FAIL (M19=0.50). Top two fixes: taxonomy mismatch (M2=0.00, est. +0.10) and component blindness (M15=0.44, est. +0.05). No existing contract covers cursor-adapter prompt fixes — poc-tuning-loop targets BasicAdapter and activates after gate passes.
+- 2026-02-25 — **Abandoned.** Fully superseded by `phase-5a-v2-analysis.md` which explicitly folds all prompt tasks (F1 taxonomy, component priors) alongside structural code fixes (M9/M10 repo routing, M16 pipeline path, M4 recall FP). Keeping both contracts created confusion about where prompt work lives.

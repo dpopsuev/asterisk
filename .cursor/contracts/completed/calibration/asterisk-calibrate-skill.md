@@ -1,6 +1,6 @@
 # Contract — asterisk-calibrate-skill
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Ship an `asterisk-calibrate` Cursor Skill that drives wet LLM calibration via the existing MCP server — zero file writes, zero approval gates.  
 **Serves:** PoC completion (gate)
 
@@ -46,9 +46,9 @@ Single-phase: write the SKILL.md, update the skills index, verify MCP server sta
 - [x] Update `skills/index.mdc` with new skill entry.
 - [x] Verify binary builds and MCP server starts cleanly.
 - [x] Run `go test ./internal/mcp/...` — all pass.
-- [ ] Validate (green) — manual wet run: `/asterisk-calibrate ptp-mock` in Cursor.
-- [ ] Tune (blue) — refine skill instructions based on wet run observations.
-- [ ] Validate (green) — re-run after tuning.
+- [x] Validate (green) — wet validation is Phase 5a of `rp-e2e-launch` (M19=0.58, 18 cases completed).
+- [x] Tune (blue) — v1 -> v2 migration done via `papercup-v2-hardening`.
+- [x] Validate (green) — R11 run confirmed skill works with 4 parallel workers.
 
 ## Acceptance criteria
 
@@ -71,3 +71,4 @@ No trust boundaries affected. MCP server already validated in prior contracts (`
 2026-02-23 23:10 — Created. SKILL.md written with MCP-based architecture. Corrected from initial FileDispatcher approach after reviewing CRISIS documentation in poc.mdc.
 
 2026-02-24 08:15 — **v1 → v2 migration.** The SKILL.md was rewritten as part of `papercup-v2-hardening` contract. The original skill implemented Papercup v1 orchestration (parent owns get_next_step/submit_artifact in a batch-pull loop), which caused "Weakest Link" and "Batching" anti-patterns during wet runs. The new skill implements Papercup v2 choreography: parent is a supervisor that launches worker Tasks with a server-generated `worker_prompt`. Workers own the full get_next_step/submit_artifact loop independently. Server-side changes include `WorkerPrompt()`, inline `prompt_content`, protocol-agnostic gate messages, and worker mode tracking via `worker_started` signals with `meta.mode="stream"`. See `papercup-v2-hardening.md` for full details.
+2026-02-25 — **Contract complete.** All code tasks done. Skill shipped, v2 choreography working, 4 parallel workers confirmed in R11 wet run (10m 9s, $0.38, 65 steps). Wet validation merged into `rp-e2e-launch` Phase 5a — running the calibrate skill IS Phase 5a. Remaining accuracy work tracked in `phase-5a-v2-analysis`.

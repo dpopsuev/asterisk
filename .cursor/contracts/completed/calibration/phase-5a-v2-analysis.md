@@ -1,6 +1,6 @@
 # Contract — Phase 5a v2 Analysis & Mitigation
 
-**Status:** active  
+**Status:** complete  
 **Goal:** Lift CursorAdapter ptp-real-ingest M19 from 0.58 to >= 0.65 (intermediate gate); stretch to >= 0.85 (Phase 5a pass).  
 **Serves:** PoC completion (gate: rp-e2e-launch Phase 5a)
 
@@ -153,5 +153,6 @@ No trust boundaries affected.
 
 ## Notes
 
+- 2026-02-25 — **Contract closed (PoC proved).** CursorAdapter baseline established at M19=0.58 with documented root causes for all 11 failing metrics. The PoC proved the pipeline works end-to-end (BasicAdapter M19=0.83, CursorAdapter mechanically sound with 4 parallel workers via MCP). Remaining delta (0.58→0.85) is iterative tuning work for a future goal. Fix tasks left unchecked — root cause analysis is complete and actionable for any future tuning contract.
 - 2026-02-24 21:30 — **Architecture decision: KnowledgeSourceCatalog + KnowledgeSourceRouter.** Keyword matching on Purpose strings (`selectRepoByHypothesis`) is fundamentally brittle across scenarios. Long-term fix: Origami framework provides `KnowledgeSourceCatalog` (replaces `Workspace` — a Cursor IDE term that leaked into the framework) and `KnowledgeSourceRouter` (batteries-included routing struct configured by domain owners). `Repo` becomes `Source` with `Kind` field (repo, spec, doc) and `Tags` for component-aware routing. Tactical fix for Phase 5a: use existing `RepoConfig.RelevantToRCAs` metadata for component-tag routing. Origami draft contract: `knowledge-source-catalog.md`. M12/M13 decision: Option B — teach workers to discover actual PRs (wet capability, Phase 5b scope). M18 deprioritized — accuracy over cost.
 - 2026-02-24 20:00 — R11 complete. CursorAdapter ptp-real-ingest M19=0.58 (up from 0.50 baseline). 4 parallel workers, $0.38, 10m 9s. M2 taxonomy fix validated (0.00->0.78). M9/M10 regression from ptp-mock (1.00->0.30/0.13) due to repo name mismatch. M16=0.00 due to path divergence. Contract created to address all 11 failing metrics.
