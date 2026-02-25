@@ -190,7 +190,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 	if sa, ok := cfg.Adapter.(StoreAware); ok {
 		sa.SetStore(st)
 		sa.SetSuiteID(suiteID)
-		sa.SetWorkspace(ScenarioToWorkspace(cfg.Scenario.Workspace))
+		sa.SetCatalog(ScenarioToCatalog(cfg.Scenario.Workspace))
 	}
 
 	// Check if adapter supports ID mapping (for post-pipeline updates)

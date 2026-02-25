@@ -16,7 +16,7 @@ import (
 	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 var analyzeFlags struct {
@@ -129,12 +129,12 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	var repoNames []string
 	if analyzeFlags.workspacePath != "" {
-		ws, err := workspace.LoadFromPath(analyzeFlags.workspacePath)
+		catalog, err := knowledge.LoadFromPath(analyzeFlags.workspacePath)
 		if err != nil {
-			return fmt.Errorf("load workspace: %w", err)
+			return fmt.Errorf("load catalog: %w", err)
 		}
-		for _, r := range ws.Repos {
-			repoNames = append(repoNames, r.Name)
+		for _, s := range catalog.Sources {
+			repoNames = append(repoNames, s.Name)
 		}
 	} else {
 		repoNames = defaultWorkspaceRepos()

@@ -56,7 +56,7 @@ func runParallelCalibration(ctx context.Context, cfg RunConfig, st *store.MemSto
 	if sa, ok := cfg.Adapter.(StoreAware); ok {
 		sa.SetStore(st)
 		sa.SetSuiteID(suiteID)
-		sa.SetWorkspace(ScenarioToWorkspace(cfg.Scenario.Workspace))
+		sa.SetCatalog(ScenarioToCatalog(cfg.Scenario.Workspace))
 	}
 
 	// Check for ID mapping support

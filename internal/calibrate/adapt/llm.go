@@ -9,7 +9,7 @@ import (
 
 	framework "github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/dispatch"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/preinvest"
@@ -51,7 +51,7 @@ const calibrationPreamble = `> **CALIBRATION MODE — BLIND EVALUATION**
 type LLMAdapter struct {
 	st         store.Store
 	promptDir  string
-	ws         *workspace.Workspace
+	catalog    *knowledge.KnowledgeSourceCatalog
 	suiteID    int64
 	basePath   string
 	cases      map[string]*llmCaseCtx
@@ -175,8 +175,8 @@ func (a *LLMAdapter) SetStore(st store.Store) { a.st = st }
 // SetSuiteID is called by the calibrate runner after creating the suite.
 func (a *LLMAdapter) SetSuiteID(id int64) { a.suiteID = id }
 
-// SetWorkspace sets the workspace for prompt param building.
-func (a *LLMAdapter) SetWorkspace(ws *workspace.Workspace) { a.ws = ws }
+// SetCatalog sets the knowledge source catalog for prompt param building.
+func (a *LLMAdapter) SetCatalog(cat *knowledge.KnowledgeSourceCatalog) { a.catalog = cat }
 
 // RegisterCase registers a store case mapped to a ground truth case ID,
 // so the adapter can look it up when SendPrompt is called.
@@ -215,7 +215,7 @@ func (a *LLMAdapter) SendPrompt(caseID string, step string, _ string) (json.RawM
 	}
 
 	// Build prompt params and fill template
-	params := orchestrate.BuildParams(a.st, ctx.storeCase, ctx.env, a.ws, ps, caseDir)
+	params := orchestrate.BuildParams(a.st, ctx.storeCase, ctx.env, a.catalog, ps, caseDir)
 	templatePath := orchestrate.TemplatePathForStep(a.promptDir, ps)
 	if templatePath == "" {
 		return nil, fmt.Errorf("llm: no template for step %s", step)

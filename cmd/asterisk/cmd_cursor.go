@@ -8,7 +8,7 @@ import (
 	"asterisk/internal/display"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 var cursorFlags struct {
@@ -66,20 +66,20 @@ func runCursor(cmd *cobra.Command, _ []string) error {
 
 	caseData := ensureCaseInStore(st, env, rpLaunchID, item)
 
-	var ws *workspace.Workspace
+	var catalog *knowledge.KnowledgeSourceCatalog
 	if cursorFlags.workspacePath != "" {
-		w, err := workspace.LoadFromPath(cursorFlags.workspacePath)
+		cat, err := knowledge.LoadFromPath(cursorFlags.workspacePath)
 		if err != nil {
-			return fmt.Errorf("load workspace: %w", err)
+			return fmt.Errorf("load catalog: %w", err)
 		}
-		ws = w
+		catalog = cat
 	}
 
 	cfg := orchestrate.RunnerConfig{
 		PromptDir:  cursorFlags.promptDir,
 		Thresholds: orchestrate.DefaultThresholds(),
 	}
-	result, err := orchestrate.RunStep(st, caseData, env, ws, cfg)
+	result, err := orchestrate.RunStep(st, caseData, env, catalog, cfg)
 	if err != nil {
 		return fmt.Errorf("orchestrate: %w", err)
 	}

@@ -6,7 +6,7 @@ import (
 	"github.com/dpopsuev/origami/logging"
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 // RunnerConfig holds configuration for the pipeline runner.
@@ -47,7 +47,7 @@ func RunStep(
 	st store.Store,
 	caseData *store.Case,
 	env *preinvest.Envelope,
-	ws *workspace.Workspace,
+	catalog *knowledge.KnowledgeSourceCatalog,
 	cfg RunnerConfig,
 ) (*StepResult, error) {
 	suiteID := int64(1) // default suite for PoC
@@ -141,7 +141,7 @@ func RunStep(
 		loopIter = LoopCount(state, "investigate")
 	}
 
-	params := BuildParams(st, caseData, env, ws, step, caseDir)
+	params := BuildParams(st, caseData, env, catalog, step, caseDir)
 	templatePath := TemplatePathForStep(cfg.PromptDir, step)
 	if templatePath == "" {
 		return nil, fmt.Errorf("no template for step %s", step)

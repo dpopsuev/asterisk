@@ -10,7 +10,7 @@ import (
 	"asterisk/internal/calibrate"
 	"asterisk/internal/store"
 	"github.com/dpopsuev/origami/logging"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 // RoutingEntry records a single adapter routing decision.
@@ -111,9 +111,9 @@ func (r *RoutingRecorder) SetSuiteID(id int64) {
 	}
 }
 
-func (r *RoutingRecorder) SetWorkspace(ws *workspace.Workspace) {
+func (r *RoutingRecorder) SetCatalog(cat *knowledge.KnowledgeSourceCatalog) {
 	if sa, ok := r.inner.(calibrate.StoreAware); ok {
-		sa.SetWorkspace(ws)
+		sa.SetCatalog(cat)
 	}
 }
 

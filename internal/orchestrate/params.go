@@ -3,7 +3,7 @@ package orchestrate
 import (
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 // TemplateParams holds all parameter groups injected into prompt templates.
@@ -201,7 +201,7 @@ func BuildParams(
 	st store.Store,
 	caseData *store.Case,
 	env *preinvest.Envelope,
-	ws *workspace.Workspace,
+	catalog *knowledge.KnowledgeSourceCatalog,
 	step PipelineStep,
 	caseDir string,
 ) *TemplateParams {
@@ -241,14 +241,14 @@ func BuildParams(
 	// Workspace: repos, launch attributes, Jira links
 	wsp := &WorkspaceParams{}
 
-	if ws != nil && len(ws.Repos) > 0 {
+	if catalog != nil && len(catalog.Sources) > 0 {
 		wsp.ReposStatus = Resolved
-		for _, r := range ws.Repos {
+		for _, s := range catalog.Sources {
 			wsp.Repos = append(wsp.Repos, RepoParams{
-				Name:    r.Name,
-				Path:    r.Path,
-				Purpose: r.Purpose,
-				Branch:  r.Branch,
+				Name:    s.Name,
+				Path:    s.URI,
+				Purpose: s.Purpose,
+				Branch:  s.Branch,
 			})
 		}
 	} else {

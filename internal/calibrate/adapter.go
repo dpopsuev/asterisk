@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 
 	cal "github.com/dpopsuev/origami/calibrate"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 
 	"asterisk/internal/store"
 )
@@ -27,7 +27,7 @@ type Identifiable = cal.Identifiable
 type StoreAware interface {
 	SetStore(st store.Store)
 	SetSuiteID(id int64)
-	SetWorkspace(ws *workspace.Workspace)
+	SetCatalog(cat *knowledge.KnowledgeSourceCatalog)
 	RegisterCase(gtCaseID string, storeCase *store.Case)
 }
 

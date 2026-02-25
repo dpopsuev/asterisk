@@ -5,7 +5,7 @@ import (
 
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 // TestBuildParams_RecallWithPriorSymptom verifies that when a prior symptom+RCA
@@ -303,14 +303,14 @@ func TestBuildParams_WorkspaceJiraLinks(t *testing.T) {
 func TestBuildParams_WorkspaceReposPaths(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
-	ws := &workspace.Workspace{
-		Repos: []workspace.Repo{
-			{Name: "ptp-operator", Path: "/home/user/repos/ptp-operator", Purpose: "SUT", Branch: "release-4.21"},
-			{Name: "cnf-gotests", Path: "/home/user/repos/cnf-gotests", Purpose: "Test framework"},
+	catalog := &knowledge.KnowledgeSourceCatalog{
+		Sources: []knowledge.Source{
+			{Name: "ptp-operator", URI: "/home/user/repos/ptp-operator", Purpose: "SUT", Branch: "release-4.21", Kind: knowledge.SourceKindRepo},
+			{Name: "cnf-gotests", URI: "/home/user/repos/cnf-gotests", Purpose: "Test framework", Kind: knowledge.SourceKindRepo},
 		},
 	}
 
-	params := BuildParams(st, caseData, nil, ws, StepF2Resolve, "")
+	params := BuildParams(st, caseData, nil, catalog, StepF2Resolve, "")
 
 	if params.Workspace == nil {
 		t.Fatal("expected Workspace to be populated")
@@ -322,7 +322,7 @@ func TestBuildParams_WorkspaceReposPaths(t *testing.T) {
 		t.Fatalf("Repos len = %d, want 2", len(params.Workspace.Repos))
 	}
 	if params.Workspace.Repos[0].Path != "/home/user/repos/ptp-operator" {
-		t.Errorf("repo path = %q, want /home/user/repos/ptp-operator", params.Workspace.Repos[0].Path)
+		t.Errorf("repo URI = %q, want /home/user/repos/ptp-operator", params.Workspace.Repos[0].Path)
 	}
 }
 
@@ -364,13 +364,13 @@ func TestBuildParams_WorkspaceFullContext(t *testing.T) {
 			},
 		},
 	}
-	ws := &workspace.Workspace{
-		Repos: []workspace.Repo{
-			{Name: "ptp-operator", Path: "/repos/ptp-operator", Purpose: "SUT"},
+	catalog := &knowledge.KnowledgeSourceCatalog{
+		Sources: []knowledge.Source{
+			{Name: "ptp-operator", URI: "/repos/ptp-operator", Purpose: "SUT", Kind: knowledge.SourceKindRepo},
 		},
 	}
 
-	params := BuildParams(st, caseData, env, ws, StepF3Invest, "")
+	params := BuildParams(st, caseData, env, catalog, StepF3Invest, "")
 
 	if params.Workspace == nil {
 		t.Fatal("expected Workspace")

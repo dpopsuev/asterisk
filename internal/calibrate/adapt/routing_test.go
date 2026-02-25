@@ -11,7 +11,7 @@ import (
 	"asterisk/internal/calibrate"
 	"asterisk/internal/orchestrate"
 	"asterisk/internal/store"
-	"github.com/dpopsuev/origami/workspace"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 // fakeAdapter is a minimal ModelAdapter for testing the recorder.
@@ -57,7 +57,7 @@ func (f *fakeStoreAwareAdapter) SetSuiteID(_ int64) {
 	f.suiteCalls++
 	f.mu2.Unlock()
 }
-func (f *fakeStoreAwareAdapter) SetWorkspace(_ *workspace.Workspace) {
+func (f *fakeStoreAwareAdapter) SetCatalog(_ *knowledge.KnowledgeSourceCatalog) {
 	f.mu2.Lock()
 	f.wsCalls++
 	f.mu2.Unlock()
@@ -135,7 +135,7 @@ func TestRoutingRecorder_DelegatesStoreAware(t *testing.T) {
 
 	rec.SetStore(nil)
 	rec.SetSuiteID(42)
-	rec.SetWorkspace(nil)
+	rec.SetCatalog(nil)
 	rec.RegisterCase("C1", nil)
 
 	if inner.storeCalls != 1 {
@@ -145,7 +145,7 @@ func TestRoutingRecorder_DelegatesStoreAware(t *testing.T) {
 		t.Errorf("SetSuiteID calls = %d, want 1", inner.suiteCalls)
 	}
 	if inner.wsCalls != 1 {
-		t.Errorf("SetWorkspace calls = %d, want 1", inner.wsCalls)
+		t.Errorf("SetCatalog calls = %d, want 1", inner.wsCalls)
 	}
 	if inner.regCalls != 1 {
 		t.Errorf("RegisterCase calls = %d, want 1", inner.regCalls)
@@ -174,7 +174,7 @@ func TestRoutingRecorder_StoreAwareNoOpOnPlainAdapter(t *testing.T) {
 	// These should not panic on a non-StoreAware adapter.
 	rec.SetStore(nil)
 	rec.SetSuiteID(1)
-	rec.SetWorkspace(nil)
+	rec.SetCatalog(nil)
 	rec.RegisterCase("C1", nil)
 	rec.SetRCAID("r1", 1)
 	rec.SetSymptomID("s1", 1)
