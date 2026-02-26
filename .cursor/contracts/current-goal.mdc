@@ -44,22 +44,29 @@ The big bang. Scorecard gates everything, but we also land all breaking Origami 
 
 | # | Contract | Repo | Tier | Breaking? | Notes |
 |---|----------|------|------|-----------|-------|
-| R1a | `principled-calibration-scorecard` Ph1-5 | **Both** | gate | yes | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types. Declarative YAML. M19 reweight. |
+| R1a | `principled-calibration-scorecard` Ph1-5 | **Both** | gate | yes | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types. MetricSet flattened. `DefaultMetrics()` (7 universal). TokiMeter migrated to Origami `CostBill`. Declarative YAML. M19 reweight. |
 | R1b | `consumer-cli-scaffold` | Origami | should | yes | 8 perennial commands, `origami.NewCLI()` builder. Replaces ~780 lines Cobra per consumer. |
 | R1c | `e2e-dsl-testing` | Origami | should | no | E2E walk tests gate this and every subsequent checkpoint. |
 | R1d | `durable-execution` | Origami | should | yes | `Checkpointer` interface + HITL Interrupt/Resume. Changes walk contract. |
 | R1e | `evidence-gap-brief` | **Asterisk** | nice | no | Structured "I don't know" output. Improves M8 (convergence calibration). |
 | R1f | `origami-adapters` | Origami | should | yes | FQCN resolution rewrites all registry `.Get()` methods. `imports:` on PipelineDef. Core adapter. |
 | R1g | `memory-evolution` | Origami | should | yes | `MemoryStore` interface changes: namespaced, searchable, persistent. Break once, not twice. |
+| R1h | `origami-observability` | Origami | should | yes | Day-0 OTel traces + Prometheus metrics. `/metrics` on KamiServer. `DefaultObservability()`. TokenTracker Prometheus-counter-friendly. |
 
 **Deliverables:**
 - `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types in Origami
+- `MetricSet` flattened — `Metrics []Metric` replaces 6-group struct, `ByTier()`/`ByID()` view methods
+- `DefaultMetrics()` — 7 universal metrics ship with framework (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
+- `DefaultScoreCard()` — three-layer API (primitives → defaults → consumer extension)
 - `asterisk-rca-scorecard.yaml` replaces hardcoded thresholds, M19 reweighted, M14b promoted, M18 raised to 200K
+- TokiMeter cost bill migrated to `origami/calibrate/cost_bill.go` — `tokimeter.go` deleted from Asterisk
+- `FormatTokenSummary` bug fix — uses `CostConfig`, not hardcoded 3.0/15.0
 - `origami.NewCLI()` builder API with 8 commands
 - `Checkpointer` interface + `Interrupt/Resume` primitive
 - FQCN resolution on all registries, `imports:` field on `PipelineDef`, core adapter
 - `MemoryStore` interface with namespaces, search, persistence
 - `EvidenceGap` type and gap brief output
+- OTel traces for every pipeline walk + Prometheus `/metrics` endpoint on KamiServer
 - E2E test suite gates checkpoint
 
 ### CHECKPOINT R1 — Foundation validated
@@ -170,10 +177,17 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] 3 YAML pipelines (RCA, ingestion, calibration)
 - [ ] CLI migrated to `origami.NewCLI()` scaffold
 - [ ] EvidenceGap output when confidence is low
+- [ ] TokiMeter deleted — cost bill from Origami `calibrate.FormatCostBill()`
+- [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
 
 ### Origami
 - [ ] `MetricDef`, `ScoreCard` types in `calibrate/` package
 - [ ] ScoreCard YAML loader with direction-aware evaluation
+- [ ] `MetricSet` is flat — `Metrics []Metric` with `ByTier()`/`ByID()` view methods
+- [ ] `DefaultMetrics()` ships 7 universal metrics (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
+- [ ] `DefaultScoreCard()` — three-layer API following Go slog pattern
+- [ ] TokiMeter cost bill in `calibrate/cost_bill.go` — generic, step names configurable via `StepNameFunc`
+- [ ] `FormatTokenSummary` uses `CostConfig` (bug fix — no more hardcoded 3.0/15.0)
 - [ ] Calibration runner as DSL pipeline (visible in Kami)
 - [ ] `origami.NewCLI()` builder with 8 perennial commands
 - [ ] `Checkpointer` interface + HITL Interrupt/Resume
@@ -182,6 +196,9 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] `Marble` interface + `marble:` DSL field + composite subgraph
 - [ ] Node caching + fan-in merge strategies
 - [ ] Dispatch fallback chains
+- [ ] Every walk emits OTel trace (root span = walk, child spans = nodes)
+- [ ] `/metrics` endpoint on KamiServer (Prometheus)
+- [ ] `DefaultObservability()` requires zero config
 - [ ] Achilles can define its own ScoreCard without touching Origami code
 - [ ] LSP validates pipeline YAML with completion and hover docs
 
