@@ -1,8 +1,9 @@
 # Contract — Ground Truth Dataset
 
-**Status:** draft  
+**Status:** closed (absorbed)  
 **Goal:** Grow the ground truth dataset from 18 verified cases to 50+ via agentic curation, stored as reviewable JSON files. CLI-first with `asterisk gt` subcommands. Export as git-tracked JSON and open GitHub PR for team review.  
-**Serves:** Dataset growth (SHOULD for Phase 5a mitigation Item 4)
+**Serves:** Dataset growth (SHOULD for Phase 5a mitigation Item 4)  
+**Closure:** Phases 1-2 (CLI, JSON export) implemented. Remaining scope absorbed by `data-ingestion-pipeline.md` (automatic dataset growth via DSL pipeline) and `consumer-cli-scaffold.md` (Origami — `dataset` command replaces `gt`).
 
 ## Contract rules
 

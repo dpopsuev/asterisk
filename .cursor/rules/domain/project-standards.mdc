@@ -19,9 +19,19 @@ alwaysApply: true
 - Prefer deterministic outputs for identical inputs; seed ordering where needed.
 - Every AI inference must cite evidence (logs, commits, pipeline data).
 
+## Safety > Speed
+
+> **Safety comes at the cost of speed, and speed at the cost of safety.**
+
+End-users will not use tools whose accuracy is low. Speed (still faster than a human) and cost (human wages >> agent tokens) are negligible second-order priorities. All metric thresholds, weights, and design decisions optimize for **outcome correctness first**. Efficiency metrics exist as health checks, not quality gates.
+
+- At 50,000x ROI ($1 AI cost saves $50K labor), token budget is irrelevant. A correct answer at $0.25 beats a wrong answer at $0.05.
+- Outcome metrics (M1, M15, M10) are weighted highest. Efficiency metrics (M16, M17, M18) are health checks.
+- When accuracy and speed conflict, accuracy wins unconditionally.
+
 ## Scope alignment
 
-- Focus on the current PoC goal. Defer future phases unless explicitly re-scoped.
+- Focus on the current goal. Defer future phases unless explicitly re-scoped.
 
 ## API stability (Origami dependency)
 

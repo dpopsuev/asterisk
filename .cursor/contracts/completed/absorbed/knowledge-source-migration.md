@@ -1,8 +1,9 @@
 # Contract — Knowledge Source Migration
 
-**Status:** draft  
+**Status:** closed (Phase 1 complete, remainder absorbed)  
 **Goal:** Migrate Asterisk from deprecated `origami/workspace` to `origami/knowledge` types, then build a local artifact catalog with fetch-through, format registry, and CI log readers on the new `Source`/`KnowledgeSourceCatalog` primitives.  
-**Serves:** PoC quality / pitch polish (SHOULD)
+**Serves:** PoC quality / pitch polish (SHOULD)  
+**Closure:** Phase 1 (migrate 11 files from `workspace` to `knowledge`) complete. Phase 2 (artifact catalog) absorbed by `refine-rtfm-routing-policy.md` (ReadPolicy + prompt injection) and `knowledge-source-evolution.md` (long-term architecture).
 
 ## Contract rules
 

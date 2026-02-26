@@ -4,16 +4,28 @@ description: Active goal manifest — single-read orientation for agents to know
 
 # Current Goal
 
-**Goal:** Polishing & Presentation  
-**Summary:** The PoC proved Asterisk works. Now make it shine. Asterisk should be a lean, impressive sports car — when viewers see it, they think "Wow, Sundays and Mondays are now for real work." Origami is the engine reveal: a stable, polished API that opens a new world of agentic pipeline orchestration. Both repos must be presentation-ready.
+**Goal:** System Refinement  
+**Summary:** The PoC proved Asterisk works (M19=0.83 heuristic, 0.58 AI). The demo exposed the gaps: arbitrary thresholds, no principled "good enough" analysis, calibration locked in Asterisk-specific code instead of being an Origami framework concern. Now refine: principled scorecard, calibration as a first-class pipeline, and a system whose metrics are grounded in business ROI — not engineering intuition.
+
+## The ROI That Changes Everything
+
+$1 per 20 cases saves 10 people an accumulated 10 days of work.
+
+| Factor | Value |
+|--------|-------|
+| AI cost per batch | ~$1 |
+| Labor savings per batch | ~$50,000 |
+| ROI | **50,000x** |
+
+**Implication:** Accuracy dominates. Token budget is irrelevant. A system that costs $5 instead of $1 but gets the answer right saves $49,995.
 
 ## Vision
 
-**Asterisk (the car):** Lean domain tool. Every line of code serves the RCA mission. No dead weight, no framework leakage, no rough edges. The CLI, the output, the calibration results — all must evoke confidence. "This thing just works."
+**Asterisk (the product):** A system whose accuracy is measured against principled, ROI-grounded thresholds. When a metric passes, it means "this is good enough to save human time." When it fails, it means "this specific gap costs humans $X."
 
-**Origami (the engine):** Stable API surface. Clean documentation. The playground runs, the DSL is expressive, the concepts (Elements, Personas, Masks, Dialectic) are coherent and discoverable. When the hood opens, people find something they didn't know existed.
+**Origami (the engine):** A framework where calibration is a first-class citizen. Declarative `ScoreCard` YAML defines metrics. The calibration runner is itself a DSL pipeline — visible in Kami, debuggable, shareable. Origami eats its own dog food.
 
-## PoC Results (proven)
+## PoC Results (baseline)
 
 | Adapter | Scenario | M19 | Key metrics | Notes |
 |---------|----------|-----|-------------|-------|
@@ -24,137 +36,159 @@ Full PoC history: `notes/goal-history-poc.md`
 
 ## Execution Order
 
-Critical path: `consumer-ergonomics` (Origami) → `walker-experience` (Origami) → `ouroboros-seed-pipeline` (Origami) → `kami-live-debugger` (Origami) → `kabuki-presentation-engine` (Origami) → `demo-presentation` (Asterisk).
+**Principle: break early, stabilize later.** Contracts that introduce breaking API changes go in R1-R2 so consumers absorb all breakage in one window. Additive features fill R3-R4. No "floating" contracts — everything has a sprint.
 
-Strategic pauses (CHECKPOINT) verify Asterisk still works after Origami API changes. Asterisk imports Origami as a Go module — every Origami change can silently break the consumer.
+### Sprint R1 — Foundation: Scorecard + Breaking Framework Changes
 
-### Sprint 1 — Foundation (parallel)
+The big bang. Scorecard gates everything, but we also land all breaking Origami API changes here so Asterisk only has one painful `go get` upgrade. E2E tests gate the checkpoint. CLI scaffold starts in parallel.
 
-| # | Contract | Repo | Tier | Notes |
-|---|----------|------|------|-------|
-| 1 | `consumer-ergonomics` | Origami | nice | Smallest scope. Stabilizes walker factory conventions. Quick win. |
-| 2 | `knowledge-source-migration` | **Asterisk** | should | Removes stale `origami/workspace` imports. Prerequisite for clean build. Parallel with #1. |
-| 3 | `ground-truth-dataset` Ph7 | **Asterisk** | should | JSON export for presentation-ready dataset. Parallel with #1. |
+| # | Contract | Repo | Tier | Breaking? | Notes |
+|---|----------|------|------|-----------|-------|
+| R1a | `principled-calibration-scorecard` Ph1-5 | **Both** | gate | yes | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types. Declarative YAML. M19 reweight. |
+| R1b | `consumer-cli-scaffold` | Origami | should | yes | 8 perennial commands, `origami.NewCLI()` builder. Replaces ~780 lines Cobra per consumer. |
+| R1c | `e2e-dsl-testing` | Origami | should | no | E2E walk tests gate this and every subsequent checkpoint. |
+| R1d | `durable-execution` | Origami | should | yes | `Checkpointer` interface + HITL Interrupt/Resume. Changes walk contract. |
+| R1e | `evidence-gap-brief` | **Asterisk** | nice | no | Structured "I don't know" output. Improves M8 (convergence calibration). |
+| R1f | `origami-adapters` | Origami | should | yes | FQCN resolution rewrites all registry `.Get()` methods. `imports:` on PipelineDef. Core adapter. |
+| R1g | `memory-evolution` | Origami | should | yes | `MemoryStore` interface changes: namespaced, searchable, persistent. Break once, not twice. |
 
-### CHECKPOINT A — Asterisk health after foundation
+**Deliverables:**
+- `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types in Origami
+- `asterisk-rca-scorecard.yaml` replaces hardcoded thresholds, M19 reweighted, M14b promoted, M18 raised to 200K
+- `origami.NewCLI()` builder API with 8 commands
+- `Checkpointer` interface + `Interrupt/Resume` primitive
+- FQCN resolution on all registries, `imports:` field on `PipelineDef`, core adapter
+- `MemoryStore` interface with namespaces, search, persistence
+- `EvidenceGap` type and gap brief output
+- E2E test suite gates checkpoint
 
-```
-Origami:  go build ./... && go test ./...
-Asterisk: go get github.com/dpopsuev/origami@latest
-          go build ./... && go test ./...
-          just calibrate-stub
-```
-
-Verify: Asterisk compiles with latest Origami. Stub calibration still passes. No regressions from `knowledge-source-migration` or Origami API changes.
-
-### Sprint 2 — Walker experience
-
-| # | Contract | Repo | Tier | Notes |
-|---|----------|------|------|-------|
-| 4 | `walker-experience` | Origami | should | WalkerDef + MemoryStore. High demo impact — "define agents in YAML." Depends on #1. |
-
-### CHECKPOINT B — Asterisk health after DSL extension
+### CHECKPOINT R1 — Foundation validated
 
 ```
 Origami:  go build ./... && go test ./...
+          go test ./... -run TestE2E (all E2E scenarios)
 Asterisk: go get github.com/dpopsuev/origami@latest
           go build ./... && go test ./...
-          just calibrate-stub
+          just calibrate-stub (with new thresholds)
 ```
 
-Verify: WalkerDef addition to PipelineDef doesn't break Asterisk's existing pipeline loading. `LoadPipeline` still works with Asterisk's YAML (which has no `walkers:` section). MemoryStore import is available but not required.
+Verify: New thresholds applied. Stub calibration passes. BasicAdapter M19 >= 0.70. FQCN resolution works. CLI scaffold builds. Checkpointer interface compiles. MemoryStore interface compiles. E2E tests green.
 
-### Sprint 3 — Ouroboros redesign (largest)
+### Sprint R2 — Pipelines + Structural Node Changes
 
-| # | Contract | Repo | Tier | Notes |
-|---|----------|------|------|-------|
-| 5 | `ouroboros-seed-pipeline` | Origami | should | Largest contract. Seeds, 3-node pipeline, PersonaSheet, auto-routing. Core of engine reveal. Depends on #4. |
+All DSL pipeline work lands here. Also structural additions to the node system (marbles, caching) that are additive but change how graphs are built and walked.
 
-### CHECKPOINT C — Asterisk health after Ouroboros overhaul
+| # | Contract | Repo | Tier | Breaking? | Notes |
+|---|----------|------|------|-----------|-------|
+| R2a | `principled-calibration-scorecard` Ph6 | **Both** | should | no | Express calibration runner as DSL pipeline. Visible in Kami. Dog-foods Origami. |
+| R2b | `refine-rtfm-routing-policy` | **Both** | should | yes* | `ReadPolicy` replaces RTFM entirely. Delete `context` node, `internal/rtfm/`. (*breaking to Asterisk pipeline, not Origami API) |
+| R2c | `data-ingestion-pipeline` | **Asterisk** | should | no | Data ingestion as DSL pipeline. `consume run` via CRON. `dataset review/promote`. |
+| R2d | `origami-marbles` | Origami | should | yes | `Marble` interface, `marble:` field on `NodeDef`, `MarbleRegistry`, composite subgraph. |
+| R2e | `pipeline-efficiency` | Origami | should | yes | Node caching in walk loop. `parallel:` fan-in merge strategies. |
+| R2f | `provider-resilience` | Origami | nice | no | Dispatch fallback chains + intent classifier. Additive to existing dispatch. |
+
+### CHECKPOINT R2 — Pipelines validated
 
 ```
 Origami:  go build ./... && go test ./...
+          go test ./... -run TestE2E
 Asterisk: go get github.com/dpopsuev/origami@latest
           go build ./... && go test ./...
-          just calibrate-stub
-          just calibrate-wet --cases 3
+          just calibrate-stub (via DSL pipeline)
+          asterisk consume run --dry-run
 ```
 
-Verify: Ouroboros API changes (deprecated runner, new pipeline path) don't break Asterisk's meta-calibration integration. Wet calibration on 3 cases confirms the full stack still works end-to-end. This is the most critical checkpoint — Ouroboros touches the deepest framework layer. **E2E gate (Origami):** `go test -run TestE2E ./...` runs all scenario YAMLs + real-YAML walks.
+Verify: DSL calibration identical to procedural. RTFM deleted — context node gone, always-read content in prompts. Ingestion pipeline validates. Marble system compiles. Node caching works. Fallback chains configured.
 
-### Sprint 4 — Kami debugger
+### Sprint R3 — CursorAdapter Tuning + Knowledge Deepening
 
-| # | Contract | Repo | Tier | Notes |
-|---|----------|------|------|-------|
-| 6 | `kami-live-debugger` | Origami | should | Presentation-critical. Live graph visualization is the demo centerpiece. Pipeline layer must be stable (#5). |
+Tuning sprint. The framework is stable. Now use the principled scorecard to guide AI improvement, add prompt feedback loops, and deepen the knowledge layer.
 
-### CHECKPOINT D — Asterisk health before demo integration
+| # | Contract | Repo | Tier | Breaking? | Notes |
+|---|----------|------|------|-----------|-------|
+| R3a | (new contract TBD) | **Asterisk** | should | no | Systematic CursorAdapter improvement. Focus on M1, M10, M15 (highest ROI metrics). |
+| R3b | `prompt-calibration` | Origami | nice | no | Feedback loop: calibration results → prompt improvements. Uses ScoreCard from R1. |
+| R3c | `knowledge-source-evolution` | **Asterisk** | nice | no | Layered composition via `Source.Tags`, artifact dependency graph. Post-ReadPolicy. |
+
+### CHECKPOINT R3 — CursorAdapter improvement
+
+```
+Asterisk: just calibrate-wet --cases 18
+```
+
+Target: CursorAdapter M19 >= 0.70 (up from 0.58). At minimum 15/21 metrics pass (up from 10/21).
+
+### Sprint R4 — Re-Demo + LSP
+
+The framework is stable, the AI works, now polish and present. LSP needs the stable DSL from all prior sprints.
+
+| # | Contract | Repo | Tier | Breaking? | Notes |
+|---|----------|------|------|-----------|-------|
+| R4a | `improve-asterisk-kabuki-demo` | **Both** | should | no | Three-act narrative with principled results. War Room shows calibration pipeline in Kami. |
+| R4b | `origami-lsp` | Origami | vision | no | Language Server for pipeline YAML. Needs stable DSL from R1-R3. Color coding, completion, Kami live connection. |
+
+### CHECKPOINT R4 — Demo + LSP validated
 
 ```
 Origami:  go build ./... && go test ./...
-Asterisk: go get github.com/dpopsuev/origami@latest
-          go build ./... && go test ./...
-          just calibrate-stub
+Asterisk: go build ./... && go test ./...
+          asterisk demo --replay
 ```
 
-Verify: Kami's EventBridge, KamiServer, and new MCP tools don't break Asterisk's existing MCP server. SignalBus changes are backward-compatible. This is the last checkpoint before starting the demo — Asterisk must be rock solid.
+Verify: Demo runs end-to-end with all sections. War Room populated. Results show principled metrics. LSP validates all E2E scenario YAMLs without false diagnostics.
 
-### Sprint 5 — Presentation engine + Demo (COMPLETE)
+**Closed/absorbed:**
+- ~~`domain-calibration`~~ → absorbed into `principled-calibration-scorecard` Phase 6
+- ~~`ground-truth-dataset`~~ → absorbed by `data-ingestion-pipeline` + `consumer-cli-scaffold`
+- ~~`knowledge-source-migration`~~ → Phase 1 done, remainder absorbed by `refine-rtfm-routing-policy` + `knowledge-source-evolution`
 
-| # | Contract | Repo | Tier | Status |
-|---|----------|------|------|--------|
-| 7a | `kabuki-presentation-engine` | Origami | should | **Complete.** KabukiConfig interface, 3 API endpoints, 12 section components, element selector, scroll-snap + keyboard nav. |
-| 7b | `demo-presentation` | **Asterisk** | should | **Complete.** PoliceStationKabuki + PoliceStationTheme, `asterisk demo` CLI, integration tests. Phase 3 (canonical recording) deferred. |
+## Previous Goal History
 
-### CHECKPOINT E — PASSED
+### Polishing & Presentation (paused)
 
-```
-Origami:  go build ./... && go test ./...         ✓
-Asterisk: go build ./... && go test ./...         ✓
-          just calibrate-stub                      ✓ (19/19, M19=0.99)
-```
+Sprints 1-5 completed. CHECKPOINT E passed. Demo built but mock PoC exposed foundational gaps:
+- Thresholds are arbitrary — no principled "good enough" analysis
+- Calibration is Asterisk-locked — not a reusable framework concern
+- CursorAdapter at M19=0.58 — the AI doesn't reliably produce correct answers
+- Token budget at 60K starves investigation — ROI math says budget is irrelevant
 
-Canonical recording deferred to wet calibration session. Wet calibration (`just calibrate-wet --cases 3`) deferred to same session.
+Contracts completed: `consumer-ergonomics`, `walker-experience`, `ouroboros-seed-pipeline`, `kami-live-debugger`, `kabuki-presentation-engine`, `demo-presentation`.
 
-### Sprint 6 — LSP (Origami, post-demo)
+Demo overhaul contract (`improve-asterisk-kabuki-demo`) deferred to Sprint R4 — no point polishing a demo for a system with arbitrary metrics.
 
-| # | Contract | Repo | Tier | Notes |
-|---|----------|------|------|-------|
-| — | `origami-lsp` | Origami | vision | Language Server for pipeline YAML. Color coding, virtual text hints, Kami live connection. Last goal. |
+Full PoC history: `notes/goal-history-poc.md`
 
-**CHECKPOINT F** — LSP validates all E2E scenario YAMLs. No Asterisk changes — Origami-only.
-
-### Post-presentation polish (no checkpoints needed)
-
-| # | Contract | Repo | Tier | Notes |
-|---|----------|------|------|-------|
-| 8 | `provider-resilience` | Origami | nice | Fallback chains + intent classifier. Polishes dispatch layer. |
-| 9 | `evidence-gap-brief` | **Asterisk** | nice | Structured "I don't know" output. Polish, not blocking. |
-| 10 | `domain-calibration` | Origami | nice | Per-domain eval types. Useful but not presentation-critical. |
-| 11 | `prompt-calibration` | Origami | nice | Deferred. No urgency until post-presentation tuning. |
-| 12 | `knowledge-source-evolution` | **Asterisk** | vision | Long-term architecture. No timeline. |
-| 13 | `origami-collections` | Origami | vision | Package manager + collection format. Prevents consumer duplication. No timeline. |
-
-## What "presentation-ready" means
+## What "system-refined" means
 
 ### Asterisk
-- [x] Zero stale imports (no `origami/workspace` references)
-- [x] Clean `go vet ./...`, `go build ./...`, `go test ./...`
-- [ ] README tells the story: problem, solution, results (M19 numbers)
-- [x] `asterisk calibrate` demo runs cleanly with meaningful output
-- [x] Ground truth dataset is JSON (reviewable), not just Go structs
+- [ ] Every metric threshold has a documented rationale (baseline, ceiling, ROI)
+- [ ] ScoreCard YAML replaces hardcoded thresholds in metrics.go
+- [ ] CursorAdapter M19 >= 0.70 with principled weights
+- [ ] M14b (smoking gun) passes at >= 0.30
+- [ ] Token budget at 200,000 (ROI-justified)
+- [ ] RTFM deleted — ReadPolicy + prompt injection replaces `internal/rtfm/`
+- [ ] 3 YAML pipelines (RCA, ingestion, calibration)
+- [ ] CLI migrated to `origami.NewCLI()` scaffold
+- [ ] EvidenceGap output when confidence is low
 
 ### Origami
-- [ ] `examples/playground/` runs and demonstrates all concepts
-- [ ] API surface is stable — no breaking changes pending
-- [ ] `docs/framework-guide.md` is current and coherent
-- [ ] Test coverage on public API is solid
-- [ ] README positions Origami as a standalone framework
+- [ ] `MetricDef`, `ScoreCard` types in `calibrate/` package
+- [ ] ScoreCard YAML loader with direction-aware evaluation
+- [ ] Calibration runner as DSL pipeline (visible in Kami)
+- [ ] `origami.NewCLI()` builder with 8 perennial commands
+- [ ] `Checkpointer` interface + HITL Interrupt/Resume
+- [ ] FQCN resolution on all registries + `imports:` on PipelineDef
+- [ ] Namespaced, searchable, persistent `MemoryStore`
+- [ ] `Marble` interface + `marble:` DSL field + composite subgraph
+- [ ] Node caching + fan-in merge strategies
+- [ ] Dispatch fallback chains
+- [ ] Achilles can define its own ScoreCard without touching Origami code
+- [ ] LSP validates pipeline YAML with completion and hover docs
 
 ## Goal Transition Protocol
 
-When presentation is delivered:
+When system refinement is complete:
 
-1. Archive this manifest in `notes/` as `goal-history-polish.md`
-2. Create a new `current-goal.mdc` for the next goal
-3. Reassess all draft contracts — re-tier relative to the new goal
+1. Archive this manifest in `notes/` as `goal-history-refinement.md`
+2. Restore presentation goal — Sprint R4 demo with principled, working system
+3. Reassess all draft contracts — re-tier relative to the next goal
