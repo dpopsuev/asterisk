@@ -20,3 +20,4 @@ Deep library references (long-form).
 - `codebase-reduction-report.md` — LOC before/after tracking for architecture contracts; library offload inventory, bespoke justification, bug class elimination.
 - `wet-calibration-tuning-journal.md` — Four rounds of wet calibration tuning: baseline 0.49 → 0.66 Overall Accuracy via data propagation fixes, prompt alignment, and RCA ID linking.
 - `boundary-map.md` — Domain vs framework boundary map: Achilles heuristic applied to every internal/ package; dedup catalog with P1/P2/P3 migration priorities.
+- `pipeline-explainer.md` — Non-technical visual explainer of the Asterisk investigation pipeline and Origami's role as the governance framework; Mermaid diagram, step breakdown, agentic AI relevance.
