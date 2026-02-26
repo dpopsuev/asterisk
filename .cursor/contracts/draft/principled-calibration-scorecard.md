@@ -49,6 +49,7 @@ This reframes the entire scorecard: **outcome metrics (accuracy) dominate; effic
 - No threshold strategy primitives — just `value >= threshold` everywhere
 - `MetricSet` has 6 hardcoded group fields (`Structured`, `Workspace`, `Evidence`, `Semantic`, `Pipeline`, `Aggregate`) — grouping baked into the container instead of being a view operation
 - `AggregateRunMetrics` in `calibrate/aggregate.go` calls `updateMetrics()` on each of the 6 groups (lines 53-58) — collapses to 1 call after flattening
+- `calibrate/aggregate.go` also exports `Mean`, `Stddev`, `SafeDiv`, `SafeDivFloat` — pure math with no calibration semantics, but any package needing basic stats (e.g. `observability/`) must import `calibrate` to get them
 - TokiMeter cost bill (`asterisk/internal/calibrate/tokimeter.go`, 213 lines) is Asterisk-specific but 95% generic — step ordering hardcoded to F0-F6, display names import `display.StageWithCode`
 - `dispatch.FormatTokenSummary` hardcodes `3.0`/`15.0` cost rates instead of using `CostConfig`
 - No universal metrics — every consumer starts from zero. Token usage, latency, path efficiency are universally needed but not provided by the framework
@@ -364,7 +365,7 @@ Currently each consumer must build: metric definitions, scorer functions, runner
 | `EvalDirection` | `higher_is_better` (default) or `lower_is_better` (M4, M18, M20) or `range` (M17) |
 | `DefaultMetrics()` | 7 universal metrics every pipeline needs: `token_usage`, `token_cost_usd`, `latency_seconds`, `path_efficiency`, `loop_ratio`, `confidence_calibration`, `run_variance`. Three derived from TokiMeter, two from walk, two from multi-run. |
 | `DefaultScoreCard()` | Wraps `DefaultMetrics()`. Consumer extends: `DefaultScoreCard().WithMetrics(domain...).Build()`. The Go `slog` pattern: works out of the box, fully customizable. |
-| `CostBill` | Generic cost bill (migrated from Asterisk TokiMeter). Per-case and per-step token/cost tables. Step names via configurable `StepNameFunc`, not hardcoded. |
+| `CostBill` | Generic cost bill in `dispatch/` (migrated from Asterisk TokiMeter). Built from `TokenSummary` — available on every dispatch, not just calibration. Per-case and per-step token/cost tables. Configurable via functional options (`WithStepNames`, `WithCaseMetadata`). |
 
 ### ScoreCard YAML (proposed)
 
@@ -489,11 +490,15 @@ flowchart LR
 
 ```mermaid
 flowchart LR
-    subgraph origami2 [Origami — calibration framework]
+    subgraph dispatch_pkg [Origami dispatch/ — per-dispatch concerns]
+        CostBill_["CostBill\ngeneric token/cost tables\n(from TokenSummary)"]
+        TokenTracker_["TokenTracker\nCostConfig"]
+    end
+
+    subgraph calibrate_pkg [Origami calibrate/ — calibration framework]
         MetricDef_["MetricDef\nthreshold, strategy, weight, tier"]
         ScoreCard_["ScoreCard\ndeclarative YAML"]
         Defaults["DefaultMetrics / DefaultScoreCard\n7 universal metrics"]
-        CostBill_["CostBill\ngeneric token/cost tables\n(migrated TokiMeter)"]
         CalPipeline["calibration-runner.yaml\nDSL pipeline"]
         Scorer["GenericScorer\nevaluates MetricDef against data"]
         FlatMS["MetricSet: flat Metrics slice\nByTier / ByID / PassCount views"]
@@ -510,11 +515,12 @@ flowchart LR
         AchScoreCard["achilles-vuln-scorecard.yaml\ndetection rate, severity accuracy"]
     end
 
-    AstScoreCard -->|"loaded by"| origami2
-    AchScoreCard -->|"loaded by"| origami2
+    AstScoreCard -->|"loaded by"| calibrate_pkg
+    AchScoreCard -->|"loaded by"| calibrate_pkg
     CalPipeline -->|"walks"| MetricDef_
     Scorer -->|"evaluates"| ScoreCard_
     StepNames -->|"configures"| CostBill_
+    TokenTracker_ -->|"produces"| CostBill_
     Defaults -->|"base for"| ScoreCard_
 ```
 
@@ -528,7 +534,7 @@ flowchart LR
 
 ## Execution strategy
 
-Phase 1 flattens `MetricSet` (breaking change), defines the framework primitives in Origami (`MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection`), and ships 7 universal metrics via `DefaultMetrics()`/`DefaultScoreCard()`. Phase 2 creates a ScoreCard YAML loader and generic scorer, plus fixes `FormatTokenSummary` cost bug. Phase 2.5 migrates TokiMeter cost bill from Asterisk to Origami (generic `CostBill`). Phase 3 migrates Asterisk's 21 metrics from hardcoded Go to a `asterisk-rca-scorecard.yaml` file. Phase 4 applies the principled thresholds from this contract's analysis. Phase 5 reweights M19 and promotes M14b from tracking to real metric. Phase 6 expresses the calibration runner as a DSL pipeline (stretch). Phase 7 validates everything with stub + wet calibration runs.
+Phase 1 flattens `MetricSet` (breaking change), defines the framework primitives in Origami (`MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection`), and ships 7 universal metrics via `DefaultMetrics()`/`DefaultScoreCard()`. Phase 2 creates a ScoreCard YAML loader and generic scorer, plus fixes `FormatTokenSummary` cost bug. Phase 2.5 migrates TokiMeter cost bill from Asterisk to Origami `dispatch/cost_bill.go` — lives in `dispatch/` because token tracking is a dispatch-level concern (every agent dispatch produces a cost bill, not just calibration). Phase 3 migrates Asterisk's 21 metrics from hardcoded Go to a `asterisk-rca-scorecard.yaml` file. Phase 4 applies the principled thresholds from this contract's analysis. Phase 5 reweights M19 and promotes M14b from tracking to real metric. Phase 6 expresses the calibration runner as a DSL pipeline (stretch). Phase 7 validates everything with stub + wet calibration runs.
 
 Phases 1-2.5 are Origami-only (with TM4-TM5 touching Asterisk for deletion). Phases 3-5 are Asterisk. Phase 6 spans both. Phase 7 is validation.
 
@@ -548,6 +554,7 @@ Phases 1-2.5 are Origami-only (with TM4-TM5 touching Asterisk for deletion). Pha
 ### Phase 1 — Framework Primitives (Origami)
 
 - [ ] **F0** Flatten `MetricSet` from 6-group struct (`Structured`, `Workspace`, `Evidence`, `Semantic`, `Pipeline`, `Aggregate`) to `Metrics []Metric`. Add `Tier CostTier` and `Direction EvalDirection` fields to `Metric` (populated by `ScoreCard.Evaluate()`). Replace `AllMetrics()` with direct slice access. `PassCount()` and new view methods `ByTier() map[CostTier][]Metric`, `ByID() map[string]Metric` become methods on the flat struct. Update `AggregateRunMetrics` in `aggregate.go` — collapse 6 explicit `updateMetrics()` calls to 1. Update `FormatReport` in `report.go` to auto-generate `MetricSection`s from `Tier`.
+- [ ] **F0b** Extract `Mean`, `Stddev`, `SafeDiv`, `SafeDivFloat` from `calibrate/aggregate.go` to a new `internal/mathutil/stats.go` package in Origami. These are pure math with no calibration semantics. The `observability/` package (and any future stats consumer) should not need to import `calibrate` for basic arithmetic. Update `calibrate/aggregate.go` to import from `internal/mathutil`.
 - [ ] **F1** Define `MetricDef` type in `calibrate/scorecard.go`: `ID`, `Name`, `Tier` (CostTier), `Direction` (EvalDirection), `Threshold`, `RangeMin`/`RangeMax` (for range checks like M17), `Weight` (for aggregate), `Rationale`
 - [ ] **F2** Define `CostTier` enum: `TierOutcome`, `TierInvestigation`, `TierDetection`, `TierEfficiency`, `TierMeta`
 - [ ] **F3** Define `EvalDirection` enum: `HigherIsBetter`, `LowerIsBetter`, `RangeCheck`
@@ -573,11 +580,11 @@ Phases 1-2.5 are Origami-only (with TM4-TM5 touching Asterisk for deletion). Pha
 
 Migrate the generic cost bill from Asterisk to Origami so every consumer gets token/cost reporting for free.
 
-- [ ] **TM1** Move `TokiMeterBill`, `TokiMeterCaseLine`, `TokiMeterStepLine` structs to `origami/calibrate/cost_bill.go`. Rename to `CostBill`, `CostBillCaseLine`, `CostBillStepLine` (drop the Asterisk branding).
-- [ ] **TM2** Move `BuildTokiMeterBill` → `BuildCostBill(report *CalibrationReport, stepNameFunc func(string) string) *CostBill`. Replace hardcoded `stepOrder` (F0-F6) with step names read from the pipeline definition or provided via the function parameter.
-- [ ] **TM3** Move `FormatTokiMeter` → `FormatCostBill(bill *CostBill) string`. Replace `display.StageWithCode()` calls with the `stepNameFunc` already applied during build. The markdown format is generic (per-case table, per-step table, summary, pricing footnote).
-- [ ] **TM4** In Asterisk: replace `tokimeter.go` usage with `calibrate.BuildCostBill(report, display.StageWithCode)` and `calibrate.FormatCostBill(bill)`. The domain-specific part (step display names) stays in Asterisk as a one-line `StepNameFunc` adapter.
-- [ ] **TM5** Delete `asterisk/internal/calibrate/tokimeter.go` and `tokimeter_test.go`. Verify `cmd_calibrate.go` compiles with the new import path.
+- [ ] **TM1** Move `TokiMeterBill`, `TokiMeterCaseLine`, `TokiMeterStepLine` structs to `origami/dispatch/cost_bill.go`. Rename to `CostBill`, `CostBillCaseLine`, `CostBillStepLine` (drop the Asterisk branding). Lives in `dispatch/` because token tracking is a fundamental dispatch concern — every agent dispatch produces a cost bill, not just calibration.
+- [ ] **TM2** Move `BuildTokiMeterBill` → `BuildCostBill(summary *TokenSummary, opts ...CostBillOption) *CostBill`. Takes `TokenSummary` directly (not `CalibrationReport`). Functional options: `WithStepNames(func(string) string)` for display names, `WithCaseMetadata([]CaseMeta)` for per-case enrichment. Calibration is just one call-site: `dispatch.BuildCostBill(report.Tokens, dispatch.WithStepNames(display.StageWithCode), dispatch.WithCaseMetadata(caseMeta))`.
+- [ ] **TM3** Move `FormatTokiMeter` → `FormatCostBill(bill *CostBill) string`. Replace `display.StageWithCode()` calls with the step names already applied during build. The markdown format is generic (per-case table, per-step table, summary, pricing footnote).
+- [ ] **TM4** In Asterisk: replace `tokimeter.go` usage with `dispatch.BuildCostBill(report.Tokens, dispatch.WithStepNames(display.StageWithCode))` and `dispatch.FormatCostBill(bill)`. The domain-specific part (step display names) stays in Asterisk as a one-line `StepNameFunc` adapter.
+- [ ] **TM5** Delete `asterisk/internal/calibrate/tokimeter.go` and `tokimeter_test.go`. Verify `cmd_calibrate.go` compiles with the new import path (`dispatch` instead of `calibrate`).
 
 ### Phase 3 — Migrate Asterisk Metrics to ScoreCard (Asterisk)
 
@@ -654,4 +661,4 @@ No trust boundaries affected. ScoreCard is a configuration file read at startup.
 
 2026-02-26 — Contract created after mock PoC demo failure. Core criticism: thresholds are arbitrary. The ROI analysis ($1/20 cases vs $50K labor savings = 50,000x ROI) reframes the entire scorecard: accuracy dominates, cost is irrelevant. 7 metrics raised (outcome), 8 lowered (efficiency/detection), 6 kept. M14b promoted from tracking to real metric. M19 reweighted toward outcome metrics. Calibration elevated from Asterisk-specific code to Origami framework concern with declarative ScoreCard YAML. Stretch goal: calibration runner as DSL pipeline (Origami eating its own dog food).
 
-2026-02-26 — Expanded scope after design review. Breaking is allowed (one consumer, same developer). MetricSet flattened from 6-group struct to flat `Metrics []Metric` with Tier/Direction on each Metric. ScoreCard owns grouping as a view operation, not storage. 7 universal default metrics (`DefaultMetrics()`) ship with the framework — 3 from TokiMeter (token_usage, token_cost_usd, latency), 2 from walk (path_efficiency, loop_ratio), 2 from multi-run (confidence_calibration, run_variance). Three-layer API follows Go `slog` pattern. TokiMeter cost bill migrated from Asterisk to Origami `calibrate/cost_bill.go` — step names configurable via `StepNameFunc`, no hardcoded F0-F6. `FormatTokenSummary` bug fix: use CostConfig, not hardcoded 3.0/15.0. New cross-reference to `origami-observability` — token metrics become both ScoreCard metrics and Prometheus counters.
+2026-02-26 — Expanded scope after design review. Breaking is allowed (one consumer, same developer). MetricSet flattened from 6-group struct to flat `Metrics []Metric` with Tier/Direction on each Metric. ScoreCard owns grouping as a view operation, not storage. 7 universal default metrics (`DefaultMetrics()`) ship with the framework — 3 from TokiMeter (token_usage, token_cost_usd, latency), 2 from walk (path_efficiency, loop_ratio), 2 from multi-run (confidence_calibration, run_variance). Three-layer API follows Go `slog` pattern. TokiMeter cost bill migrated from Asterisk to Origami `dispatch/cost_bill.go` — lives in `dispatch/` because every agent dispatch produces a cost bill, not just calibration. `BuildCostBill` takes `TokenSummary` directly with functional options (`WithStepNames`, `WithCaseMetadata`). `FormatTokenSummary` bug fix: use CostConfig, not hardcoded 3.0/15.0. New cross-reference to `origami-observability` — token metrics become both ScoreCard metrics and Prometheus counters.

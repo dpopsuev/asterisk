@@ -52,6 +52,7 @@ The big bang. Scorecard gates everything, but we also land all breaking Origami 
 | R1f | `origami-adapters` | Origami | should | yes | FQCN resolution rewrites all registry `.Get()` methods. `imports:` on PipelineDef. Core adapter. |
 | R1g | `memory-evolution` | Origami | should | yes | `MemoryStore` interface changes: namespaced, searchable, persistent. Break once, not twice. |
 | R1h | `origami-observability` | Origami | should | yes | Day-0 OTel traces + Prometheus metrics. `/metrics` on KamiServer. `DefaultObservability()`. TokenTracker Prometheus-counter-friendly. |
+| R1i | `origami-api-hygiene` | Origami | should | yes | Configurable `ModelRegistry`, rename `curate.Source` → `curate.EvidenceSource`, parameterize probe stimuli. Consumer impact: rename `curate.Source` references. |
 
 **Deliverables:**
 - `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types in Origami
@@ -59,7 +60,7 @@ The big bang. Scorecard gates everything, but we also land all breaking Origami 
 - `DefaultMetrics()` — 7 universal metrics ship with framework (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
 - `DefaultScoreCard()` — three-layer API (primitives → defaults → consumer extension)
 - `asterisk-rca-scorecard.yaml` replaces hardcoded thresholds, M19 reweighted, M14b promoted, M18 raised to 200K
-- TokiMeter cost bill migrated to `origami/calibrate/cost_bill.go` — `tokimeter.go` deleted from Asterisk
+- TokiMeter cost bill migrated to `origami/dispatch/cost_bill.go` — every dispatch gets a cost bill, not just calibration. `tokimeter.go` deleted from Asterisk
 - `FormatTokenSummary` bug fix — uses `CostConfig`, not hardcoded 3.0/15.0
 - `origami.NewCLI()` builder API with 8 commands
 - `Checkpointer` interface + `Interrupt/Resume` primitive
@@ -177,7 +178,7 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] 3 YAML pipelines (RCA, ingestion, calibration)
 - [ ] CLI migrated to `origami.NewCLI()` scaffold
 - [ ] EvidenceGap output when confidence is low
-- [ ] TokiMeter deleted — cost bill from Origami `calibrate.FormatCostBill()`
+- [ ] TokiMeter deleted — cost bill from Origami `dispatch.FormatCostBill()`
 - [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
 
 ### Origami
@@ -186,7 +187,7 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] `MetricSet` is flat — `Metrics []Metric` with `ByTier()`/`ByID()` view methods
 - [ ] `DefaultMetrics()` ships 7 universal metrics (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
 - [ ] `DefaultScoreCard()` — three-layer API following Go slog pattern
-- [ ] TokiMeter cost bill in `calibrate/cost_bill.go` — generic, step names configurable via `StepNameFunc`
+- [ ] TokiMeter cost bill in `dispatch/cost_bill.go` — every dispatch gets a cost bill. `BuildCostBill(TokenSummary, ...CostBillOption)` with `WithStepNames`, `WithCaseMetadata`
 - [ ] `FormatTokenSummary` uses `CostConfig` (bug fix — no more hardcoded 3.0/15.0)
 - [ ] Calibration runner as DSL pipeline (visible in Kami)
 - [ ] `origami.NewCLI()` builder with 8 perennial commands
@@ -201,6 +202,10 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] `DefaultObservability()` requires zero config
 - [ ] Achilles can define its own ScoreCard without touching Origami code
 - [ ] LSP validates pipeline YAML with completion and hover docs
+- [ ] `KnownModels` replaced by configurable `ModelRegistry` (YAML-loadable, `RegisterModel()` API)
+- [ ] `curate.Source` renamed to `curate.EvidenceSource` — no naming collision with `knowledge.Source`
+- [ ] Ouroboros probe stimuli loadable from config — not hardcoded Go/HTTP scenarios
+- [ ] `Mean`/`Stddev`/`SafeDiv` extracted from `calibrate/` to `internal/mathutil/`
 
 ## Goal Transition Protocol
 
