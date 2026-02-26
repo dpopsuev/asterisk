@@ -75,7 +75,7 @@ var consumeRunCmd = &cobra.Command{
 			Edges: edgeFactory,
 		}
 
-		graph, err := def.BuildGraphWith(reg)
+		graph, err := def.BuildGraph(reg)
 		if err != nil {
 			return fmt.Errorf("build graph: %w", err)
 		}

@@ -175,10 +175,30 @@ func artifactForStep(step string, subagentID int) string {
 	case "F5_REVIEW":
 		return `{"decision":"approve"}`
 	case "F6_REPORT":
-		return fmt.Sprintf(`{"defect_type":"pb001","case_id":"auto","subagent":%d}`, subagentID)
+		return fmt.Sprintf(`{"defect_type":"pb001","case_id":"auto","summary":"test summary","subagent":%d}`, subagentID)
 	default:
 		return fmt.Sprintf(`{"defect_type":"pb001","subagent":%d}`, subagentID)
 	}
+}
+
+// fieldsForStep parses artifactForStep JSON into a map for submit_step.
+func fieldsForStep(step string, subagentID int) map[string]any {
+	artifact := artifactForStep(step, subagentID)
+	var fields map[string]any
+	if err := json.Unmarshal([]byte(artifact), &fields); err != nil {
+		panic(err)
+	}
+	return fields
+}
+
+// fieldsForStepViaResolve parses artifactForStepViaResolve JSON into a map for submit_step.
+func fieldsForStepViaResolve(step string, subagentID int) map[string]any {
+	artifact := artifactForStepViaResolve(step, subagentID)
+	var fields map[string]any
+	if err := json.Unmarshal([]byte(artifact), &fields); err != nil {
+		panic(err)
+	}
+	return fields
 }
 
 type stepRecord struct {
@@ -201,12 +221,12 @@ func TestServer_ToolDiscovery(t *testing.T) {
 	}
 
 	want := map[string]bool{
-		"start_pipeline":  false,
-		"get_next_step":   false,
-		"submit_artifact": false,
-		"get_report":      false,
-		"emit_signal":     false,
-		"get_signals":     false,
+		"start_pipeline": false,
+		"get_next_step":  false,
+		"submit_step":    false,
+		"get_report":     false,
+		"emit_signal":    false,
+		"get_signals":    false,
 	}
 	for _, tool := range tools.Tools {
 		if _, ok := want[tool.Name]; ok {
@@ -283,7 +303,7 @@ func TestServer_GetNextStep_NoSession(t *testing.T) {
 	}
 }
 
-func TestServer_SubmitArtifact_InvalidJSON(t *testing.T) {
+func TestServer_SubmitStep_UnknownStep(t *testing.T) {
 	srv := newTestServer(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -291,21 +311,31 @@ func TestServer_SubmitArtifact_InvalidJSON(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "stub", 0)
+	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID, _ := startResult["session_id"].(string)
 
+	stepResult := callTool(t, ctx, session, "get_next_step", map[string]any{
+		"session_id": sessionID,
+	})
+	if done, _ := stepResult["done"].(bool); done {
+		t.Fatal("expected a step, got done=true")
+	}
+	dispatchID, _ := stepResult["dispatch_id"].(float64)
+
 	res, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
-		Name: "submit_artifact",
+		Name: "submit_step",
 		Arguments: map[string]any{
-			"session_id":    sessionID,
-			"artifact_json": "not valid json{{{",
+			"session_id":  sessionID,
+			"dispatch_id": int64(dispatchID),
+			"step":        "INVALID_STEP",
+			"fields":      map[string]any{"x": 1},
 		},
 	})
 	if err != nil {
 		t.Fatalf("expected tool error, got transport error: %v", err)
 	}
 	if !res.IsError {
-		t.Fatal("expected IsError=true for invalid JSON artifact")
+		t.Fatal("expected IsError=true for unknown step")
 	}
 }
 
@@ -470,14 +500,14 @@ func TestServer_FourSubagents_FullDrain(t *testing.T) {
 				step, _ := res["step"].(string)
 				dispatchID, _ := res["dispatch_id"].(float64)
 
-				artifact := artifactForStep(step, subID)
-				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
-					"session_id":    sessionID,
-					"artifact_json": artifact,
-					"dispatch_id":   int64(dispatchID),
+				_, err = callToolE(ctx, session, "submit_step", map[string]any{
+					"session_id":  sessionID,
+					"dispatch_id": int64(dispatchID),
+					"step":        step,
+					"fields":      fieldsForStep(step, subID),
 				})
 				if err != nil {
-					errCh <- fmt.Errorf("subagent-%d submit_artifact(%s/%s): %w", subID, caseID, step, err)
+					errCh <- fmt.Errorf("subagent-%d submit_step(%s/%s): %w", subID, caseID, step, err)
 					return
 				}
 
@@ -571,14 +601,14 @@ func TestServer_FourSubagents_ViaResolve(t *testing.T) {
 				step, _ := res["step"].(string)
 				dispatchID, _ := res["dispatch_id"].(float64)
 
-				artifact := artifactForStepViaResolve(step, subID)
-				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
-					"session_id":    sessionID,
-					"artifact_json": artifact,
-					"dispatch_id":   int64(dispatchID),
+				_, err = callToolE(ctx, session, "submit_step", map[string]any{
+					"session_id":  sessionID,
+					"dispatch_id": int64(dispatchID),
+					"step":        step,
+					"fields":      fieldsForStepViaResolve(step, subID),
 				})
 				if err != nil {
-					errCh <- fmt.Errorf("subagent-%d submit(%s/%s): %w", subID, caseID, step, err)
+					errCh <- fmt.Errorf("subagent-%d submit_step(%s/%s): %w", subID, caseID, step, err)
 					return
 				}
 
@@ -667,14 +697,14 @@ func TestServer_FourSubagents_NoDuplicateDispatch(t *testing.T) {
 				step, _ := res["step"].(string)
 				dispatchID, _ := res["dispatch_id"].(float64)
 
-				artifact := artifactForStep(step, subID)
-				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
-					"session_id":    sessionID,
-					"artifact_json": artifact,
-					"dispatch_id":   int64(dispatchID),
+				_, err = callToolE(ctx, session, "submit_step", map[string]any{
+					"session_id":  sessionID,
+					"dispatch_id": int64(dispatchID),
+					"step":        step,
+					"fields":      fieldsForStep(step, subID),
 				})
 				if err != nil {
-					errCh <- fmt.Errorf("subagent-%d submit(%s/%s): %w", subID, caseID, step, err)
+					errCh <- fmt.Errorf("subagent-%d submit_step(%s/%s): %w", subID, caseID, step, err)
 					return
 				}
 
@@ -762,11 +792,11 @@ func TestServer_FourSubagents_ConcurrencyTiming(t *testing.T) {
 				step, _ := res["step"].(string)
 				dispatchID, _ := res["dispatch_id"].(float64)
 
-				artifact := artifactForStep(step, subID)
-				_, err = callToolE(ctx, session, "submit_artifact", map[string]any{
-					"session_id":    sessionID,
-					"artifact_json": artifact,
-					"dispatch_id":   int64(dispatchID),
+				_, err = callToolE(ctx, session, "submit_step", map[string]any{
+					"session_id":  sessionID,
+					"dispatch_id": int64(dispatchID),
+					"step":        step,
+					"fields":      fieldsForStep(step, subID),
 				})
 				if err != nil {
 					errCh <- err
