@@ -6,45 +6,48 @@ import (
 	"os"
 	"strings"
 
+	origamicli "github.com/dpopsuev/origami/cli"
 	"github.com/dpopsuev/origami/logging"
-
 	"github.com/spf13/cobra"
 )
 
-// version is set at build time via -ldflags.
 var version = "dev"
 
-var (
-	logLevel  string
-	logFormat string
-)
+func main() {
+	c, err := origamicli.NewCLI("asterisk", "Evidence-based RCA for ReportPortal test failures").
+		WithVersion(version).
+		WithPipeline("pipelines/asterisk-ingest.yaml").
+		WithExtraCommand(analyzeCmd).
+		WithExtraCommand(calibrateCmd).
+		WithExtraCommand(consumeCmd).
+		WithExtraCommand(datasetCmd).
+		WithExtraCommand(demoCmd).
+		WithExtraCommand(serveCmd).
+		WithExtraCommand(pushCmd).
+		WithExtraCommand(cursorCmd).
+		WithExtraCommand(saveCmd).
+		WithExtraCommand(statusCmd).
+		WithExtraCommand(gtCmd).
+		Build()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "build CLI: %v\n", err)
+		os.Exit(1)
+	}
 
-var rootCmd = &cobra.Command{
-	Use:   "asterisk",
-	Short: "Evidence-based RCA for ReportPortal test failures",
-	Long:  "Asterisk performs root-cause analysis on ReportPortal CI failures\nby correlating with external repos and CI/infrastructure data.",
-	CompletionOptions: cobra.CompletionOptions{
-		HiddenDefaultCmd: true,
-	},
-	PersistentPreRun: func(cmd *cobra.Command, args []string) {
-		level := parseLogLevel(logLevel)
-		logging.Init(level, logFormat)
-	},
-}
+	root := c.Root()
+	root.Long = "Asterisk performs root-cause analysis on ReportPortal CI failures\nby correlating with external repos and CI/infrastructure data."
+	root.CompletionOptions = cobra.CompletionOptions{HiddenDefaultCmd: true}
 
-func init() {
-	rootCmd.PersistentFlags().StringVar(&logLevel, "log-level", "info", "log level: debug, info, warn, error")
-	rootCmd.PersistentFlags().StringVar(&logFormat, "log-format", "text", "log format: text, json")
+	var logLevel, logFormat string
+	root.PersistentFlags().StringVar(&logLevel, "log-level", "info", "log level: debug, info, warn, error")
+	root.PersistentFlags().StringVar(&logFormat, "log-format", "text", "log format: text, json")
+	root.PersistentPreRun = func(_ *cobra.Command, _ []string) {
+		logging.Init(parseLogLevel(logLevel), logFormat)
+	}
 
-	rootCmd.AddCommand(analyzeCmd)
-	rootCmd.AddCommand(pushCmd)
-	rootCmd.AddCommand(cursorCmd)
-	rootCmd.AddCommand(saveCmd)
-	rootCmd.AddCommand(statusCmd)
-	rootCmd.AddCommand(calibrateCmd)
-	rootCmd.AddCommand(serveCmd)
-	rootCmd.AddCommand(demoCmd)
-	rootCmd.Version = version
+	if err := c.Execute(); err != nil {
+		os.Exit(1)
+	}
 }
 
 func parseLogLevel(s string) slog.Level {
@@ -57,12 +60,5 @@ func parseLogLevel(s string) slog.Level {
 		return slog.LevelError
 	default:
 		return slog.LevelInfo
-	}
-}
-
-func main() {
-	if err := rootCmd.Execute(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(1)
 	}
 }

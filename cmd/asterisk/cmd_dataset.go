@@ -189,5 +189,4 @@ func init() {
 	datasetCmd.AddCommand(datasetReviewCmd)
 	datasetCmd.AddCommand(datasetPromoteCmd)
 	datasetCmd.AddCommand(datasetStatusCmd)
-	rootCmd.AddCommand(datasetCmd)
 }

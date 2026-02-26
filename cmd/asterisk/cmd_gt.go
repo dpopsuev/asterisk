@@ -138,5 +138,4 @@ func init() {
 	gtCmd.AddCommand(gtStatusCmd)
 	gtCmd.AddCommand(gtImportCmd)
 	gtCmd.AddCommand(gtExportCmd)
-	rootCmd.AddCommand(gtCmd)
 }

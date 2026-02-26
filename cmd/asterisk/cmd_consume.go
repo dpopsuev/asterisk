@@ -136,5 +136,4 @@ func init() {
 	consumeRunCmd.Flags().BoolVar(&consumeDryRun, "dry-run", false, "Use stub fetcher (no RP API calls)")
 
 	consumeCmd.AddCommand(consumeRunCmd)
-	rootCmd.AddCommand(consumeCmd)
 }
