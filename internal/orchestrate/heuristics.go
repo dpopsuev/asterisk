@@ -168,8 +168,8 @@ func DefaultHeuristics(th Thresholds) []HeuristicRule {
 					return nil
 				}
 				return &HeuristicAction{
-					NextStep:    StepF1BContext,
-					Explanation: "triage recommends investigation; proceed to RTFM context lookup before repo resolution",
+					NextStep:    StepF2Resolve,
+					Explanation: "triage recommends investigation; proceed to repo resolution",
 				}
 			},
 		},
@@ -362,8 +362,7 @@ func defaultFallback(current PipelineStep) *HeuristicAction {
 	next := map[PipelineStep]PipelineStep{
 		StepInit:        StepF0Recall,
 		StepF0Recall:    StepF1Triage,
-		StepF1Triage:    StepF1BContext,
-		StepF1BContext:  StepF2Resolve,
+		StepF1Triage:    StepF2Resolve,
 		StepF2Resolve:   StepF3Invest,
 		StepF3Invest:    StepF4Correlate,
 		StepF4Correlate: StepF5Review,

@@ -72,10 +72,6 @@ func (w *calibrationWalker) Handle(ctx context.Context, node framework.Node, nc 
 	step := orchestrate.NodeNameToStep(node.Name())
 	w.result.ActualPath = append(w.result.ActualPath, stepName(step))
 
-	if step == orchestrate.StepF1BContext {
-		return w.handleContextLookup()
-	}
-
 	response, err := w.adapter.SendPrompt(w.gtCase.ID, string(step), "")
 	if err != nil {
 		return nil, fmt.Errorf("adapter.SendPrompt(%s, %s): %w", w.gtCase.ID, step, err)
@@ -97,26 +93,6 @@ func (w *calibrationWalker) Handle(ctx context.Context, node framework.Node, nc 
 		"node", node.Name(), "case_id", w.gtCase.ID, "artifact_bytes", len(response))
 
 	return orchestrate.WrapArtifact(step, artifact), nil
-}
-
-func (w *calibrationWalker) handleContextLookup() (framework.Artifact, error) {
-	var triageArtifact *orchestrate.TriageResult
-	triageArtifact, _ = orchestrate.ReadArtifact[orchestrate.TriageResult](
-		w.caseDir, orchestrate.ArtifactFilename(orchestrate.StepF1Triage))
-
-	contextResult := lookupDomainContext(w.gtCase, w.cfg.Scenario.Workspace, triageArtifact, w.log)
-	if contextResult == nil {
-		contextResult = &orchestrate.ContextResult{}
-	}
-
-	if err := orchestrate.WriteArtifact(w.caseDir, orchestrate.ArtifactFilename(orchestrate.StepF1BContext), contextResult); err != nil {
-		return nil, fmt.Errorf("write context artifact: %w", err)
-	}
-
-	w.log.Info("node processed",
-		"node", "context", "case_id", w.gtCase.ID, "version", contextResult.Version)
-
-	return orchestrate.WrapArtifact(orchestrate.StepF1BContext, contextResult), nil
 }
 
 // parseTypedArtifact parses a JSON response into the appropriate typed artifact

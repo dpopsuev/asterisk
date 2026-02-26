@@ -50,8 +50,6 @@ func ArtifactFilename(step PipelineStep) string {
 		return "recall-result.json"
 	case StepF1Triage:
 		return "triage-result.json"
-	case StepF1BContext:
-		return "context-result.json"
 	case StepF2Resolve:
 		return "resolve-result.json"
 	case StepF3Invest:

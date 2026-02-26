@@ -142,16 +142,7 @@ type ExpectedReview struct {
 
 // WorkspaceConfig describes the context workspace for F2/F3.
 type WorkspaceConfig struct {
-	Repos      []RepoConfig      `json:"repos"`
-	DocSources []DocSourceConfig `json:"doc_sources,omitempty"`
-}
-
-// DocSourceConfig describes a curated documentation source for the RTFM node.
-type DocSourceConfig struct {
-	Component string   `json:"component"`
-	DocPath   string   `json:"doc_path"`
-	LocalPath string   `json:"local_path"`
-	Tags      []string `json:"tags"`
+	Repos []RepoConfig `json:"repos"`
 }
 
 // RepoConfig describes one repo in the workspace.

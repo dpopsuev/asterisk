@@ -134,26 +134,6 @@ func RunStep(
 		}
 	}
 
-	// Deterministic steps: produce artifact without prompting and re-evaluate.
-	if state.CurrentStep == StepF1BContext {
-		cr := &ContextResult{}
-		if err := WriteArtifact(caseDir, ArtifactFilename(StepF1BContext), cr); err != nil {
-			return nil, fmt.Errorf("write context artifact: %w", err)
-		}
-		artifact := loadCurrentArtifact(caseDir, state.CurrentStep)
-		action, ruleID := cfg.evaluateStep(state.CurrentStep, artifact, state)
-		if err := ApplyStoreEffects(st, caseData, state.CurrentStep, artifact); err != nil {
-			logging.New("orchestrate").Warn("store side-effect error", "step", string(state.CurrentStep), "error", err)
-		}
-		AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
-		if err := SaveState(caseDir, state); err != nil {
-			return nil, fmt.Errorf("save state: %w", err)
-		}
-		if state.CurrentStep == StepDone {
-			return &StepResult{IsDone: true, Explanation: action.Explanation}, nil
-		}
-	}
-
 	// Generate prompt for the current step
 	step := state.CurrentStep
 	loopIter := 0
@@ -253,11 +233,6 @@ func loadCurrentArtifact(caseDir string, step PipelineStep) any {
 		}
 	case StepF1Triage:
 		r, _ := ReadArtifact[TriageResult](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
-	case StepF1BContext:
-		r, _ := ReadArtifact[ContextResult](caseDir, ArtifactFilename(step))
 		if r != nil {
 			return r
 		}

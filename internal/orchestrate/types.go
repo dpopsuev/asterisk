@@ -10,7 +10,6 @@ const (
 	StepInit       PipelineStep = "INIT"
 	StepF0Recall   PipelineStep = "F0_RECALL"
 	StepF1Triage   PipelineStep = "F1_TRIAGE"
-	StepF1BContext PipelineStep = "F1B_CONTEXT"
 	StepF2Resolve  PipelineStep = "F2_RESOLVE"
 	StepF3Invest   PipelineStep = "F3_INVESTIGATE"
 	StepF4Correlate PipelineStep = "F4_CORRELATE"
@@ -33,8 +32,6 @@ func (s PipelineStep) Family() string {
 		return "recall"
 	case StepF1Triage:
 		return "triage"
-	case StepF1BContext:
-		return "context"
 	case StepF2Resolve:
 		return "resolve"
 	case StepF3Invest:
@@ -129,34 +126,6 @@ type TriageResult struct {
 	ClockSkewSuspected   bool     `json:"clock_skew_suspected,omitempty"`
 	CascadeSuspected     bool     `json:"cascade_suspected,omitempty"`
 	DataQualityNotes     string   `json:"data_quality_notes,omitempty"`
-}
-
-// ContextResult is the F1B output — deterministic domain documentation lookup.
-// Injected into the F2 prompt so the LLM has architecture context before repo selection.
-type ContextResult struct {
-	Version         string           `json:"version"`
-	DocURL          string           `json:"doc_url"`
-	Architecture    string           `json:"architecture"`
-	Disambiguations []Disambiguation `json:"disambiguations,omitempty"`
-	ComponentMap    []ComponentEntry `json:"component_map,omitempty"`
-}
-
-// Disambiguation clarifies an overloaded term (e.g., "linuxptp-daemon" means
-// different things as a pod name, repo name, and container name).
-type Disambiguation struct {
-	Term     string `json:"term"`
-	Meanings string `json:"meanings"`
-	Guidance string `json:"guidance"`
-}
-
-// ComponentEntry maps a logical component to its Kubernetes placement and
-// source repository, resolving the pod-vs-repo ambiguity.
-type ComponentEntry struct {
-	Name        string `json:"name"`
-	Pod         string `json:"pod"`
-	Container   string `json:"container"`
-	Repo        string `json:"repo"`
-	Description string `json:"description"`
 }
 
 // ResolveResult is the F2 output.

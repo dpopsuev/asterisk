@@ -114,29 +114,19 @@ func TestRunnerFullPipeline(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// F1B_CONTEXT is deterministic — RunStep handles it transparently
-	// and advances directly to F2_RESOLVE.
+	// After triage, H6 now routes directly to F2_RESOLVE.
 	result, err = RunStep(st, caseData, nil, nil, cfg)
 	if err != nil {
-		t.Fatalf("RunStep F2 (after F1B auto): %v", err)
+		t.Fatalf("RunStep F2 (after triage): %v", err)
 	}
 	if result.NextStep != StepF2Resolve {
-		t.Errorf("expected F2_RESOLVE (F1B handled transparently), got %s", result.NextStep)
+		t.Errorf("expected F2_RESOLVE, got %s", result.NextStep)
 	}
 
 	// Verify triage side effects
 	caseData, _ = st.GetCaseV2(caseID)
 	if caseData.Status != "triaged" {
 		t.Errorf("expected case status 'triaged', got %q", caseData.Status)
-	}
-
-	// Verify F1B context artifact was created
-	ctxArtifact, err := ReadArtifact[ContextResult](caseDir, ArtifactFilename(StepF1BContext))
-	if err != nil {
-		t.Errorf("context artifact should exist: %v", err)
-	}
-	if ctxArtifact == nil {
-		t.Error("context artifact should not be nil")
 	}
 
 	// Step 4: Simulate resolve

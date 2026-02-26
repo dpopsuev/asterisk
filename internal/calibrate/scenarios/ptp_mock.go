@@ -103,7 +103,7 @@ func ptpMockCases() []calibrate.GroundTruthCase {
 			ErrorMessage: "ptp4l[12345.678]: port 1: FREERUN state, holdover exceeded after 60s (expected 300s)",
 			LogSnippet:   "2026-02-01T10:00:00Z ptp4l[12345.678]: port 1: FREERUN state, holdover exceeded after 60s\n2026-02-01T10:00:01Z ptp4l[12345.678]: timed out waiting for clock recovery\nFAIL: Expected clock state to be LOCKED within 300s timeout",
 			SymptomID:    "S1", RCAID: "R1",
-			ExpectedPath:    []string{"F0", "F1", "F1B", "F2", "F3", "F4", "F5", "F6"},
+			ExpectedPath:    []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"},
 			ExpectRecallHit: false,
 			ExpectedLoops:   0,
 			ExpectedRecall:  &calibrate.ExpectedRecall{Match: false, Confidence: 0.0},

@@ -231,7 +231,7 @@ func TestHeuristic_TriageInvestigate(t *testing.T) {
 
 	triage := &TriageResult{SymptomCategory: "assertion", SkipInvestigation: false, CandidateRepos: []string{"repo-a", "repo-b"}}
 	action, ruleID := EvaluateHeuristics(rules, StepF1Triage, triage, state)
-	if action.NextStep != StepF1BContext || ruleID != "H6" {
+	if action.NextStep != StepF2Resolve || ruleID != "H6" {
 		t.Errorf("triage-investigate: got step=%s rule=%s", action.NextStep, ruleID)
 	}
 }

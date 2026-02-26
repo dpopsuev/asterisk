@@ -1,0 +1,95 @@
+# Data Ingestion Pipeline
+#
+# Automatically discovers new CI failures from ReportPortal, matches
+# them against known symptom patterns, deduplicates against the existing
+# dataset, and creates candidate cases for human review.
+#
+# Triggered by: asterisk consume run
+# Human supervision: asterisk dataset review / promote
+pipeline: asterisk-ingest
+description: "Fetch new CI failures from RP, create candidate cases, grow the dataset"
+
+nodes:
+  - name: fetch_launches
+    element: water
+    family: ingest.fetch
+
+  - name: parse_failures
+    element: fire
+    family: ingest.parse
+
+  - name: match_symptoms
+    element: earth
+    family: ingest.match
+
+  - name: deduplicate
+    element: earth
+    family: ingest.dedup
+
+  - name: create_candidates
+    element: fire
+    family: ingest.candidate
+
+  - name: notify_review
+    element: air
+    family: ingest.notify
+
+edges:
+  - id: E1
+    name: launches fetched
+    from: fetch_launches
+    to: parse_failures
+    when: "len(vars.launches) > 0"
+
+  - id: E1-empty
+    name: no launches
+    from: fetch_launches
+    to: _done
+    shortcut: true
+    when: "len(vars.launches) == 0"
+
+  - id: E2
+    name: failures parsed
+    from: parse_failures
+    to: match_symptoms
+    when: "len(vars.failures) > 0"
+
+  - id: E2-empty
+    name: no failures
+    from: parse_failures
+    to: _done
+    shortcut: true
+    when: "len(vars.failures) == 0"
+
+  - id: E3
+    name: symptoms matched
+    from: match_symptoms
+    to: deduplicate
+    condition: "always"
+
+  - id: E4
+    name: deduplicated
+    from: deduplicate
+    to: create_candidates
+    when: "len(vars.new_cases) > 0"
+
+  - id: E4-empty
+    name: all duplicates
+    from: deduplicate
+    to: notify_review
+    when: "len(vars.new_cases) == 0"
+
+  - id: E5
+    name: candidates created
+    from: create_candidates
+    to: notify_review
+    condition: "always"
+
+  - id: E6
+    name: done
+    from: notify_review
+    to: _done
+    condition: "always (terminal)"
+
+start: fetch_launches
+done: _done

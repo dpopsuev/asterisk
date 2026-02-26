@@ -1,6 +1,8 @@
 package orchestrate
 
 import (
+	"os"
+
 	"asterisk/internal/preinvest"
 	"asterisk/internal/store"
 	"github.com/dpopsuev/origami/knowledge"
@@ -34,6 +36,9 @@ type TemplateParams struct {
 
 	// URLs
 	URLs *URLParams
+
+	// Always-read knowledge sources (from ReadAlways policy)
+	AlwaysReadSources []AlwaysReadSource
 
 	// Prior stage context
 	Prior *PriorParams
@@ -127,11 +132,18 @@ type URLParams struct {
 	RPItem   string
 }
 
+// AlwaysReadSource holds the content of a knowledge source that is always
+// loaded regardless of routing rules (ReadPolicy == ReadAlways).
+type AlwaysReadSource struct {
+	Name    string
+	Purpose string
+	Content string
+}
+
 // PriorParams holds prior stage artifacts for context injection.
 type PriorParams struct {
 	RecallResult      *RecallResult
 	TriageResult      *TriageResult
-	ContextResult     *ContextResult
 	ResolveResult     *ResolveResult
 	InvestigateResult *InvestigateArtifact
 	CorrelateResult   *CorrelateResult
@@ -291,6 +303,11 @@ func BuildParams(
 
 	params.Workspace = wsp
 
+	// Load always-read knowledge sources
+	if catalog != nil {
+		params.AlwaysReadSources = loadAlwaysReadSources(catalog)
+	}
+
 	// Load prior artifacts from case directory
 	params.Prior = loadPriorArtifacts(caseDir)
 
@@ -325,11 +342,34 @@ func loadPriorArtifacts(caseDir string) *PriorParams {
 	prior := &PriorParams{}
 	prior.RecallResult, _ = ReadArtifact[RecallResult](caseDir, ArtifactFilename(StepF0Recall))
 	prior.TriageResult, _ = ReadArtifact[TriageResult](caseDir, ArtifactFilename(StepF1Triage))
-	prior.ContextResult, _ = ReadArtifact[ContextResult](caseDir, ArtifactFilename(StepF1BContext))
 	prior.ResolveResult, _ = ReadArtifact[ResolveResult](caseDir, ArtifactFilename(StepF2Resolve))
 	prior.InvestigateResult, _ = ReadArtifact[InvestigateArtifact](caseDir, ArtifactFilename(StepF3Invest))
 	prior.CorrelateResult, _ = ReadArtifact[CorrelateResult](caseDir, ArtifactFilename(StepF4Correlate))
 	return prior
+}
+
+// loadAlwaysReadSources loads content from sources with ReadPolicy == ReadAlways.
+func loadAlwaysReadSources(catalog *knowledge.KnowledgeSourceCatalog) []AlwaysReadSource {
+	alwaysSources := catalog.AlwaysReadSources()
+	if len(alwaysSources) == 0 {
+		return nil
+	}
+	var result []AlwaysReadSource
+	for _, s := range alwaysSources {
+		if s.LocalPath == "" {
+			continue
+		}
+		content, err := os.ReadFile(s.LocalPath)
+		if err != nil || len(content) == 0 {
+			continue
+		}
+		result = append(result, AlwaysReadSource{
+			Name:    s.Name,
+			Purpose: s.Purpose,
+			Content: string(content),
+		})
+	}
+	return result
 }
 
 // findRecallCandidates searches the store for symptoms matching the test name.
