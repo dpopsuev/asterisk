@@ -124,3 +124,91 @@ func TestPoliceStationKabuki_TransitionLine(t *testing.T) {
 		t.Error("TransitionLine() returned empty")
 	}
 }
+
+func TestPoliceStationKabuki_SectionOrder(t *testing.T) {
+	k := PoliceStationKabuki{}
+	order := k.SectionOrder()
+	if len(order) == 0 {
+		t.Fatal("SectionOrder() returned empty")
+	}
+
+	// Collect all known IDs: built-in + code showcases + concepts
+	known := map[string]bool{
+		"hero": true, "agenda": true, "problem": true, "solution": true,
+		"agents": true, "transition": true, "demo": true, "results": true,
+		"competitive": true, "architecture": true, "roadmap": true, "closing": true,
+	}
+	for _, cs := range k.CodeShowcases() {
+		known[cs.ID] = true
+	}
+	for _, cg := range k.Concepts() {
+		known[cg.ID] = true
+	}
+
+	seen := map[string]bool{}
+	for _, id := range order {
+		if !known[id] {
+			t.Errorf("unknown section ID in SectionOrder: %q", id)
+		}
+		if seen[id] {
+			t.Errorf("duplicate section ID in SectionOrder: %q", id)
+		}
+		seen[id] = true
+	}
+
+	// Must start with hero, end with closing
+	if order[0] != "hero" {
+		t.Errorf("first section = %q, want hero", order[0])
+	}
+	if order[len(order)-1] != "closing" {
+		t.Errorf("last section = %q, want closing", order[len(order)-1])
+	}
+}
+
+func TestPoliceStationKabuki_CodeShowcases(t *testing.T) {
+	k := PoliceStationKabuki{}
+	showcases := k.CodeShowcases()
+	if len(showcases) == 0 {
+		t.Fatal("CodeShowcases() returned empty")
+	}
+	ids := map[string]bool{}
+	for _, cs := range showcases {
+		if cs.ID == "" {
+			t.Error("CodeShowcase has empty ID")
+		}
+		if cs.Title == "" {
+			t.Errorf("CodeShowcase %q has empty Title", cs.ID)
+		}
+		if len(cs.Blocks) == 0 {
+			t.Errorf("CodeShowcase %q has no blocks", cs.ID)
+		}
+		if ids[cs.ID] {
+			t.Errorf("duplicate CodeShowcase ID: %q", cs.ID)
+		}
+		ids[cs.ID] = true
+	}
+}
+
+func TestPoliceStationKabuki_Concepts(t *testing.T) {
+	k := PoliceStationKabuki{}
+	groups := k.Concepts()
+	if len(groups) == 0 {
+		t.Fatal("Concepts() returned empty")
+	}
+	ids := map[string]bool{}
+	for _, cg := range groups {
+		if cg.ID == "" {
+			t.Error("ConceptGroup has empty ID")
+		}
+		if cg.Title == "" {
+			t.Errorf("ConceptGroup %q has empty Title", cg.ID)
+		}
+		if len(cg.Cards) == 0 {
+			t.Errorf("ConceptGroup %q has no cards", cg.ID)
+		}
+		if ids[cg.ID] {
+			t.Errorf("duplicate ConceptGroup ID: %q", cg.ID)
+		}
+		ids[cg.ID] = true
+	}
+}

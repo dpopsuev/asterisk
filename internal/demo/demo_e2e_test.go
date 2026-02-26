@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -14,6 +15,17 @@ import (
 
 	"asterisk/internal/demo"
 )
+
+// extractAssetPath finds a hashed asset path (e.g. /assets/index-AbC123.js) in HTML.
+func extractAssetPath(t *testing.T, html, ext string) string {
+	t.Helper()
+	re := regexp.MustCompile(`/assets/index-[A-Za-z0-9_-]+` + regexp.QuoteMeta(ext))
+	m := re.FindString(html)
+	if m == "" {
+		t.Fatalf("no %s asset path found in HTML", ext)
+	}
+	return m
+}
 
 func startDemoServer(t *testing.T, withSPA, withReplay bool) string {
 	t.Helper()
@@ -60,28 +72,26 @@ func TestDemoE2E_SPAServed(t *testing.T) {
 	addr := startDemoServer(t, true, false)
 	base := fmt.Sprintf("http://%s", addr)
 
-	t.Run("root returns HTML with SPA shell", func(t *testing.T) {
-		resp, err := http.Get(base + "/")
-		if err != nil {
-			t.Fatalf("GET /: %v", err)
-		}
-		defer resp.Body.Close()
+	// Fetch index.html once; subtests use the parsed HTML for asset paths.
+	resp, err := http.Get(base + "/")
+	if err != nil {
+		t.Fatalf("GET /: %v", err)
+	}
+	body, err := io.ReadAll(resp.Body)
+	resp.Body.Close()
+	if err != nil {
+		t.Fatalf("read body: %v", err)
+	}
+	html := string(body)
 
+	t.Run("root returns HTML with SPA shell", func(t *testing.T) {
 		if resp.StatusCode != 200 {
 			t.Fatalf("status = %d, want 200", resp.StatusCode)
 		}
-
 		ct := resp.Header.Get("Content-Type")
 		if !strings.Contains(ct, "text/html") {
 			t.Fatalf("Content-Type = %q, want text/html", ct)
 		}
-
-		body, err := io.ReadAll(resp.Body)
-		if err != nil {
-			t.Fatalf("read body: %v", err)
-		}
-		html := string(body)
-
 		for _, needle := range []string{
 			"<!doctype html>",
 			`<div id="root">`,
@@ -95,7 +105,8 @@ func TestDemoE2E_SPAServed(t *testing.T) {
 	})
 
 	t.Run("JS bundle served", func(t *testing.T) {
-		resp, err := http.Get(base + "/assets/index-Du9fjL1r.js")
+		jsPath := extractAssetPath(t, html, ".js")
+		resp, err := http.Get(base + jsPath)
 		if err != nil {
 			t.Fatalf("GET JS bundle: %v", err)
 		}
@@ -111,7 +122,8 @@ func TestDemoE2E_SPAServed(t *testing.T) {
 	})
 
 	t.Run("CSS bundle served", func(t *testing.T) {
-		resp, err := http.Get(base + "/assets/index-L7tMqy6u.css")
+		cssPath := extractAssetPath(t, html, ".css")
+		resp, err := http.Get(base + cssPath)
 		if err != nil {
 			t.Fatalf("GET CSS bundle: %v", err)
 		}

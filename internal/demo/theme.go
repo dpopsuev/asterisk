@@ -21,37 +21,37 @@ func (PoliceStationTheme) AgentIntros() []kami.AgentIntro {
 		{
 			PersonaName: "Herald",
 			Element:     "Fire",
-			Role:        "Lead Detective",
+			Role:        "Lead Detective / Fast-path Classifier",
 			Catchphrase: "I saw the error. I already know what happened. You're welcome.",
 		},
 		{
 			PersonaName: "Seeker",
 			Element:     "Water",
-			Role:        "Forensic Analyst",
+			Role:        "Forensic Analyst / Deep Evidence Gatherer",
 			Catchphrase: "Let's not jump to conclusions. I'd like to examine all 47 log files first.",
 		},
 		{
 			PersonaName: "Sentinel",
 			Element:     "Earth",
-			Role:        "Desk Sergeant",
+			Role:        "Desk Sergeant / Infrastructure Specialist",
 			Catchphrase: "I've filed this under 'infrastructure.' Next case.",
 		},
 		{
 			PersonaName: "Weaver",
 			Element:     "Air",
-			Role:        "Undercover Agent",
+			Role:        "Undercover Agent / Cross-repo Correlator",
 			Catchphrase: "What if the bug isn't in the code? What if it's in the *process*?",
 		},
 		{
 			PersonaName: "Arbiter",
 			Element:     "Diamond",
-			Role:        "Internal Affairs",
+			Role:        "Internal Affairs / Adversarial Reviewer",
 			Catchphrase: "The evidence is inconclusive. I'm reopening the investigation.",
 		},
 		{
 			PersonaName: "Catalyst",
 			Element:     "Lightning",
-			Role:        "Dispatch",
+			Role:        "Dispatch / Pipeline Orchestrator",
 			Catchphrase: "New failure incoming! All units respond!",
 		},
 	}
@@ -59,13 +59,13 @@ func (PoliceStationTheme) AgentIntros() []kami.AgentIntro {
 
 func (PoliceStationTheme) NodeDescriptions() map[string]string {
 	return map[string]string{
-		"recall":      "Witness Interview — checking if we've seen this crime before",
-		"triage":      "Case Classification — is this a felony, misdemeanor, or false alarm?",
-		"resolve":     "Jurisdiction Check — which precinct handles this repo?",
-		"investigate": "Crime Scene Analysis — gathering evidence from logs, commits, and pipelines",
-		"correlate":   "Cross-Reference — matching this case against the open case board",
-		"review":      "Evidence Review — does the case file hold up under scrutiny?",
-		"report":      "Case Report — filing the final RCA with evidence and confidence",
+		"recall":      "Witness Interview / Historical Failure Lookup — checking if we've seen this crime before",
+		"triage":      "Case Classification / Defect Type Classification — felony, misdemeanor, or false alarm?",
+		"resolve":     "Jurisdiction Check / Repository Selection — which precinct handles this repo?",
+		"investigate": "Crime Scene Analysis / Evidence Gathering — logs, commits, and pipelines",
+		"correlate":   "Cross-Reference / Failure Pattern Correlation — matching against the open case board",
+		"review":      "Evidence Review / Confidence Scoring — does the case hold up under scrutiny?",
+		"report":      "Case Report / RCA Verdict — filing the final analysis with evidence chain",
 	}
 }
 
