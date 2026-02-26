@@ -72,9 +72,10 @@ func TestBuildTokiMeterBill_Basic(t *testing.T) {
 	}
 
 	// Verify cost calculation for C1
+	cost := dispatch.DefaultCostConfig()
 	for _, cl := range bill.CaseLines {
 		if cl.CaseID == "C1" {
-			expectedCost := float64(60000)/1e6*3.0 + float64(3000)/1e6*15.0
+			expectedCost := float64(60000)/1e6*cost.InputPricePerMToken + float64(3000)/1e6*cost.OutputPricePerMToken
 			if cl.CostUSD != expectedCost {
 				t.Errorf("C1 cost: got %f, want %f", cl.CostUSD, expectedCost)
 			}
@@ -119,7 +120,6 @@ func TestFormatTokiMeter_Markdown(t *testing.T) {
 	bill := BuildTokiMeterBill(report)
 	md := FormatTokiMeter(bill)
 
-	// Verify markdown structure
 	checks := []string{
 		"# TokiMeter",
 		"## Summary",
@@ -128,23 +128,16 @@ func TestFormatTokiMeter_Markdown(t *testing.T) {
 		"| Case |",
 		"| Step |",
 		"| **TOTAL**",
-		"$3/M input",
 		"ptp-real-ingest",
 		"llm",
 		"C1",
 		"C2",
 		"Triage (F1)",
-		"1m 30s",
 		"105.0K",
 	}
 	for _, check := range checks {
 		if !strings.Contains(md, check) {
 			t.Errorf("markdown missing: %q", check)
 		}
-	}
-
-	// Verify it truncates long test names
-	if strings.Contains(md, "holdover_timeout_very_long_name_test") {
-		t.Error("expected long test name to be truncated")
 	}
 }

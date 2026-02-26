@@ -10,9 +10,6 @@ import (
 
 // computeMetrics calculates all 20 calibration metrics from case results.
 func computeMetrics(scenario *Scenario, results []CaseResult) MetricSet {
-	ms := MetricSet{}
-
-	// Build lookup maps
 	rcaMap := make(map[string]*GroundTruthRCA)
 	for i := range scenario.RCAs {
 		rcaMap[scenario.RCAs[i].ID] = &scenario.RCAs[i]
@@ -23,55 +20,51 @@ func computeMetrics(scenario *Scenario, results []CaseResult) MetricSet {
 	}
 	repoRelevance := buildRepoRelevanceMap(scenario)
 
-	// --- M1-M8: Structured metrics ---
-	ms.Structured = []Metric{
-		scoreDefectTypeAccuracy(results, caseMap, rcaMap),
-		scoreSymptomCategoryAccuracy(results, caseMap),
-		scoreRecallHitRate(results, caseMap),
-		scoreRecallFalsePositiveRate(results, caseMap),
-		scoreSerialKillerDetection(results, caseMap, rcaMap),
-		scoreSkipAccuracy(results, caseMap),
-		scoreCascadeDetection(results, caseMap),
-		scoreConvergenceCalibration(results, caseMap, rcaMap),
-	}
+	ms := MetricSet{Metrics: []Metric{
+		// M1-M8: Outcome metrics
+		withTier(scoreDefectTypeAccuracy(results, caseMap, rcaMap), cal.TierOutcome),
+		withTier(scoreSymptomCategoryAccuracy(results, caseMap), cal.TierOutcome),
+		withTier(scoreRecallHitRate(results, caseMap), cal.TierOutcome),
+		withTier(scoreRecallFalsePositiveRate(results, caseMap), cal.TierOutcome),
+		withTier(scoreSerialKillerDetection(results, caseMap, rcaMap), cal.TierOutcome),
+		withTier(scoreSkipAccuracy(results, caseMap), cal.TierOutcome),
+		withTier(scoreCascadeDetection(results, caseMap), cal.TierOutcome),
+		withTier(scoreConvergenceCalibration(results, caseMap, rcaMap), cal.TierOutcome),
 
-	// --- M9-M11: Workspace/repo selection metrics ---
-	ms.Workspace = []Metric{
-		scoreRepoSelectionPrecision(results, caseMap, repoRelevance),
-		scoreRepoSelectionRecall(results, caseMap, repoRelevance),
-		scoreRedHerringRejection(results, caseMap, scenario),
-	}
+		// M9-M11: Investigation metrics
+		withTier(scoreRepoSelectionPrecision(results, caseMap, repoRelevance), cal.TierInvestigation),
+		withTier(scoreRepoSelectionRecall(results, caseMap, repoRelevance), cal.TierInvestigation),
+		withTier(scoreRedHerringRejection(results, caseMap, scenario), cal.TierInvestigation),
 
-	// --- M12-M13: Evidence metrics ---
-	ms.Evidence = []Metric{
-		scoreEvidenceRecall(results, caseMap),
-		scoreEvidencePrecision(results, caseMap),
-	}
+		// M12-M13: Detection metrics
+		withTier(scoreEvidenceRecall(results, caseMap), cal.TierDetection),
+		withTier(scoreEvidencePrecision(results, caseMap), cal.TierDetection),
 
-	// --- M14-M15 + smoking gun: Semantic metrics ---
-	ms.Semantic = []Metric{
-		scoreRCAMessageRelevance(results, caseMap, rcaMap),
-		scoreSmokingGunHitRate(results, caseMap, rcaMap),
-		scoreComponentIdentification(results, caseMap, rcaMap),
-	}
+		// M14-M15 + smoking gun: Detection metrics (semantic)
+		withTier(scoreRCAMessageRelevance(results, caseMap, rcaMap), cal.TierDetection),
+		withTier(scoreSmokingGunHitRate(results, caseMap, rcaMap), cal.TierDetection),
+		withTier(scoreComponentIdentification(results, caseMap, rcaMap), cal.TierDetection),
 
-	// --- M16-M18: Pipeline metrics ---
-	ms.Pipeline = []Metric{
-		scorePipelinePathAccuracy(results, caseMap),
-		scoreLoopEfficiency(results, caseMap),
-		scoreTotalPromptTokens(results),
-	}
+		// M16-M18: Efficiency metrics
+		withTier(scorePipelinePathAccuracy(results, caseMap), cal.TierEfficiency),
+		withTier(scoreLoopEfficiency(results, caseMap), cal.TierEfficiency),
+		withTier(scoreTotalPromptTokens(results), cal.TierEfficiency),
+	}}
 
-	// --- M19-M20: Aggregate metrics ---
-	ms.Aggregate = []Metric{
-		scoreOverallAccuracy(ms),
-		{ID: "M20", Name: "run_variance", Value: 0, Threshold: 0.15,
-			Pass: true, Detail: "single run"},
-	}
+	// M19-M20: Meta metrics (computed from above)
+	m19 := scoreOverallAccuracy(ms)
+	m19.Tier = cal.TierMeta
+	m20 := Metric{ID: "M20", Name: "run_variance", Value: 0, Threshold: 0.15,
+		Pass: true, Detail: "single run", Tier: cal.TierMeta}
+	ms.Metrics = append(ms.Metrics, m19, m20)
 
 	applyDryCaps(&ms, scenario.DryCappedMetrics)
-
 	return ms
+}
+
+func withTier(m Metric, tier cal.CostTier) Metric {
+	m.Tier = tier
+	return m
 }
 
 // applyDryCaps marks metrics that are structurally unsolvable in dry calibration.
@@ -83,15 +76,9 @@ func applyDryCaps(ms *MetricSet, capped []string) {
 	for _, id := range capped {
 		set[id] = true
 	}
-	sections := []*[]Metric{
-		&ms.Structured, &ms.Workspace, &ms.Evidence,
-		&ms.Semantic, &ms.Pipeline, &ms.Aggregate,
-	}
-	for _, sec := range sections {
-		for i := range *sec {
-			if set[(*sec)[i].ID] {
-				(*sec)[i].DryCapped = true
-			}
+	for i := range ms.Metrics {
+		if set[ms.Metrics[i].ID] {
+			ms.Metrics[i].DryCapped = true
 		}
 	}
 }
@@ -641,8 +628,8 @@ func scoreOverallAccuracy(ms MetricSet) Metric {
 }
 
 // aggregateRunMetrics computes the mean and variance across multiple runs.
-// It delegates to cal.AggregateRunMetrics for averaging, then replaces the
-// Aggregate group with domain-specific M19 (mean) and M20 (variance).
+// It delegates to cal.AggregateRunMetrics for averaging, then replaces M19/M20
+// with domain-specific aggregate values (mean and variance).
 func aggregateRunMetrics(runs []MetricSet) MetricSet {
 	if len(runs) == 0 {
 		return MetricSet{}
@@ -653,7 +640,6 @@ func aggregateRunMetrics(runs []MetricSet) MetricSet {
 
 	agg := cal.AggregateRunMetrics(runs, evaluatePass)
 
-	// Collect M19 values across runs for domain-specific aggregate computation
 	var m19vals []float64
 	for _, run := range runs {
 		for _, m := range run.AllMetrics() {
@@ -664,11 +650,23 @@ func aggregateRunMetrics(runs []MetricSet) MetricSet {
 	}
 	m19mean := cal.Mean(m19vals)
 	variance := cal.Stddev(m19vals)
-	agg.Aggregate = []Metric{
-		{ID: "M19", Name: "overall_accuracy", Value: m19mean, Threshold: 0.65,
-			Pass: m19mean >= 0.65, Detail: fmt.Sprintf("mean of %d runs", len(runs))},
-		{ID: "M20", Name: "run_variance", Value: variance, Threshold: 0.15,
-			Pass: variance <= 0.15, Detail: fmt.Sprintf("stddev=%.3f over %d runs", variance, len(runs))},
+
+	// Replace M19 and M20 in the flat slice
+	for i := range agg.Metrics {
+		switch agg.Metrics[i].ID {
+		case "M19":
+			agg.Metrics[i] = Metric{
+				ID: "M19", Name: "overall_accuracy", Value: m19mean, Threshold: 0.65,
+				Pass: m19mean >= 0.65, Detail: fmt.Sprintf("mean of %d runs", len(runs)),
+				Tier: cal.TierMeta,
+			}
+		case "M20":
+			agg.Metrics[i] = Metric{
+				ID: "M20", Name: "run_variance", Value: variance, Threshold: 0.15,
+				Pass: variance <= 0.15, Detail: fmt.Sprintf("stddev=%.3f over %d runs", variance, len(runs)),
+				Tier: cal.TierMeta,
+			}
+		}
 	}
 
 	return agg

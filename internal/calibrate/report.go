@@ -17,15 +17,7 @@ func FormatReport(report *CalibrationReport) string {
 	genericReport := &report.CalibrationReport
 
 	cfg := cal.FormatConfig{
-		Title: "Asterisk Calibration Report",
-		Sections: []cal.MetricSection{
-			{Title: "Structured Metrics", Metrics: report.Metrics.Structured},
-			{Title: "Workspace / Repo Selection", Metrics: report.Metrics.Workspace},
-			{Title: "Evidence Metrics", Metrics: report.Metrics.Evidence},
-			{Title: "Semantic Metrics", Metrics: report.Metrics.Semantic},
-			{Title: "Pipeline Metrics", Metrics: report.Metrics.Pipeline},
-			{Title: "Aggregate", Metrics: report.Metrics.Aggregate},
-		},
+		Title:          "Asterisk Calibration Report",
 		MetricNameFunc: display.Metric,
 		ThresholdFunc:  formatThreshold,
 	}

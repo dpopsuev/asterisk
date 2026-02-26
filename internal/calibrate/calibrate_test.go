@@ -107,7 +107,7 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 	}
 
 	// Variance (M20) should be 0 for deterministic stub
-	for _, m := range report.Metrics.Aggregate {
+	for _, m := range report.Metrics.AllMetrics() {
 		if m.ID == "M20" && m.Value != 0 {
 			t.Errorf("M20 run_variance should be 0 for deterministic stub, got %f", m.Value)
 		}
@@ -140,17 +140,16 @@ func TestFormatReport(t *testing.T) {
 		t.Fatal("FormatReport returned empty string")
 	}
 
-	// Verify key sections are present
+	// Verify key sections are present (auto-generated from Tier)
 	checks := []string{
 		"Asterisk Calibration Report",
 		"ptp-mock",
 		"stub",
-		"Structured Metrics",
-		"Workspace / Repo Selection",
-		"Evidence Metrics",
-		"Semantic Metrics",
-		"Pipeline Metrics",
-		"Aggregate",
+		"Outcome",
+		"Investigation",
+		"Detection",
+		"Efficiency",
+		"Meta",
 		"RESULT: PASS",
 		"Per-case breakdown",
 	}

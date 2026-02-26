@@ -788,27 +788,16 @@ func TestScoreTotalPromptTokens(t *testing.T) {
 }
 
 func TestScoreOverallAccuracy(t *testing.T) {
-	// Build a MetricSet where all contributing metrics are 1.0
-	ms := MetricSet{
-		Structured: []Metric{
-			{ID: "M1", Value: 1.0}, {ID: "M2", Value: 1.0},
-			{ID: "M3", Value: 1.0}, {ID: "M4", Value: 0.0},
-			{ID: "M5", Value: 1.0}, {ID: "M6", Value: 1.0},
-			{ID: "M7", Value: 1.0}, {ID: "M8", Value: 1.0},
-		},
-		Workspace: []Metric{
-			{ID: "M9", Value: 1.0}, {ID: "M10", Value: 1.0}, {ID: "M11", Value: 1.0},
-		},
-		Evidence: []Metric{
-			{ID: "M12", Value: 1.0}, {ID: "M13", Value: 1.0},
-		},
-		Semantic: []Metric{
-			{ID: "M14", Value: 1.0}, {ID: "M15", Value: 1.0},
-		},
-		Pipeline: []Metric{
-			{ID: "M16", Value: 1.0}, {ID: "M17", Value: 1.0}, {ID: "M18", Value: 1000},
-		},
-	}
+	ms := MetricSet{Metrics: []Metric{
+		{ID: "M1", Value: 1.0}, {ID: "M2", Value: 1.0},
+		{ID: "M3", Value: 1.0}, {ID: "M4", Value: 0.0},
+		{ID: "M5", Value: 1.0}, {ID: "M6", Value: 1.0},
+		{ID: "M7", Value: 1.0}, {ID: "M8", Value: 1.0},
+		{ID: "M9", Value: 1.0}, {ID: "M10", Value: 1.0}, {ID: "M11", Value: 1.0},
+		{ID: "M12", Value: 1.0}, {ID: "M13", Value: 1.0},
+		{ID: "M14", Value: 1.0}, {ID: "M15", Value: 1.0},
+		{ID: "M16", Value: 1.0}, {ID: "M17", Value: 1.0}, {ID: "M18", Value: 1000},
+	}}
 
 	m := scoreOverallAccuracy(ms)
 	if m.ID != "M19" {
@@ -964,32 +953,31 @@ func TestAggregateRunMetrics(t *testing.T) {
 	})
 
 	t.Run("single run passthrough", func(t *testing.T) {
-		ms := MetricSet{
-			Structured: []Metric{{ID: "M1", Value: 0.9}},
-			Aggregate:  []Metric{{ID: "M19", Value: 0.85}},
-		}
+		ms := MetricSet{Metrics: []Metric{
+			{ID: "M1", Value: 0.9},
+			{ID: "M19", Value: 0.85},
+		}}
 		agg := aggregateRunMetrics([]MetricSet{ms})
-		if agg.Structured[0].Value != 0.9 {
-			t.Errorf("expected 0.9, got %f", agg.Structured[0].Value)
+		if agg.Metrics[0].Value != 0.9 {
+			t.Errorf("expected 0.9, got %f", agg.Metrics[0].Value)
 		}
 	})
 
 	t.Run("two identical runs", func(t *testing.T) {
-		ms := MetricSet{
-			Structured: []Metric{{ID: "M1", Value: 0.8, Threshold: 0.80}},
-			Workspace:  []Metric{{ID: "M9", Value: 0.7, Threshold: 0.70}},
-			Evidence:   []Metric{{ID: "M12", Value: 0.6, Threshold: 0.60}},
-			Semantic:   []Metric{{ID: "M14", Value: 0.7, Threshold: 0.60}},
-			Pipeline:   []Metric{{ID: "M16", Value: 0.5, Threshold: 0.60}},
-			Aggregate:  []Metric{{ID: "M19", Value: 0.75, Threshold: 0.65}, {ID: "M20", Value: 0, Threshold: 0.15}},
-		}
+		ms := MetricSet{Metrics: []Metric{
+			{ID: "M1", Value: 0.8, Threshold: 0.80},
+			{ID: "M9", Value: 0.7, Threshold: 0.70},
+			{ID: "M12", Value: 0.6, Threshold: 0.60},
+			{ID: "M14", Value: 0.7, Threshold: 0.60},
+			{ID: "M16", Value: 0.5, Threshold: 0.60},
+			{ID: "M19", Value: 0.75, Threshold: 0.65},
+			{ID: "M20", Value: 0, Threshold: 0.15},
+		}}
 		agg := aggregateRunMetrics([]MetricSet{ms, ms})
-		// Means should be the same
-		if math.Abs(agg.Structured[0].Value-0.8) > 1e-9 {
-			t.Errorf("M1 mean = %f, want 0.8", agg.Structured[0].Value)
+		if math.Abs(agg.Metrics[0].Value-0.8) > 1e-9 {
+			t.Errorf("M1 mean = %f, want 0.8", agg.Metrics[0].Value)
 		}
-		// M20 variance should be 0 for identical runs
-		for _, m := range agg.Aggregate {
+		for _, m := range agg.AllMetrics() {
 			if m.ID == "M20" && m.Value != 0 {
 				t.Errorf("M20 variance = %f, want 0", m.Value)
 			}
@@ -1096,7 +1084,7 @@ func TestComputeMetrics_IgnoresCandidates(t *testing.T) {
 	}
 
 	ms := computeMetrics(scenario, results)
-	m1 := ms.Structured[0]
+	m1 := ms.ByID()["M1"]
 	if m1.Detail != "1/1" {
 		t.Errorf("M1 detail = %q; candidate case C2 should not be counted", m1.Detail)
 	}
