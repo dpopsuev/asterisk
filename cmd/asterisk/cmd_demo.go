@@ -55,6 +55,7 @@ func runDemo(cmd *cobra.Command, _ []string) error {
 		Bridge: bridge,
 		Theme:  theme,
 		Kabuki: kabuki,
+		SPA:    kami.FrontendFS(),
 	})
 
 	ctx, cancel := signal.NotifyContext(cmd.Context(), os.Interrupt)

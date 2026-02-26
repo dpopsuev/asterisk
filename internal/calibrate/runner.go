@@ -515,6 +515,7 @@ func stepName(s orchestrate.PipelineStep) string {
 	m := map[orchestrate.PipelineStep]string{
 		orchestrate.StepF0Recall:    "F0",
 		orchestrate.StepF1Triage:    "F1",
+		orchestrate.StepF1BContext:  "F1B",
 		orchestrate.StepF2Resolve:   "F2",
 		orchestrate.StepF3Invest:    "F3",
 		orchestrate.StepF4Correlate: "F4",

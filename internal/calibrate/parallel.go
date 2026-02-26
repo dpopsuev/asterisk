@@ -2,8 +2,10 @@ package calibrate
 
 import (
 	"asterisk/internal/display"
+	"asterisk/internal/rtfm"
 	"context"
 	"fmt"
+	"log/slog"
 	"sync"
 	"time"
 
@@ -603,6 +605,25 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 		logger.Info("investigation step dispatching",
 			"case_id", gtCase.ID, "iteration", step, "step", string(currentStep))
 
+		// RTFM context lookup: deterministic doc lookup, no LLM call.
+		// Reads curated documentation and writes a ContextResult artifact
+		// so the downstream F2_RESOLVE prompt has architecture context.
+		if currentStep == orchestrate.StepF1BContext {
+			contextResult := lookupDomainContext(gtCase, cfg.Scenario.Workspace, tr.TriageArtifact, logger)
+			if contextResult != nil {
+				if writeErr := orchestrate.WriteArtifact(caseDir, orchestrate.ArtifactFilename(currentStep), contextResult); writeErr != nil {
+					logger.Warn("write context artifact failed", "error", writeErr)
+				}
+			}
+			action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, contextResult, state)
+			logger.Info("RTFM context lookup",
+				"case_id", gtCase.ID, "version", versionOrEmpty(contextResult),
+				"rule", ruleID, "next", string(action.NextStep))
+			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
+			_ = orchestrate.SaveState(caseDir, state)
+			continue
+		}
+
 		// Hypothesis-based repo routing: when the pipeline reaches Resolve,
 		// try to deterministically select repos from the workspace using the
 		// triage hypothesis. Bypasses the AI decision when a match is found.
@@ -741,4 +762,58 @@ func acquireToken(ctx context.Context, sem chan struct{}) error {
 	case <-ctx.Done():
 		return ctx.Err()
 	}
+}
+
+// lookupDomainContext builds a DocRegistry from the scenario's DocSources,
+// extracts the OCP version, and returns a ContextResult for F2 enrichment.
+func lookupDomainContext(
+	gtCase GroundTruthCase,
+	ws WorkspaceConfig,
+	triageArtifact *orchestrate.TriageResult,
+	logger *slog.Logger,
+) *orchestrate.ContextResult {
+	if len(ws.DocSources) == 0 {
+		return nil
+	}
+
+	entries := make([]rtfm.DocEntry, len(ws.DocSources))
+	for i, ds := range ws.DocSources {
+		entries[i] = rtfm.DocEntry{
+			Component: ds.Component,
+			DocPath:   ds.DocPath,
+			LocalPath: ds.LocalPath,
+			Tags:      ds.Tags,
+		}
+	}
+	reg := rtfm.NewRegistry(entries)
+
+	var branches []string
+	for _, r := range ws.Repos {
+		if r.Branch != "" {
+			branches = append(branches, r.Branch)
+		}
+	}
+	version := rtfm.ExtractVersion(gtCase.Version, nil, branches)
+
+	var component string
+	var candidateRepos []string
+	if triageArtifact != nil {
+		component = triageArtifact.SymptomCategory
+		candidateRepos = triageArtifact.CandidateRepos
+	}
+
+	result := reg.Lookup(component, candidateRepos, version)
+	if result != nil {
+		logger.Info("RTFM doc resolved",
+			"version", result.Version, "url", result.DocURL,
+			"arch_len", len(result.Architecture))
+	}
+	return result
+}
+
+func versionOrEmpty(cr *orchestrate.ContextResult) string {
+	if cr == nil {
+		return ""
+	}
+	return cr.Version
 }

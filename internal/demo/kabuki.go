@@ -14,7 +14,7 @@ func (PoliceStationKabuki) Hero() *kami.HeroSection {
 		Title:     "Asterisk",
 		Subtitle:  "AI-Driven Root-Cause Analysis for CI Failures",
 		Presenter: "Asterisk Police Department",
-		Framework: "Powered by Origami",
+		Framework: "Origami",
 	}
 }
 

@@ -14,6 +14,8 @@ nodes:
   - name: triage
     family: triage
     after: [store.triage]
+  - name: context
+    family: context
   - name: resolve
     family: resolve
   - name: investigate
@@ -78,8 +80,15 @@ edges:
   - id: H6
     name: triage-investigate
     from: triage
-    to: resolve
+    to: context
     when: "output.skip_investigation != true"
+
+  # F1B Context (deterministic doc lookup, no LLM call)
+  - id: H6b
+    name: context-done
+    from: context
+    to: resolve
+    when: "true"
 
   # F2 Resolve
   - id: H8

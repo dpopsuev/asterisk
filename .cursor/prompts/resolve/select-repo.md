@@ -23,6 +23,23 @@ Given the triage classification and the available repos, select which repo(s) to
 {{if .Prior.TriageResult.ClockSkewSuspected}}| Clock skew suspected | true |{{end}}
 {{end}}
 
+{{if .Prior.ContextResult}}## Domain context (RTFM)
+
+{{if .Prior.ContextResult.DocURL}}Reference: {{.Prior.ContextResult.DocURL}}{{end}}
+
+{{.Prior.ContextResult.Architecture}}
+
+{{if .Prior.ContextResult.Disambiguations}}### Naming disambiguation
+{{range .Prior.ContextResult.Disambiguations}}
+- **`{{.Term}}`**: {{.Meanings}} — *{{.Guidance}}*
+{{end}}{{end}}
+{{if .Prior.ContextResult.ComponentMap}}### Component-to-repo mapping
+| Component | Pod | Container | Repo | Description |
+|---|---|---|---|---|
+{{range .Prior.ContextResult.ComponentMap}}| {{.Name}} | {{.Pod}} | {{.Container}} | {{.Repo}} | {{.Description}} |
+{{end}}{{end}}
+{{end}}
+
 {{if .Prior.InvestigateResult}}## Prior investigation (loop retry)
 
 Previous investigation converged at **{{.Prior.InvestigateResult.ConvergenceScore}}** with defect type `{{.Prior.InvestigateResult.DefectType}}`:

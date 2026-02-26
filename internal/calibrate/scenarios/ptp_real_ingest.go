@@ -1791,8 +1791,21 @@ func ptpRealIngestWorkspace() calibrate.WorkspaceConfig {
 				Path:    ws("eco-gotests"),
 				Purpose: "Ecosystem QE test framework; shared helpers (NOT PTP-specific)",
 				Branch:  "master",
-				IsRedHerring: true,
-			},
+			IsRedHerring: true,
+		},
+	},
+		DocSources: ptpDocSources(),
+	}
+}
+
+func ptpDocSources() []calibrate.DocSourceConfig {
+	cwd, _ := os.Getwd()
+	return []calibrate.DocSourceConfig{
+		{
+			Component: "ptp",
+			DocPath:   "html/advanced_networking/using-ptp-hardware",
+			LocalPath: filepath.Join(cwd, "datasets", "docs", "ptp", "architecture.md"),
+			Tags:      []string{"linuxptp-daemon", "cloud-event-proxy", "ptp-operator", "cnf-gotests", "cnf-features-deploy"},
 		},
 	}
 }

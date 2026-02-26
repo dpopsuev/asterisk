@@ -131,6 +131,7 @@ type URLParams struct {
 type PriorParams struct {
 	RecallResult      *RecallResult
 	TriageResult      *TriageResult
+	ContextResult     *ContextResult
 	ResolveResult     *ResolveResult
 	InvestigateResult *InvestigateArtifact
 	CorrelateResult   *CorrelateResult
@@ -324,6 +325,7 @@ func loadPriorArtifacts(caseDir string) *PriorParams {
 	prior := &PriorParams{}
 	prior.RecallResult, _ = ReadArtifact[RecallResult](caseDir, ArtifactFilename(StepF0Recall))
 	prior.TriageResult, _ = ReadArtifact[TriageResult](caseDir, ArtifactFilename(StepF1Triage))
+	prior.ContextResult, _ = ReadArtifact[ContextResult](caseDir, ArtifactFilename(StepF1BContext))
 	prior.ResolveResult, _ = ReadArtifact[ResolveResult](caseDir, ArtifactFilename(StepF2Resolve))
 	prior.InvestigateResult, _ = ReadArtifact[InvestigateArtifact](caseDir, ArtifactFilename(StepF3Invest))
 	prior.CorrelateResult, _ = ReadArtifact[CorrelateResult](caseDir, ArtifactFilename(StepF4Correlate))

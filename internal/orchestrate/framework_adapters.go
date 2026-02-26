@@ -39,6 +39,7 @@ func buildNodeRegistry() framework.NodeRegistry {
 	return framework.NodeRegistry{
 		"recall":      passthroughNode,
 		"triage":      passthroughNode,
+		"context":     passthroughNode,
 		"resolve":     passthroughNode,
 		"investigate": passthroughNode,
 		"correlate":   passthroughNode,
@@ -58,6 +59,8 @@ func NodeNameToStep(name string) PipelineStep {
 		return StepF0Recall
 	case "triage":
 		return StepF1Triage
+	case "context":
+		return StepF1BContext
 	case "resolve":
 		return StepF2Resolve
 	case "investigate":
