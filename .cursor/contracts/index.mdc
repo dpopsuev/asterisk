@@ -14,7 +14,6 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Serves |
 |----------|------|--------|
-| `demo-presentation.md` | Implement Police Station `KabukiConfig` + `Theme` for Origami's Kabuki presentation engine (Kami = debugger, Kabuki = presentation) — personality content, `asterisk demo` CLI, recorded replay. Depends on Origami `kabuki-presentation-engine`. | Polishing & Presentation (SHOULD) |
 | `knowledge-source-migration.md` | Migrate from `origami/workspace` to `origami/knowledge` (Phase 1 complete), then build artifact catalog with fetch-through, format registry, CI readers. | PoC quality (SHOULD) |
 | `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Shared `EvidenceGap` type with Defect Dialectic unresolved contradiction. | PoC completion |
 | `ground-truth-dataset.md` | Grow ground truth from 18 to 50+ verified cases via `asterisk gt` CLI + `curate/` primitives. JSON files, GitHub PR workflow. Phases 1-2 implemented. | Dataset growth |
@@ -137,6 +136,12 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `architecture-snapshots.md` | Architecture diagrams as first-class artifacts; current/desired state snapshots; retrofit 3 contracts; extend `docs/architecture.md`. |
 | `soul-red-hat-telco.md` | Red Hat identity, telco mission, OSS philosophy, and scale awareness encoded into strategy, invariants, and standards. |
 
+
+### completed/presentation/ (1)
+
+| Contract | Goal |
+|----------|------|
+| `demo-presentation.md` | Police Station KabukiConfig + Theme, `asterisk demo` CLI, integration tests. Phase 3 (canonical recording) deferred. |
 
 ### completed/output/ (6)
 

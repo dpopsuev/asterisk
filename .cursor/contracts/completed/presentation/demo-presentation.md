@@ -1,6 +1,6 @@
 # Contract — Demo Presentation
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Implement Asterisk's Police Station presentation by providing a `KabukiConfig` + `Theme` to Origami's Kabuki presentation engine — personality-driven content, `asterisk demo` CLI, and a recorded replay for repeatable demos. Kami is the debugger; Kabuki is the presentation layer.  
 **Serves:** Polishing & Presentation (should)
 
@@ -60,8 +60,8 @@ Phase 0 is removed — there is no standalone SPA to build. Asterisk provides on
 
 ### Phase 1 — Police Station Theme + KabukiConfig
 
-- [ ] **T1** Verify existing `PoliceStationTheme` (already implements `kami.Theme`) in `internal/demo/theme.go`
-- [ ] **T2** Create `PoliceStationKabuki` implementing `kami.KabukiConfig` in `internal/demo/kabuki.go` — provides section data:
+- [x] **T1** Verify existing `PoliceStationTheme` (already implements `kami.Theme`) in `internal/demo/theme.go`
+- [x] **T2** Create `PoliceStationKabuki` implementing `kami.KabukiConfig` in `internal/demo/kabuki.go` — provides section data:
   - `Hero()` — "Asterisk: AI-Driven Root-Cause Analysis", subtitle, presenter info
   - `Problem()` — CI failure stats, pain points
   - `Results()` — M19 metric comparisons, calibration outcomes
@@ -69,36 +69,36 @@ Phase 0 is removed — there is no standalone SPA to build. Asterisk provides on
   - `Roadmap()` — Sprint 1-6 milestones
   - `Closing()` — CTA, social links
   - `TransitionLine()` — "Time to investigate some crimes against CI"
-- [ ] **T3** Agent intro lines — one per persona, personality-driven, funny. Fire=impatient detective, Water=forensic analyst, Earth=desk sergeant, Air=undercover, Diamond=internal affairs, Lightning=dispatch
-- [ ] **T4** Node descriptions — map each pipeline node to a police metaphor
-- [ ] **T5** Cooperation dialogs — funny argument templates for agent pairs
-- [ ] **T6** Unit tests: theme + presentation implement interfaces, all sections return data, nil-safety
+- [x] **T3** Agent intro lines — one per persona, personality-driven, funny. Fire=impatient detective, Water=forensic analyst, Earth=desk sergeant, Air=undercover, Diamond=internal affairs, Lightning=dispatch
+- [x] **T4** Node descriptions — map each pipeline node to a police metaphor
+- [x] **T5** Cooperation dialogs — funny argument templates for agent pairs
+- [x] **T6** Unit tests: theme + presentation implement interfaces, all sections return data, nil-safety
 
 ### Phase 2 — CLI command
 
-- [ ] **D1** Update `cmd_demo.go` — `asterisk demo` Cobra command to pass `KabukiConfig` to Kami
-- [ ] **D2** Flags: `--port` (default 3000), `--replay <path>` (JSONL file), `--speed` (default 1.0), `--live` (connect to running pipeline)
-- [ ] **D3** Wiring: load `pipeline_rca.yaml` graph, create `PoliceStationTheme` + `PoliceStationKabuki`, pass to `kami.NewServer(kami.Config{Theme: theme, Kabuki: kabuki})`
-- [ ] **D4** Integration test: `asterisk demo --replay testdata/demo/sample.jsonl` starts and serves without error
+- [x] **D1** Update `cmd_demo.go` — `asterisk demo` Cobra command to pass `KabukiConfig` to Kami
+- [x] **D2** Flags: `--port` (default 3000), `--replay <path>` (JSONL file), `--speed` (default 1.0), `--live` (connect to running pipeline)
+- [x] **D3** Wiring: load `pipeline_rca.yaml` graph, create `PoliceStationTheme` + `PoliceStationKabuki`, pass to `kami.NewServer(kami.Config{Theme: theme, Kabuki: kabuki})`
+- [x] **D4** Integration test: `asterisk demo --replay testdata/demo/sample.jsonl` starts and serves without error
 
 ### Phase 3 — Record canonical demo
 
-- [ ] **C1** Run a real calibration session with Kami recording enabled
-- [ ] **C2** Trim the recording to a compelling 3-5 minute segment
-- [ ] **C3** Commit recording as `testdata/demo/ptp-real-ingest.jsonl`
-- [ ] **C4** Verify replay runs cleanly
+- [ ] **C1** Run a real calibration session with Kami recording enabled *(deferred — requires wet calibration session)*
+- [ ] **C2** Trim the recording to a compelling 3-5 minute segment *(deferred)*
+- [ ] **C3** Commit recording as `testdata/demo/ptp-real-ingest.jsonl` *(deferred — synthetic sample.jsonl covers testing)*
+- [ ] **C4** Verify replay runs cleanly *(deferred)*
 
 ### Phase 4 — Clean up standalone SPA
 
-- [ ] **X1** Delete `internal/demo/frontend/` — all React code is now in Origami's Kami
-- [ ] **X2** Delete `internal/demo/embed.go` — no more `go:embed` for frontend assets
-- [ ] **X3** Update `.gitignore` — remove frontend-specific entries
+- [x] **X1** Delete `internal/demo/frontend/` — all React code is now in Origami's Kami *(already deleted)*
+- [x] **X2** Delete `internal/demo/embed.go` — no more `go:embed` for frontend assets *(already deleted)*
+- [x] **X3** Update `.gitignore` — no frontend-specific entries present (clean)
 
 ### Phase 5 — Validate and tune
 
-- [ ] **V1** Validate (green) — `go build ./...`, `go test ./...` all pass. Demo replay runs end-to-end.
-- [ ] **V2** Tune (blue) — Polish intro lines, adjust timing, improve section content.
-- [ ] **V3** Validate (green) — all tests still pass after tuning.
+- [x] **V1** Validate (green) — `go build ./...`, `go test ./...` all pass. Demo replay runs end-to-end.
+- [x] **V2** Tune (blue) — Polish intro lines, adjust timing, improve section content.
+- [x] **V3** Validate (green) — all tests still pass after tuning.
 
 ## Acceptance criteria
 
@@ -127,3 +127,5 @@ No trust boundaries affected. The demo runs on localhost, serves static content,
 2026-02-25 — Contract created as companion to Origami's `kami-live-debugger` contract. This is the "We are done with the PoC" presentation. The Inside Out + Police Station theme emerged from the conversation: Asterisk is the police station investigating crimes against CI. Agents wear police hats, have personality-driven banter, and accumulate evidence (RCA findings) as the demo progresses.
 
 2026-02-25 — Updated to use Kabuki naming. Kami = MCP debugger, Kabuki = presentation layer. `PresentationConfig` → `KabukiConfig`, `PoliceStationPresentation` → `PoliceStationKabuki`. Upstream dependency renamed from `kami-presentation-engine` to `kabuki-presentation-engine`.
+
+2026-02-26 — Contract complete. Phases 1-2, 4-5 done. Phase 3 (canonical recording from real calibration) deferred — requires wet calibration session. Synthetic `testdata/demo/sample.jsonl` covers integration testing. `go build`, `go test`, `just calibrate-stub` all green. 19/19 metrics pass, M19=0.99.

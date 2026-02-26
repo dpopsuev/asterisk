@@ -1,0 +1,19 @@
+{"type":"node_enter","ts":"2026-02-25T10:00:00Z","agent":"Herald","node":"recall","zone":"Backcourt","case_id":"case-001","elapsed_ms":0}
+{"type":"signal","ts":"2026-02-25T10:00:01Z","agent":"Herald","node":"recall","case_id":"case-001","elapsed_ms":1000,"data":{"monologue":"Checking case history for known patterns..."}}
+{"type":"node_exit","ts":"2026-02-25T10:00:02Z","agent":"Herald","node":"recall","zone":"Backcourt","case_id":"case-001","elapsed_ms":2000}
+{"type":"transition","ts":"2026-02-25T10:00:02Z","agent":"Herald","edge":"recall->triage","case_id":"case-001","elapsed_ms":2100}
+{"type":"node_enter","ts":"2026-02-25T10:00:03Z","agent":"Seeker","node":"triage","zone":"Backcourt","case_id":"case-001","elapsed_ms":3000}
+{"type":"signal","ts":"2026-02-25T10:00:04Z","agent":"Seeker","node":"triage","case_id":"case-001","elapsed_ms":4000,"data":{"monologue":"Classifying incident severity..."}}
+{"type":"node_exit","ts":"2026-02-25T10:00:05Z","agent":"Seeker","node":"triage","zone":"Backcourt","case_id":"case-001","elapsed_ms":5000}
+{"type":"transition","ts":"2026-02-25T10:00:05Z","agent":"Seeker","edge":"triage->investigate","case_id":"case-001","elapsed_ms":5100}
+{"type":"node_enter","ts":"2026-02-25T10:00:06Z","agent":"Sentinel","node":"investigate","zone":"Frontcourt","case_id":"case-001","elapsed_ms":6000}
+{"type":"signal","ts":"2026-02-25T10:00:08Z","agent":"Sentinel","node":"investigate","case_id":"case-001","elapsed_ms":8000,"data":{"monologue":"Analyzing logs, commits, and pipeline artifacts...","evidence":"commit abc123 introduced regression in ptp4l sync loop"}}
+{"type":"node_exit","ts":"2026-02-25T10:00:10Z","agent":"Sentinel","node":"investigate","zone":"Frontcourt","case_id":"case-001","elapsed_ms":10000}
+{"type":"transition","ts":"2026-02-25T10:00:10Z","agent":"Sentinel","edge":"investigate->review","case_id":"case-001","elapsed_ms":10100}
+{"type":"node_enter","ts":"2026-02-25T10:00:11Z","agent":"Weaver","node":"review","zone":"Paint","case_id":"case-001","elapsed_ms":11000}
+{"type":"signal","ts":"2026-02-25T10:00:12Z","agent":"Weaver","node":"review","case_id":"case-001","elapsed_ms":12000,"data":{"monologue":"Cross-referencing evidence with historical patterns..."}}
+{"type":"node_exit","ts":"2026-02-25T10:00:13Z","agent":"Weaver","node":"review","zone":"Paint","case_id":"case-001","elapsed_ms":13000}
+{"type":"transition","ts":"2026-02-25T10:00:13Z","agent":"Weaver","edge":"review->report","case_id":"case-001","elapsed_ms":13100}
+{"type":"node_enter","ts":"2026-02-25T10:00:14Z","agent":"Herald","node":"report","zone":"Paint","case_id":"case-001","elapsed_ms":14000}
+{"type":"node_exit","ts":"2026-02-25T10:00:15Z","agent":"Herald","node":"report","zone":"Paint","case_id":"case-001","elapsed_ms":15000}
+{"type":"walk_complete","ts":"2026-02-25T10:00:15Z","case_id":"case-001","elapsed_ms":15000}
