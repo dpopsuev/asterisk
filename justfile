@@ -3,8 +3,9 @@
 
 set dotenv-load := false
 
-bin_dir     := "bin"
-cmd_asterisk := "./cmd/asterisk"
+bin_dir          := "bin"
+cmd_asterisk     := "./cmd/asterisk"
+cmd_analyze_rp   := "./cmd/asterisk-analyze-rp-cursor"
 db_path      := ".asterisk/asterisk.db"
 calib_dir    := ".asterisk/calibrate"
 
@@ -16,10 +17,11 @@ default:
 
 # ─── Build ────────────────────────────────────────────────
 
-# Build the asterisk CLI
+# Build all binaries
 build:
     @mkdir -p {{ bin_dir }}
     go build -o {{ bin_dir }}/asterisk {{ cmd_asterisk }}
+    go build -o {{ bin_dir }}/asterisk-analyze-rp-cursor {{ cmd_analyze_rp }}
 
 # Install asterisk to GOPATH/bin
 install:
@@ -30,6 +32,10 @@ install:
 # Run all Go tests
 test:
     go test ./...
+
+# Run all Go tests with race detector
+test-race:
+    go test -race ./...
 
 # Run all Go tests with verbose output
 test-v:
