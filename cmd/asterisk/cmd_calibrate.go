@@ -16,7 +16,7 @@ import (
 	"asterisk/adapters/rca"
 	"asterisk/adapters/rca/adapt"
 	"asterisk/adapters/calibration/scenarios"
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
 )
 

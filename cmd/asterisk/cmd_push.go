@@ -9,7 +9,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 )
 
 var pushFlags struct {

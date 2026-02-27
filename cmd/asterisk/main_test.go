@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 )
 
 func TestAnalyzeAndPush_FileEnvelope(t *testing.T) {

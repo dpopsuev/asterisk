@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 
 	_ "modernc.org/sqlite"
 )

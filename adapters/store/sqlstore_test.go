@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 )
 
 func TestSqlStore_Integration(t *testing.T) {

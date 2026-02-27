@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/rca"
 	"asterisk/adapters/store"
 )

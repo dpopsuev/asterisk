@@ -4,7 +4,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 )
 
 func TestEnvelopeStoreAdapter_WithSqlStore(t *testing.T) {

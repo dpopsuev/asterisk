@@ -9,7 +9,7 @@ import (
 
 	"github.com/dpopsuev/origami/dispatch"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
 )
 

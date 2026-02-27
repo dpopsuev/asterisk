@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
 
 	framework "github.com/dpopsuev/origami"

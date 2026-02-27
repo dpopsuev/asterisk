@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/dpopsuev/origami/logging"
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )

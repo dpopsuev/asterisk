@@ -12,7 +12,7 @@ import (
 	"github.com/dpopsuev/origami/knowledge"
 
 	"asterisk/adapters/rca"
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
 )
 

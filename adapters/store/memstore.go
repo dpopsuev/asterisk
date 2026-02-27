@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 )
 
 // MemStore is an in-memory Store for tests. Implements Store.

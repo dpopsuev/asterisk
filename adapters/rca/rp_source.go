@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/dpopsuev/origami/logging"
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 )
 
 // ResolveRPCases fetches real failure data from ReportPortal for cases that

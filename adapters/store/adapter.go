@@ -1,6 +1,6 @@
 package store
 
-import "asterisk/adapters/rp"
+import "github.com/dpopsuev/origami/adapters/rp"
 
 // EnvelopeStoreAdapter adapts a Store (with SaveEnvelope/GetEnvelope) to rp.EnvelopeStore.
 type EnvelopeStoreAdapter struct {

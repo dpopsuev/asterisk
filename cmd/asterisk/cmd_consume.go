@@ -1,7 +1,7 @@
 package main
 
 import (
-	"asterisk/adapters/rp"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/calibration/scenarios"
 	"asterisk/adapters/ingest"
 	"context"
