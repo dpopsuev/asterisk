@@ -2,7 +2,7 @@
 
 **Status:** draft  
 **Goal:** Layered knowledge source composition via `Source.Tags`, artifact dependency graph with topological resolution, token-budget-aware summarization pipeline, documentation caching, and must-gather ingestion.  
-**Serves:** Architecture evolution (NICE / vision)
+**Serves:** Polishing & Presentation (vision)
 
 ## Contract rules
 

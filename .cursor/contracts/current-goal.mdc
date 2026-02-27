@@ -4,8 +4,8 @@ description: Active goal manifest — single-read orientation for agents to know
 
 # Current Goal
 
-**Goal:** System Refinement  
-**Summary:** The PoC proved Asterisk works (M19=0.83 heuristic, 0.58 AI). The demo exposed the gaps: arbitrary thresholds, no principled "good enough" analysis, calibration locked in Asterisk-specific code instead of being an Origami framework concern. Now refine: principled scorecard, calibration as a first-class pipeline, and a system whose metrics are grounded in business ROI — not engineering intuition.
+**Goal:** Polishing & Presentation  
+**Summary:** The system works. The PoC proved it (M19=0.83 heuristic, 0.58 AI). The framework matured — Origami's DSL, adapters, marbles, observability, and lint are all shipped. Now polish: principled metrics, clean architecture (pure-DSL Asterisk), demo overhaul, LSP, and RichVocabulary. Make it presentable.
 
 ## The ROI That Changes Everything
 
@@ -21,9 +21,9 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 ## Vision
 
-**Asterisk (the product):** A system whose accuracy is measured against principled, ROI-grounded thresholds. When a metric passes, it means "this is good enough to save human time." When it fails, it means "this specific gap costs humans $X."
+**Asterisk (the product):** A pure-DSL project built on Origami. All domain logic in adapters. Principled metrics grounded in ROI. Clean enough to demo, accurate enough to deploy.
 
-**Origami (the engine):** A framework where calibration is a first-class citizen. Declarative `ScoreCard` YAML defines metrics. The calibration runner is itself a DSL pipeline — visible in Kami, debuggable, shareable. Origami eats its own dog food.
+**Origami (the engine):** A framework where calibration is a first-class citizen. RichVocabulary powers hover tooltips across Kami, LSP, and Kabuki. The LSP validates pipeline YAML. The engine reveal.
 
 ## PoC Results (baseline)
 
@@ -34,125 +34,66 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 Full PoC history: `notes/goal-history-poc.md`
 
-## Execution Order
+## Remaining Contracts
 
-**Principle: break early, stabilize later.** Contracts that introduce breaking API changes go in R1-R2 so consumers absorb all breakage in one window. Additive features fill R3-R4. No "floating" contracts — everything has a sprint.
+Flat priority list. No sprints — work in priority order, commit at green gates.
 
-### Sprint R1 — Foundation: Scorecard + Breaking Framework Changes
+| Tier | Contract | Repo | Notes |
+|------|----------|------|-------|
+| **gate** | `principled-calibration-scorecard` | Both | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection`. MetricSet flattened. Declarative YAML. M19 reweight. TokiMeter → Origami CostBill. |
+| **should** | `asterisk-internal-cleanup` | Asterisk | Merge remaining `internal/` packages into `adapters/`. Pure-DSL migration completion. |
+| **should** | `refine-rtfm-routing-policy` | Both | `ReadPolicy` replaces RTFM. Delete `context` node, `internal/rtfm/`. |
+| **should** | `data-ingestion-pipeline` | Asterisk | Data ingestion as DSL pipeline. `consume run` via CRON. `dataset review/promote`. |
+| **should** | `improve-asterisk-kabuki-demo` | Both | Three-act narrative, War Room, principled results. |
+| **nice** | `evidence-gap-brief` | Asterisk | Structured "I don't know" output. Improves M8. |
+| **vision** | `knowledge-source-evolution` | Asterisk | Layered composition via `Source.Tags`, artifact dependency graph. |
 
-The big bang. Scorecard gates everything, but we also land all breaking Origami API changes here so Asterisk only has one painful `go get` upgrade. E2E tests gate the checkpoint. CLI scaffold starts in parallel.
+### Origami contracts (tracked in Origami repo)
 
-| # | Contract | Repo | Tier | Breaking? | Notes |
-|---|----------|------|------|-----------|-------|
-| R1a | `principled-calibration-scorecard` Ph1-5 | **Both** | gate | yes | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types. MetricSet flattened. `DefaultMetrics()` (7 universal). TokiMeter migrated to Origami `CostBill`. Declarative YAML. M19 reweight. |
-| R1b | `consumer-cli-scaffold` | Origami | should | yes | 8 perennial commands, `origami.NewCLI()` builder. Replaces ~780 lines Cobra per consumer. |
-| R1c | `e2e-dsl-testing` | Origami | should | no | E2E walk tests gate this and every subsequent checkpoint. |
-| R1d | `durable-execution` | Origami | should | yes | `Checkpointer` interface + HITL Interrupt/Resume. Changes walk contract. |
-| R1e | `evidence-gap-brief` | **Asterisk** | nice | no | Structured "I don't know" output. Improves M8 (convergence calibration). |
-| R1f | `origami-adapters` | Origami | should | yes | FQCN resolution rewrites all registry `.Get()` methods. `imports:` on PipelineDef. Core adapter. |
-| R1g | `memory-evolution` | Origami | should | yes | `MemoryStore` interface changes: namespaced, searchable, persistent. Break once, not twice. |
-| R1h | `origami-observability` | Origami | should | yes | Day-0 OTel traces + Prometheus metrics. `/metrics` on KamiServer. `DefaultObservability()`. TokenTracker Prometheus-counter-friendly. |
-| R1i | `origami-api-hygiene` | Origami | should | yes | Configurable `ModelRegistry`, rename `curate.Source` → `curate.EvidenceSource`, parameterize probe stimuli. Consumer impact: rename `curate.Source` references. |
+| Tier | Contract | Notes |
+|------|----------|-------|
+| **should** | `rich-vocabulary` | `RichVocabulary` (short/long/description). Wire into Kami, LSP, Kabuki. |
+| **vision** | `origami-lsp` | Language Server for pipeline YAML. Embeds `origami-lint`. |
+| **vision** | `visual-editor` | Drag-and-drop pipeline builder. Post-LSP. |
 
-**Deliverables:**
-- `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` types in Origami
-- `MetricSet` flattened — `Metrics []Metric` replaces 6-group struct, `ByTier()`/`ByID()` view methods
-- `DefaultMetrics()` — 7 universal metrics ship with framework (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
-- `DefaultScoreCard()` — three-layer API (primitives → defaults → consumer extension)
-- `asterisk-rca-scorecard.yaml` replaces hardcoded thresholds, M19 reweighted, M14b promoted, M18 raised to 200K
-- TokiMeter cost bill migrated to `origami/dispatch/cost_bill.go` — every dispatch gets a cost bill, not just calibration. `tokimeter.go` deleted from Asterisk
-- `FormatTokenSummary` bug fix — uses `CostConfig`, not hardcoded 3.0/15.0
-- `origami.NewCLI()` builder API with 8 commands
-- `Checkpointer` interface + `Interrupt/Resume` primitive
-- FQCN resolution on all registries, `imports:` field on `PipelineDef`, core adapter
-- `MemoryStore` interface with namespaces, search, persistence
-- `EvidenceGap` type and gap brief output
-- OTel traces for every pipeline walk + Prometheus `/metrics` endpoint on KamiServer
-- E2E test suite gates checkpoint
-
-### CHECKPOINT R1 — Foundation validated
+### CHECKPOINT — Polish validated
 
 ```
 Origami:  go build ./... && go test ./...
-          go test ./... -run TestE2E (all E2E scenarios)
 Asterisk: go get github.com/dpopsuev/origami@latest
           go build ./... && go test ./...
-          just calibrate-stub (with new thresholds)
-```
-
-Verify: New thresholds applied. Stub calibration passes. BasicAdapter M19 >= 0.70. FQCN resolution works. CLI scaffold builds. Checkpointer interface compiles. MemoryStore interface compiles. E2E tests green.
-
-### Sprint R2 — Pipelines + Structural Node Changes
-
-All DSL pipeline work lands here. Also structural additions to the node system (marbles, caching) that are additive but change how graphs are built and walked.
-
-| # | Contract | Repo | Tier | Breaking? | Notes |
-|---|----------|------|------|-----------|-------|
-| R2a | `principled-calibration-scorecard` Ph6 | **Both** | should | no | Express calibration runner as DSL pipeline. Visible in Kami. Dog-foods Origami. |
-| R2b | `refine-rtfm-routing-policy` | **Both** | should | yes* | `ReadPolicy` replaces RTFM entirely. Delete `context` node, `internal/rtfm/`. (*breaking to Asterisk pipeline, not Origami API) |
-| R2c | `data-ingestion-pipeline` | **Asterisk** | should | no | Data ingestion as DSL pipeline. `consume run` via CRON. `dataset review/promote`. |
-| R2d | `origami-marbles` | Origami | should | yes | `Marble` interface, `marble:` field on `NodeDef`, `MarbleRegistry`, composite subgraph. |
-| R2e | `pipeline-efficiency` | Origami | should | yes | Node caching in walk loop. `parallel:` fan-in merge strategies. |
-| R2f | `provider-resilience` | Origami | nice | no | Dispatch fallback chains + intent classifier. Additive to existing dispatch. |
-
-### CHECKPOINT R2 — Pipelines validated
-
-```
-Origami:  go build ./... && go test ./...
-          go test ./... -run TestE2E
-Asterisk: go get github.com/dpopsuev/origami@latest
-          go build ./... && go test ./...
-          just calibrate-stub (via DSL pipeline)
-          asterisk consume run --dry-run
-```
-
-Verify: DSL calibration identical to procedural. RTFM deleted — context node gone, always-read content in prompts. Ingestion pipeline validates. Marble system compiles. Node caching works. Fallback chains configured.
-
-### Sprint R3 — CursorAdapter Tuning + Knowledge Deepening
-
-Tuning sprint. The framework is stable. Now use the principled scorecard to guide AI improvement, add prompt feedback loops, and deepen the knowledge layer.
-
-| # | Contract | Repo | Tier | Breaking? | Notes |
-|---|----------|------|------|-----------|-------|
-| R3a | (new contract TBD) | **Asterisk** | should | no | Systematic CursorAdapter improvement. Focus on M1, M10, M15 (highest ROI metrics). |
-| R3b | `prompt-calibration` | Origami | nice | no | Feedback loop: calibration results → prompt improvements. Uses ScoreCard from R1. |
-| R3c | `knowledge-source-evolution` | **Asterisk** | nice | no | Layered composition via `Source.Tags`, artifact dependency graph. Post-ReadPolicy. |
-
-### CHECKPOINT R3 — CursorAdapter improvement
-
-```
-Asterisk: just calibrate-wet --cases 18
-```
-
-Target: CursorAdapter M19 >= 0.70 (up from 0.58). At minimum 15/21 metrics pass (up from 10/21).
-
-### Sprint R4 — Re-Demo + LSP
-
-The framework is stable, the AI works, now polish and present. LSP needs the stable DSL from all prior sprints.
-
-| # | Contract | Repo | Tier | Breaking? | Notes |
-|---|----------|------|------|-----------|-------|
-| R4a | `improve-asterisk-kabuki-demo` | **Both** | should | no | Three-act narrative with principled results. War Room shows calibration pipeline in Kami. |
-| R4b | `origami-lsp` | Origami | vision | no | Language Server for pipeline YAML. Needs stable DSL from R1-R3. Color coding, completion, Kami live connection. |
-
-### CHECKPOINT R4 — Demo + LSP validated
-
-```
-Origami:  go build ./... && go test ./...
-Asterisk: go build ./... && go test ./...
+          just calibrate-stub
           asterisk demo --replay
 ```
 
-Verify: Demo runs end-to-end with all sections. War Room populated. Results show principled metrics. LSP validates all E2E scenario YAMLs without false diagnostics.
+Verify: Principled thresholds applied. `internal/` cleaned up. Demo replays. LSP validates YAMLs.
 
 **Closed/absorbed:**
-- ~~`domain-calibration`~~ → absorbed into `principled-calibration-scorecard` Phase 6
+- ~~`domain-calibration`~~ → absorbed into `principled-calibration-scorecard`
 - ~~`ground-truth-dataset`~~ → absorbed by `data-ingestion-pipeline` + `consumer-cli-scaffold`
 - ~~`knowledge-source-migration`~~ → Phase 1 done, remainder absorbed by `refine-rtfm-routing-policy` + `knowledge-source-evolution`
 
 ## Previous Goal History
 
-### Polishing & Presentation (paused)
+### System Refinement (complete)
+
+Ran as sprints R1-R4. All Origami framework contracts completed. Asterisk-side contracts (scorecard, RTFM, ingestion, demo) deferred to polishing phase as they depend on the now-complete framework work.
+
+**Origami contracts completed during System Refinement:**
+- `consumer-cli-scaffold` — 8 perennial commands, `origami.NewCLI()` builder.
+- `e2e-dsl-testing` — E2E walk tests gate every checkpoint.
+- `durable-execution` — `Checkpointer` interface + HITL Interrupt/Resume.
+- `origami-adapters` — FQCN resolution on all registries. `imports:` on PipelineDef.
+- `memory-evolution` — MemoryStore: namespaced, searchable, persistent.
+- `origami-observability` — 9 Prometheus metrics + OTel traces. `/metrics` on KamiServer.
+- `origami-api-hygiene` — Configurable `ModelRegistry`. Parameterized probe stimuli.
+- `origami-marbles` — `Marble` interface, `marble:` on NodeDef, composite subgraph.
+- `pipeline-efficiency` — Node caching (InMemoryCache with TTL), fan-in merge strategies.
+- `provider-resilience` — Dispatch fallback chains + intent classifier.
+- `prompt-calibration` — StepAnalyzer, TuningProposal, PromptCalibrationLoop.
+- `origami-lint` — 24 rules, 4 profiles, auto-fix, CLI integration.
+
+### Polishing & Presentation v1 (paused → resumed)
 
 Sprints 1-5 completed. CHECKPOINT E passed. Demo built but mock PoC exposed foundational gaps:
 - Thresholds are arbitrary — no principled "good enough" analysis
@@ -162,11 +103,11 @@ Sprints 1-5 completed. CHECKPOINT E passed. Demo built but mock PoC exposed foun
 
 Contracts completed: `consumer-ergonomics`, `walker-experience`, `ouroboros-seed-pipeline`, `kami-live-debugger`, `kabuki-presentation-engine`, `demo-presentation`.
 
-Demo overhaul contract (`improve-asterisk-kabuki-demo`) deferred to Sprint R4 — no point polishing a demo for a system with arbitrary metrics.
+Paused for System Refinement. Now resumed as the current goal with the foundational gaps addressed by framework maturity.
 
 Full PoC history: `notes/goal-history-poc.md`
 
-## What "system-refined" means
+## What "polished" means
 
 ### Asterisk
 - [ ] Every metric threshold has a documented rationale (baseline, ceiling, ROI)
@@ -180,6 +121,8 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] EvidenceGap output when confidence is low
 - [ ] TokiMeter deleted — cost bill from Origami `dispatch.FormatCostBill()`
 - [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
+- [ ] `internal/` contains only `dataset/`, `demo/`, `mcpconfig/` — all domain logic in `adapters/`
+- [ ] `display/` migrated to Origami `RichMapVocabulary` registration (blocked on `rich-vocabulary`)
 
 ### Origami
 - [ ] `MetricDef`, `ScoreCard` types in `calibrate/` package
@@ -187,30 +130,22 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] `MetricSet` is flat — `Metrics []Metric` with `ByTier()`/`ByID()` view methods
 - [ ] `DefaultMetrics()` ships 7 universal metrics (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
 - [ ] `DefaultScoreCard()` — three-layer API following Go slog pattern
-- [ ] TokiMeter cost bill in `dispatch/cost_bill.go` — every dispatch gets a cost bill. `BuildCostBill(TokenSummary, ...CostBillOption)` with `WithStepNames`, `WithCaseMetadata`
+- [ ] TokiMeter cost bill in `dispatch/cost_bill.go` — every dispatch gets a cost bill
 - [ ] `FormatTokenSummary` uses `CostConfig` (bug fix — no more hardcoded 3.0/15.0)
 - [ ] Calibration runner as DSL pipeline (visible in Kami)
-- [ ] `origami.NewCLI()` builder with 8 perennial commands
-- [ ] `Checkpointer` interface + HITL Interrupt/Resume
-- [ ] FQCN resolution on all registries + `imports:` on PipelineDef
-- [ ] Namespaced, searchable, persistent `MemoryStore`
-- [ ] `Marble` interface + `marble:` DSL field + composite subgraph
-- [ ] Node caching + fan-in merge strategies
-- [ ] Dispatch fallback chains
-- [ ] Every walk emits OTel trace (root span = walk, child spans = nodes)
-- [ ] `/metrics` endpoint on KamiServer (Prometheus)
-- [ ] `DefaultObservability()` requires zero config
-- [ ] Achilles can define its own ScoreCard without touching Origami code
+- [ ] `RichVocabulary` interface with `VocabEntry` (short/long/description) in `vocabulary.go`
+- [ ] Kami hover uses `RichVocabulary.Description()` for node tooltips
+- [ ] LSP hover uses `RichVocabulary` for pipeline-level node docs
+- [ ] Kabuki cards use `RichVocabulary` for labels and descriptions
 - [ ] LSP validates pipeline YAML with completion and hover docs
-- [ ] `KnownModels` replaced by configurable `ModelRegistry` (YAML-loadable, `RegisterModel()` API)
-- [ ] `curate.Source` renamed to `curate.EvidenceSource` — no naming collision with `knowledge.Source`
-- [ ] Ouroboros probe stimuli loadable from config — not hardcoded Go/HTTP scenarios
+- [ ] `curate.Source` renamed to `curate.EvidenceSource`
+- [ ] Ouroboros probe stimuli loadable from config
 - [ ] `Mean`/`Stddev`/`SafeDiv` extracted from `calibrate/` to `internal/mathutil/`
 
 ## Goal Transition Protocol
 
-When system refinement is complete:
+When polishing is complete:
 
-1. Archive this manifest in `notes/` as `goal-history-refinement.md`
-2. Restore presentation goal — Sprint R4 demo with principled, working system
+1. Archive this manifest in `notes/` as `goal-history-polishing.md`
+2. Evaluate next goal: production hardening, multi-operator expansion, or community release
 3. Reassess all draft contracts — re-tier relative to the next goal

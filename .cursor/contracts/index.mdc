@@ -12,14 +12,15 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 ## draft/ -- Planned, not yet being executed
 
-| Contract | Goal | Serves |
-|----------|------|--------|
-| `principled-calibration-scorecard.md` | Replace arbitrary metric thresholds with ROI-grounded analysis; elevate calibration to Origami framework concern with declarative ScoreCard YAML; calibration pipeline as DSL. Spans Origami + Asterisk. | System Refinement (gate) |
-| `refine-rtfm-routing-policy.md` | Replace RTFM node with `ReadPolicy` on Origami `Source`; delete `internal/rtfm/`, inject always-read content into prompts. Spans Origami + Asterisk. | System Refinement (should) |
-| `data-ingestion-pipeline.md` | Data ingestion as DSL pipeline (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review via `consume run` + `dataset review/promote`. | System Refinement (should) |
-| `improve-asterisk-kabuki-demo.md` | Overhaul Kabuki demo: three-act narrative, War Room live view, grounded language, interactive graphs, responsive scaling. Spans Origami + Asterisk. | System Refinement (Sprint R4) |
-| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. | System Refinement (nice) |
-| `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. Long-term architecture. | Vision |
+| Contract | Goal | Tier |
+|----------|------|------|
+| `principled-calibration-scorecard.md` | Replace arbitrary metric thresholds with ROI-grounded analysis; elevate calibration to Origami framework concern with declarative ScoreCard YAML. Spans Origami + Asterisk. | gate |
+| `asterisk-internal-cleanup.md` | Merge remaining `internal/` packages (`orchestrate`, `calibrate`, `investigate`, `ingest`) into `adapters/`; complete pure-DSL migration. | should |
+| `refine-rtfm-routing-policy.md` | Replace RTFM node with `ReadPolicy` on Origami `Source`; delete `internal/rtfm/`, inject always-read content into prompts. Spans Origami + Asterisk. | should |
+| `data-ingestion-pipeline.md` | Data ingestion as DSL pipeline (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review via `consume run` + `dataset review/promote`. | should |
+| `improve-asterisk-kabuki-demo.md` | Overhaul Kabuki demo: three-act narrative, War Room live view, grounded language, interactive graphs, responsive scaling. Spans Origami + Asterisk. | should |
+| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. | nice |
+| `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. Long-term architecture. | vision |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 

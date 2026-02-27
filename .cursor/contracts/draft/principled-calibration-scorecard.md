@@ -2,7 +2,7 @@
 
 **Status:** draft  
 **Goal:** Replace arbitrary metric thresholds with principled, ROI-grounded analysis for every metric; elevate calibration from Asterisk-specific code to a first-class Origami framework concern with declarative metric definitions, configurable thresholds, and a calibration pipeline expressible in DSL.  
-**Serves:** System Refinement (gate)
+**Serves:** Polishing & Presentation (gate)
 
 ## Contract rules
 

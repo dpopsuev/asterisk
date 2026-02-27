@@ -2,7 +2,7 @@
 
 **Status:** draft  
 **Goal:** Replace the Asterisk RTFM node (`context`) and its entire supporting package (`internal/rtfm/`) with `ReadPolicy` labels on Origami's `Source` type — mandatory documentation is routed by `KnowledgeSourceRouter` and injected directly into prompt templates via `{{always_read_sources}}`, eliminating the need for a dedicated graph node, dedicated types, or a separate doc routing system.  
-**Serves:** System Refinement (should)
+**Serves:** Polishing & Presentation (should)
 
 ## Contract rules
 
