@@ -9,3 +9,5 @@ Contracts completed during the Polishing & Presentation goal phase.
 | `improve-asterisk-kabuki-demo.md` | Three-act Kabuki demo: War Room, grounded language, interactive graphs, 26 sections, responsive scaling. Bundle 4. |
 | `data-ingestion-pipeline.md` | Data ingestion as DSL pipeline (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review. |
 | `asterisk-internal-cleanup.md` | Merge `internal/` packages (`orchestrate`, `calibrate`, `investigate`, `ingest`) into `adapters/`; pure-DSL migration. |
+| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
+| `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |

@@ -1,6 +1,6 @@
 # Contract — Knowledge Source Evolution
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Layered knowledge source composition via `Source.Tags`, artifact dependency graph with topological resolution, token-budget-aware summarization pipeline, documentation caching, and must-gather ingestion.  
 **Serves:** Polishing & Presentation (vision)
 

@@ -70,8 +70,8 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
 |----------|------|------|-------|
 | ~~`asterisk-internal-cleanup`~~ | Asterisk | ~~should~~ | **Complete.** Merged `internal/` into `adapters/`. |
 | ~~`data-ingestion-pipeline`~~ | Asterisk | ~~should~~ | **Complete.** Ingestion as DSL pipeline. |
-| `evidence-gap-brief` | Asterisk | nice | Structured "I don't know" output. Improves M8. |
-| `knowledge-source-evolution` | Asterisk | vision | Layered composition via `Source.Tags`. |
+| ~~`evidence-gap-brief`~~ | Asterisk | ~~nice~~ | **Complete.** Structured "I don't know" output. |
+| ~~`knowledge-source-evolution`~~ | Asterisk | ~~vision~~ | **Complete.** Layered composition via `Source.Tags`, VersionMatrix, DepGraph, Summarizer. |
 
 ### Execution order
 
@@ -156,7 +156,7 @@ Full PoC history: `notes/goal-history-poc.md`
 - [x] RTFM deleted — ReadPolicy + prompt injection replaces `internal/rtfm/`
 - [ ] 3 YAML pipelines (RCA, ingestion, calibration)
 - [ ] CLI migrated to `origami.NewCLI()` scaffold
-- [ ] EvidenceGap output when confidence is low
+- [x] EvidenceGap output when confidence is low
 - [x] TokiMeter deleted — cost bill from Origami `dispatch.FormatCostBill()`
 - [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
 - [x] `internal/` contains only `dataset/`, `demo/`, `mcpconfig/` — all domain logic in `adapters/`

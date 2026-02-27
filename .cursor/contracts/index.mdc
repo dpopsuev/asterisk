@@ -14,8 +14,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. | nice |
-| `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. Long-term architecture. | vision |
+| *(empty)* | | |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
@@ -135,7 +134,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `soul-red-hat-telco.md` | Red Hat identity, telco mission, OSS philosophy, and scale awareness encoded into strategy, invariants, and standards. |
 
 
-### completed/polishing/ (5)
+### completed/polishing/ (7)
 
 | Contract | Goal |
 |----------|------|
@@ -144,6 +143,8 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `improve-asterisk-kabuki-demo.md` | Three-act Kabuki demo: War Room, grounded language, interactive graphs, 26 sections, responsive scaling. Bundle 4. |
 | `data-ingestion-pipeline.md` | Data ingestion as DSL pipeline (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review. |
 | `asterisk-internal-cleanup.md` | Merge `internal/` packages (`orchestrate`, `calibrate`, `investigate`, `ingest`) into `adapters/`; pure-DSL migration. |
+| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
+| `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |
 
 ### completed/presentation/ (1)
 

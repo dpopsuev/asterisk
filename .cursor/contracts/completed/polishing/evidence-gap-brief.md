@@ -1,6 +1,6 @@
 # Contract — Evidence Gap Brief
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** When the pipeline cannot reach high confidence, it produces a structured Evidence Gap Brief that articulates exactly what evidence is missing, where to find it, and how it would change the outcome -- replacing silent "unknown" results with actionable next steps.  
 **Serves:** Polishing & Presentation (nice)
 
