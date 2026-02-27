@@ -50,18 +50,9 @@ Declarative ScoreCard YAML replaces hardcoded metrics. 21 MetricDefs with ROI-gr
 
 `ReadPolicy` on `Source` in Origami. Asterisk scenarios declare doc sources. `loadAlwaysReadSources` injects mandatory docs into prompts. No dedicated graph node. Kabuki demo updated.
 
-### Bundle 4: Demo Polish (should)
+### Bundle 4: Demo Polish -- DONE
 
-Single contract spanning both repos. Soft dependency on Bundle 1 (principled results).
-
-```
-[Asterisk: improve-asterisk-kabuki-demo] <-> [Origami: Kabuki frontend]
-```
-
-| Step | Repo | What ships |
-|------|------|------------|
-| 1 | Origami | War Room section components, KabukiConfig extensions for three-act narrative. |
-| 2 | Asterisk | `PoliceStationKabuki` content rewrite: three-act narrative, War Room, principled results. |
+Three-act Kabuki demo (26 sections), War Room with agent tabs/TX/RX/pause/resume/RCA tabs, dagre graph with element-colored nodes, grounded language (allegory + domain terms), Laws of UX + dark mode + responsive scaling. Canonical recording deferred to next wet calibration session.
 
 ### Bundle 5: Developer Tooling (vision)
 
@@ -89,15 +80,11 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
     │  Bundle 1: Metrics   │  ✓ DONE
     │  Bundle 2: Rich Names│  ✓ DONE
     │  Bundle 3: Smart     │  ✓ DONE
+    │  Bundle 4: Demo      │  ✓ DONE
     └────────┬────────────┘
              │
-    ┌────────▼──────────┐
-    │ Bundle 4:         │  ← should (next)
-    │ Demo Polish       │
-    └────────┬──────────┘
-             │
     ┌────────▼──────────────────────────────┐
-    │ Standalone: internal-cleanup,         │  ← should/nice
+    │ Standalone: internal-cleanup,         │  ← should/nice (next)
     │ data-ingestion, evidence-gap-brief    │
     └───────────────────────────────────────┘
              │

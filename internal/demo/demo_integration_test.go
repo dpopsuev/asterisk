@@ -51,6 +51,30 @@ func TestDemoServer_KabukiAPI(t *testing.T) {
 				t.Errorf("missing key %q in /api/kabuki response", key)
 			}
 		}
+
+		order, ok := payload["section_order"].([]any)
+		if !ok || len(order) == 0 {
+			t.Fatal("section_order missing or empty")
+		}
+		if len(order) != 27 {
+			t.Errorf("section_order has %d entries, want 27", len(order))
+		}
+
+		showcases, ok := payload["code_showcases"].([]any)
+		if !ok || len(showcases) == 0 {
+			t.Fatal("code_showcases missing or empty")
+		}
+		if len(showcases) != 4 {
+			t.Errorf("code_showcases has %d entries, want 4", len(showcases))
+		}
+
+		concepts, ok := payload["concepts"].([]any)
+		if !ok || len(concepts) == 0 {
+			t.Fatal("concepts missing or empty")
+		}
+		if len(concepts) != 11 {
+			t.Errorf("concepts has %d entries, want 11", len(concepts))
+		}
 	})
 
 	t.Run("theme", func(t *testing.T) {

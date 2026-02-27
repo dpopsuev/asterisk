@@ -6,3 +6,4 @@ Contracts completed during the Polishing & Presentation goal phase.
 |----------|------|
 | `principled-calibration-scorecard.md` | Replace arbitrary metric thresholds with ROI-grounded analysis; declarative ScoreCard YAML. Bundle 1. |
 | `refine-rtfm-routing-policy.md` | Replace RTFM node with `ReadPolicy` on Origami `Source`; prompt injection replaces dedicated graph node. Bundle 3. |
+| `improve-asterisk-kabuki-demo.md` | Three-act Kabuki demo: War Room, grounded language, interactive graphs, 26 sections, responsive scaling. Bundle 4. |

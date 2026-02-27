@@ -24,3 +24,4 @@ Short summaries and quick references.
 - `rp-api-usage.mdc` — RP API usage for fetch (launch, test items) and push (defect-type update); pinned to 5.11/24.1.
 - `test-cards-assessment.md` — Assessment of 30 calibration test cards; verified vs candidate classification, evidence gaps.
 - `phase-5a-post-run-analysis.md` — **Post-run analysis of Phase 5a CursorAdapter blind test.** FAIL M19=0.50. Systemic failures: taxonomy mismatch (M2=0.00), no subagent delegation, no code investigation, component frequency blindness, token waste. Wins: M14b=0.22 (smoking gun), M14=0.76 (relevance). Priority fixes ranked.
+- `demo-postmortem.md` — Kabuki first demo postmortem: 6 failures (no live action, poor graph, allegory-heavy language, scaling, missing titles, wrong story order) and fixes applied.
