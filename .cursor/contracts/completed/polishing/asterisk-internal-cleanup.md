@@ -1,6 +1,6 @@
 # Contract — asterisk-internal-cleanup
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** All domain logic lives in `adapters/` packages; `internal/` contains only wiring (`mcpconfig`), presentation (`demo`), and data (`dataset`).  
 **Serves:** Polishing & Presentation (should)
 

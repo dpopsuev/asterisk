@@ -14,8 +14,6 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `asterisk-internal-cleanup.md` | Merge remaining `internal/` packages (`orchestrate`, `calibrate`, `investigate`, `ingest`) into `adapters/`; complete pure-DSL migration. | should |
-| `data-ingestion-pipeline.md` | Data ingestion as DSL pipeline (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review via `consume run` + `dataset review/promote`. | should |
 | `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. | nice |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. Long-term architecture. | vision |
 
@@ -137,13 +135,15 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `soul-red-hat-telco.md` | Red Hat identity, telco mission, OSS philosophy, and scale awareness encoded into strategy, invariants, and standards. |
 
 
-### completed/polishing/ (2)
+### completed/polishing/ (5)
 
 | Contract | Goal |
 |----------|------|
 | `principled-calibration-scorecard.md` | Replace arbitrary metric thresholds with ROI-grounded analysis; declarative ScoreCard YAML. Bundle 1. |
 | `refine-rtfm-routing-policy.md` | Replace RTFM node with `ReadPolicy` on Origami `Source`; prompt injection replaces dedicated graph node. Bundle 3. |
 | `improve-asterisk-kabuki-demo.md` | Three-act Kabuki demo: War Room, grounded language, interactive graphs, 26 sections, responsive scaling. Bundle 4. |
+| `data-ingestion-pipeline.md` | Data ingestion as DSL pipeline (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review. |
+| `asterisk-internal-cleanup.md` | Merge `internal/` packages (`orchestrate`, `calibrate`, `investigate`, `ingest`) into `adapters/`; pure-DSL migration. |
 
 ### completed/presentation/ (1)
 

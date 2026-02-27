@@ -68,8 +68,8 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
 
 | Contract | Repo | Tier | Notes |
 |----------|------|------|-------|
-| `asterisk-internal-cleanup` | Asterisk | should | Merge `internal/` into `adapters/`. |
-| `data-ingestion-pipeline` | Asterisk | should | Ingestion as DSL pipeline. Uses existing Origami DSL. |
+| ~~`asterisk-internal-cleanup`~~ | Asterisk | ~~should~~ | **Complete.** Merged `internal/` into `adapters/`. |
+| ~~`data-ingestion-pipeline`~~ | Asterisk | ~~should~~ | **Complete.** Ingestion as DSL pipeline. |
 | `evidence-gap-brief` | Asterisk | nice | Structured "I don't know" output. Improves M8. |
 | `knowledge-source-evolution` | Asterisk | vision | Layered composition via `Source.Tags`. |
 
@@ -159,7 +159,7 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] EvidenceGap output when confidence is low
 - [x] TokiMeter deleted — cost bill from Origami `dispatch.FormatCostBill()`
 - [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
-- [ ] `internal/` contains only `dataset/`, `demo/`, `mcpconfig/` — all domain logic in `adapters/`
+- [x] `internal/` contains only `dataset/`, `demo/`, `mcpconfig/` — all domain logic in `adapters/`
 - [x] `display/` migrated to Origami `RichMapVocabulary` registration
 
 ### Origami

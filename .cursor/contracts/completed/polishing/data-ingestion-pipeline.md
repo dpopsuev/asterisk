@@ -1,6 +1,6 @@
 # Contract — Data Ingestion Pipeline
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Define data ingestion as a DSL pipeline (`asterisk-ingest.yaml`) for automatic dataset growth via CRON, with human supervision through `dataset review`/`promote` commands — replacing ad-hoc Python scripts with a visible, debuggable, Kami-observable pipeline.  
 **Serves:** Polishing & Presentation (should)
 
