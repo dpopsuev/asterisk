@@ -1,4 +1,4 @@
-# Contract — scenario-dsl-extraction
+# Contract — data-dsl-extraction
 
 **Status:** draft  
 **Goal:** All calibration scenarios and vocabulary defined as YAML files; zero Go struct literals for ground truth data.  

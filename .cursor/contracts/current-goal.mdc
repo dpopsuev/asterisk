@@ -74,9 +74,10 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
 | ~~`data-ingestion-pipeline`~~ | Asterisk | ~~should~~ | **Complete.** Ingestion as DSL pipeline. |
 | ~~`evidence-gap-brief`~~ | Asterisk | ~~nice~~ | **Complete.** Structured "I don't know" output. |
 | ~~`knowledge-source-evolution`~~ | Asterisk | ~~vision~~ | **Complete.** Layered composition via `Source.Tags`, VersionMatrix, DepGraph, Summarizer. |
-| `scenario-dsl-extraction` | Asterisk | should | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. |
-| `adapter-migration` | Both | should | RP + SQLite adapters to Origami; SQLite schema as YAML (Ansible pattern). |
-| `rca-pure-dsl` | Both | gate | Deep dive: decompose rca/ (40+ files, 6,000+ LOC) into DSL. Identify missing Origami primitives. 100% DSL target. |
+| `data-dsl-extraction` | Asterisk | should | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. |
+| `adapter-migration` | Both | should | RP adapter lift-and-drop to Origami. |
+| `sqlite-dsl-adapter` | Both | should | YAML-defined SQLite adapter in Origami (schema, migrations, CRUD transformers). |
+| `rca-pure-dsl` | Both | gate | Marble discovery: decompose rca/ into reusable Origami marbles, validated by Achilles. |
 
 ### Execution order
 
@@ -166,6 +167,7 @@ Full PoC history: `notes/goal-history-poc.md`
 - [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
 - [x] `internal/` contains only `dataset/`, `demo/`, `mcpconfig/` — all domain logic in `adapters/`
 - [x] `display/` migrated to Origami `RichMapVocabulary` registration
+- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files. Only YAML pipelines, scenarios, schemas, prompt templates, and configuration. Validated by: `data-dsl-extraction` + `adapter-migration` + `sqlite-dsl-adapter` + `rca-pure-dsl`.
 
 ### Origami
 - [x] `MetricDef`, `ScoreCard` types in `calibrate/` package
