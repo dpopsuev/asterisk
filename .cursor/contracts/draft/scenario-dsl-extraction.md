@@ -97,7 +97,7 @@ Bottom-up: define the YAML schema, convert one scenario as proof, then mechanica
 - [ ] Convert `daemon_mock.go` to `scenarios/daemon-mock.yaml`; delete Go file
 - [ ] Convert `ptp_real.go` to `scenarios/ptp-real.yaml`; delete Go file
 - [ ] Convert `ptp_real_ingest.go` to `scenarios/ptp-real-ingest.yaml`; delete Go file
-- [ ] ~~Extract vocabulary tables to YAML~~ — **Superseded by `adapter-migration` contract WS3** (vocabulary data goes into adapter.yaml `vocabulary:` sections, not a standalone YAML file)
+- [ ] Extract vocabulary tables to `adapters/vocabulary/vocabulary.yaml` + YAML loader; delete Go map literals
 - [ ] Replace hardcoded scenario `switch` in `cmd_calibrate.go` with loader-based discovery
 - [ ] Validate (green) — `go build`, `go test`, `just calibrate-stub`, `just test-race`
 - [ ] Tune (blue) — review YAML for consistency, field naming, comments
@@ -107,7 +107,7 @@ Bottom-up: define the YAML schema, convert one scenario as proof, then mechanica
 
 - **Given** a user runs `asterisk calibrate --scenario=ptp-mock`, **when** the scenario is loaded, **then** it comes from `scenarios/ptp-mock.yaml` (not Go code).
 - **Given** `adapters/calibration/scenarios/`, **when** listing `.go` files, **then** zero scenario struct-literal files remain (only the loader).
-- **Given** `adapters/vocabulary/vocabulary.go`, **when** inspecting it, **then** it contains only Go helper functions (`RPIssueTag`, `StagePath`, `ClusterKey`), not hardcoded map literals. (Vocabulary data handled by `adapter-migration` contract.)
+- **Given** `adapters/vocabulary/vocabulary.go`, **when** inspecting it, **then** it contains a YAML loader, not hardcoded map literals.
 - **Given** `just calibrate-stub`, **when** run before and after, **then** the report output (metrics, paths, scores) is identical.
 - **Given** a new scenario YAML placed in `scenarios/`, **when** `--scenario=<name>` is used, **then** it loads without recompilation (for non-embedded scenarios loaded from disk).
 
@@ -117,5 +117,5 @@ No trust boundaries affected. Scenarios are embedded at compile time or loaded f
 
 ## Notes
 
-2026-02-27 21:45 — Task 6 (vocabulary extraction) superseded by `adapter-migration` contract WS3. Vocabulary data will go into adapter.yaml vocabulary: sections, powered by Origami's YAML vocabulary loader. This contract now covers scenarios only.
+2026-02-27 22:00 — Restored Task 6 (vocabulary extraction). Vocabulary stays in this contract as a standalone YAML file with loader.
 2026-02-27 20:15 — Contract drafted from DSL purity assessment. Scenarios are the single biggest non-DSL surface remaining in Asterisk (~2,900 lines of Go struct literals).

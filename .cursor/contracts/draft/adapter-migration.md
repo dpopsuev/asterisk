@@ -1,7 +1,7 @@
 # Contract — adapter-migration
 
 **Status:** draft  
-**Goal:** Reusable adapters (RP, SQLite) live in Origami with DSL-defined schemas; vocabulary loads from YAML in adapter manifests; Asterisk consumes them.  
+**Goal:** Reusable adapters (RP, SQLite) live in Origami with DSL-defined schemas; Asterisk consumes them.  
 **Serves:** Polishing & Presentation (pure-DSL vision)
 
 ## Contract rules
@@ -9,24 +9,22 @@
 - Zero domain imports: Origami adapters must not import from Asterisk or any consumer.
 - Ansible collection pattern: generic operations in the framework, domain schema/data in the consumer.
 - Each workstream must leave both repos building and testing green before the next begins.
-- Vocabulary data travels with the adapter it describes (RP defect codes in rp/ adapter.yaml, pipeline stages in Asterisk's adapter.yaml).
+
 
 ## Context
 
-Asterisk has six adapter directories. Three need work:
+Asterisk has six adapter directories. Two need migration work:
 
 | Adapter | LOC | Category | Action |
 |---------|-----|----------|--------|
 | `rp/` | ~600 | Reusable RP I/O | Lift-and-drop to Origami |
 | `store/` | ~2,400 | SQLite persistence | DSL schema in Origami framework; domain stays |
-| `vocabulary/` | ~146 | Display names | DSL feature in Origami; data into adapter.yaml |
+| `vocabulary/` | ~146 | Display names | Covered by `scenario-dsl-extraction` contract Task 6 |
 | `calibration/` | — | Scenarios | Covered by `scenario-dsl-extraction` contract |
 | `ingest/` | ~760 | RP ingestion nodes | Stays (not pure; domain logic in Go nodes) |
 | `rca/` | ~6,000+ | RCA domain | Deferred to separate deep dive contract |
 
 **Ansible SQLite collection precedent:** `ttafsir.sqlite_utils` provides `create` (schema as YAML columns/pk/defaults), `insert` (records as YAML dicts), `run_sql` (parameterized queries), and `lookup` — all declarative. No SQL in the playbook. This is the model for Workstream 2.
-
-**Origami rich-vocabulary P2 gap:** The completed `rich-vocabulary` contract planned YAML `vocabulary:` in adapter manifests (P2). Types and Go API shipped. The YAML loader never shipped. This is the model for Workstream 3.
 
 ### Current architecture
 
@@ -42,7 +40,7 @@ flowchart TB
   end
   subgraph origami [Origami]
     fw["framework\n(Node, Graph, Walker)"]
-    richVocab["RichMapVocabulary\n(Go API only, no YAML loader)"]
+    richVocab["RichMapVocabulary\n(Go API)"]
     adapterSys["Adapter system\n(manifest, merge, FQCN)"]
   end
   rp --> fw
@@ -63,33 +61,29 @@ flowchart TB
 flowchart TB
   subgraph origami [Origami]
     fw["framework\n(Node, Graph, Walker)"]
-    richVocab["RichMapVocabulary\n(Go API + YAML loader)"]
     adapterSys["Adapter system\n(manifest, merge, FQCN)"]
-    rpOrigami["adapters/rp/\n(RP client, adapter.yaml\nwith vocabulary: section)"]
+    rpOrigami["adapters/rp/\n(RP client, adapter.yaml)"]
     sqliteOrigami["adapters/sqlite/\n(YAML schema, migration,\nquery/exec/insert transformers)"]
   end
   subgraph asterisk [Asterisk]
     store["adapters/store/\n(domain types, Go Store interface,\nschema.yaml, migrations.yaml)"]
-    vocabHelpers["adapters/vocabulary/\n(Go helpers only:\nRPIssueTag, StagePath, ClusterKey)"]
-    rca["adapters/rca/\n(RCA domain, adapter.yaml\nwith vocabulary: section)"]
+    vocab["adapters/vocabulary/\n(vocabulary.yaml + Go helpers)"]
+    rca["adapters/rca/\n(RCA domain)"]
     ingest["adapters/ingest/\n(RP ingestion nodes)"]
     cal["adapters/calibration/\n(scenarios + nodes)"]
   end
   rpOrigami --> fw
   rpOrigami --> adapterSys
-  rpOrigami -.->|"vocabulary:"| richVocab
   sqliteOrigami --> fw
   sqliteOrigami --> adapterSys
   store --> sqliteOrigami
   rca --> rpOrigami
   rca --> store
   rca --> fw
-  rca -.->|"vocabulary:"| richVocab
   ingest --> rca
   ingest --> fw
   cal --> rca
   cal --> fw
-  vocabHelpers --> richVocab
 ```
 
 ## FSC artifacts
@@ -97,17 +91,15 @@ flowchart TB
 | Artifact | Target | Compartment |
 |----------|--------|-------------|
 | Adapter migration pattern (Ansible-style) | `docs/` | domain |
-| SQLite DSL schema spec | Origami `docs/` | domain |
+| SQLite DSL schema spec | Origami `docs/` | domain  |
 
 ## Execution strategy
 
-Three workstreams, executed in dependency order:
+Two workstreams, executed in dependency order:
 
-**WS3 first** (vocabulary DSL) — unblocks YAML vocabulary in adapter manifests. Origami-only change, no Asterisk breakage.
+**WS1 first** (RP adapter move) — lift-and-drop `rp/` to Origami. Asterisk import paths updated.
 
-**WS1 second** (RP adapter move) — lift-and-drop `rp/` to Origami. RP defect type vocabulary entries go into the new `adapter.yaml` vocabulary: section. Asterisk import paths updated.
-
-**WS2 third** (SQLite DSL) — depends on WS1 (store/ imports rp/Envelope, path changes). Implements YAML schema definition, migration DSL, and query/exec/insert transformers in Origami. Asterisk's schema.go becomes schema.yaml + migrations.yaml.
+**WS2 second** (SQLite DSL) — depends on WS1 (store/ imports rp/Envelope, path changes). Implements YAML schema definition, migration DSL, and query/exec/insert transformers in Origami. Asterisk's schema.go becomes schema.yaml + migrations.yaml.
 
 Each workstream builds and tests green before the next starts.
 
@@ -115,27 +107,18 @@ Each workstream builds and tests green before the next starts.
 
 | Layer | Applies | Rationale |
 |-------|---------|-----------|
-| **Unit** | yes | YAML vocabulary loader, schema parser, migration engine, transformer round-trips |
+| **Unit** | yes | Schema parser, migration engine, transformer round-trips |
 | **Integration** | yes | Asterisk `go build`, `go test` after each import path change; `just calibrate-stub` end-to-end |
-| **Contract** | yes | `Adapter` manifest schema validation (vocabulary section); SQLite schema YAML validation |
+| **Contract** | yes | SQLite schema YAML validation |
 | **E2E** | yes | `just calibrate-stub` must produce identical results before and after |
 | **Concurrency** | yes | SQLite adapter must handle concurrent reads (MemStore in tests, SqlStore in walk) |
 | **Security** | yes | RP adapter moves to a more visible location; review for credential handling, URL construction |
 
 ## Tasks
 
-### WS3: Vocabulary DSL (Origami)
-
-- [ ] Add `vocabulary:` section to `AdapterManifest` schema (`adapter.go`)
-- [ ] Implement YAML vocabulary loader: manifest entries → `RichMapVocabulary`
-- [ ] Wire into `MergeAdapters`: chain vocabularies when adapters merge
-- [ ] Add `origami lint` validation for vocabulary entries (code uniqueness, required fields)
-- [ ] Unit tests: load adapter.yaml with vocabulary, verify entries, test merge/chain
-
 ### WS1: RP Adapter to Origami (lift-and-drop)
 
 - [ ] Create `origami/adapters/rp/` and move all files from `asterisk/adapters/rp/`
-- [ ] Add RP defect type vocabulary to `origami/adapters/rp/adapter.yaml` vocabulary: section
 - [ ] Update all Asterisk imports: `asterisk/adapters/rp` → `github.com/dpopsuev/origami/adapters/rp`
 - [ ] Verify Origami builds and tests green (`go build ./...`, `go test ./...`)
 - [ ] Verify Asterisk builds and tests green
@@ -160,25 +143,6 @@ Each workstream builds and tests green before the next starts.
 ## Acceptance criteria
 
 ```gherkin
-Feature: Vocabulary DSL
-
-  Scenario: Vocabulary loads from adapter manifest
-    Given an adapter.yaml with:
-      vocabulary:
-        - code: pb001
-          short: PB
-          long: Product Bug
-          description: A defect in the product under test.
-    When the adapter is loaded via LoadAdapterManifest
-    Then a RichMapVocabulary with entry "pb001" is available
-    And Name("pb001") returns "Product Bug"
-
-  Scenario: Vocabularies chain on adapter merge
-    Given adapter A with vocabulary entry "pb001"
-    And adapter B with vocabulary entry "F0"
-    When MergeAdapters([A, B]) is called
-    Then the merged vocabulary resolves both "pb001" and "F0"
-
 Feature: RP Adapter in Origami
 
   Scenario: RP adapter builds in Origami
@@ -223,8 +187,8 @@ Feature: SQLite DSL Schema
 |-------|---------|------------|
 | A03: Injection | SQLite query/exec transformers accept parameterized queries | Enforce parameterized queries only; reject string interpolation in transformer input |
 | A01: Broken Access Control | RP adapter moves to Origami (higher visibility) | Review `client.go` for credential handling; ensure tokens come from env/config, never hardcoded |
-| A05: Security Misconfiguration | RP adapter.yaml vocabulary may expose internal codes | Vocabulary is display metadata only; no secrets. Lint rule validates no sensitive content. |
 
 ## Notes
 
-2026-02-27 21:30 — Contract drafted. Three workstreams: vocabulary DSL (Origami framework gap), RP adapter lift-and-drop, SQLite DSL adapter (Ansible collection pattern). Store schema moves from Go SQL strings to YAML. RCA deep dive deferred to separate contract. Vocabulary Task 6 in scenario-dsl-extraction is superseded by WS3 here.
+2026-02-27 22:00 — Removed WS3 (vocabulary DSL). Vocabulary extraction stays in `scenario-dsl-extraction` contract Task 6. This contract now covers two workstreams: RP adapter lift-and-drop, SQLite DSL adapter.
+2026-02-27 21:30 — Contract drafted. Two adapter migration workstreams: RP adapter lift-and-drop, SQLite DSL adapter (Ansible collection pattern). Store schema moves from Go SQL strings to YAML. RCA deep dive deferred to separate contract.

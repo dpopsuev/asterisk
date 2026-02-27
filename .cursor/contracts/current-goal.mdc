@@ -73,7 +73,7 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
 | ~~`evidence-gap-brief`~~ | Asterisk | ~~nice~~ | **Complete.** Structured "I don't know" output. |
 | ~~`knowledge-source-evolution`~~ | Asterisk | ~~vision~~ | **Complete.** Layered composition via `Source.Tags`, VersionMatrix, DepGraph, Summarizer. |
 | `scenario-dsl-extraction` | Asterisk | should | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. |
-| `adapter-migration` | Both | should | RP + SQLite adapters to Origami; vocabulary DSL; SQLite schema as YAML. |
+| `adapter-migration` | Both | should | RP + SQLite adapters to Origami; SQLite schema as YAML (Ansible pattern). |
 
 ### Execution order
 
