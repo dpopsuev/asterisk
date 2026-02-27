@@ -28,29 +28,83 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 ## Active Contracts
 
-| Contract | Tier | Scope |
-|----------|------|-------|
-| `rca-pure-dsl` | gate | Marble discovery: decompose `adapters/rca/` (40+ files, 6K LOC) into reusable Origami marbles, validated by Achilles. |
-| `data-dsl-extraction` | should | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. |
-| `adapter-migration` | should | RP adapter lift-and-drop to Origami. |
-| `sqlite-dsl-adapter` | should | YAML-defined SQLite adapter in Origami (schema, migrations, CRUD transformers). |
+| # | Contract | Scope |
+|---|----------|-------|
+| 1 | `data-dsl-extraction` | Scenarios + vocabulary to YAML; zero Go struct literals. |
+| 1 | `adapter-migration` | RP adapter lift-and-drop to Origami. |
+| 2 | `sqlite-dsl-adapter` | YAML-defined SQLite adapter in Origami (schema, migrations, CRUD). |
+| 3 | `rca-pure-dsl` | Marble discovery: decompose `adapters/rca/` into reusable Origami marbles, validated by Achilles. |
 
 ### Execution order
 
 ```
-    ┌───────────────────────────────────────┐
-    │ rca-pure-dsl (gate)                   │  ← marble discovery first
-    │ data-dsl-extraction (should)          │  ← scenarios + vocabulary to YAML
-    │ adapter-migration (should)            │  ← RP adapter to Origami
-    │ sqlite-dsl-adapter (should)           │  ← YAML-defined SQLite in Origami
-    └───────────────────────────────────────┘
+    ┌────────────────────────────────────┐
+    │ 1. data-dsl-extraction  (parallel) │  ← scenarios + vocabulary to YAML
+    │ 1. adapter-migration    (parallel) │  ← RP adapter to Origami
+    └──────────────┬─────────────────────┘
+                   │
+    ┌──────────────▼─────────────────────┐
+    │ 2. sqlite-dsl-adapter              │  ← depends on adapter-migration
+    └──────────────┬─────────────────────┘
+                   │
+    ┌──────────────▼─────────────────────┐
+    │ 3. rca-pure-dsl                    │  ← depends on sqlite-dsl-adapter
+    └────────────────────────────────────┘
+
+    rca-pure-dsl Phase 1 (design only) can overlap with step 1.
+```
+
+## 22% Gap Resolution
+
+The 4 contracts cover ~22K of ~28K LOC (78%). The remaining ~6,200 LOC resolves as follows:
+
+| Uncovered area | LOC | Resolution |
+|----------------|-----|------------|
+| `cmd/asterisk/` | 2,032 | `origami fold` — CLI commands become manifest YAML |
+| `internal/demo/` | 1,436 | Pure data extraction — Kabuki content to YAML (trivial) |
+| `internal/mcpconfig/` | 1,249 | `origami fold` — MCP wiring becomes manifest config |
+| `internal/dataset/` | 649 | Absorbed by scenario YAML loader |
+| `adapters/ingest/` | 634 | Generic transformers configured by YAML (Option C) |
+| `adapters/calibration/nodes.go` | 111 | Thin glue — absorbed by framework calibration runner |
+
+All 6,200 LOC has a resolution path. Discovery happens during `rca-pure-dsl` Phase 1.
+
+## End-State Architecture
+
+```mermaid
+flowchart TB
+  subgraph asterisk ["Asterisk (zero Go — YAML only)"]
+    pipelines["pipelines/*.yaml"]
+    scenarios["scenarios/*.yaml"]
+    scorecards["scorecards/*.yaml"]
+    prompts["prompts/*.md"]
+    schema["schema.yaml"]
+    vocab["vocabulary.yaml"]
+    manifest["origami.yaml"]
+  end
+  subgraph origami ["Origami (Go engine + collections)"]
+    engine["framework (walk, DSL, vars, templates)"]
+    rpAdapter["adapters/rp/ (RP I/O)"]
+    sqliteAdapter["adapters/sqlite/ (YAML-defined schema/CRUD)"]
+    rcaMarbles["marbles/rca/ (llm-extract, context-builder, persist, score, report)"]
+    fold["origami fold (YAML → binary)"]
+    transformers["transformers (http, jq, file, match, dedup)"]
+  end
+  manifest -->|"origami fold"| fold
+  fold -->|"embeds + links"| binary["bin/asterisk"]
+  pipelines --> engine
+  scenarios --> engine
+  rpAdapter --> engine
+  sqliteAdapter --> engine
+  rcaMarbles --> engine
+  transformers --> engine
 ```
 
 ## Open Checklist
 
 - [ ] CursorAdapter M19 >= 0.70 with principled weights (baseline: 0.58)
 - [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
-- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files. Validated by: `data-dsl-extraction` + `adapter-migration` + `sqlite-dsl-adapter` + `rca-pure-dsl`.
+- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 28K LOC resolved.
 
 ## Completed Work
 

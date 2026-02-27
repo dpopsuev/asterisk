@@ -2,7 +2,7 @@
 
 **Status:** draft  
 **Goal:** All calibration scenarios and vocabulary defined as YAML files; zero Go struct literals for ground truth data.  
-**Serves:** Polishing & Presentation (pure-DSL vision)
+**Serves:** 100% DSL — Zero Go
 
 ## Contract rules
 

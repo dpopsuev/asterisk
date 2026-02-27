@@ -2,7 +2,7 @@
 
 **Status:** draft  
 **Goal:** The RP adapter lives in Origami; Asterisk imports it as a dependency.  
-**Serves:** Polishing & Presentation (pure-DSL vision)
+**Serves:** 100% DSL — Zero Go
 
 ## Contract rules
 

@@ -2,13 +2,13 @@
 
 **Status:** draft  
 **Goal:** The entire `adapters/rca/` directory (40+ files, 6,000+ LOC) is expressed as DSL — zero Go domain logic remains in Asterisk.  
-**Serves:** Polishing & Presentation (100% DSL north star)
+**Serves:** 100% DSL — Zero Go
 
 ## Contract rules
 
 - Any Go in `rca/` that cannot become YAML is a missing Origami primitive — file it, implement it, then delete the Go.
 - Asterisk and Achilles are sibling playbook repositories on the same framework. Achilles does proactive security RCA; Asterisk does passive CI post-mortem RCA. Marbles extracted here must work for both.
-- Scope: `adapters/rca/` and `adapters/rca/adapt/` only. CLI, store, ingest, calibration, and vocabulary are handled by other contracts. The zero-Go Asterisk umbrella goal lives in `current-goal.mdc`.
+- Scope: `adapters/rca/` and `adapters/rca/adapt/` are the primary decomposition target. Phase 1 also catalogs the 22% gap (ingest, cmd, mcpconfig, demo, dataset) to produce a complete Origami gaps inventory. CLI, store, and vocabulary implementation are handled by other contracts.
 
 ## Context
 
@@ -100,14 +100,29 @@ Cross-validate every candidate marble against Achilles's pipeline. If a marble i
 
 ## Tasks
 
-### Phase 1: Marble discovery
+### Phase 1: Marble discovery + full Zero Go inventory
+
+**Core RCA decomposition:**
 
 - [ ] Catalog every file in `adapters/rca/` with LOC, category, marble candidate, and Origami gap
 - [ ] Catalog every file in `adapters/rca/adapt/` (framework adapter layer)
 - [ ] Map Achilles's pipeline (scan → classify → assess → report) to the same marble candidates
 - [ ] Produce the marble catalog: name, interface, inputs/outputs, Asterisk usage, Achilles usage
+
+**Uncovered areas (22% gap — 6,200 LOC not addressed by other contracts):**
+
+- [ ] Catalog `adapters/ingest/` — classify operations as generic transformer candidates (Option C: `match.pattern`, `dedup.by_key`, `file.write_json`)
+- [ ] Catalog `cmd/asterisk/` — identify which commands become `origami fold` manifest entries
+- [ ] Catalog `internal/mcpconfig/` — identify which MCP hooks become declarative config
+- [ ] Catalog `internal/demo/` — flag as pure data extraction (Kabuki content → YAML)
+- [ ] Catalog `internal/dataset/` — identify what's absorbed by scenario YAML loader vs. framework
+
+**Framework gaps inventory:**
+
 - [ ] Produce the Origami gaps inventory: what primitives are missing to support the marbles
-- [ ] Design review: validate the marble catalog with a Plan Mode session
+- [ ] Note gap: `NodeDef` needs `meta:` field to make `http`/`jq`/new transformers configurable from YAML
+- [ ] Note concept: `origami fold` — compile YAML project manifest to standalone binary (eliminates `cmd/` and `internal/mcpconfig/`)
+- [ ] Design review: validate the marble catalog and gaps inventory with a Plan Mode session
 
 ### Phase 2-4: Implementation (tasks TBD after Phase 1)
 
@@ -134,5 +149,6 @@ Tasks will be defined after the marble discovery. Each marble becomes its own im
 
 ## Notes
 
+2026-02-28 01:00 — Expanded Phase 1 to catalog the 22% gap (ingest, cmd, mcpconfig, demo, dataset). Added framework gaps: NodeDef `meta:` field, `origami fold` concept. Phase 1 now produces the complete Origami gaps inventory for achieving zero Go across all 28K LOC.
 2026-02-27 22:30 — Reframed as marble discovery. The 6K lines of Go in rca/ are prototypes for Origami's first user-discovered marbles: llm-extract, context-builder, persist, score, report, dispatch. Phase 1 produces the marble catalog, cross-validated against Achilles. This is the most strategically important contract — it defines the reusable building blocks for any analysis tool on Origami.
 2026-02-27 22:15 — Contract drafted. Gate-tier: this is the final step to zero-Go Asterisk. Phase 1 is design-only — no code changes. Achilles validates the abstraction.
