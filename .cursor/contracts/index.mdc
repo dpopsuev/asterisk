@@ -16,6 +16,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|------|
 | `scenario-dsl-extraction.md` | Scenarios and vocabulary as YAML; zero Go struct literals for ground truth data. | should |
 | `adapter-migration.md` | Reusable adapters (RP, SQLite) in Origami; SQLite schema as YAML (Ansible pattern). | should |
+| `rca-pure-dsl.md` | Decompose rca/ (40+ files, 6,000+ LOC) into DSL. Identify missing Origami primitives. 100% DSL. | gate |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 

@@ -22,7 +22,7 @@ Asterisk has six adapter directories. Two need migration work:
 | `vocabulary/` | ~146 | Display names | Covered by `scenario-dsl-extraction` contract Task 6 |
 | `calibration/` | — | Scenarios | Covered by `scenario-dsl-extraction` contract |
 | `ingest/` | ~760 | RP ingestion nodes | Stays (not pure; domain logic in Go nodes) |
-| `rca/` | ~6,000+ | RCA domain | Deferred to separate deep dive contract |
+| `rca/` | ~6,000+ | RCA domain | Deferred to `rca-pure-dsl` contract (gate) |
 
 **Ansible SQLite collection precedent:** `ttafsir.sqlite_utils` provides `create` (schema as YAML columns/pk/defaults), `insert` (records as YAML dicts), `run_sql` (parameterized queries), and `lookup` — all declarative. No SQL in the playbook. This is the model for Workstream 2.
 
