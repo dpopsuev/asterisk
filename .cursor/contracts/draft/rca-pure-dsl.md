@@ -24,16 +24,24 @@ Asterisk's `adapters/rca/` is the largest non-DSL surface in the project. It con
 - Report formatting
 - Framework adapters (basic, stub, LLM)
 
-The pipeline structure (`pipeline_rca.yaml`) and routing edges are already DSL. The remaining Go code falls into categories that need decomposition before DSL-ification:
+The pipeline structure (`pipeline_rca.yaml`) and routing edges are already DSL. The remaining Go code falls into categories that need decomposition — and the right decomposition target is **marbles**, not just "YAML configs."
 
-1. **Extractors** — LLM prompt templates + response parsing. Could become YAML-defined extractors with prompt templates as embedded files.
-2. **Transformers** — context assembly from walker state. Could become `core.jq`-style transformers or a new context-builder DSL.
-3. **Hooks** — store persistence calls. Could become `sqlite.exec` transformer chains if the SQLite adapter (from `adapter-migration`) lands first.
-4. **Metrics** — domain-specific scoring functions. Could become a metrics DSL in Origami's `calibrate/` package.
-5. **Framework adapters** (basic, stub, LLM) — dispatch routing. Could become adapter-level configuration in YAML.
-6. **Report formatting** — output generation. Could become a template/format DSL.
+### Marble discovery
 
-### Sibling pattern: Achilles
+The 6,000 lines of Go in `rca/` are not random domain code. They encode reusable analysis patterns that repeat across any RCA-style tool. The decomposition should identify **candidate marbles** — composable subgraph building blocks that both Asterisk and Achilles import:
+
+| Pattern | Current Go | Marble candidate | Reuse signal |
+|---------|-----------|-----------------|-------------|
+| LLM extraction | Extractors: prompt template → structured output | `llm-extract` marble (prompt + schema → parsed result) | Both tools send prompts and parse structured responses |
+| Context assembly | Transformers: walker state → prompt variables | `context-builder` marble (state + template → filled prompt) | Both tools build prompts from accumulated evidence |
+| Store persistence | Hooks: step completion → save to DB | `persist` marble (artifact → sqlite.exec chain) | Both tools persist results per step |
+| Scoring | Metrics: results → quality scores | `score` marble (results + scorecard → metric values) | Both tools evaluate output quality |
+| Report generation | Report formatting: analysis → structured output | `report` marble (scored results → formatted report) | Both tools produce human-readable reports |
+| Dispatch routing | Framework adapters: model selection + fallback | `dispatch` marble (intent → provider → fallback chain) | Both tools route to LLM providers |
+
+These are Origami's first user-discovered marbles. The decomposition is not "delete Go" — it is "extract marbles from lived experience." The Go code is the prototype; the marbles are the product.
+
+### Sibling validation: Achilles
 
 Achilles (`github.com/dpopsuev/achilles`) is a proactive security vulnerability discovery tool. Its pipeline is structurally identical: scan → classify → assess → report. Both tools:
 
@@ -42,35 +50,40 @@ Achilles (`github.com/dpopsuev/achilles`) is a proactive security vulnerability 
 - Score results against ground truth
 - Produce structured reports
 
-If `rca/` domain logic becomes DSL primitives in Origami, Achilles benefits directly. Any pattern that works only for CI RCA but not for security RCA is too domain-specific — push it to a higher abstraction.
+Achilles is the **litmus test** for every marble extracted from Asterisk. If a marble works for CI post-mortem RCA but not for security probing RCA, the abstraction is wrong — go back and generalize. The goal is not to serve Asterisk; the goal is to serve any analysis tool on Origami.
+
+This makes `rca-pure-dsl` the most strategically important contract in the project: it produces the first marble catalog, validated by two real consumers.
 
 ## FSC artifacts
 
 | Artifact | Target | Compartment |
 |----------|--------|-------------|
+| Marble catalog (first user-discovered marbles) | Origami `docs/` | domain |
 | Origami framework gaps inventory | `docs/` | domain |
 | RCA decomposition analysis | `docs/` | domain |
 
 ## Execution strategy
 
-**Phase 1: Decomposition analysis** (design, no code changes)
+**Phase 1: Marble discovery** (design, no code changes)
 
-Catalog every Go file in `adapters/rca/`. For each file/function, classify:
+Catalog every Go file in `adapters/rca/`. For each file/function, classify into a marble candidate or framework gap:
 
-| Category | DSL target | Origami primitive needed |
-|----------|-----------|------------------------|
-| Already DSL | `pipeline_rca.yaml` | None |
-| Extractor | YAML extractor def + prompt template | Declarative extractor DSL |
-| Transformer | YAML transformer chain | Existing `core.*` or new primitive |
-| Hook | `sqlite.exec` chain | SQLite adapter (from `adapter-migration`) |
-| Metric | Metrics DSL | `calibrate/` metric definition DSL |
-| Adapter config | adapter.yaml | Existing adapter manifest |
-| Report | Template DSL | New or existing `core.template` |
-| Pure glue | Delete after DSL-ification | None |
+| Category | Marble candidate | Origami primitive needed | Achilles reuse? |
+|----------|-----------------|------------------------|-----------------|
+| Already DSL | — (pipeline_rca.yaml) | None | Yes (achilles.yaml) |
+| LLM extraction | `llm-extract` | Declarative extractor DSL | Yes (scan, classify, assess) |
+| Context assembly | `context-builder` | State-to-prompt transformer | Yes (evidence assembly) |
+| Store persistence | `persist` | SQLite adapter (from `adapter-migration`) | Yes (finding storage) |
+| Scoring | `score` | `calibrate/` metric definition DSL | Yes (vulnerability scoring) |
+| Report generation | `report` | Template/format marble | Yes (security report) |
+| Dispatch routing | `dispatch` | Adapter-level YAML config | Yes (model routing) |
+| Pure glue | Delete | None | — |
 
-**Phase 2: Origami gaps** — implement missing primitives identified in Phase 1.
+Cross-validate every candidate marble against Achilles's pipeline. If a marble is Asterisk-only, the abstraction is wrong.
 
-**Phase 3: Migration** — convert `rca/` files to DSL, one category at a time.
+**Phase 2: Marble implementation** — build the marbles in Origami, validated by both Asterisk and Achilles.
+
+**Phase 3: Migration** — replace `rca/` Go files with marble imports + YAML configuration.
 
 **Phase 4: Validate** — `just calibrate-stub` and `just calibrate-wet` produce identical results.
 
@@ -87,17 +100,18 @@ Catalog every Go file in `adapters/rca/`. For each file/function, classify:
 
 ## Tasks
 
-### Phase 1: Decomposition
+### Phase 1: Marble discovery
 
-- [ ] Catalog every file in `adapters/rca/` with LOC, category, DSL target, and Origami gap
+- [ ] Catalog every file in `adapters/rca/` with LOC, category, marble candidate, and Origami gap
 - [ ] Catalog every file in `adapters/rca/adapt/` (framework adapter layer)
-- [ ] Cross-reference with Achilles pipeline — identify shared patterns
-- [ ] Produce the Origami gaps inventory (what primitives are missing)
-- [ ] Design review: validate the decomposition with a Plan Mode session
+- [ ] Map Achilles's pipeline (scan → classify → assess → report) to the same marble candidates
+- [ ] Produce the marble catalog: name, interface, inputs/outputs, Asterisk usage, Achilles usage
+- [ ] Produce the Origami gaps inventory: what primitives are missing to support the marbles
+- [ ] Design review: validate the marble catalog with a Plan Mode session
 
 ### Phase 2-4: Implementation (tasks TBD after Phase 1)
 
-Tasks will be defined after the decomposition analysis. The scope and ordering depends on what Origami primitives are missing.
+Tasks will be defined after the marble discovery. Each marble becomes its own implementation task in Origami, validated by both consumers.
 
 ### Tail
 
@@ -120,4 +134,5 @@ Tasks will be defined after the decomposition analysis. The scope and ordering d
 
 ## Notes
 
-2026-02-27 22:15 — Contract drafted. Gate-tier: this is the final step to 100% DSL Asterisk. Phase 1 (decomposition) is design-only — no code changes. Implementation phases depend on Origami gaps identified during decomposition. Achilles is the validation sibling: if the DSL primitives work for both CI RCA and security RCA, the abstraction is correct.
+2026-02-27 22:30 — Reframed as marble discovery. The 6K lines of Go in rca/ are prototypes for Origami's first user-discovered marbles: llm-extract, context-builder, persist, score, report, dispatch. Phase 1 produces the marble catalog, cross-validated against Achilles. This is the most strategically important contract — it defines the reusable building blocks for any analysis tool on Origami.
+2026-02-27 22:15 — Contract drafted. Gate-tier: this is the final step to zero-Go Asterisk. Phase 1 is design-only — no code changes. Achilles validates the abstraction.
