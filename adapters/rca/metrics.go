@@ -50,6 +50,8 @@ func computeMetrics(scenario *Scenario, results []CaseResult, sc *cal.ScoreCard)
 		scorePipelinePathAccuracy(results, caseMap),
 		scoreLoopEfficiency(results, caseMap),
 		scoreTotalPromptTokens(results),
+		scoreGapPrecision(results),
+		scoreGapRecall(results),
 	}
 
 	values := make(map[string]float64, len(raw))
@@ -580,6 +582,35 @@ var (
 	mean     = cal.Mean
 	stddev   = cal.Stddev
 )
+
+// --- M21: Gap precision (stub) ---
+// When the system says "I need X evidence", does X actually help?
+// Full measurement requires a human verification loop (provide the missing data,
+// re-run, check if accuracy improves). Returns 0.0 with a count of gap items.
+func scoreGapPrecision(results []CaseResult) scored {
+	totalGaps := 0
+	for _, r := range results {
+		totalGaps += len(r.EvidenceGaps)
+	}
+	return scored{"M21", 0, fmt.Sprintf("stub — %d gap items emitted (manual verification required)", totalGaps)}
+}
+
+// --- M22: Gap recall (stub) ---
+// When the system is wrong, did it correctly identify what was missing?
+// Returns 0.0. Full measurement requires comparing gap briefs against
+// ground truth deficiencies for incorrect predictions.
+func scoreGapRecall(results []CaseResult) scored {
+	wrongWithGaps, wrongTotal := 0, 0
+	for _, r := range results {
+		if !r.DefectTypeCorrect && r.ActualDefectType != "" {
+			wrongTotal++
+			if len(r.EvidenceGaps) > 0 {
+				wrongWithGaps++
+			}
+		}
+	}
+	return scored{"M22", 0, fmt.Sprintf("stub — %d/%d wrong predictions have gap briefs (manual verification required)", wrongWithGaps, wrongTotal)}
+}
 
 func pearsonCorrelation(x, y []float64) float64 {
 	if len(x) != len(y) || len(x) < 2 {

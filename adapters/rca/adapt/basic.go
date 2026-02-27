@@ -365,7 +365,6 @@ func (a *BasicAdapter) buildInvestigate(ci *BasicCaseInfo) *rca.InvestigateArtif
 	_, defectType, _ := a.classifyDefect(text)
 	evidenceRefs := extractEvidenceRefs(ci.ErrorMessage, component)
 
-	// Build an informative RCA message that mentions the component name
 	rcaParts := []string{}
 	if ci.ErrorMessage != "" {
 		rcaParts = append(rcaParts, ci.ErrorMessage)
@@ -382,6 +381,7 @@ func (a *BasicAdapter) buildInvestigate(ci *BasicCaseInfo) *rca.InvestigateArtif
 	}
 
 	convergence := a.computeConvergence(text, component, defectType)
+	gapBrief := a.buildGapBrief(ci, text, component, defectType, convergence)
 
 	return &rca.InvestigateArtifact{
 		RCAMessage:       rcaMessage,
@@ -389,6 +389,67 @@ func (a *BasicAdapter) buildInvestigate(ci *BasicCaseInfo) *rca.InvestigateArtif
 		Component:        component,
 		ConvergenceScore: convergence,
 		EvidenceRefs:     evidenceRefs,
+		GapBrief:         gapBrief,
+	}
+}
+
+// buildGapBrief evaluates what evidence is missing and produces a structured
+// gap brief. Returns nil when the verdict is "confident" (no gaps to report).
+func (a *BasicAdapter) buildGapBrief(ci *BasicCaseInfo, text, component, defectType string, convergence float64) *rca.GapBrief {
+	verdict := rca.ClassifyVerdict(convergence, defectType,
+		rca.DefaultGapConfidentThreshold, rca.DefaultGapInconclusiveThreshold)
+
+	var gaps []rca.EvidenceGap
+
+	// Short error message → log_depth gap
+	combinedLen := len(ci.ErrorMessage) + len(ci.LogSnippet)
+	if combinedLen < 200 {
+		gaps = append(gaps, rca.EvidenceGap{
+			Category:    rca.GapLogDepth,
+			Description: "Only a short error message is available; no full logs or stack trace",
+			WouldHelp:   "Full pod logs from the failure window would show the actual error chain",
+			Source:      "CI job console log",
+		})
+	}
+
+	// No Jira IDs → jira_context gap
+	if !jiraIDPattern.MatchString(text) {
+		gaps = append(gaps, rca.EvidenceGap{
+			Category:    rca.GapJiraContext,
+			Description: "No Jira ticket references found in the failure data",
+			WouldHelp:   "Linked Jira ticket description would confirm or deny the hypothesis",
+			Source:      "Jira / issue tracker",
+		})
+	}
+
+	// Unknown component → source_code gap
+	if component == "unknown" {
+		gaps = append(gaps, rca.EvidenceGap{
+			Category:    rca.GapSourceCode,
+			Description: "Could not identify the affected component from available data",
+			WouldHelp:   "Source code inspection would confirm the suspected regression",
+			Source:      "Git repository",
+		})
+	}
+
+	// No version info in text → version_info gap
+	versionKW := []string{"4.1", "4.2", "4.3", "release-", "v4.", "ocp-"}
+	if basicMatchCount(text, versionKW) == 0 {
+		gaps = append(gaps, rca.EvidenceGap{
+			Category:    rca.GapVersionInfo,
+			Description: "No OCP/operator version information found in the failure data",
+			WouldHelp:   "Matching against known bugs for the specific version would narrow candidates",
+			Source:      "RP launch attributes",
+		})
+	}
+
+	if verdict == rca.VerdictConfident && len(gaps) == 0 {
+		return nil
+	}
+
+	return &rca.GapBrief{
+		Verdict:  verdict,
+		GapItems: gaps,
 	}
 }
 

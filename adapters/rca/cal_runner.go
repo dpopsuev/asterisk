@@ -30,18 +30,41 @@ type RunConfig struct {
 	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
 	RPFetcher    rp.EnvelopeFetcher // optional; when set, RP-sourced cases fetch real failure data
 	ScoreCard    *cal.ScoreCard // declarative metric definitions; loaded from YAML at startup
+
+	GapConfidentThreshold    float64 // convergence >= this → confident (no gap brief); 0 uses default 0.80
+	GapInconclusiveThreshold float64 // convergence < this → inconclusive (gap brief required); 0 uses default 0.50
 }
 
 // DefaultRunConfig returns defaults for calibration.
 func DefaultRunConfig(scenario *Scenario, adapter ModelAdapter) RunConfig {
 	return RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: DefaultThresholds(),
-		BasePath:   DefaultBasePath,
+		Scenario:                 scenario,
+		Adapter:                  adapter,
+		Runs:                     1,
+		PromptDir:                ".cursor/prompts",
+		Thresholds:               DefaultThresholds(),
+		BasePath:                 DefaultBasePath,
+		GapConfidentThreshold:    DefaultGapConfidentThreshold,
+		GapInconclusiveThreshold: DefaultGapInconclusiveThreshold,
 	}
+}
+
+// ResolvedGapConfidentThreshold returns the gap confident threshold,
+// falling back to the default if zero.
+func (c RunConfig) ResolvedGapConfidentThreshold() float64 {
+	if c.GapConfidentThreshold > 0 {
+		return c.GapConfidentThreshold
+	}
+	return DefaultGapConfidentThreshold
+}
+
+// ResolvedGapInconclusiveThreshold returns the gap inconclusive threshold,
+// falling back to the default if zero.
+func (c RunConfig) ResolvedGapInconclusiveThreshold() float64 {
+	if c.GapInconclusiveThreshold > 0 {
+		return c.GapInconclusiveThreshold
+	}
+	return DefaultGapInconclusiveThreshold
 }
 
 // RunCalibration executes the full calibration loop.
@@ -419,6 +442,10 @@ func extractStepMetrics(result *CaseResult, step PipelineStep, artifact any, gt 
 			result.ActualConvergence = r.ConvergenceScore
 			if r.Component != "" {
 				result.ActualComponent = r.Component
+			}
+			if r.GapBrief != nil {
+				result.VerdictConfidence = r.GapBrief.Verdict
+				result.EvidenceGaps = r.GapBrief.GapItems
 			}
 		}
 	}

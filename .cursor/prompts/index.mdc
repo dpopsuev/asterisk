@@ -8,7 +8,7 @@ RCA prompt templates (file-based, Go `text/template`). **Development location** 
 - `resolve/` — F2 Resolve templates (repo selection and scoping).
 - `investigate/` — F3 Investigate templates (deep repo-level RCA).
 - `correlate/` — F4 Correlate templates (cross-case pattern detection).
-- `review/` — F5 Review templates (human gate: approve / reassess / overturn).
+- `review/` — F5 Review templates (human gate: approve / reassess / overturn) + gap-analysis instructions.
 - `report/` — F6 Report templates (Jira draft + regression table).
 
 ## Files

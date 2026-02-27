@@ -140,6 +140,26 @@ Save as `artifact.json`:
 }
 ```
 
+### Evidence Gap Brief (when confidence < 0.80)
+
+If your convergence_score is below 0.80, add a `gap_brief` field listing what evidence is missing and how it would change your conclusion. Categories: `log_depth`, `source_code`, `ci_context`, `cluster_state`, `version_info`, `historical`, `jira_context`, `human_input`. See `review/gap-analysis.md` for full details.
+
+```json
+{
+  "gap_brief": {
+    "verdict": "low-confidence",
+    "gap_items": [
+      {
+        "category": "log_depth",
+        "description": "Only short error message available",
+        "would_help": "Full pod logs would reveal the actual error chain",
+        "source": "CI job console log"
+      }
+    ]
+  }
+}
+```
+
 ### Evidence ref format
 
 Each evidence ref MUST follow the structured format: `<repo-name>:<file-path>:<identifier>`

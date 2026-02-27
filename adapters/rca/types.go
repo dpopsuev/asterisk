@@ -145,13 +145,14 @@ type RepoSelection struct {
 
 // InvestigateArtifact is the F3 output (main investigation artifact).
 type InvestigateArtifact struct {
-	LaunchID         string   `json:"launch_id"`
-	CaseIDs          []int    `json:"case_ids"`
-	RCAMessage       string   `json:"rca_message"`
-	DefectType       string   `json:"defect_type"`
-	Component        string   `json:"component,omitempty"`
-	ConvergenceScore float64  `json:"convergence_score"`
-	EvidenceRefs     []string `json:"evidence_refs"`
+	LaunchID         string    `json:"launch_id"`
+	CaseIDs          []int     `json:"case_ids"`
+	RCAMessage       string    `json:"rca_message"`
+	DefectType       string    `json:"defect_type"`
+	Component        string    `json:"component,omitempty"`
+	ConvergenceScore float64   `json:"convergence_score"`
+	EvidenceRefs     []string  `json:"evidence_refs"`
+	GapBrief         *GapBrief `json:"gap_brief,omitempty"`
 }
 
 // CorrelateResult is the F4 output.

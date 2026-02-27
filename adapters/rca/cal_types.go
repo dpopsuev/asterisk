@@ -227,6 +227,10 @@ type CaseResult struct {
 	ComponentCorrect   bool    `json:"component_correct"`
 	SemanticScore      float64 `json:"semantic_score"` // 0-1
 
+	// Evidence gap analysis
+	VerdictConfidence string        `json:"verdict_confidence,omitempty"`
+	EvidenceGaps      []EvidenceGap `json:"evidence_gaps,omitempty"`
+
 	// Pipeline error (non-empty when the case failed during execution)
 	PipelineError string `json:"pipeline_error,omitempty"`
 }

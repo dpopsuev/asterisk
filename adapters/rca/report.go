@@ -74,6 +74,41 @@ func FormatReport(report *CalibrationReport) string {
 	b.WriteString(caseTbl.String())
 	b.WriteString("\n")
 
+	// Evidence gap summary
+	gapCases := 0
+	totalGaps := 0
+	for _, cr := range report.CaseResults {
+		if len(cr.EvidenceGaps) > 0 {
+			gapCases++
+			totalGaps += len(cr.EvidenceGaps)
+		}
+	}
+	if gapCases > 0 {
+		b.WriteString("--- Evidence Gap Brief ---\n")
+		b.WriteString(fmt.Sprintf("Cases with gaps: %d/%d  |  Total gap items: %d\n\n",
+			gapCases, len(report.CaseResults), totalGaps))
+
+		gapTbl := format.NewTable(format.ASCII)
+		gapTbl.Header("Case", "Verdict", "Gaps", "Categories")
+		for _, cr := range report.CaseResults {
+			if len(cr.EvidenceGaps) == 0 {
+				continue
+			}
+			cats := make([]string, 0, len(cr.EvidenceGaps))
+			for _, g := range cr.EvidenceGaps {
+				cats = append(cats, g.Category)
+			}
+			gapTbl.Row(
+				cr.CaseID,
+				cr.VerdictConfidence,
+				fmt.Sprintf("%d", len(cr.EvidenceGaps)),
+				strings.Join(cats, ", "),
+			)
+		}
+		b.WriteString(gapTbl.String())
+		b.WriteString("\n")
+	}
+
 	return b.String()
 }
 
