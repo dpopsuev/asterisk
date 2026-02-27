@@ -34,27 +34,107 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 Full PoC history: `notes/goal-history-poc.md`
 
-## Remaining Contracts
+## Remaining Contracts — Tandem Bundles
 
-Flat priority list. No sprints — work in priority order, commit at green gates.
+Contracts are grouped into cross-repo tandem bundles. Within each bundle, Origami ships framework primitives first, then Asterisk consumes. Work in bundle priority order; commit at green gates.
 
-| Tier | Contract | Repo | Notes |
-|------|----------|------|-------|
-| **gate** | `principled-calibration-scorecard` | Both | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection`. MetricSet flattened. Declarative YAML. M19 reweight. TokiMeter → Origami CostBill. |
-| **should** | `asterisk-internal-cleanup` | Asterisk | Merge remaining `internal/` packages into `adapters/`. Pure-DSL migration completion. |
-| **should** | `refine-rtfm-routing-policy` | Both | `ReadPolicy` replaces RTFM. Delete `context` node, `internal/rtfm/`. |
-| **should** | `data-ingestion-pipeline` | Asterisk | Data ingestion as DSL pipeline. `consume run` via CRON. `dataset review/promote`. |
-| **should** | `improve-asterisk-kabuki-demo` | Both | Three-act narrative, War Room, principled results. |
-| **nice** | `evidence-gap-brief` | Asterisk | Structured "I don't know" output. Improves M8. |
-| **vision** | `knowledge-source-evolution` | Asterisk | Layered composition via `Source.Tags`, artifact dependency graph. |
+### Bundle 1: Principled Metrics (gate)
 
-### Origami contracts (tracked in Origami repo)
+Blocks everything else. Single contract spanning both repos.
 
-| Tier | Contract | Notes |
-|------|----------|-------|
-| **should** | `rich-vocabulary` | `RichVocabulary` (short/long/description). Wire into Kami, LSP, Kabuki. |
-| **vision** | `origami-lsp` | Language Server for pipeline YAML. Embeds `origami-lint`. |
-| **vision** | `washi` | Washi — enterprise pipeline management UI. Post-LSP. |
+```
+[Asterisk: principled-calibration-scorecard] <-> [Origami: calibrate/ types]
+```
+
+| Step | Repo | What ships |
+|------|------|------------|
+| 1 | Origami | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` in `calibrate/`. `DefaultMetrics()`, `DefaultScoreCard()`. `FormatCostBill()` in `dispatch/`. |
+| 2 | Asterisk | Migrate 21 metrics to `MetricDef` YAML. Reweight M19. Delete TokiMeter — use Origami `CostBill`. |
+
+### Bundle 2: Rich Names (should)
+
+Two separate contracts, coupled by interface dependency.
+
+```
+[Asterisk: asterisk-internal-cleanup (P7)] <-> [Origami: rich-vocabulary]
+```
+
+| Step | Repo | What ships |
+|------|------|------------|
+| 1 | Origami | `RichVocabulary` interface + `RichMapVocabulary`. Wire into Kami hover, LSP hover, Kabuki cards. |
+| 2 | Asterisk | Migrate `display/` (221 LOC) to `RichMapVocabulary` registration. Delete `display/`. |
+
+### Bundle 3: Smart Routing (should)
+
+Single contract spanning both repos.
+
+```
+[Asterisk: refine-rtfm-routing-policy] <-> [Origami: Source/router]
+```
+
+| Step | Repo | What ships |
+|------|------|------------|
+| 1 | Origami | `ReadPolicy` on `Source` type. `KnowledgeSourceRouter` tag-based routing. `{{always_read_sources}}` template var. |
+| 2 | Asterisk | Delete `context` node from pipeline YAML. Delete `internal/rtfm/`. Prompt injection replaces explicit node. |
+
+### Bundle 4: Demo Polish (should)
+
+Single contract spanning both repos. Soft dependency on Bundle 1 (principled results).
+
+```
+[Asterisk: improve-asterisk-kabuki-demo] <-> [Origami: Kabuki frontend]
+```
+
+| Step | Repo | What ships |
+|------|------|------------|
+| 1 | Origami | War Room section components, KabukiConfig extensions for three-act narrative. |
+| 2 | Asterisk | `PoliceStationKabuki` content rewrite: three-act narrative, War Room, principled results. |
+
+### Bundle 5: Developer Tooling (vision)
+
+Sequential Origami chain. No Asterisk pairing yet.
+
+```
+[Origami: origami-lsp] -> [Origami: washi]
+```
+
+LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + LSP. Asterisk benefits indirectly.
+
+### Standalone contracts
+
+| Contract | Repo | Tier | Notes |
+|----------|------|------|-------|
+| `asterisk-internal-cleanup` (excl. P7) | Asterisk | should | Merge `internal/` into `adapters/`. P7 is in Bundle 2. |
+| `data-ingestion-pipeline` | Asterisk | should | Ingestion as DSL pipeline. Uses existing Origami DSL. |
+| `evidence-gap-brief` | Asterisk | nice | Structured "I don't know" output. Improves M8. |
+| `knowledge-source-evolution` | Asterisk | vision | Layered composition via `Source.Tags`. |
+
+### Execution order
+
+```
+                     ┌─────────────────────┐
+                     │  Bundle 1: Metrics   │  ← gate
+                     │  (principled-cal)    │
+                     └────────┬────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+    ┌─────────▼──────┐ ┌─────▼──────┐ ┌──────▼────────┐
+    │ Bundle 2:      │ │ Bundle 3:  │ │ Bundle 4:     │  ← should (parallel)
+    │ Rich Names     │ │ Smart      │ │ Demo Polish   │
+    │                │ │ Routing    │ │               │
+    └────────────────┘ └────────────┘ └───────────────┘
+              │
+    ┌─────────▼──────────────────────────────┐
+    │ Standalone: internal-cleanup,          │  ← should/nice
+    │ data-ingestion, evidence-gap-brief     │
+    └────────────────────────────────────────┘
+              │
+    ┌─────────▼──────────────────────────────┐
+    │ Bundle 5: LSP -> Washi                 │  ← vision
+    │ knowledge-source-evolution             │
+    └────────────────────────────────────────┘
+```
 
 ### CHECKPOINT — Polish validated
 
