@@ -1,4 +1,4 @@
-// Package demo provides the Asterisk presentation theme for Kami.
+// Package demo provides the Asterisk presentation theme for Kabuki.
 //
 // The Police Station theme maps Asterisk's RCA pipeline to a crime
 // investigation metaphor. Agents are detectives with distinct

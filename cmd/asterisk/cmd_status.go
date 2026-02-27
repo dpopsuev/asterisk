@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/display"
+	"asterisk/display"
 	"asterisk/internal/orchestrate"
 )
 

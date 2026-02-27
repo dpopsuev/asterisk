@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/internal/preinvest"
+	"asterisk/adapters/rp"
 )
 
 func TestSqlStore_Integration(t *testing.T) {
@@ -18,10 +18,10 @@ func TestSqlStore_Integration(t *testing.T) {
 	defer s.Close()
 
 	// Envelope
-	env := &preinvest.Envelope{
+	env := &rp.Envelope{
 		RunID:  "33195",
 		Name:   "test-launch",
-		FailureList: []preinvest.FailureItem{
+		FailureList: []rp.FailureItem{
 			{ID: 1, Name: "fail1", Status: "FAILED"},
 			{ID: 2, Name: "fail2", Status: "FAILED"},
 		},

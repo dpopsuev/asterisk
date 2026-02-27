@@ -4,7 +4,7 @@ import (
 	"errors"
 	"sync"
 
-	"asterisk/internal/preinvest"
+	"asterisk/adapters/rp"
 )
 
 // MemStore is an in-memory Store for tests. Implements Store.
@@ -15,7 +15,7 @@ type MemStore struct {
 	cases     map[int64]*Case
 	casesBy   map[int][]int64 // launchID -> case IDs
 	rcas      map[int64]*RCA
-	envelopes map[int]*preinvest.Envelope
+	envelopes map[int]*rp.Envelope
 	v2data    *memStoreV2 // lazy-initialized v2 entity storage
 }
 
@@ -25,7 +25,7 @@ func NewMemStore() *MemStore {
 		cases:     make(map[int64]*Case),
 		casesBy:   make(map[int][]int64),
 		rcas:      make(map[int64]*RCA),
-		envelopes: make(map[int]*preinvest.Envelope),
+		envelopes: make(map[int]*rp.Envelope),
 	}
 }
 
@@ -130,7 +130,7 @@ func (s *MemStore) ListRCAs() ([]*RCA, error) {
 }
 
 // SaveEnvelope implements Store.
-func (s *MemStore) SaveEnvelope(launchID int, env *preinvest.Envelope) error {
+func (s *MemStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 	if env == nil {
 		return errors.New("envelope is nil")
 	}
@@ -141,7 +141,7 @@ func (s *MemStore) SaveEnvelope(launchID int, env *preinvest.Envelope) error {
 }
 
 // GetEnvelope implements Store.
-func (s *MemStore) GetEnvelope(launchID int) (*preinvest.Envelope, error) {
+func (s *MemStore) GetEnvelope(launchID int) (*rp.Envelope, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	return s.envelopes[launchID], nil

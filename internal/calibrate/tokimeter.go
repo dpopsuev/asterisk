@@ -3,7 +3,7 @@ package calibrate
 import (
 	"fmt"
 
-	"asterisk/internal/display"
+	"asterisk/display"
 
 	"github.com/dpopsuev/origami/dispatch"
 )

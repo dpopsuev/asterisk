@@ -5,9 +5,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/display"
+	"asterisk/display"
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
 

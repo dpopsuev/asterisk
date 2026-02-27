@@ -1,4 +1,4 @@
-package postinvest
+package rp
 
 // PushedRecord is what the mock store records after a push.
 type PushedRecord struct {

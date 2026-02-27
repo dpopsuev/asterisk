@@ -1,0 +1,65 @@
+pipeline: asterisk-calibration
+description: "Calibration pipeline — setup cases, run RCA, score, aggregate metrics, report"
+imports:
+  - rca
+
+vars:
+  parallel: 1
+  runs: 1
+  token_budget: 0
+  batch_size: 0
+
+nodes:
+  - name: setup
+    family: calibration-setup
+    description: "Create store scaffolding: suite, versions, pipelines, launches, jobs, cases"
+
+  - name: run-cases
+    family: calibration-run-cases
+    description: "Execute the RCA pipeline for each case (serial or parallel via WalkTeam)"
+
+  - name: score
+    family: calibration-score
+    description: "Score each case result against ground truth expectations"
+
+  - name: aggregate
+    family: calibration-aggregate
+    description: "Compute M1-M20 metrics from scored case results"
+
+  - name: report
+    family: calibration-report
+    description: "Generate the final CalibrationReport with metrics, case details, and dataset health"
+
+edges:
+  - id: CAL1
+    name: setup-done
+    from: setup
+    to: run-cases
+    when: "true"
+
+  - id: CAL2
+    name: cases-done
+    from: run-cases
+    to: score
+    when: "true"
+
+  - id: CAL3
+    name: scored
+    from: score
+    to: aggregate
+    when: "true"
+
+  - id: CAL4
+    name: aggregated
+    from: aggregate
+    to: report
+    when: "true"
+
+  - id: CAL5
+    name: reported
+    from: report
+    to: DONE
+    when: "true"
+
+start: setup
+done: DONE

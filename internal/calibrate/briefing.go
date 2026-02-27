@@ -1,7 +1,7 @@
 package calibrate
 
 import (
-	"asterisk/internal/display"
+	"asterisk/display"
 	"github.com/dpopsuev/origami/format"
 	"fmt"
 	"strings"

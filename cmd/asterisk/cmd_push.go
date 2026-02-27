@@ -9,9 +9,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/display"
-	"asterisk/internal/postinvest"
-	"asterisk/internal/rp"
+	"asterisk/display"
+	"asterisk/adapters/rp"
 )
 
 var pushFlags struct {
@@ -40,8 +39,8 @@ func init() {
 }
 
 func runPush(cmd *cobra.Command, _ []string) error {
-	pushStore := postinvest.NewMemPushStore()
-	var pusher postinvest.Pusher = postinvest.DefaultPusher{}
+	pushStore := rp.NewMemPushStore()
+	var pusher rp.DefectPusher = rp.DefaultDefectPusher{}
 	if pushFlags.rpBase != "" {
 		rpProject := resolveRPProject(pushFlags.rpProject)
 		if rpProject == "" {

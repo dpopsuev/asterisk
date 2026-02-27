@@ -3,8 +3,8 @@ package orchestrate
 import (
 	"testing"
 
-	"asterisk/internal/preinvest"
-	"asterisk/internal/store"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
 
@@ -235,10 +235,10 @@ func TestBuildParams_RecallDormantReactivation(t *testing.T) {
 func TestBuildParams_WorkspaceLaunchAttributes(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
-	env := &preinvest.Envelope{
+	env := &rp.Envelope{
 		RunID: "100",
 		Name:  "launch-100",
-		LaunchAttributes: []preinvest.Attribute{
+		LaunchAttributes: []rp.Attribute{
 			{Key: "ocp_version", Value: "4.21"},
 			{Key: "operator_version", Value: "4.21.0-202402"},
 			{Key: "cluster", Value: "cnf-lab-01", System: true},
@@ -267,19 +267,19 @@ func TestBuildParams_WorkspaceLaunchAttributes(t *testing.T) {
 func TestBuildParams_WorkspaceJiraLinks(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
-	env := &preinvest.Envelope{
+	env := &rp.Envelope{
 		RunID: "100",
 		Name:  "launch-100",
-		FailureList: []preinvest.FailureItem{
+		FailureList: []rp.FailureItem{
 			{
 				ID: 1, Name: "test-1", Status: "FAILED",
-				ExternalIssues: []preinvest.ExternalIssue{
+				ExternalIssues: []rp.ExternalIssue{
 					{TicketID: "OCPBUGS-70233", URL: "https://issues.redhat.com/browse/OCPBUGS-70233"},
 				},
 			},
 			{
 				ID: 2, Name: "test-2", Status: "FAILED",
-				ExternalIssues: []preinvest.ExternalIssue{
+				ExternalIssues: []rp.ExternalIssue{
 					{TicketID: "OCPBUGS-70233", URL: "https://issues.redhat.com/browse/OCPBUGS-70233"},
 					{TicketID: "OCPBUGS-71000", URL: "https://issues.redhat.com/browse/OCPBUGS-71000"},
 				},
@@ -349,16 +349,16 @@ func TestBuildParams_WorkspaceUnavailable(t *testing.T) {
 func TestBuildParams_WorkspaceFullContext(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := &store.Case{ID: 1, Name: "test", Status: "open"}
-	env := &preinvest.Envelope{
+	env := &rp.Envelope{
 		RunID: "100",
 		Name:  "launch-100",
-		LaunchAttributes: []preinvest.Attribute{
+		LaunchAttributes: []rp.Attribute{
 			{Key: "ocp_version", Value: "4.21"},
 		},
-		FailureList: []preinvest.FailureItem{
+		FailureList: []rp.FailureItem{
 			{
 				ID: 1, Name: "test-1", Status: "FAILED",
-				ExternalIssues: []preinvest.ExternalIssue{
+				ExternalIssues: []rp.ExternalIssue{
 					{TicketID: "OCPBUGS-70233", URL: "https://issues.redhat.com/browse/OCPBUGS-70233"},
 				},
 			},

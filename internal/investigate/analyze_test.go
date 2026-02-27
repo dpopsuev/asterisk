@@ -6,14 +6,14 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/internal/preinvest"
+	"asterisk/adapters/rp"
 )
 
 // BDD: Given envelope in store, When Analyze runs, Then artifact exists and contains launch_id, case_ids, defect_type, convergence_score.
 func TestAnalyze_ProducesArtifactWithRequiredShape(t *testing.T) {
 	launchID := 33195
 	env := loadFixtureEnvelope(t)
-	store := preinvest.NewMemStore()
+	store := rp.NewMemEnvelopeStore()
 	if err := store.Save(launchID, env); err != nil {
 		t.Fatalf("store.Save: %v", err)
 	}
@@ -47,14 +47,14 @@ func TestAnalyze_ProducesArtifactWithRequiredShape(t *testing.T) {
 	_ = a.EvidenceRefs
 }
 
-func loadFixtureEnvelope(t *testing.T) *preinvest.Envelope {
+func loadFixtureEnvelope(t *testing.T) *rp.Envelope {
 	t.Helper()
 	path := filepath.Join("..", "..", "examples", "pre-investigation-33195-4.21", "envelope_33195_4.21.json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		t.Skipf("fixture not found: %v", err)
 	}
-	var env preinvest.Envelope
+	var env rp.Envelope
 	if err := json.Unmarshal(data, &env); err != nil {
 		t.Fatalf("unmarshal fixture: %v", err)
 	}

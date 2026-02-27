@@ -1,14 +1,14 @@
 package calibrate
 
 import (
-	"asterisk/internal/display"
+	"asterisk/display"
 	"github.com/dpopsuev/origami/format"
 	"github.com/dpopsuev/origami/logging"
 	"fmt"
 	"strings"
 
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 // AnalysisConfig holds configuration for an analysis run.

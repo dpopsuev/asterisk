@@ -35,6 +35,9 @@ func StepToNodeName(step PipelineStep) string {
 }
 
 // buildNodeRegistry creates a NodeRegistry with passthrough nodes for each family.
+//
+// Deprecated: Use adapters/rca.NodeRegistry() for real processing nodes.
+// This registry remains for backward compatibility with the procedural runner.
 func buildNodeRegistry() framework.NodeRegistry {
 	return framework.NodeRegistry{
 		"recall":      passthroughNode,
@@ -119,6 +122,8 @@ func walkerStateToCaseState(ws *framework.WalkerState) *CaseState {
 
 // bridgeNode is a passthrough Node used by the framework graph.
 // Processing is handled externally by the orchestrate runner.
+//
+// Deprecated: Use adapters/rca.rcaNode which implements real processing.
 type bridgeNode struct {
 	name    string
 	element framework.Element

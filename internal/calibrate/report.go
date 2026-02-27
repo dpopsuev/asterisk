@@ -7,7 +7,7 @@ import (
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/format"
 
-	"asterisk/internal/display"
+	"asterisk/display"
 )
 
 // FormatReport produces the human-readable calibration report.

@@ -7,11 +7,9 @@ import (
 	"os"
 	"strings"
 
-	"asterisk/internal/investigate"
-	"asterisk/internal/postinvest"
 )
 
-// Pusher implements postinvest.Pusher by calling the RP API to update defect
+// Pusher implements DefectPusher by calling the RP API to update defect
 // types with attribution, then recording to the push store.
 type Pusher struct {
 	client      *Client
@@ -20,19 +18,18 @@ type Pusher struct {
 }
 
 // NewPusher returns a Pusher that uses the given client, project, and submitter name.
-// The submittedBy name is included in the RP issue comment for attribution.
 func NewPusher(client *Client, project string, submittedBy string) *Pusher {
 	return &Pusher{client: client, project: project, submittedBy: submittedBy}
 }
 
 // Push reads the artifact, updates defect types in RP for each case with an
 // attribution comment, then records to the push store.
-func (p *Pusher) Push(artifactPath string, store postinvest.PushStore, jiraTicketID, jiraLink string) error {
+func (p *Pusher) Push(artifactPath string, store PushStore, jiraTicketID, jiraLink string) error {
 	data, err := os.ReadFile(artifactPath)
 	if err != nil {
 		return err
 	}
-	var a investigate.Artifact
+	var a pushArtifact
 	if err := json.Unmarshal(data, &a); err != nil {
 		return err
 	}
@@ -57,7 +54,7 @@ func (p *Pusher) Push(artifactPath string, store postinvest.PushStore, jiraTicke
 		return fmt.Errorf("update defects: %w", err)
 	}
 
-	return store.RecordPushed(postinvest.PushedRecord{
+	return store.RecordPushed(PushedRecord{
 		LaunchID:     a.LaunchID,
 		CaseIDs:      a.CaseIDs,
 		DefectType:   a.DefectType,
@@ -88,7 +85,6 @@ func (p *Pusher) buildComment(rcaMessage string, evidenceRefs []string) string {
 	return strings.Join(parts, "\n\n---\n")
 }
 
-// filterCommitLinks extracts URLs that look like git commit links from evidence refs.
 func filterCommitLinks(refs []string) []string {
 	var links []string
 	for _, ref := range refs {

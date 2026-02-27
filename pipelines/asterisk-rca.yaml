@@ -1,5 +1,7 @@
 pipeline: asterisk-rca
 description: "Root-cause analysis pipeline (F0 Recall through F6 Report)"
+imports:
+  - rca
 vars:
   recall_hit: 0.80
   recall_uncertain: 0.40

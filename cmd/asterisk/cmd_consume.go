@@ -49,7 +49,7 @@ var consumeRunCmd = &cobra.Command{
 			fetcher, symptoms, consumeProject, dedupIdx, consumeCandidateDir,
 		)
 
-		pipelineData, err := os.ReadFile("pipelines/asterisk-ingest.yaml")
+		pipelineData, err := os.ReadFile("pipelines/asterisk-rp.yaml")
 		if err != nil {
 			return fmt.Errorf("read pipeline: %w", err)
 		}

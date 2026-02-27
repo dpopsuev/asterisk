@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"asterisk/internal/preinvest"
+	"asterisk/adapters/rp"
 
 	_ "modernc.org/sqlite"
 )
@@ -377,7 +377,7 @@ func (s *SqlStore) ListRCAs() ([]*RCA, error) {
 // SaveEnvelope stores the envelope by RP launch ID. In v2, this creates the
 // necessary scaffolding (suite/version/pipeline/launch) if not already present,
 // and stores the envelope payload in launches.envelope_payload.
-func (s *SqlStore) SaveEnvelope(launchID int, env *preinvest.Envelope) error {
+func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 	if env == nil {
 		return errors.New("envelope is nil")
 	}
@@ -475,7 +475,7 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *preinvest.Envelope) error {
 
 // GetEnvelope returns the envelope for the RP launch ID, or nil if not found.
 // In v2, reads from launches.envelope_payload.
-func (s *SqlStore) GetEnvelope(launchID int) (*preinvest.Envelope, error) {
+func (s *SqlStore) GetEnvelope(launchID int) (*rp.Envelope, error) {
 	var payload []byte
 	err := s.db.QueryRow(
 		"SELECT envelope_payload FROM launches WHERE rp_launch_id = ? LIMIT 1",
@@ -490,7 +490,7 @@ func (s *SqlStore) GetEnvelope(launchID int) (*preinvest.Envelope, error) {
 	if payload == nil {
 		return nil, nil
 	}
-	var env preinvest.Envelope
+	var env rp.Envelope
 	if err := json.Unmarshal(payload, &env); err != nil {
 		return nil, fmt.Errorf("unmarshal envelope: %w", err)
 	}

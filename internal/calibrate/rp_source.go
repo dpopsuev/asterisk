@@ -5,16 +5,16 @@ import (
 	"strings"
 
 	"github.com/dpopsuev/origami/logging"
-	"asterisk/internal/preinvest"
+	"asterisk/adapters/rp"
 )
 
 // ResolveRPCases fetches real failure data from ReportPortal for cases that
 // have RPLaunchID set, updating their ErrorMessage and LogSnippet in place.
 // Cases without RPLaunchID are left unchanged. Envelopes are cached by launch
 // ID so multiple cases sharing a launch only trigger one API call.
-func ResolveRPCases(fetcher preinvest.Fetcher, scenario *Scenario) error {
+func ResolveRPCases(fetcher rp.EnvelopeFetcher, scenario *Scenario) error {
 	logger := logging.New("rp-source")
-	cache := make(map[int]*preinvest.Envelope)
+	cache := make(map[int]*rp.Envelope)
 
 	for i := range scenario.Cases {
 		c := &scenario.Cases[i]
@@ -57,7 +57,7 @@ func ResolveRPCases(fetcher preinvest.Fetcher, scenario *Scenario) error {
 
 // matchFailureItem finds the FailureItem that corresponds to a GroundTruthCase.
 // Matching priority: exact RPItemID > test_id tag in name > test name substring.
-func matchFailureItem(env *preinvest.Envelope, c *GroundTruthCase) *preinvest.FailureItem {
+func matchFailureItem(env *rp.Envelope, c *GroundTruthCase) *rp.FailureItem {
 	if c.RPItemID > 0 {
 		for i := range env.FailureList {
 			if env.FailureList[i].ID == c.RPItemID {

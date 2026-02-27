@@ -11,9 +11,8 @@ import (
 	"asterisk/internal/calibrate/adapt"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/preinvest"
-	"asterisk/internal/rp"
-	"asterisk/internal/store"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/dispatch"
 	fwmcp "github.com/dpopsuev/origami/mcp"
 )
@@ -73,7 +72,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		return nil, fwmcp.SessionMeta{}, err
 	}
 
-	var rpFetcher preinvest.Fetcher
+	var rpFetcher rp.EnvelopeFetcher
 	if rpBaseURL != "" {
 		if rpProject == "" {
 			rpProject = os.Getenv("ASTERISK_RP_PROJECT")

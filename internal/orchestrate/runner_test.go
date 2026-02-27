@@ -5,7 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 // TestRunnerFullPipeline exercises the complete F0→F6 pipeline with mock artifacts.

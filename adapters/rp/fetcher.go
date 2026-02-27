@@ -1,13 +1,9 @@
 package rp
 
-import (
-	"context"
+import "context"
 
-	"asterisk/internal/preinvest"
-)
-
-// Fetcher implements preinvest.Fetcher by calling the RP API via the
-// scope-based client. Replaces rpfetch.Fetcher.
+// Fetcher implements EnvelopeFetcher by calling the RP API via the
+// scope-based client.
 type Fetcher struct {
 	client  *Client
 	project string
@@ -18,7 +14,7 @@ func NewFetcher(client *Client, project string) *Fetcher {
 	return &Fetcher{client: client, project: project}
 }
 
-// Fetch implements preinvest.Fetcher.
-func (f *Fetcher) Fetch(launchID int) (*preinvest.Envelope, error) {
+// Fetch implements EnvelopeFetcher.
+func (f *Fetcher) Fetch(launchID int) (*Envelope, error) {
 	return f.client.Project(f.project).FetchEnvelope(context.Background(), launchID)
 }

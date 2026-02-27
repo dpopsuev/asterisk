@@ -1,6 +1,6 @@
 package store
 
-import "asterisk/internal/preinvest"
+import "asterisk/adapters/rp"
 
 // DefaultDBPath is the default relative path for the SQLite DB (per-workspace).
 // Resolve against cwd or workspace root; Open() creates the parent dir (e.g. .asterisk).
@@ -30,9 +30,9 @@ type Store interface {
 	// ListRCAs returns all RCAs.
 	ListRCAs() ([]*RCA, error)
 	// SaveEnvelope stores an envelope blob by RP launch ID.
-	SaveEnvelope(launchID int, env *preinvest.Envelope) error
+	SaveEnvelope(launchID int, env *rp.Envelope) error
 	// GetEnvelope returns the envelope for the RP launch ID.
-	GetEnvelope(launchID int) (*preinvest.Envelope, error)
+	GetEnvelope(launchID int) (*rp.Envelope, error)
 
 	// ---------------------------------------------------------------
 	// v2 methods — Investigation-scoped entities

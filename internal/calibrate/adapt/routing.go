@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"asterisk/internal/calibrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/logging"
 	"github.com/dpopsuev/origami/knowledge"
 )

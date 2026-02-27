@@ -1,4 +1,4 @@
-package postinvest
+package rp
 
 import (
 	"encoding/json"
@@ -6,14 +6,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/internal/investigate"
 )
 
 // BDD: Given artifact file, When Push runs, Then mock store records defect type (and optional Jira).
 func TestPush_RecordsDefectTypeAndJiraInStore(t *testing.T) {
 	dir := t.TempDir()
 	artifactPath := filepath.Join(dir, "artifact.json")
-	artifact := investigate.Artifact{
+	artifact := pushArtifact{
 		LaunchID:         "33195",
 		CaseIDs:          []int{1697136, 1697139},
 		DefectType:        "ti001",

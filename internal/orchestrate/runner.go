@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/dpopsuev/origami/logging"
-	"asterisk/internal/preinvest"
-	"asterisk/internal/store"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
 
@@ -46,7 +46,7 @@ type StepResult struct {
 func RunStep(
 	st store.Store,
 	caseData *store.Case,
-	env *preinvest.Envelope,
+	env *rp.Envelope,
 	catalog *knowledge.KnowledgeSourceCatalog,
 	cfg RunnerConfig,
 ) (*StepResult, error) {

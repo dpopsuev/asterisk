@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"asterisk/internal/display"
+	"asterisk/display"
 	"github.com/dpopsuev/origami/format"
 )
 

@@ -15,7 +15,7 @@ import (
 	"asterisk/internal/calibrate/adapt"
 	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
 

@@ -1,4 +1,4 @@
-package preinvest
+package rp
 
 // Envelope is the execution envelope (launch + failure list).
 // For mock skeleton we keep minimal fields; full shape matches examples/pre-investigation-33195-4.21.

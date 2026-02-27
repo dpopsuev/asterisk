@@ -8,10 +8,10 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/display"
+	"asterisk/display"
 	"asterisk/internal/investigate"
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 var saveFlags struct {

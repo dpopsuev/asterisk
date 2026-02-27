@@ -3,8 +3,8 @@ package orchestrate
 import (
 	"os"
 
-	"asterisk/internal/preinvest"
-	"asterisk/internal/store"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
 
@@ -213,7 +213,7 @@ func DefaultTaxonomy() *TaxonomyParams {
 func BuildParams(
 	st store.Store,
 	caseData *store.Case,
-	env *preinvest.Envelope,
+	env *rp.Envelope,
 	catalog *knowledge.KnowledgeSourceCatalog,
 	step PipelineStep,
 	caseDir string,

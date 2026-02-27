@@ -5,7 +5,7 @@ import (
 
 	framework "github.com/dpopsuev/origami"
 
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 // StoreHooks creates a HookRegistry with per-step store effect hooks

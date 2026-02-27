@@ -4,14 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strconv"
-
-	"asterisk/internal/preinvest"
 )
 
 // FetchEnvelope fetches a launch and its failed test items, mapping them
-// into a preinvest.Envelope. This is the convenience method that replaces
-// rpfetch.Client.FetchEnvelope.
-func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*preinvest.Envelope, error) {
+// into an Envelope.
+func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*Envelope, error) {
 	launch, err := p.Launches().Get(ctx, launchID)
 	if err != nil {
 		return nil, fmt.Errorf("fetch envelope: get launch: %w", err)
@@ -25,15 +22,15 @@ func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*preinv
 		return nil, fmt.Errorf("fetch envelope: list items: %w", err)
 	}
 
-	env := &preinvest.Envelope{
+	env := &Envelope{
 		RunID:       strconv.Itoa(launch.ID),
 		LaunchUUID:  launch.UUID,
 		Name:        launch.Name,
-		FailureList: make([]preinvest.FailureItem, 0, len(items)),
+		FailureList: make([]FailureItem, 0, len(items)),
 	}
 
 	for _, attr := range launch.Attributes {
-		env.LaunchAttributes = append(env.LaunchAttributes, preinvest.Attribute{
+		env.LaunchAttributes = append(env.LaunchAttributes, Attribute{
 			Key:    attr.Key,
 			Value:  attr.Value,
 			System: attr.System,
@@ -46,14 +43,13 @@ func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*preinv
 			path = strconv.Itoa(it.ID)
 		}
 
-		fi := preinvest.FailureItem{
+		fi := FailureItem{
 			ID:     it.ID,
 			UUID:   it.UUID,
 			Name:   it.Name,
 			Type:   it.Type,
 			Status: it.Status,
 			Path:   path,
-			// Enriched fields from TestItemResource
 			CodeRef:     it.CodeRef,
 			Description: it.Description,
 			ParentID:    it.Parent,
@@ -64,7 +60,7 @@ func (p *ProjectScope) FetchEnvelope(ctx context.Context, launchID int) (*preinv
 			fi.IssueComment = it.Issue.Comment
 			fi.AutoAnalyzed = it.Issue.AutoAnalyzed
 			for _, ext := range it.Issue.ExternalSystemIssues {
-				fi.ExternalIssues = append(fi.ExternalIssues, preinvest.ExternalIssue{
+				fi.ExternalIssues = append(fi.ExternalIssues, ExternalIssue{
 					TicketID: ext.TicketID,
 					URL:      ext.URL,
 				})

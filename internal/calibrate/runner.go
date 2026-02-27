@@ -13,8 +13,8 @@ import (
 	"github.com/dpopsuev/origami/logging"
 
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/preinvest"
-	"asterisk/internal/store"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/store"
 )
 
 // RunConfig holds configuration for a calibration run.
@@ -29,7 +29,7 @@ type RunConfig struct {
 	TokenBudget  int          // max concurrent dispatches (token semaphore); 0 = Parallel
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
 	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
-	RPFetcher    preinvest.Fetcher // optional; when set, RP-sourced cases fetch real failure data
+	RPFetcher    rp.EnvelopeFetcher // optional; when set, RP-sourced cases fetch real failure data
 }
 
 // DefaultRunConfig returns defaults for calibration.

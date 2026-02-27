@@ -11,7 +11,7 @@ import (
 
 	"github.com/dpopsuev/origami"
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 // BasicAdapter provides automated heuristic-based responses for each pipeline step.

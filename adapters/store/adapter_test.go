@@ -4,10 +4,10 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/internal/preinvest"
+	"asterisk/adapters/rp"
 )
 
-func TestPreinvestStoreAdapter_WithSqlStore(t *testing.T) {
+func TestEnvelopeStoreAdapter_WithSqlStore(t *testing.T) {
 	path := filepath.Join(t.TempDir(), "store.db")
 	s, err := Open(path)
 	if err != nil {
@@ -15,8 +15,8 @@ func TestPreinvestStoreAdapter_WithSqlStore(t *testing.T) {
 	}
 	defer s.Close()
 
-	adapter := &PreinvestStoreAdapter{Store: s}
-	env := &preinvest.Envelope{RunID: "99", Name: "adapter-test", FailureList: nil}
+	adapter := &EnvelopeStoreAdapter{Store: s}
+	env := &rp.Envelope{RunID: "99", Name: "adapter-test", FailureList: nil}
 	if err := adapter.Save(99, env); err != nil {
 		t.Fatalf("Save: %v", err)
 	}

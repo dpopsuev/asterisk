@@ -12,8 +12,8 @@ import (
 	"github.com/dpopsuev/origami/knowledge"
 
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/preinvest"
-	"asterisk/internal/store"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/store"
 )
 
 // calibrationPreamble is prepended to every prompt during cursor-based calibration.
@@ -74,7 +74,7 @@ func WithBasePath(p string) LLMAdapterOption {
 
 type llmCaseCtx struct {
 	storeCase *store.Case
-	env       *preinvest.Envelope
+	env       *rp.Envelope
 }
 
 // NewLLMAdapter creates an interactive adapter.
@@ -183,9 +183,9 @@ func (a *LLMAdapter) SetCatalog(cat *knowledge.KnowledgeSourceCatalog) { a.catal
 func (a *LLMAdapter) RegisterCase(gtCaseID string, storeCase *store.Case) {
 	a.cases[gtCaseID] = &llmCaseCtx{
 		storeCase: storeCase,
-		env: &preinvest.Envelope{
+		env: &rp.Envelope{
 			Name: storeCase.Name,
-			FailureList: []preinvest.FailureItem{{
+			FailureList: []rp.FailureItem{{
 				Name: storeCase.Name,
 			}},
 		},

@@ -7,17 +7,17 @@ import (
 	"path/filepath"
 	"testing"
 
-	"asterisk/internal/preinvest"
+	"asterisk/adapters/rp"
 )
 
 func TestAnalyzeAndPush_FileEnvelope(t *testing.T) {
 	dir := t.TempDir()
 	envPath := filepath.Join(dir, "envelope.json")
 	artifactPath := filepath.Join(dir, "artifact.json")
-	env := &preinvest.Envelope{
+	env := &rp.Envelope{
 		RunID:  "99",
 		Name:   "test",
-		FailureList: []preinvest.FailureItem{{ID: 1, Name: "fail1", Status: "FAILED"}},
+		FailureList: []rp.FailureItem{{ID: 1, Name: "fail1", Status: "FAILED"}},
 	}
 	data, _ := json.MarshalIndent(env, "", "  ")
 	if err := os.WriteFile(envPath, data, 0644); err != nil {

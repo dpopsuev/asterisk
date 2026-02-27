@@ -15,9 +15,8 @@ import (
 	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/preinvest"
-	"asterisk/internal/rp"
-	"asterisk/internal/store"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/store"
 )
 
 var calibrateFlags struct {
@@ -83,7 +82,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	}
 
 	// Resolve RP-sourced cases before adapter creation so adapters see real data.
-	var rpFetcher preinvest.Fetcher
+	var rpFetcher rp.EnvelopeFetcher
 	if calibrateFlags.rpBase != "" {
 		rpProject := resolveRPProject(calibrateFlags.rpProject)
 		if rpProject == "" {

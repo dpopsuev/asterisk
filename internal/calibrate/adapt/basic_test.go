@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 func TestBasicAdapter_Name(t *testing.T) {

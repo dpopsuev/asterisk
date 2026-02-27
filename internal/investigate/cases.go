@@ -1,9 +1,9 @@
 package investigate
 
-import "asterisk/internal/preinvest"
+import "asterisk/adapters/rp"
 
 // CaseIDsFromEnvelope returns one case ID per failure (step) for artifact shape.
-func CaseIDsFromEnvelope(env *preinvest.Envelope) []int {
+func CaseIDsFromEnvelope(env *rp.Envelope) []int {
 	if env == nil {
 		return nil
 	}

@@ -9,8 +9,6 @@ import (
 	"strings"
 	"testing"
 
-	"asterisk/internal/investigate"
-	"asterisk/internal/postinvest"
 )
 
 func TestPusher_Push_Success(t *testing.T) {
@@ -32,7 +30,7 @@ func TestPusher_Push_Success(t *testing.T) {
 
 	pusher := NewPusher(client, "ecosystem-qe", "dpopsuev")
 
-	artifact := investigate.Artifact{
+	artifact := pushArtifact{
 		LaunchID:     "12345",
 		CaseIDs:      []int{100, 101},
 		DefectType:   "pb001",
@@ -46,7 +44,7 @@ func TestPusher_Push_Success(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	store := postinvest.NewMemPushStore()
+	store := NewMemPushStore()
 	err = pusher.Push(artifactPath, store, "JIRA-123", "https://jira.example.com/JIRA-123")
 	if err != nil {
 		t.Fatalf("Push: %v", err)
@@ -109,7 +107,7 @@ func TestPusher_Push_AttributionWithoutSubmitter(t *testing.T) {
 	client, _ := New(server.URL, "test-token", WithHTTPClient(server.Client()))
 	pusher := NewPusher(client, "ecosystem-qe", "")
 
-	artifact := investigate.Artifact{
+	artifact := pushArtifact{
 		LaunchID:   "12345",
 		CaseIDs:    []int{100},
 		DefectType: "pb001",
@@ -119,7 +117,7 @@ func TestPusher_Push_AttributionWithoutSubmitter(t *testing.T) {
 	artifactPath := filepath.Join(tmpDir, "artifact.json")
 	os.WriteFile(artifactPath, data, 0644)
 
-	store := postinvest.NewMemPushStore()
+	store := NewMemPushStore()
 	if err := pusher.Push(artifactPath, store, "", ""); err != nil {
 		t.Fatalf("Push: %v", err)
 	}
@@ -141,7 +139,7 @@ func TestPusher_Push_MissingFile(t *testing.T) {
 
 	client, _ := New(server.URL, "test-token", WithHTTPClient(server.Client()))
 	pusher := NewPusher(client, "ecosystem-qe", "")
-	store := postinvest.NewMemPushStore()
+	store := NewMemPushStore()
 
 	err := pusher.Push("/nonexistent/path.json", store, "", "")
 	if err == nil {
@@ -157,7 +155,7 @@ func TestPusher_Push_InvalidJSON(t *testing.T) {
 
 	client, _ := New(server.URL, "test-token", WithHTTPClient(server.Client()))
 	pusher := NewPusher(client, "ecosystem-qe", "")
-	store := postinvest.NewMemPushStore()
+	store := NewMemPushStore()
 
 	tmpDir := t.TempDir()
 	artifactPath := filepath.Join(tmpDir, "bad.json")
@@ -181,7 +179,7 @@ func TestPusher_Push_APIError(t *testing.T) {
 	client, _ := New(server.URL, "test-token", WithHTTPClient(server.Client()))
 	pusher := NewPusher(client, "ecosystem-qe", "testuser")
 
-	artifact := investigate.Artifact{
+	artifact := pushArtifact{
 		LaunchID:   "12345",
 		CaseIDs:    []int{100},
 		DefectType: "pb001",
@@ -191,7 +189,7 @@ func TestPusher_Push_APIError(t *testing.T) {
 	artifactPath := filepath.Join(tmpDir, "artifact.json")
 	os.WriteFile(artifactPath, data, 0644)
 
-	store := postinvest.NewMemPushStore()
+	store := NewMemPushStore()
 	err := pusher.Push(artifactPath, store, "", "")
 	if err == nil {
 		t.Error("expected error for API failure")

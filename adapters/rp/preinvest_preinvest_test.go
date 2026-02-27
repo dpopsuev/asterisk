@@ -1,4 +1,4 @@
-package preinvest
+package rp
 
 import (
 	"encoding/json"
@@ -7,7 +7,6 @@ import (
 	"testing"
 )
 
-// fixtureEnvelope loads envelope from examples (contract: use fixture for stub).
 func fixtureEnvelope(t *testing.T) *Envelope {
 	t.Helper()
 	path := filepath.Join("..", "..", "examples", "pre-investigation-33195-4.21", "envelope_33195_4.21.json")
@@ -22,12 +21,11 @@ func fixtureEnvelope(t *testing.T) *Envelope {
 	return &env
 }
 
-// BDD: Given launch ID 33195 and fixture envelope, When FetchAndSave, Then envelope can be read back.
 func TestFetchAndSave_StoresEnvelopeByLaunchID(t *testing.T) {
 	launchID := 33195
 	env := fixtureEnvelope(t)
 	fetcher := NewStubFetcher(env)
-	store := NewMemStore()
+	store := NewMemEnvelopeStore()
 
 	err := FetchAndSave(fetcher, store, launchID)
 	if err != nil {
@@ -49,9 +47,8 @@ func TestFetchAndSave_StoresEnvelopeByLaunchID(t *testing.T) {
 	}
 }
 
-// Get with unknown launch ID returns nil (no error).
-func TestMemStore_GetUnknownLaunchIDReturnsNil(t *testing.T) {
-	store := NewMemStore()
+func TestMemEnvelopeStore_GetUnknownLaunchIDReturnsNil(t *testing.T) {
+	store := NewMemEnvelopeStore()
 	got, err := store.Get(33199)
 	if err != nil {
 		t.Fatalf("Get: %v", err)

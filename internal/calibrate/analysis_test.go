@@ -7,7 +7,7 @@ import (
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/adapt"
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 func TestRunAnalysis_BasicAdapter(t *testing.T) {

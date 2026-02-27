@@ -10,7 +10,7 @@ import (
 	"github.com/dpopsuev/origami/logging"
 
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 // calibrationWalker implements framework.Walker for calibration runs.

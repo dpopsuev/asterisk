@@ -1,14 +1,14 @@
 package calibrate
 
 import (
-	"asterisk/internal/display"
+	"asterisk/display"
 	"context"
 	"fmt"
 	"sync"
 	"time"
 
 	"asterisk/internal/orchestrate"
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 
 	"github.com/dpopsuev/origami/logging"
 	"golang.org/x/sync/errgroup"

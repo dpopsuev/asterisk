@@ -3,7 +3,7 @@ package orchestrate
 import (
 	"testing"
 
-	"asterisk/internal/store"
+	"asterisk/adapters/store"
 )
 
 // --- ApplyStoreEffects tests ---

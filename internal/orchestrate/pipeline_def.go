@@ -35,13 +35,23 @@ func AsteriskPipelineDef(th Thresholds) (*framework.PipelineDef, error) {
 // BuildRunner constructs a framework.Runner from the Asterisk pipeline
 // definition with the given thresholds. Expression edges are compiled at
 // build time and evaluate against the config derived from thresholds.
+// Accepts an optional NodeRegistry; if nil, uses the legacy passthrough registry.
 func BuildRunner(th Thresholds, hooks ...framework.HookRegistry) (*framework.Runner, error) {
+	return BuildRunnerWith(th, nil, hooks...)
+}
+
+// BuildRunnerWith constructs a framework.Runner using the provided node registry,
+// marble registry, and hooks. When nodes is nil, falls back to the legacy
+// passthrough node registry for backward compatibility.
+func BuildRunnerWith(th Thresholds, nodes framework.NodeRegistry, hooks ...framework.HookRegistry) (*framework.Runner, error) {
 	def, err := AsteriskPipelineDef(th)
 	if err != nil {
 		return nil, err
 	}
-	nodeReg := buildNodeRegistry()
-	reg := framework.GraphRegistries{Nodes: nodeReg}
+	if nodes == nil {
+		nodes = buildNodeRegistry()
+	}
+	reg := framework.GraphRegistries{Nodes: nodes}
 	if len(hooks) > 0 {
 		reg.Hooks = hooks[0]
 	}
