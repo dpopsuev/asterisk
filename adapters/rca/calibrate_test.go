@@ -21,12 +21,21 @@ func loadTestScoreCard(t *testing.T) *cal.ScoreCard {
 	return sc
 }
 
+func mustLoadScenario(t *testing.T, name string) *rca.Scenario {
+	t.Helper()
+	s, err := scenarios.LoadScenario(name)
+	if err != nil {
+		t.Fatalf("LoadScenario(%q): %v", name, err)
+	}
+	return s
+}
+
 func TestStubCalibration_AllMetricsPass(t *testing.T) {
 	// Override the orchestrate base path to a temp dir
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	adapter := adapt.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
@@ -102,7 +111,7 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	adapter := adapt.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
@@ -137,7 +146,7 @@ func TestFormatReport(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	adapter := adapt.NewStubAdapter(scenario)
 	cfg := rca.DefaultRunConfig(scenario, adapter)
 	cfg.Thresholds = rca.DefaultThresholds()
@@ -178,7 +187,7 @@ func TestStubCalibration_DaemonMock(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.DaemonMockScenario()
+	scenario := mustLoadScenario(t, "daemon-mock")
 	adapter := adapt.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
@@ -229,7 +238,7 @@ func TestStubCalibration_PTPReal(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPRealScenario()
+	scenario := mustLoadScenario(t, "ptp-real")
 	adapter := adapt.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
@@ -302,20 +311,20 @@ func TestStubCalibration_PTPReal(t *testing.T) {
 func TestScenarioCoverage(t *testing.T) {
 	testCases := []struct {
 		name     string
-		scenario *rca.Scenario
+		scenario string
 		rcas     int
 		symptoms int
 		cases    int
 		repos    int
 	}{
-		{"ptp-mock", scenarios.PTPMockScenario(), 3, 4, 12, 5},
-		{"daemon-mock", scenarios.DaemonMockScenario(), 2, 3, 8, 5},
-		{"ptp-real", scenarios.PTPRealScenario(), 2, 3, 8, 5},
+		{"ptp-mock", "ptp-mock", 3, 4, 12, 5},
+		{"daemon-mock", "daemon-mock", 2, 3, 8, 5},
+		{"ptp-real", "ptp-real", 2, 3, 8, 5},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			s := tc.scenario
+			s := mustLoadScenario(t, tc.scenario)
 
 			if len(s.RCAs) != tc.rcas {
 				t.Errorf("expected %d RCAs, got %d", tc.rcas, len(s.RCAs))

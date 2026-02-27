@@ -70,18 +70,9 @@ func init() {
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
-	var scenario *rca.Scenario
-	switch calibrateFlags.scenario {
-	case "ptp-mock":
-		scenario = scenarios.PTPMockScenario()
-	case "daemon-mock":
-		scenario = scenarios.DaemonMockScenario()
-	case "ptp-real":
-		scenario = scenarios.PTPRealScenario()
-	case "ptp-real-ingest":
-		scenario = scenarios.PTPRealIngestScenario()
-	default:
-		return fmt.Errorf("unknown scenario: %s (available: ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)", calibrateFlags.scenario)
+	scenario, err := scenarios.LoadScenario(calibrateFlags.scenario)
+	if err != nil {
+		return err
 	}
 
 	// Resolve RP-sourced cases before adapter creation so adapters see real data.

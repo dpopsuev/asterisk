@@ -35,7 +35,10 @@ var consumeRunCmd = &cobra.Command{
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
-		scenario := scenarios.PTPRealIngestScenario()
+		scenario, err := scenarios.LoadScenario("ptp-real-ingest")
+		if err != nil {
+			return fmt.Errorf("load scenario: %w", err)
+		}
 		symptoms := scenario.Symptoms
 
 		dedupIdx, err := ingest.LoadDedupIndex(consumeDatasetDir, consumeCandidateDir)

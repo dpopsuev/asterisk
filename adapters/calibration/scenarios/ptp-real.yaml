@@ -1,0 +1,396 @@
+name: ptp-real
+description: 'Real PTP Recovery: OCPBUGS-74895 (broken pipe) + OCPBUGS-74904 (config hang), 8 failures, 3 symptoms, 2 RCAs'
+rcas:
+    - id: R1
+      title: 'Broken pipe: daemon→proxy events.sock communication — pipe buffer clog causes concatenated burst at receiver'
+      description: OCPBUGS-74895. The linuxptp-daemon writes PTP events to cloud-event-proxy via Unix socket /cloud-native/events.sock. Under burst conditions (node reboot, interface down) the pipe buffer clogs causing EPIPE. Concatenated burst at receiver corrupts the event stream. Duplicate of R2.
+      defect_type: pb001
+      category: product
+      component: linuxptp-daemon
+      affected_versions:
+        - "4.18"
+        - "4.19"
+      jira_id: OCPBUGS-74895
+      required_keywords:
+        - broken
+        - pipe
+        - events.sock
+        - socket
+        - buffer
+        - EPIPE
+        - cloud-event-proxy
+      keyword_threshold: 3
+      relevant_repos:
+        - linuxptp-daemon
+        - cloud-event-proxy
+        - cnf-gotests
+      verified: false
+    - id: R2
+      title: 'Config change hang: daemon detects PTP config change, stops children services, doesn''t bring them up again'
+      description: OCPBUGS-74904. When PTP configuration changes, the linuxptp-daemon kills child processes (ptp4l, phc2sys) but fails to restart them. The daemon enters a stuck state with no PTP synchronization. Same underlying root cause as OCPBUGS-74895 (broken pipe). Both are in Networking/PTP, severity Critical, marked Regression.
+      defect_type: pb001
+      category: product
+      component: linuxptp-daemon
+      affected_versions:
+        - "4.18"
+        - "4.19"
+      jira_id: OCPBUGS-74904
+      required_keywords:
+        - config
+        - change
+        - hang
+        - restart
+        - children
+        - ptp4l
+        - phc2sys
+        - kill
+        - stuck
+      keyword_threshold: 3
+      relevant_repos:
+        - linuxptp-daemon
+      verified: false
+symptoms:
+    - id: S1
+      name: Config change hang — process restart failure
+      error_pattern: phc2sys.*ptp4l.*process.*kill.*daemon.*restart|PANIC.*recovery.*path
+      component: linuxptp-daemon
+      maps_to_rca: R2
+    - id: S2
+      name: Broken pipe — event socket write failure
+      error_pattern: events\.sock.*broken pipe|consumer events lost.*reboot|EPIPE
+      component: linuxptp-daemon
+      maps_to_rca: R1
+    - id: S3
+      name: BeforeEach cascade — 2-port OC setup fails
+      error_pattern: BeforeEach.*ptp_interfaces\.go:498.*2-port.*OC
+      component: cnf-gotests
+      maps_to_rca: R1
+cases:
+    - id: C1
+      version: "4.18"
+      job: '[recovery]'
+      test_name: PTP Recovery > ptp process restart > should recover the phc2sys process after killing it
+      test_id: "59862"
+      error_message: 'ptp_recovery.go:121: Expected phc2sys process to restart within 30s after config change, but daemon is stuck — no child process restart observed'
+      log_snippet: |-
+        2026-01-10T08:15:00Z [STEP] Kill phc2sys and wait for restart
+        2026-01-10T08:15:01Z daemon: PTP config change detected, stopping children
+        2026-01-10T08:15:02Z daemon: killed phc2sys (pid 12345)
+        2026-01-10T08:15:32Z FAIL: ptp_recovery.go:121
+        Expected phc2sys process to restart within 30s
+        but daemon is stuck — no child process restart observed
+      symptom_id: S1
+      rca_id: R2
+      expected_path:
+        - F0
+        - F1
+        - F2
+        - F3
+        - F4
+        - F5
+        - F6
+      expected_recall:
+        match: false
+        confidence: 0
+      expected_triage:
+        symptom_category: product
+        severity: critical
+        defect_type_hypothesis: pb001
+        candidate_repos:
+            - linuxptp-daemon
+            - ptp-operator
+        skip_investigation: false
+        cascade_suspected: false
+      expected_resolve:
+        selected_repos:
+            - name: linuxptp-daemon
+              reason: SUT daemon with config change and process management code
+      expected_invest:
+        rca_message: Config change handler in linuxptp-daemon kills child processes (phc2sys, ptp4l) but fails to restart them. The daemon detects a PTP config change, stops children services, but never brings them back up. OCPBUGS-74904.
+        defect_type: pb001
+        component: linuxptp-daemon
+        convergence_score: 0.85
+        evidence_refs:
+            - linuxptp-daemon:pkg/daemon/daemon.go:config_change_handler
+      expected_correlate:
+        is_duplicate: false
+        confidence: 0.3
+        cross_version_match: false
+      expected_review:
+        decision: approve
+      expect_recall_hit: false
+      expect_skip: false
+      expect_cascade: false
+      expected_loops: 0
+    - id: C2
+      version: "4.18"
+      job: '[recovery]'
+      test_name: PTP Recovery > ptp process restart > should recover the ptp4l process after killing a ptp4l process related to phc2sys
+      test_id: "49737"
+      error_message: 'panic.go:115: PANICKED — ptp4l process recovery failed, daemon stuck in kill loop [recovered]'
+      log_snippet: |-
+        2026-01-10T08:45:00Z [STEP] Kill ptp4l related to phc2sys
+        2026-01-10T08:45:01Z daemon: config change — killing ptp4l
+        2026-01-10T08:45:02Z PANIC: panic.go:115
+        ptp4l process recovery failed — daemon stuck in kill loop
+        [recovered]
+      symptom_id: S1
+      rca_id: R2
+      expected_path:
+        - F0
+        - F5
+        - F6
+      expected_recall:
+        match: true
+        confidence: 0.95
+      expected_review:
+        decision: approve
+      expect_recall_hit: true
+      expect_skip: false
+      expect_cascade: false
+      expected_loops: 0
+    - id: C3
+      version: "4.18"
+      job: '[events]'
+      test_name: PTP Recovery > HTTP events using consumer validates system fully functional after removing consumer
+      test_id: "59996"
+      error_message: '[AfterEach] ptp_events_and_metrics.go:175: daemon failed to restart ptp4l after consumer removal — config change hang'
+      log_snippet: |-
+        2026-01-10T09:00:00Z [AfterEach] ptp_events_and_metrics.go:175
+        2026-01-10T09:00:01Z cleanup: removing event consumer
+        2026-01-10T09:00:02Z daemon: config change triggered by consumer removal
+        2026-01-10T09:00:32Z FAIL [AfterEach]: daemon failed to restart ptp4l
+        config change hang after consumer removal
+      symptom_id: S1
+      rca_id: R2
+      expected_path:
+        - F0
+        - F5
+        - F6
+      expected_recall:
+        match: true
+        confidence: 0.92
+      expected_review:
+        decision: approve
+      expect_recall_hit: true
+      expect_skip: false
+      expect_cascade: false
+      expected_loops: 0
+    - id: C4
+      version: "4.18"
+      job: '[recovery]'
+      test_name: PTP Recovery > ptp node reboot > validates PTP consumer events after ptp node reboot
+      test_id: "59995"
+      error_message: 'ptp_events_and_metrics.go:221: events.sock broken pipe after node reboot — PTP consumer events lost, event stream corrupted'
+      log_snippet: |-
+        2026-01-10T10:00:00Z [STEP] Reboot PTP node and validate events
+        2026-01-10T10:00:30Z daemon: node reboot complete, reinitializing PTP
+        2026-01-10T10:00:35Z write /cloud-native/events.sock: broken pipe (EPIPE)
+        2026-01-10T10:00:36Z cloud-event-proxy: consumer events lost after pipe break
+        FAIL: ptp_events_and_metrics.go:221
+        Expected PTP consumer events to resume after reboot
+        but events.sock broken pipe — stream corrupted
+      symptom_id: S2
+      rca_id: R1
+      expected_path:
+        - F0
+        - F1
+        - F2
+        - F3
+        - F4
+        - F5
+        - F6
+      expected_recall:
+        match: false
+        confidence: 0
+      expected_triage:
+        symptom_category: product
+        severity: critical
+        defect_type_hypothesis: pb001
+        candidate_repos:
+            - linuxptp-daemon
+            - cloud-event-proxy
+        skip_investigation: false
+        cascade_suspected: false
+      expected_resolve:
+        selected_repos:
+            - name: linuxptp-daemon
+              reason: Daemon writes PTP events to events.sock
+            - name: cloud-event-proxy
+              reason: Proxy reads events from events.sock
+      expected_invest:
+        rca_message: Broken pipe on Unix socket /cloud-native/events.sock (OCPBUGS-74895). The linuxptp-daemon writes PTP events to cloud-event-proxy. After node reboot, burst of events clogs the pipe buffer causing EPIPE. Events are lost and the stream is corrupted at the receiver. Same underlying daemon process management bug as OCPBUGS-74904.
+        defect_type: pb001
+        component: linuxptp-daemon
+        convergence_score: 0.82
+        evidence_refs:
+            - linuxptp-daemon:pkg/event/socket.go:write_event
+            - cloud-event-proxy:pkg/receiver/handler.go:read_events
+      expected_correlate:
+        is_duplicate: false
+        confidence: 0.4
+        cross_version_match: false
+      expected_review:
+        decision: approve
+      expect_recall_hit: false
+      expect_skip: false
+      expect_cascade: false
+      expected_loops: 0
+    - id: C5
+      version: "4.18"
+      job: '[events]'
+      test_name: PTP Events and Metrics > interface down > should generate events when slave interface goes down and up
+      test_id: "49742"
+      error_message: 'ptp_interfaces.go:753: events.sock broken pipe when slave interface ens3f0 went down — consumer events not received'
+      log_snippet: |-
+        2026-01-10T11:00:00Z PTP: slave interface ens3f0 went down
+        2026-01-10T11:00:01Z write /cloud-native/events.sock: broken pipe (EPIPE)
+        2026-01-10T11:00:02Z consumer: no events received after interface down
+        FAIL: ptp_interfaces.go:753
+        Expected PTP events after interface down/up
+      symptom_id: S2
+      rca_id: R1
+      expected_path:
+        - F0
+        - F5
+        - F6
+      expected_recall:
+        match: true
+        confidence: 0.93
+      expected_review:
+        decision: approve
+      expect_recall_hit: true
+      expect_skip: false
+      expect_cascade: false
+      expected_loops: 0
+    - id: C6
+      version: "4.18"
+      job: '[events]'
+      test_name: PTP Events and Metrics > interface down OC 2 port > verifies 2-port oc ha failover when active port goes down
+      test_id: "80963"
+      error_message: '[BeforeEach] ptp_interfaces.go:498: failed to setup 2-port OC HA profile: events.sock broken pipe during initialization'
+      log_snippet: |-
+        2026-01-10T12:00:00Z [BeforeEach] ptp_interfaces.go:498
+        setup 2-port OC HA profile
+        2026-01-10T12:00:01Z events.sock: broken pipe during OC profile initialization
+        FAIL [BeforeEach]: failed to setup 2-port OC HA profile
+      symptom_id: S3
+      rca_id: R1
+      expected_path:
+        - F0
+        - F1
+        - F3
+        - F4
+      expected_recall:
+        match: false
+        confidence: 0.15
+      expected_triage:
+        symptom_category: product
+        severity: high
+        defect_type_hypothesis: pb001
+        candidate_repos:
+            - cnf-gotests
+        skip_investigation: false
+        cascade_suspected: true
+      expected_invest:
+        rca_message: Cascade from events.sock broken pipe (OCPBUGS-74895). BeforeEach at ptp_interfaces.go:498 fails because the pipe is broken during 2-port OC HA profile initialization. Same root cause as the node reboot broken pipe failure. Three child tests (C6, C7, C8) all fail at this shared setup line.
+        defect_type: pb001
+        component: linuxptp-daemon
+        convergence_score: 0.82
+        evidence_refs:
+            - cnf-gotests:test/ptp_interfaces.go:498
+      expected_correlate:
+        is_duplicate: true
+        confidence: 0.88
+        cross_version_match: false
+      expected_review:
+        decision: approve
+      expect_recall_hit: false
+      expect_skip: false
+      expect_cascade: true
+      expected_loops: 0
+    - id: C7
+      version: "4.18"
+      job: '[events]'
+      test_name: PTP Events and Metrics > interface down OC 2 port > verifies 2-port oc ha holdover & freerun when both ports go down
+      test_id: "80964"
+      error_message: '[BeforeEach] ptp_interfaces.go:498: failed to setup 2-port OC HA profile: events.sock broken pipe during initialization'
+      log_snippet: |-
+        2026-01-10T12:00:02Z [BeforeEach] ptp_interfaces.go:498
+        FAIL [BeforeEach]: same cascade — events.sock broken pipe
+      symptom_id: S3
+      rca_id: R1
+      expected_path:
+        - F0
+        - F5
+        - F6
+      expected_recall:
+        match: true
+        confidence: 0.92
+      expected_review:
+        decision: approve
+      expect_recall_hit: true
+      expect_skip: false
+      expect_cascade: false
+      expected_loops: 0
+    - id: C8
+      version: "4.18"
+      job: '[events]'
+      test_name: PTP Events and Metrics > interface down OC 2 port > verifies 2-port oc ha passive interface recovery
+      test_id: "82012"
+      error_message: '[BeforeEach] ptp_interfaces.go:498: failed to setup 2-port OC HA profile: events.sock broken pipe during initialization'
+      log_snippet: |-
+        2026-01-10T12:00:03Z [BeforeEach] ptp_interfaces.go:498
+        FAIL [BeforeEach]: same cascade — events.sock broken pipe
+      symptom_id: S3
+      rca_id: R1
+      expected_path:
+        - F0
+        - F5
+        - F6
+      expected_recall:
+        match: true
+        confidence: 0.92
+      expected_review:
+        decision: approve
+      expect_recall_hit: true
+      expect_skip: false
+      expect_cascade: false
+      expected_loops: 0
+workspace:
+    repos:
+        - name: cnf-gotests
+          path: ""
+          purpose: 'PTP test cases (Ginkgo): test code, assertions, test helpers. Error stacks point here for cascade failures at ptp_interfaces.go:498.'
+          branch: master
+          relevant_to_rcas:
+            - R1
+        - name: ptp-operator
+          path: ""
+          purpose: 'SUT: PTP operator lifecycle, manages linuxptp-daemon DaemonSet, PtpConfig CRD, PTP profiles'
+          branch: release-4.18
+        - name: linuxptp-daemon
+          path: ""
+          purpose: 'SUT: PTP daemon running on nodes — ptp4l, phc2sys, ts2phc processes; event socket communication with cloud-event-proxy; config change handling'
+          branch: release-4.18
+          relevant_to_rcas:
+            - R1
+            - R2
+        - name: cloud-event-proxy
+          path: ""
+          purpose: 'Cloud Event Proxy: receives PTP events from daemon via Unix socket (/cloud-native/events.sock); publishes cloud events. Broken pipe issue is daemon→proxy communication.'
+          branch: release-4.18
+          relevant_to_rcas:
+            - R1
+        - name: eco-gotests
+          path: ""
+          purpose: Ecosystem QE test framework; may contain shared helpers used by cnf-gotests (NOT PTP-specific)
+          branch: master
+          is_red_herring: true
+    sources:
+        - name: ptp-operator-architecture
+          kind: doc
+          uri: ""
+          purpose: 'PTP architecture disambiguation: linuxptp-daemon (pod) vs linuxptp-daemon (repo), component relationships, event flow'
+          read_policy: always
+          local_path: datasets/docs/ptp/architecture.md

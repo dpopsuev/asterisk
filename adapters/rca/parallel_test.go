@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"asterisk/adapters/rca/adapt"
-	"asterisk/adapters/calibration/scenarios"
 	"asterisk/adapters/rca"
 )
 
@@ -15,7 +14,7 @@ func TestTriagePool_ResultsMatch(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 
 	// Serial run
 	serialCfg := rca.RunConfig{
@@ -91,7 +90,7 @@ func TestTriagePool_NoRace(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
 		Adapter:     adapt.NewStubAdapter(scenario),
@@ -121,7 +120,7 @@ func TestInvestigationPool_AllClustersComplete(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	cfg := rca.RunConfig{
 		Scenario:    scenario,
 		Adapter:     adapt.NewStubAdapter(scenario),
@@ -183,7 +182,7 @@ func TestInvestigationPool_TokenSemaphore(t *testing.T) {
 	tmpDir := t.TempDir()
 	// basePath is passed via RunConfig.BasePath below
 
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 
 	// Run with token budget = 1 (sequential dispatches even with 4 workers)
 	cfg := rca.RunConfig{

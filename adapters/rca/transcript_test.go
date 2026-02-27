@@ -8,14 +8,13 @@ import (
 	"testing"
 
 	"asterisk/adapters/rca/adapt"
-	"asterisk/adapters/calibration/scenarios"
 	"asterisk/adapters/rca"
 )
 
 // TestWeaveTranscripts_StubAdapter runs a full calibration with the stub adapter
 // and verifies the weaver produces transcripts grouped by RCA.
 func TestWeaveTranscripts_StubAdapter(t *testing.T) {
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	adapter := adapt.NewStubAdapter(scenario)
 
 	tmpDir := t.TempDir()
@@ -86,7 +85,7 @@ func TestWeaveTranscripts_EmptyCaseResults(t *testing.T) {
 // TestWeaveTranscripts_GroupsByRCA verifies cases with the same ActualRCAID
 // appear in the same transcript.
 func TestWeaveTranscripts_GroupsByRCA(t *testing.T) {
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	adapter := adapt.NewStubAdapter(scenario)
 
 	tmpDir := t.TempDir()
@@ -262,7 +261,7 @@ func TestTranscriptSlug(t *testing.T) {
 // TestWeaveTranscripts_WritesToDisk verifies end-to-end: run calibration,
 // weave, render, and write transcript files to disk.
 func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
-	scenario := scenarios.PTPMockScenario()
+	scenario := mustLoadScenario(t, "ptp-mock")
 	adapter := adapt.NewStubAdapter(scenario)
 
 	tmpDir := t.TempDir()

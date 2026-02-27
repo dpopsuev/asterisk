@@ -7,9 +7,11 @@ replace github.com/dpopsuev/origami => /home/dpopsuev/Workspace/origami
 require (
 	github.com/chromedp/chromedp v0.14.2
 	github.com/dpopsuev/origami v0.3.1-0.20260225150856-cffff06dd7b3
+	github.com/google/go-cmp v0.7.0
 	github.com/modelcontextprotocol/go-sdk v1.3.1
 	github.com/spf13/cobra v1.10.2
 	golang.org/x/sync v0.19.0
+	gopkg.in/yaml.v3 v3.0.1
 	modernc.org/sqlite v1.46.1
 )
 
@@ -57,7 +59,6 @@ require (
 	golang.org/x/text v0.33.0 // indirect
 	golang.org/x/tools v0.41.0 // indirect
 	google.golang.org/protobuf v1.36.8 // indirect
-	gopkg.in/yaml.v3 v3.0.1 // indirect
 	modernc.org/libc v1.67.6 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

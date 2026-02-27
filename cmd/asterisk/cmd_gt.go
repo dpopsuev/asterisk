@@ -119,18 +119,7 @@ var gtExportCmd = &cobra.Command{
 }
 
 func lookupGoScenario(name string) (*rca.Scenario, error) {
-	switch name {
-	case "ptp-mock":
-		return scenarios.PTPMockScenario(), nil
-	case "daemon-mock":
-		return scenarios.DaemonMockScenario(), nil
-	case "ptp-real":
-		return scenarios.PTPRealScenario(), nil
-	case "ptp-real-ingest":
-		return scenarios.PTPRealIngestScenario(), nil
-	default:
-		return nil, fmt.Errorf("unknown scenario: %s (available: ptp-mock, daemon-mock, ptp-real, ptp-real-ingest)", name)
-	}
+	return scenarios.LoadScenario(name)
 }
 
 func init() {
