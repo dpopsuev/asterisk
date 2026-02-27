@@ -6,8 +6,6 @@ import (
 
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/format"
-
-	"asterisk/display"
 )
 
 // FormatReport produces the human-readable calibration report.
@@ -18,7 +16,7 @@ func FormatReport(report *CalibrationReport) string {
 
 	cfg := cal.FormatConfig{
 		Title:          "Asterisk Calibration Report",
-		MetricNameFunc: display.Metric,
+		MetricNameFunc: defaultVocab.Name,
 		ThresholdFunc:  formatThreshold,
 	}
 
@@ -53,11 +51,11 @@ func FormatReport(report *CalibrationReport) string {
 		format.ColumnConfig{Number: 2, MaxWidth: 40},
 	)
 	for _, cr := range report.CaseResults {
-		path := display.StagePath(cr.ActualPath)
+		path := vocabStagePath(cr.ActualPath)
 		if path == "" {
 			path = "(no steps)"
 		}
-		rpTag := display.RPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
+		rpTag := vocabRPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
 		if rpTag == "" {
 			rpTag = "-"
 		}
@@ -65,7 +63,7 @@ func FormatReport(report *CalibrationReport) string {
 			cr.CaseID,
 			format.Truncate(cr.TestName, 40),
 			fmt.Sprintf("%s/%s", cr.Version, cr.Job),
-			display.DefectTypeWithCode(cr.ActualDefectType),
+			vocabNameWithCode(cr.ActualDefectType),
 			format.BoolMark(cr.DefectTypeCorrect),
 			rpTag,
 			format.BoolMark(cr.ComponentCorrect),

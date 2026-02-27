@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/display"
 	"asterisk/internal/orchestrate"
 	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
@@ -90,7 +89,7 @@ func runCursor(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	fmt.Fprintf(out, "Step: %s\n", display.StageWithCode(string(result.NextStep)))
+	fmt.Fprintf(out, "Step: %s\n", vocabNameWithCode(string(result.NextStep)))
 	fmt.Fprintf(out, "Prompt: %s\n", result.PromptPath)
 	fmt.Fprintf(out, "\nPaste the prompt into Cursor, then save the artifact to the case directory.\n")
 	fmt.Fprintf(out, "Run 'asterisk cursor' again to advance to the next step.\n")

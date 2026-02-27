@@ -1,7 +1,6 @@
 package calibrate
 
 import (
-	"asterisk/display"
 	"context"
 	"fmt"
 	"sync"
@@ -422,7 +421,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 
 	action, ruleID := orchestrate.EvaluateHeuristics(rules, orchestrate.StepF0Recall, recallResult, state)
 	logger.Debug("heuristic evaluated",
-		"case_id", gtCase.ID, "step", "Recall", "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
+		"case_id", gtCase.ID, "step", "Recall", "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 	orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 	_ = orchestrate.SaveState(caseDir, state)
 
@@ -475,7 +474,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 
 		action, ruleID = orchestrate.EvaluateHeuristics(rules, orchestrate.StepF1Triage, triageResult, state)
 		logger.Debug("heuristic evaluated",
-			"case_id", gtCase.ID, "step", "Triage", "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
+			"case_id", gtCase.ID, "step", "Triage", "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		_ = orchestrate.SaveState(caseDir, state)
 
@@ -545,12 +544,12 @@ func runRemainingSteps(ctx context.Context, st store.Store, caseData *store.Case
 
 		logger := logging.New("parallel")
 		if err := orchestrate.ApplyStoreEffects(st, caseData, currentStep, artifact); err != nil {
-			logger.Warn("store effect error", "step", display.Stage(string(currentStep)), "error", err)
+			logger.Warn("store effect error", "step", vocabName(string(currentStep)), "error", err)
 		}
 
 		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
 		logger.Debug("heuristic evaluated",
-			"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
+			"case_id", gtCase.ID, "step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 		orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		_ = orchestrate.SaveState(caseDir, state)
 	}
@@ -680,7 +679,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 				orchestrate.IncrementLoop(state, "investigate")
 			}
 			logger.Info("heuristic evaluated",
-				"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
+				"case_id", gtCase.ID, "step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		} else {
 			action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
@@ -690,7 +689,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 				orchestrate.IncrementLoop(state, "reassess")
 			}
 			logger.Info("heuristic evaluated",
-				"case_id", gtCase.ID, "step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID), "next", display.Stage(string(action.NextStep)))
+				"case_id", gtCase.ID, "step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 			orchestrate.AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		}
 

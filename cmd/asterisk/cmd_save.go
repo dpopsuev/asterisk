@@ -8,7 +8,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/display"
 	"asterisk/internal/investigate"
 	"asterisk/internal/orchestrate"
 	"asterisk/adapters/store"
@@ -121,7 +120,7 @@ func runSaveOrchestrated(cmd *cobra.Command) error {
 
 	artifactFilename := orchestrate.ArtifactFilename(state.CurrentStep)
 	if artifactFilename == "" {
-		return fmt.Errorf("no artifact expected for step %s", display.StageWithCode(string(state.CurrentStep)))
+		return fmt.Errorf("no artifact expected for step %s", vocabNameWithCode(string(state.CurrentStep)))
 	}
 
 	data, err := os.ReadFile(saveFlags.artifactPath)
@@ -143,11 +142,11 @@ func runSaveOrchestrated(cmd *cobra.Command) error {
 	}
 
 	out := cmd.OutOrStdout()
-	fmt.Fprintf(out, "Saved artifact for %s\n", display.StageWithCode(string(state.CurrentStep)))
+	fmt.Fprintf(out, "Saved artifact for %s\n", vocabNameWithCode(string(state.CurrentStep)))
 	if result.IsDone {
 		fmt.Fprintf(out, "Pipeline complete! %s\n", result.Explanation)
 	} else {
-		fmt.Fprintf(out, "Next step: %s (%s)\n", display.StageWithCode(string(result.NextStep)), result.Explanation)
+		fmt.Fprintf(out, "Next step: %s (%s)\n", vocabNameWithCode(string(result.NextStep)), result.Explanation)
 		fmt.Fprintf(out, "Run 'asterisk cursor' to generate the next prompt.\n")
 	}
 	return nil

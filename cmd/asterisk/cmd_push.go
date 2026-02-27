@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/display"
 	"asterisk/adapters/rp"
 )
 
@@ -62,7 +61,7 @@ func runPush(cmd *cobra.Command, _ []string) error {
 	}
 	rec := pushStore.LastPushed()
 	if rec != nil {
-		fmt.Fprintf(cmd.OutOrStdout(), "Pushed: launch=%s defect_type=%s\n", rec.LaunchID, display.DefectTypeWithCode(rec.DefectType))
+		fmt.Fprintf(cmd.OutOrStdout(), "Pushed: launch=%s defect_type=%s\n", rec.LaunchID, vocabNameWithCode(rec.DefectType))
 	}
 	return nil
 }

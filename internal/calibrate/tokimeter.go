@@ -3,8 +3,6 @@ package calibrate
 import (
 	"fmt"
 
-	"asterisk/display"
-
 	"github.com/dpopsuev/origami/dispatch"
 )
 
@@ -31,7 +29,7 @@ func BuildCostBill(report *CalibrationReport) *dispatch.CostBill {
 		dispatch.WithSubtitle(fmt.Sprintf("**%s** | adapter: `%s`", report.Scenario, report.Adapter)),
 		dispatch.WithStepOrder(asteriskStepOrder),
 		dispatch.WithStepNames(func(step string) string {
-			return display.StageWithCode(step)
+			return vocabNameWithCode(step)
 		}),
 		dispatch.WithCaseLabels(func(id string) string { return id }),
 		dispatch.WithCaseDetails(func(id string) string {

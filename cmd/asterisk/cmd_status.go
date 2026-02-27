@@ -5,7 +5,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/display"
 	"asterisk/internal/orchestrate"
 )
 
@@ -44,7 +43,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 
 	fmt.Fprintf(out, "Case:    #%d\n", state.CaseID)
 	fmt.Fprintf(out, "Suite:   #%d\n", state.SuiteID)
-	fmt.Fprintf(out, "Step:    %s\n", display.StageWithCode(string(state.CurrentStep)))
+	fmt.Fprintf(out, "Step:    %s\n", vocabNameWithCode(string(state.CurrentStep)))
 	fmt.Fprintf(out, "Status:  %s\n", state.Status)
 	if len(state.LoopCounts) > 0 {
 		fmt.Fprintf(out, "Loops:\n")
@@ -55,7 +54,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	if len(state.History) > 0 {
 		fmt.Fprintf(out, "History: (%d steps)\n", len(state.History))
 		for _, h := range state.History {
-			fmt.Fprintf(out, "  %s -> %s [%s] %s\n", display.Stage(string(h.Step)), h.Outcome, display.HeuristicWithCode(h.HeuristicID), h.Timestamp)
+			fmt.Fprintf(out, "  %s -> %s [%s] %s\n", vocabName(string(h.Step)), h.Outcome, vocabNameWithCode(h.HeuristicID), h.Timestamp)
 		}
 	}
 	return nil

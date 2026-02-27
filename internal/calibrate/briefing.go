@@ -1,7 +1,6 @@
 package calibrate
 
 import (
-	"asterisk/display"
 	"github.com/dpopsuev/origami/format"
 	"fmt"
 	"strings"
@@ -62,7 +61,7 @@ func GenerateBriefing(
 					caseID,
 					tr.TriageArtifact.SymptomCategory,
 					safeField(tr.CaseResult, func(cr *CaseResult) string { return cr.ActualComponent }),
-					display.DefectType(tr.TriageArtifact.DefectTypeHypothesis),
+					vocabName(tr.TriageArtifact.DefectTypeHypothesis),
 					tr.TriageArtifact.Severity,
 				)
 			}
@@ -91,7 +90,7 @@ func GenerateBriefing(
 				fmt.Sprintf("K%d", i+1),
 				repID,
 				strings.Join(memberIDs, ", "),
-				display.ClusterKey(cl.Key),
+				vocabClusterKey(cl.Key),
 			)
 		}
 		b.WriteString(clusterTbl.String())
@@ -104,7 +103,7 @@ func GenerateBriefing(
 		rcaTbl := format.NewTable(format.Markdown)
 		rcaTbl.Header("RCA ID", "Component", "Defect Type", "Summary")
 		for _, rca := range priorRCAs {
-			rcaTbl.Row(rca.ID, rca.Component, display.DefectType(rca.DefectType), rca.Summary)
+			rcaTbl.Row(rca.ID, rca.Component, vocabName(rca.DefectType), rca.Summary)
 		}
 		b.WriteString(rcaTbl.String())
 		b.WriteString("\n\n")

@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"asterisk/display"
 	"github.com/dpopsuev/origami/format"
 )
 
@@ -110,14 +109,14 @@ func writeComponentFindings(b *strings.Builder, report *AnalysisReport) {
 		)
 
 		for _, cr := range cases {
-			rpTag := display.RPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
+			rpTag := vocabRPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
 			if rpTag == "" {
 				rpTag = "--"
 			}
 			tbl.Row(
 				cr.CaseLabel,
 				format.Truncate(cr.TestName, 60),
-				display.DefectTypeWithCode(cr.DefectType),
+				vocabNameWithCode(cr.DefectType),
 				fmt.Sprintf("%.0f%%", roundConvergence(cr.Convergence)*100),
 				rpTag,
 			)
@@ -140,7 +139,7 @@ func writeCaseDetails(b *strings.Builder, report *AnalysisReport) {
 
 		tbl := format.NewTable(format.Markdown)
 		tbl.Header("Field", "Value")
-		tbl.Row("Verdict", display.DefectTypeWithCode(cr.DefectType))
+		tbl.Row("Verdict", vocabNameWithCode(cr.DefectType))
 		tbl.Row("Category", cr.Category)
 
 		comp := cr.Component
@@ -149,10 +148,10 @@ func writeCaseDetails(b *strings.Builder, report *AnalysisReport) {
 		}
 		tbl.Row("Component", comp)
 		tbl.Row("Confidence", fmt.Sprintf("%.0f%%", roundConvergence(cr.Convergence)*100))
-		tbl.Row("Pipeline", display.StagePath(cr.Path))
+		tbl.Row("Pipeline", vocabStagePath(cr.Path))
 
 		if cr.RPIssueType != "" {
-			tbl.Row("RP Classification", display.RPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed))
+			tbl.Row("RP Classification", vocabRPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed))
 		}
 
 		if len(cr.SelectedRepos) > 0 {
@@ -225,7 +224,7 @@ func formatDistribution(counts map[string]int, humanize bool) string {
 	for i, item := range sorted {
 		label := item.Key
 		if humanize {
-			label = display.DefectTypeWithCode(item.Key)
+			label = vocabNameWithCode(item.Key)
 		}
 		parts[i] = fmt.Sprintf("%s (%d)", label, item.Count)
 	}

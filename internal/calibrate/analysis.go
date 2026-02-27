@@ -1,7 +1,6 @@
 package calibrate
 
 import (
-	"asterisk/display"
 	"github.com/dpopsuev/origami/format"
 	"github.com/dpopsuev/origami/logging"
 	"fmt"
@@ -154,8 +153,8 @@ func runAnalysisCasePipeline(
 
 		action, ruleID := orchestrate.EvaluateHeuristics(rules, currentStep, artifact, state)
 		logging.New("analyze").Info("heuristic evaluated",
-			"step", display.Stage(string(currentStep)), "rule", display.HeuristicWithCode(ruleID),
-			"next", display.Stage(string(action.NextStep)), "explanation", action.Explanation)
+			"step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID),
+			"next", vocabName(string(action.NextStep)), "explanation", action.Explanation)
 
 		if currentStep == orchestrate.StepF3Invest && action.NextStep == orchestrate.StepF2Resolve {
 			orchestrate.IncrementLoop(state, "investigate")
@@ -268,7 +267,7 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 		format.ColumnConfig{Number: 6, Align: format.AlignRight},
 	)
 	for _, cr := range report.CaseResults {
-		path := display.StagePath(cr.Path)
+		path := vocabStagePath(cr.Path)
 		if path == "" {
 			path = "(no steps)"
 		}
@@ -288,14 +287,14 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 			}
 			flags += "[cascade]"
 		}
-		rpTag := display.RPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
+		rpTag := vocabRPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)
 		if rpTag == "" {
 			rpTag = "-"
 		}
 		tbl.Row(
 			cr.CaseLabel,
 			format.Truncate(cr.TestName, 50),
-			display.DefectTypeWithCode(cr.DefectType),
+			vocabNameWithCode(cr.DefectType),
 			rpTag,
 			cr.Category,
 			fmt.Sprintf("%.2f", cr.Convergence),

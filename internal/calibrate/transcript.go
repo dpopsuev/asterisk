@@ -8,7 +8,6 @@ import (
 	"strings"
 	"time"
 
-	"asterisk/display"
 	"github.com/dpopsuev/origami/format"
 	"asterisk/internal/orchestrate"
 )
@@ -95,13 +94,13 @@ func RenderRCATranscript(t *RCATranscript) string {
 
 	// Header
 	b.WriteString(fmt.Sprintf("# RCA Transcript — %s: %s\n\n",
-		t.Component, display.DefectTypeWithCode(t.DefectType)))
+		t.Component, vocabNameWithCode(t.DefectType)))
 
 	tbl := format.NewTable(format.Markdown)
 	tbl.Header("Field", "Value")
 	tbl.Row("RCA ID", fmt.Sprintf("%d", t.RCAID))
 	tbl.Row("Component", t.Component)
-	tbl.Row("Defect Type", display.DefectTypeWithCode(t.DefectType))
+	tbl.Row("Defect Type", vocabNameWithCode(t.DefectType))
 
 	caseIDs := []string{t.Primary.CaseID + " (primary)"}
 	for _, c := range t.Correlated {
@@ -115,7 +114,7 @@ func RenderRCATranscript(t *RCATranscript) string {
 	// Primary case
 	b.WriteString(fmt.Sprintf("## Primary Investigation: Case %s\n\n", t.Primary.CaseID))
 	b.WriteString(fmt.Sprintf("**Test:** %s  \n", t.Primary.TestName))
-	b.WriteString(fmt.Sprintf("**Path:** %s\n\n", display.StagePath(t.Primary.Path)))
+	b.WriteString(fmt.Sprintf("**Path:** %s\n\n", vocabStagePath(t.Primary.Path)))
 	renderEntries(&b, t.Primary.Entries)
 
 	// Correlated cases
@@ -123,7 +122,7 @@ func RenderRCATranscript(t *RCATranscript) string {
 		b.WriteString("---\n\n")
 		b.WriteString(fmt.Sprintf("## Correlated Case: %s\n\n", c.CaseID))
 		b.WriteString(fmt.Sprintf("**Test:** %s  \n", c.TestName))
-		b.WriteString(fmt.Sprintf("**Path:** %s\n\n", display.StagePath(c.Path)))
+		b.WriteString(fmt.Sprintf("**Path:** %s\n\n", vocabStagePath(c.Path)))
 		renderEntries(&b, c.Entries)
 	}
 
@@ -203,7 +202,7 @@ func buildCaseTranscript(report *CalibrationReport, cr *CaseResult) (*CaseTransc
 
 		entry := TranscriptEntry{
 			Step:        string(step),
-			StepName:    display.Stage(string(step)),
+			StepName:    vocabName(string(step)),
 			HeuristicID: record.HeuristicID,
 			Decision:    record.Outcome,
 			Timestamp:   record.Timestamp,

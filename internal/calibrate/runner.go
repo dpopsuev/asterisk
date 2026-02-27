@@ -514,7 +514,7 @@ func updateIDMaps(mapper IDMappable, st store.Store, caseData *store.Case, gtCas
 type pipeKey struct{ version, job string }
 
 // stepName returns the short machine code (F0, F1, ...) for internal path tracking.
-// Use display.Stage() or display.StagePath() to humanize for output.
+// Use vocabName() or vocabStagePath() to humanize for output.
 func stepName(s orchestrate.PipelineStep) string {
 	m := map[orchestrate.PipelineStep]string{
 		orchestrate.StepF0Recall:    "F0",
