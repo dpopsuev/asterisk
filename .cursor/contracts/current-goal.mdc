@@ -5,7 +5,7 @@ description: Active goal manifest — single-read orientation for agents to know
 # Current Goal
 
 **Goal:** Polishing & Presentation  
-**Summary:** The system works. The PoC proved it (M19=0.83 heuristic, 0.58 AI). The framework matured — Origami's DSL, adapters, marbles, observability, and lint are all shipped. Now polish: principled metrics, clean architecture (pure-DSL Asterisk), demo overhaul, LSP, and RichVocabulary. Make it presentable.
+**Summary:** The system works. The PoC proved it (M19=0.83 heuristic, 0.58 AI). The framework matured — Origami's DSL, adapters, marbles, observability, and lint are all shipped. Bundles 1-4 complete (principled metrics, rich names, smart routing, demo polish). Remaining: clean architecture (pure-DSL Asterisk), ingestion pipeline, evidence gaps.
 
 ## The ROI That Changes Everything
 
@@ -68,7 +68,7 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
 
 | Contract | Repo | Tier | Notes |
 |----------|------|------|-------|
-| `asterisk-internal-cleanup` (excl. P7) | Asterisk | should | Merge `internal/` into `adapters/`. P7 is in Bundle 2. |
+| `asterisk-internal-cleanup` | Asterisk | should | Merge `internal/` into `adapters/`. |
 | `data-ingestion-pipeline` | Asterisk | should | Ingestion as DSL pipeline. Uses existing Origami DSL. |
 | `evidence-gap-brief` | Asterisk | nice | Structured "I don't know" output. Improves M8. |
 | `knowledge-source-evolution` | Asterisk | vision | Layered composition via `Source.Tags`. |
@@ -104,7 +104,7 @@ Asterisk: go get github.com/dpopsuev/origami@latest
           asterisk demo --replay
 ```
 
-Verify: Principled thresholds applied. `internal/` cleaned up. Demo replays. LSP validates YAMLs.
+Verify: Principled thresholds applied (done). Demo replays (done). `internal/` cleaned up. Ingestion pipeline runs.
 
 **Closed/absorbed:**
 - ~~`domain-calibration`~~ → absorbed into `principled-calibration-scorecard`
