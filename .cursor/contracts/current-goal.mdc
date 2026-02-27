@@ -54,7 +54,7 @@ Flat priority list. No sprints — work in priority order, commit at green gates
 |------|----------|-------|
 | **should** | `rich-vocabulary` | `RichVocabulary` (short/long/description). Wire into Kami, LSP, Kabuki. |
 | **vision** | `origami-lsp` | Language Server for pipeline YAML. Embeds `origami-lint`. |
-| **vision** | `visual-editor` | Drag-and-drop pipeline builder. Post-LSP. |
+| **vision** | `washi` | Washi — enterprise pipeline management UI. Post-LSP. |
 
 ### CHECKPOINT — Polish validated
 
