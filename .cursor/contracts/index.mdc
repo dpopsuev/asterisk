@@ -14,7 +14,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| *(empty)* | | |
+| `scenario-dsl-extraction.md` | Scenarios and vocabulary as YAML; zero Go struct literals for ground truth data. | should |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 

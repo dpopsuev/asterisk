@@ -72,6 +72,7 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
 | ~~`data-ingestion-pipeline`~~ | Asterisk | ~~should~~ | **Complete.** Ingestion as DSL pipeline. |
 | ~~`evidence-gap-brief`~~ | Asterisk | ~~nice~~ | **Complete.** Structured "I don't know" output. |
 | ~~`knowledge-source-evolution`~~ | Asterisk | ~~vision~~ | **Complete.** Layered composition via `Source.Tags`, VersionMatrix, DepGraph, Summarizer. |
+| `scenario-dsl-extraction` | Asterisk | should | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. |
 
 ### Execution order
 
