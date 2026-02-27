@@ -2,10 +2,8 @@ package rca
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
-	"asterisk/internal/orchestrate"
 	"asterisk/adapters/rp"
 	"asterisk/adapters/store"
 
@@ -62,86 +60,6 @@ func TestAdapter_Hooks_NilStore(t *testing.T) {
 	}
 }
 
-func TestStepExtractor_JSONBytes(t *testing.T) {
-	ext := NewStepExtractor[orchestrate.RecallResult]("recall")
-
-	input := []byte(`{"match":true,"confidence":0.85,"reasoning":"test"}`)
-	result, err := ext.Extract(context.Background(), input)
-	if err != nil {
-		t.Fatalf("Extract: %v", err)
-	}
-	rr, ok := result.(orchestrate.RecallResult)
-	if !ok {
-		t.Fatalf("result type = %T, want RecallResult", result)
-	}
-	if !rr.Match || rr.Confidence != 0.85 {
-		t.Errorf("RecallResult = %+v, want match=true confidence=0.85", rr)
-	}
-}
-
-func TestStepExtractor_JSONString(t *testing.T) {
-	ext := NewStepExtractor[orchestrate.TriageResult]("triage")
-
-	input := `{"symptom_category":"product_bug","candidate_repos":["repo-a"]}`
-	result, err := ext.Extract(context.Background(), input)
-	if err != nil {
-		t.Fatalf("Extract: %v", err)
-	}
-	tr, ok := result.(orchestrate.TriageResult)
-	if !ok {
-		t.Fatalf("result type = %T, want TriageResult", result)
-	}
-	if tr.SymptomCategory != "product_bug" {
-		t.Errorf("SymptomCategory = %q, want product_bug", tr.SymptomCategory)
-	}
-}
-
-func TestStepExtractor_Map(t *testing.T) {
-	ext := NewStepExtractor[orchestrate.CorrelateResult]("correlate")
-
-	input := map[string]any{
-		"is_duplicate": true,
-		"confidence":   0.92,
-		"reasoning":    "same root cause",
-	}
-	result, err := ext.Extract(context.Background(), input)
-	if err != nil {
-		t.Fatalf("Extract: %v", err)
-	}
-	cr, ok := result.(orchestrate.CorrelateResult)
-	if !ok {
-		t.Fatalf("result type = %T, want CorrelateResult", result)
-	}
-	if !cr.IsDuplicate || cr.Confidence != 0.92 {
-		t.Errorf("CorrelateResult = %+v", cr)
-	}
-}
-
-func TestStepExtractor_RawMessage(t *testing.T) {
-	ext := NewStepExtractor[orchestrate.ReviewDecision]("review")
-
-	input := json.RawMessage(`{"decision":"approve"}`)
-	result, err := ext.Extract(context.Background(), input)
-	if err != nil {
-		t.Fatalf("Extract: %v", err)
-	}
-	rd, ok := result.(orchestrate.ReviewDecision)
-	if !ok {
-		t.Fatalf("result type = %T, want ReviewDecision", result)
-	}
-	if rd.Decision != "approve" {
-		t.Errorf("Decision = %q, want approve", rd.Decision)
-	}
-}
-
-func TestStepExtractor_InvalidJSON(t *testing.T) {
-	ext := NewStepExtractor[orchestrate.RecallResult]("recall")
-	_, err := ext.Extract(context.Background(), []byte(`{invalid}`))
-	if err == nil {
-		t.Fatal("expected error for invalid JSON")
-	}
-}
-
 func TestContextBuilder_Name(t *testing.T) {
 	cb := NewContextBuilder(nil, nil, nil, nil, "")
 	if cb.Name() != "context-builder" {
@@ -170,7 +88,7 @@ func TestContextBuilder_KnownStep(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Transform: %v", err)
 	}
-	params, ok := result.(*orchestrate.TemplateParams)
+	params, ok := result.(*TemplateParams)
 	if !ok {
 		t.Fatalf("result type = %T, want *TemplateParams", result)
 	}

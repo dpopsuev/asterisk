@@ -8,8 +8,8 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/investigate"
-	"asterisk/internal/orchestrate"
+	"asterisk/adapters/rp"
+	"asterisk/adapters/rca"
 	"asterisk/adapters/store"
 )
 
@@ -48,7 +48,7 @@ func runSaveLegacy(cmd *cobra.Command) error {
 	if err != nil {
 		return fmt.Errorf("read artifact: %w", err)
 	}
-	var a investigate.Artifact
+	var a rp.Artifact
 	if err := json.Unmarshal(data, &a); err != nil {
 		return fmt.Errorf("parse artifact: %w", err)
 	}
@@ -112,13 +112,13 @@ func runSaveOrchestrated(cmd *cobra.Command) error {
 		return fmt.Errorf("case #%d not found", saveFlags.caseID)
 	}
 
-	caseDir := orchestrate.CaseDir(orchestrate.DefaultBasePath, saveFlags.suiteID, saveFlags.caseID)
-	state, err := orchestrate.LoadState(caseDir)
+	caseDir := rca.CaseDir(rca.DefaultBasePath, saveFlags.suiteID, saveFlags.caseID)
+	state, err := rca.LoadState(caseDir)
 	if err != nil || state == nil {
 		return fmt.Errorf("no state found for case #%d in suite #%d", saveFlags.caseID, saveFlags.suiteID)
 	}
 
-	artifactFilename := orchestrate.ArtifactFilename(state.CurrentStep)
+	artifactFilename := rca.ArtifactFilename(state.CurrentStep)
 	if artifactFilename == "" {
 		return fmt.Errorf("no artifact expected for step %s", vocabNameWithCode(string(state.CurrentStep)))
 	}
@@ -132,11 +132,11 @@ func runSaveOrchestrated(cmd *cobra.Command) error {
 		return fmt.Errorf("write artifact to case dir: %w", err)
 	}
 
-	cfg := orchestrate.RunnerConfig{
+	cfg := rca.RunnerConfig{
 		PromptDir:  ".cursor/prompts",
-		Thresholds: orchestrate.DefaultThresholds(),
+		Thresholds: rca.DefaultThresholds(),
 	}
-	result, err := orchestrate.SaveArtifactAndAdvance(st, caseData, caseDir, cfg)
+	result, err := rca.SaveArtifactAndAdvance(st, caseData, caseDir, cfg)
 	if err != nil {
 		return fmt.Errorf("advance: %w", err)
 	}

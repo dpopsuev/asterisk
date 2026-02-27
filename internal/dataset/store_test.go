@@ -1,7 +1,7 @@
 package dataset
 
 import (
-	"asterisk/internal/calibrate"
+	"asterisk/adapters/rca"
 	"context"
 	"os"
 	"testing"
@@ -14,13 +14,13 @@ func TestFileStore_RoundTrip(t *testing.T) {
 	store := NewFileStore(dir)
 	ctx := context.Background()
 
-	scenario := &calibrate.Scenario{
+	scenario := &rca.Scenario{
 		Name: "test-scenario",
-		Cases: []calibrate.GroundTruthCase{
+		Cases: []rca.GroundTruthCase{
 			{ID: "C01", TestName: "test_one", ErrorMessage: "fail"},
 			{ID: "C02", TestName: "test_two", ErrorMessage: "error"},
 		},
-		RCAs: []calibrate.GroundTruthRCA{
+		RCAs: []rca.GroundTruthRCA{
 			{ID: "R01", DefectType: "product_bug"},
 		},
 	}
@@ -58,8 +58,8 @@ func TestFileStore_List(t *testing.T) {
 		t.Errorf("expected empty list, got %v", names)
 	}
 
-	s1 := &calibrate.Scenario{Name: "alpha"}
-	s2 := &calibrate.Scenario{Name: "beta"}
+	s1 := &rca.Scenario{Name: "alpha"}
+	s2 := &rca.Scenario{Name: "beta"}
 	_ = store.Save(ctx, s1)
 	_ = store.Save(ctx, s2)
 
@@ -101,7 +101,7 @@ func TestFileStore_SaveCreatesDir(t *testing.T) {
 	store := NewFileStore(dir)
 	ctx := context.Background()
 
-	s := &calibrate.Scenario{Name: "nested"}
+	s := &rca.Scenario{Name: "nested"}
 	if err := store.Save(ctx, s); err != nil {
 		t.Fatalf("Save should create nested dirs: %v", err)
 	}

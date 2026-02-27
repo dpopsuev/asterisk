@@ -1,8 +1,8 @@
 package main
 
 import (
-	"asterisk/internal/calibrate"
-	"asterisk/internal/calibrate/scenarios"
+	"asterisk/adapters/rca"
+	"asterisk/adapters/calibration/scenarios"
 	"asterisk/internal/dataset"
 	"context"
 	"fmt"
@@ -118,7 +118,7 @@ var gtExportCmd = &cobra.Command{
 	},
 }
 
-func lookupGoScenario(name string) (*calibrate.Scenario, error) {
+func lookupGoScenario(name string) (*rca.Scenario, error) {
 	switch name {
 	case "ptp-mock":
 		return scenarios.PTPMockScenario(), nil

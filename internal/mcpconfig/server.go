@@ -7,10 +7,9 @@ import (
 	"path/filepath"
 	"time"
 
-	"asterisk/internal/calibrate"
-	"asterisk/internal/calibrate/adapt"
-	"asterisk/internal/calibrate/scenarios"
-	"asterisk/internal/orchestrate"
+	"asterisk/adapters/rca"
+	"asterisk/adapters/rca/adapt"
+	"asterisk/adapters/calibration/scenarios"
 	"asterisk/adapters/rp"
 	"asterisk/adapters/store"
 	cal "github.com/dpopsuev/origami/calibrate"
@@ -50,11 +49,11 @@ func (s *Server) buildConfig() fwmcp.PipelineConfig {
 			return s.createSession(ctx, params, disp)
 		},
 		FormatReport: func(result any) (string, any, error) {
-			report, ok := result.(*calibrate.CalibrationReport)
+			report, ok := result.(*rca.CalibrationReport)
 			if !ok {
 				return "", nil, fmt.Errorf("unexpected result type: %T", result)
 			}
-			formatted := calibrate.FormatReport(report)
+			formatted := rca.FormatReport(report)
 			return formatted, report, nil
 		},
 	}
@@ -90,7 +89,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			return nil, fwmcp.SessionMeta{}, fmt.Errorf("create RP client: %w", err)
 		}
 		rpFetcher = rp.NewFetcher(client, rpProject)
-		if err := calibrate.ResolveRPCases(rpFetcher, scenario); err != nil {
+		if err := rca.ResolveRPCases(rpFetcher, scenario); err != nil {
 			return nil, fwmcp.SessionMeta{}, fmt.Errorf("resolve RP-sourced cases: %w", err)
 		}
 	}
@@ -102,7 +101,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	tokenTracker := dispatch.NewTokenTracker()
 	tracked := dispatch.NewTokenTrackingDispatcher(disp, tokenTracker)
 
-	var adapter calibrate.ModelAdapter
+	var adapter rca.ModelAdapter
 	switch adapterName {
 	case "stub":
 		adapter = adapt.NewStubAdapter(scenario)
@@ -146,12 +145,12 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		return nil, fwmcp.SessionMeta{}, fmt.Errorf("load scorecard: %w", err)
 	}
 
-	cfg := calibrate.RunConfig{
+	cfg := rca.RunConfig{
 		Scenario:     scenario,
 		Adapter:      adapter,
 		Runs:         1,
 		PromptDir:    promptDir,
-		Thresholds:   orchestrate.DefaultThresholds(),
+		Thresholds:   rca.DefaultThresholds(),
 		TokenTracker: tokenTracker,
 		Parallel:     parallel,
 		TokenBudget:  parallel,
@@ -161,7 +160,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	}
 
 	runFn := func(ctx context.Context) (any, error) {
-		return calibrate.RunCalibration(ctx, cfg)
+		return rca.RunCalibration(ctx, cfg)
 	}
 
 	meta := fwmcp.SessionMeta{
@@ -248,7 +247,7 @@ func asteriskStepSchemas() []fwmcp.StepSchema {
 	}
 }
 
-func loadScenario(name string) (*calibrate.Scenario, error) {
+func loadScenario(name string) (*rca.Scenario, error) {
 	switch name {
 	case "ptp-mock":
 		return scenarios.PTPMockScenario(), nil

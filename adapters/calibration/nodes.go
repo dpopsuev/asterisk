@@ -7,7 +7,7 @@ import (
 	"context"
 	"fmt"
 
-	"asterisk/internal/calibrate"
+	"asterisk/adapters/rca"
 
 	framework "github.com/dpopsuev/origami"
 )
@@ -34,7 +34,7 @@ type setupNode struct{}
 func (n *setupNode) Name() string                  { return "setup" }
 func (n *setupNode) ElementAffinity() framework.Element { return "" }
 func (n *setupNode) Process(ctx context.Context, nc framework.NodeContext) (framework.Artifact, error) {
-	cfg, ok := nc.WalkerState.Context[KeyRunConfig].(calibrate.RunConfig)
+	cfg, ok := nc.WalkerState.Context[KeyRunConfig].(rca.RunConfig)
 	if !ok {
 		return nil, fmt.Errorf("missing %s in walker context", KeyRunConfig)
 	}
@@ -55,12 +55,12 @@ type runCasesNode struct{}
 func (n *runCasesNode) Name() string                  { return "run-cases" }
 func (n *runCasesNode) ElementAffinity() framework.Element { return "" }
 func (n *runCasesNode) Process(ctx context.Context, nc framework.NodeContext) (framework.Artifact, error) {
-	cfg, ok := nc.WalkerState.Context[KeyRunConfig].(calibrate.RunConfig)
+	cfg, ok := nc.WalkerState.Context[KeyRunConfig].(rca.RunConfig)
 	if !ok {
 		return nil, fmt.Errorf("missing %s in walker context", KeyRunConfig)
 	}
 
-	report, err := calibrate.RunCalibration(ctx, cfg)
+	report, err := rca.RunCalibration(ctx, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("run calibration: %w", err)
 	}
@@ -80,7 +80,7 @@ type scoreNode struct{}
 func (n *scoreNode) Name() string                  { return "score" }
 func (n *scoreNode) ElementAffinity() framework.Element { return "" }
 func (n *scoreNode) Process(ctx context.Context, nc framework.NodeContext) (framework.Artifact, error) {
-	_, ok := nc.WalkerState.Context[KeyReport].(*calibrate.CalibrationReport)
+	_, ok := nc.WalkerState.Context[KeyReport].(*rca.CalibrationReport)
 	if !ok {
 		return nil, fmt.Errorf("missing %s in walker context", KeyReport)
 	}
@@ -98,7 +98,7 @@ type aggregateNode struct{}
 func (n *aggregateNode) Name() string                  { return "aggregate" }
 func (n *aggregateNode) ElementAffinity() framework.Element { return "" }
 func (n *aggregateNode) Process(ctx context.Context, nc framework.NodeContext) (framework.Artifact, error) {
-	report, ok := nc.WalkerState.Context[KeyReport].(*calibrate.CalibrationReport)
+	report, ok := nc.WalkerState.Context[KeyReport].(*rca.CalibrationReport)
 	if !ok {
 		return nil, fmt.Errorf("missing %s in walker context", KeyReport)
 	}
@@ -116,7 +116,7 @@ type reportNode struct{}
 func (n *reportNode) Name() string                  { return "report" }
 func (n *reportNode) ElementAffinity() framework.Element { return "" }
 func (n *reportNode) Process(ctx context.Context, nc framework.NodeContext) (framework.Artifact, error) {
-	report, ok := nc.WalkerState.Context[KeyReport].(*calibrate.CalibrationReport)
+	report, ok := nc.WalkerState.Context[KeyReport].(*rca.CalibrationReport)
 	if !ok {
 		return nil, fmt.Errorf("missing %s in walker context", KeyReport)
 	}

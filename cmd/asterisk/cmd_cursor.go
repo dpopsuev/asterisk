@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/orchestrate"
+	"asterisk/adapters/rca"
 	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
@@ -74,11 +74,11 @@ func runCursor(cmd *cobra.Command, _ []string) error {
 		catalog = cat
 	}
 
-	cfg := orchestrate.RunnerConfig{
+	cfg := rca.RunnerConfig{
 		PromptDir:  cursorFlags.promptDir,
-		Thresholds: orchestrate.DefaultThresholds(),
+		Thresholds: rca.DefaultThresholds(),
 	}
-	result, err := orchestrate.RunStep(st, caseData, env, catalog, cfg)
+	result, err := rca.RunStep(st, caseData, env, catalog, cfg)
 	if err != nil {
 		return fmt.Errorf("orchestrate: %w", err)
 	}

@@ -11,10 +11,9 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/calibrate"
-	"asterisk/internal/calibrate/adapt"
+	"asterisk/adapters/rca"
+	"asterisk/adapters/rca/adapt"
 	"github.com/dpopsuev/origami/dispatch"
-	"asterisk/internal/orchestrate"
 	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
@@ -142,7 +141,7 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	suiteID, cases := createAnalysisScaffolding(st, env)
 
-	var adapter calibrate.ModelAdapter
+	var adapter rca.ModelAdapter
 	switch analyzeFlags.adapterName {
 	case "basic":
 		ba := adapt.NewBasicAdapter(st, repoNames)
@@ -178,11 +177,11 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("unknown adapter: %s (supported: basic, llm)", analyzeFlags.adapterName)
 	}
 
-	cfg := calibrate.AnalysisConfig{
+	cfg := rca.AnalysisConfig{
 		Adapter:    adapter,
-		Thresholds: orchestrate.DefaultThresholds(),
+		Thresholds: rca.DefaultThresholds(),
 	}
-	report, err := calibrate.RunAnalysis(st, cases, suiteID, cfg)
+	report, err := rca.RunAnalysis(st, cases, suiteID, cfg)
 	if err != nil {
 		return fmt.Errorf("analyze: %w", err)
 	}
@@ -203,12 +202,12 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		return fmt.Errorf("write report: %w", err)
 	}
 
-	fmt.Fprint(cmd.OutOrStdout(), calibrate.FormatAnalysisReport(report))
+	fmt.Fprint(cmd.OutOrStdout(), rca.FormatAnalysisReport(report))
 	fmt.Fprintf(cmd.OutOrStdout(), "\nReport written to: %s\n", artifactPath)
 
 	if analyzeFlags.report {
 		mdPath := strings.TrimSuffix(artifactPath, ".json") + ".md"
-		mdContent := calibrate.RenderRCAReport(report, time.Now())
+		mdContent := rca.RenderRCAReport(report, time.Now())
 		if err := os.WriteFile(mdPath, []byte(mdContent), 0600); err != nil {
 			return fmt.Errorf("write report markdown: %w", err)
 		}

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"asterisk/internal/orchestrate"
 	"asterisk/adapters/rp"
 	"asterisk/adapters/store"
 
@@ -48,11 +47,11 @@ func (t *ContextBuilder) Transform(_ context.Context, tc *framework.TransformerC
 	if !ok {
 		stepName = tc.NodeName
 	}
-	step := orchestrate.NodeNameToStep(stepName)
-	if step == orchestrate.StepDone {
+	step := NodeNameToStep(stepName)
+	if step == StepDone {
 		return nil, fmt.Errorf("context-builder: unknown step %q", stepName)
 	}
-	params := orchestrate.BuildParams(t.store, t.caseData, t.envelope, t.catalog, step, t.caseDir)
+	params := BuildParams(t.store, t.caseData, t.envelope, t.catalog, step, t.caseDir)
 	return params, nil
 }
 
@@ -70,7 +69,7 @@ func NewPromptFiller(promptDir string) *PromptFiller {
 func (t *PromptFiller) Name() string { return "prompt-filler" }
 
 func (t *PromptFiller) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
-	params, ok := tc.Input.(*orchestrate.TemplateParams)
+	params, ok := tc.Input.(*TemplateParams)
 	if !ok {
 		return nil, fmt.Errorf("prompt-filler: expected *TemplateParams input, got %T", tc.Input)
 	}
@@ -79,17 +78,17 @@ func (t *PromptFiller) Transform(_ context.Context, tc *framework.TransformerCon
 	if !ok {
 		stepName = tc.NodeName
 	}
-	step := orchestrate.NodeNameToStep(stepName)
-	if step == orchestrate.StepDone {
+	step := NodeNameToStep(stepName)
+	if step == StepDone {
 		return nil, fmt.Errorf("prompt-filler: unknown step %q", stepName)
 	}
 
-	templatePath := orchestrate.TemplatePathForStep(t.promptDir, step)
+	templatePath := TemplatePathForStep(t.promptDir, step)
 	if templatePath == "" {
 		return nil, fmt.Errorf("prompt-filler: no template for step %q", stepName)
 	}
 
-	filled, err := orchestrate.FillTemplate(templatePath, params)
+	filled, err := FillTemplate(templatePath, params)
 	if err != nil {
 		return nil, fmt.Errorf("prompt-filler: %w", err)
 	}

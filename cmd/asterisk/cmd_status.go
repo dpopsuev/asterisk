@@ -5,7 +5,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"asterisk/internal/orchestrate"
+	"asterisk/adapters/rca"
 )
 
 var statusFlags struct {
@@ -29,8 +29,8 @@ func init() {
 }
 
 func runStatus(cmd *cobra.Command, _ []string) error {
-	caseDir := orchestrate.CaseDir(orchestrate.DefaultBasePath, statusFlags.suiteID, statusFlags.caseID)
-	state, err := orchestrate.LoadState(caseDir)
+	caseDir := rca.CaseDir(rca.DefaultBasePath, statusFlags.suiteID, statusFlags.caseID)
+	state, err := rca.LoadState(caseDir)
 	if err != nil {
 		return fmt.Errorf("load state: %w", err)
 	}

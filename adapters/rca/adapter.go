@@ -3,7 +3,6 @@
 package rca
 
 import (
-	"asterisk/internal/orchestrate"
 	"asterisk/adapters/rp"
 	"asterisk/adapters/store"
 
@@ -45,20 +44,20 @@ func buildTransformers(cfg AdapterConfig) framework.TransformerRegistry {
 
 func buildExtractors() framework.ExtractorRegistry {
 	reg := framework.ExtractorRegistry{}
-	reg["recall"] = NewStepExtractor[orchestrate.RecallResult]("recall")
-	reg["triage"] = NewStepExtractor[orchestrate.TriageResult]("triage")
-	reg["resolve"] = NewStepExtractor[orchestrate.ResolveResult]("resolve")
-	reg["investigate"] = NewStepExtractor[orchestrate.InvestigateArtifact]("investigate")
-	reg["correlate"] = NewStepExtractor[orchestrate.CorrelateResult]("correlate")
-	reg["review"] = NewStepExtractor[orchestrate.ReviewDecision]("review")
-	reg["report"] = NewStepExtractor[orchestrate.InvestigateArtifact]("report")
+	reg["recall"] = NewStepExtractor[RecallResult]("recall")
+	reg["triage"] = NewStepExtractor[TriageResult]("triage")
+	reg["resolve"] = NewStepExtractor[ResolveResult]("resolve")
+	reg["investigate"] = NewStepExtractor[InvestigateArtifact]("investigate")
+	reg["correlate"] = NewStepExtractor[CorrelateResult]("correlate")
+	reg["review"] = NewStepExtractor[ReviewDecision]("review")
+	reg["report"] = NewStepExtractor[InvestigateArtifact]("report")
 	return reg
 }
 
 func buildHooks(cfg AdapterConfig) framework.HookRegistry {
 	reg := framework.HookRegistry{}
 	if cfg.Store != nil && cfg.CaseData != nil {
-		hooks := orchestrate.StoreHooks(cfg.Store, cfg.CaseData)
+		hooks := StoreHooks(cfg.Store, cfg.CaseData)
 		for name, h := range hooks {
 			reg[name] = h
 		}

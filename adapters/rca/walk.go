@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"asterisk/internal/orchestrate"
 	"asterisk/adapters/store"
 
 	framework "github.com/dpopsuev/origami"
@@ -16,7 +15,7 @@ type WalkConfig struct {
 	CaseData   *store.Case
 	Adapter    ModelAdapter
 	CaseLabel  string
-	Thresholds orchestrate.Thresholds
+	Thresholds Thresholds
 	Hooks      framework.HookRegistry
 }
 
@@ -32,11 +31,11 @@ func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 	nodes := NodeRegistry()
 
 	th := cfg.Thresholds
-	if th == (orchestrate.Thresholds{}) {
-		th = orchestrate.DefaultThresholds()
+	if th == (Thresholds{}) {
+		th = DefaultThresholds()
 	}
 
-	runner, err := orchestrate.BuildRunnerWith(th, nodes, cfg.Hooks)
+	runner, err := BuildRunnerWith(th, nodes, cfg.Hooks)
 	if err != nil {
 		return nil, fmt.Errorf("build runner: %w", err)
 	}
@@ -61,7 +60,7 @@ func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 		dg.SetObserver(observer)
 	}
 
-	def, err := orchestrate.AsteriskPipelineDef(th)
+	def, err := AsteriskPipelineDef(th)
 	if err != nil {
 		return nil, fmt.Errorf("load pipeline def: %w", err)
 	}

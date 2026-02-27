@@ -1,7 +1,7 @@
 package dataset
 
 import (
-	"asterisk/internal/calibrate"
+	"asterisk/adapters/rca"
 	"github.com/dpopsuev/origami/curate"
 	"testing"
 )
@@ -29,20 +29,20 @@ func TestAsteriskSchema(t *testing.T) {
 }
 
 func TestGroundTruthCaseToRecord(t *testing.T) {
-	rca := calibrate.GroundTruthRCA{
+	gtRCA := rca.GroundTruthRCA{
 		ID: "R01", DefectType: "product_bug", Category: "pb001",
 		Component: "linuxptp-daemon", SmokingGun: "commit abc123",
 	}
-	c := calibrate.GroundTruthCase{
+	c := rca.GroundTruthCase{
 		ID: "C01", TestName: "test_sync", ErrorMessage: "timeout",
 		LogSnippet: "ptp4l[123]", SymptomID: "S01", RCAID: "R01",
 		ExpectedPath:   []string{"F0", "F1", "F3"},
-		ExpectedTriage: &calibrate.ExpectedTriage{DefectTypeHypothesis: "product_bug"},
+		ExpectedTriage: &rca.ExpectedTriage{DefectTypeHypothesis: "product_bug"},
 		Version:        "4.20",
 		Job:            "[T-TSC]",
 	}
 
-	r := GroundTruthCaseToRecord(c, []calibrate.GroundTruthRCA{rca})
+	r := GroundTruthCaseToRecord(c, []rca.GroundTruthRCA{gtRCA})
 
 	if r.ID != "C01" {
 		t.Errorf("ID = %q", r.ID)
@@ -85,7 +85,7 @@ func TestGroundTruthCaseToRecord(t *testing.T) {
 }
 
 func TestGroundTruthCaseToRecord_NoRCA(t *testing.T) {
-	c := calibrate.GroundTruthCase{
+	c := rca.GroundTruthCase{
 		ID: "C01", TestName: "test", RCAID: "R99",
 	}
 	r := GroundTruthCaseToRecord(c, nil)
@@ -124,13 +124,13 @@ func TestRecordToGroundTruthCase(t *testing.T) {
 }
 
 func TestScenarioToDataset(t *testing.T) {
-	s := &calibrate.Scenario{
+	s := &rca.Scenario{
 		Name: "test-scenario",
-		Cases: []calibrate.GroundTruthCase{
+		Cases: []rca.GroundTruthCase{
 			{ID: "C01", TestName: "test_one"},
 			{ID: "C02", TestName: "test_two"},
 		},
-		RCAs: []calibrate.GroundTruthRCA{
+		RCAs: []rca.GroundTruthRCA{
 			{ID: "R01", DefectType: "product_bug"},
 		},
 	}
@@ -174,7 +174,7 @@ func TestDatasetToScenario(t *testing.T) {
 }
 
 func TestRoundTrip_CaseToRecordAndBack(t *testing.T) {
-	original := calibrate.GroundTruthCase{
+	original := rca.GroundTruthCase{
 		ID: "C01", TestName: "test_sync", ErrorMessage: "timeout",
 		LogSnippet: "log", SymptomID: "S01", RCAID: "R01",
 		Version: "4.20", Job: "[T-TSC]",
@@ -202,17 +202,17 @@ func TestRoundTrip_CaseToRecordAndBack(t *testing.T) {
 }
 
 func TestSchemaCompleteness_ViaMapper(t *testing.T) {
-	rca := calibrate.GroundTruthRCA{
+	gtRCA := rca.GroundTruthRCA{
 		ID: "R01", DefectType: "product_bug", Category: "pb001",
 		Component: "linuxptp-daemon", SmokingGun: "commit abc123",
 	}
-	c := calibrate.GroundTruthCase{
+	c := rca.GroundTruthCase{
 		ID: "C01", TestName: "test", ErrorMessage: "fail", LogSnippet: "log",
 		SymptomID: "S01", RCAID: "R01", ExpectedPath: []string{"F0", "F1"},
-		ExpectedTriage: &calibrate.ExpectedTriage{DefectTypeHypothesis: "product_bug"},
+		ExpectedTriage: &rca.ExpectedTriage{DefectTypeHypothesis: "product_bug"},
 	}
 
-	record := GroundTruthCaseToRecord(c, []calibrate.GroundTruthRCA{rca})
+	record := GroundTruthCaseToRecord(c, []rca.GroundTruthRCA{gtRCA})
 	schema := AsteriskSchema()
 	result := curate.CheckCompleteness(record, schema)
 

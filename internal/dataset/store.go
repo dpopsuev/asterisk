@@ -1,7 +1,7 @@
 package dataset
 
 import (
-	"asterisk/internal/calibrate"
+	"asterisk/adapters/rca"
 	"github.com/dpopsuev/origami/curate"
 	"context"
 	"encoding/json"
@@ -12,16 +12,16 @@ import (
 )
 
 // DatasetStore is the Asterisk-specific interface for ground truth persistence.
-// It operates on calibrate.Scenario, which is the domain type that Asterisk's
+// It operates on rca.Scenario, which is the domain type that Asterisk's
 // calibration pipeline consumes.
 type DatasetStore interface {
 	List(ctx context.Context) ([]string, error)
-	Load(ctx context.Context, name string) (*calibrate.Scenario, error)
-	Save(ctx context.Context, s *calibrate.Scenario) error
+	Load(ctx context.Context, name string) (*rca.Scenario, error)
+	Save(ctx context.Context, s *rca.Scenario) error
 }
 
 // FileStore implements DatasetStore using JSON files in a directory.
-// It stores calibrate.Scenario directly for backward compatibility with
+// It stores rca.Scenario directly for backward compatibility with
 // existing datasets, while the curate.FileStore can be used for generic
 // curation datasets.
 type FileStore struct {
@@ -51,21 +51,21 @@ func (fs *FileStore) List(_ context.Context) ([]string, error) {
 	return names, nil
 }
 
-func (fs *FileStore) Load(_ context.Context, name string) (*calibrate.Scenario, error) {
+func (fs *FileStore) Load(_ context.Context, name string) (*rca.Scenario, error) {
 	path := filepath.Join(fs.Dir, name+".json")
 	data, err := os.ReadFile(path)
 	if err != nil {
 		return nil, fmt.Errorf("load dataset %q: %w", name, err)
 	}
 
-	var s calibrate.Scenario
+	var s rca.Scenario
 	if err := json.Unmarshal(data, &s); err != nil {
 		return nil, fmt.Errorf("parse dataset %q: %w", name, err)
 	}
 	return &s, nil
 }
 
-func (fs *FileStore) Save(_ context.Context, s *calibrate.Scenario) error {
+func (fs *FileStore) Save(_ context.Context, s *rca.Scenario) error {
 	if err := os.MkdirAll(fs.Dir, 0o755); err != nil {
 		return fmt.Errorf("create dataset dir: %w", err)
 	}

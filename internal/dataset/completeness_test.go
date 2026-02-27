@@ -1,21 +1,21 @@
 package dataset
 
 import (
-	"asterisk/internal/calibrate"
+	"asterisk/adapters/rca"
 	"testing"
 )
 
 func TestCheckCase_FullyComplete(t *testing.T) {
-	rca := calibrate.GroundTruthRCA{
+	gtRCA := rca.GroundTruthRCA{
 		ID: "R01", DefectType: "product_bug", Category: "pb001",
 		Component: "linuxptp-daemon", SmokingGun: "commit abc123",
 	}
-	c := calibrate.GroundTruthCase{
+	c := rca.GroundTruthCase{
 		ID: "C01", TestName: "test", ErrorMessage: "fail", LogSnippet: "log",
 		SymptomID: "S01", RCAID: "R01", ExpectedPath: []string{"F0", "F1"},
-		ExpectedTriage: &calibrate.ExpectedTriage{DefectTypeHypothesis: "product_bug"},
+		ExpectedTriage: &rca.ExpectedTriage{DefectTypeHypothesis: "product_bug"},
 	}
-	r := CheckCase(c, []calibrate.GroundTruthRCA{rca})
+	r := CheckCase(c, []rca.GroundTruthRCA{gtRCA})
 	if !r.Promotable {
 		t.Errorf("expected promotable, missing: %v", r.Missing)
 	}
@@ -28,7 +28,7 @@ func TestCheckCase_FullyComplete(t *testing.T) {
 }
 
 func TestCheckCase_MissingFields(t *testing.T) {
-	c := calibrate.GroundTruthCase{
+	c := rca.GroundTruthCase{
 		ID:       "C01",
 		TestName: "test",
 	}
@@ -45,10 +45,10 @@ func TestCheckCase_MissingFields(t *testing.T) {
 }
 
 func TestCheckCase_MissingRCA(t *testing.T) {
-	c := calibrate.GroundTruthCase{
+	c := rca.GroundTruthCase{
 		ID: "C01", TestName: "test", ErrorMessage: "fail", LogSnippet: "log",
 		SymptomID: "S01", RCAID: "R99", ExpectedPath: []string{"F0"},
-		ExpectedTriage: &calibrate.ExpectedTriage{},
+		ExpectedTriage: &rca.ExpectedTriage{},
 	}
 	r := CheckCase(c, nil)
 	if r.Promotable {
@@ -66,8 +66,8 @@ func TestCheckCase_MissingRCA(t *testing.T) {
 }
 
 func TestCheckScenario(t *testing.T) {
-	s := &calibrate.Scenario{
-		Cases: []calibrate.GroundTruthCase{
+	s := &rca.Scenario{
+		Cases: []rca.GroundTruthCase{
 			{ID: "C01"},
 			{ID: "C02"},
 			{ID: "C03"},

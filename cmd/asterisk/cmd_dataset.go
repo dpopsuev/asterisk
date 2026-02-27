@@ -1,7 +1,7 @@
 package main
 
 import (
-	"asterisk/internal/ingest"
+	"asterisk/adapters/ingest"
 	"encoding/json"
 	"fmt"
 	"os"

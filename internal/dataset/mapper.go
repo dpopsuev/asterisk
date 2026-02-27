@@ -1,7 +1,7 @@
 package dataset
 
 import (
-	"asterisk/internal/calibrate"
+	"asterisk/adapters/rca"
 	"github.com/dpopsuev/origami/curate"
 	"fmt"
 )
@@ -47,9 +47,9 @@ func AsteriskSchema() curate.Schema {
 	}
 }
 
-// GroundTruthCaseToRecord converts a calibrate.GroundTruthCase (with its
+// GroundTruthCaseToRecord converts a rca.GroundTruthCase (with its
 // matching RCA, if found) into a domain-agnostic curate.Record.
-func GroundTruthCaseToRecord(c calibrate.GroundTruthCase, rcas []calibrate.GroundTruthRCA) curate.Record {
+func GroundTruthCaseToRecord(c rca.GroundTruthCase, rcas []rca.GroundTruthRCA) curate.Record {
 	r := curate.NewRecord(c.ID)
 
 	set := func(name string, value any, source string) {
@@ -84,10 +84,10 @@ func GroundTruthCaseToRecord(c calibrate.GroundTruthCase, rcas []calibrate.Groun
 }
 
 // RecordToGroundTruthCase converts a curate.Record back to a
-// calibrate.GroundTruthCase. Only string/primitive fields are mapped;
+// rca.GroundTruthCase. Only string/primitive fields are mapped;
 // complex nested types (ExpectedTriage, etc.) are not reconstructed.
-func RecordToGroundTruthCase(r curate.Record) calibrate.GroundTruthCase {
-	c := calibrate.GroundTruthCase{
+func RecordToGroundTruthCase(r curate.Record) rca.GroundTruthCase {
+	c := rca.GroundTruthCase{
 		ID: r.ID,
 	}
 	if f, ok := r.Get("test_name"); ok {
@@ -117,7 +117,7 @@ func RecordToGroundTruthCase(r curate.Record) calibrate.GroundTruthCase {
 		}
 	}
 	if f, ok := r.Get("expected_triage"); ok {
-		if et, ok := f.Value.(*calibrate.ExpectedTriage); ok {
+		if et, ok := f.Value.(*rca.ExpectedTriage); ok {
 			c.ExpectedTriage = et
 		}
 	}
@@ -125,8 +125,8 @@ func RecordToGroundTruthCase(r curate.Record) calibrate.GroundTruthCase {
 	return c
 }
 
-// ScenarioToDataset converts a calibrate.Scenario to a curate.Dataset.
-func ScenarioToDataset(s *calibrate.Scenario) curate.Dataset {
+// ScenarioToDataset converts a rca.Scenario to a curate.Dataset.
+func ScenarioToDataset(s *rca.Scenario) curate.Dataset {
 	records := make([]curate.Record, 0, len(s.Cases))
 	for _, c := range s.Cases {
 		records = append(records, GroundTruthCaseToRecord(c, s.RCAs))
@@ -137,21 +137,21 @@ func ScenarioToDataset(s *calibrate.Scenario) curate.Dataset {
 	}
 }
 
-// DatasetToScenario converts a curate.Dataset to a calibrate.Scenario.
+// DatasetToScenario converts a curate.Dataset to a rca.Scenario.
 // Only primitive case fields are reconstructed. RCAs are not recovered
 // because they are not stored as separate records in the generic dataset.
-func DatasetToScenario(d *curate.Dataset) *calibrate.Scenario {
-	cases := make([]calibrate.GroundTruthCase, 0, len(d.Records))
+func DatasetToScenario(d *curate.Dataset) *rca.Scenario {
+	cases := make([]rca.GroundTruthCase, 0, len(d.Records))
 	for _, r := range d.Records {
 		cases = append(cases, RecordToGroundTruthCase(r))
 	}
-	return &calibrate.Scenario{
+	return &rca.Scenario{
 		Name:  d.Name,
 		Cases: cases,
 	}
 }
 
-func findRCA(rcas []calibrate.GroundTruthRCA, id string) *calibrate.GroundTruthRCA {
+func findRCA(rcas []rca.GroundTruthRCA, id string) *rca.GroundTruthRCA {
 	for i := range rcas {
 		if rcas[i].ID == id {
 			return &rcas[i]
@@ -160,9 +160,9 @@ func findRCA(rcas []calibrate.GroundTruthRCA, id string) *calibrate.GroundTruthR
 	return nil
 }
 
-// scenarioName extracts the scenario name from a calibrate.Scenario.
+// scenarioName extracts the scenario name from a rca.Scenario.
 // Used internally when delegating to curate.FileStore.
-func scenarioName(s *calibrate.Scenario) string {
+func scenarioName(s *rca.Scenario) string {
 	if s.Name != "" {
 		return s.Name
 	}

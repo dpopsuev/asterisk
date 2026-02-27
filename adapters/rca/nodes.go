@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"asterisk/internal/orchestrate"
 
 	framework "github.com/dpopsuev/origami"
 )
@@ -21,7 +20,7 @@ const (
 // Unlike the old passthrough bridgeNode, this actually does work.
 type rcaNode struct {
 	nodeName string
-	step     orchestrate.PipelineStep
+	step     PipelineStep
 	element  framework.Element
 }
 
@@ -61,21 +60,21 @@ func (a *rcaArtifact) Type() string        { return a.typeName }
 func (a *rcaArtifact) Confidence() float64 { return 0 }
 func (a *rcaArtifact) Raw() any            { return a.raw }
 
-func parseStepResponse(step orchestrate.PipelineStep, data []byte) (any, error) {
+func parseStepResponse(step PipelineStep, data []byte) (any, error) {
 	switch step {
-	case orchestrate.StepF0Recall:
-		return unmarshalStep[orchestrate.RecallResult](data)
-	case orchestrate.StepF1Triage:
-		return unmarshalStep[orchestrate.TriageResult](data)
-	case orchestrate.StepF2Resolve:
-		return unmarshalStep[orchestrate.ResolveResult](data)
-	case orchestrate.StepF3Invest:
-		return unmarshalStep[orchestrate.InvestigateArtifact](data)
-	case orchestrate.StepF4Correlate:
-		return unmarshalStep[orchestrate.CorrelateResult](data)
-	case orchestrate.StepF5Review:
-		return unmarshalStep[orchestrate.ReviewDecision](data)
-	case orchestrate.StepF6Report:
+	case StepF0Recall:
+		return unmarshalStep[RecallResult](data)
+	case StepF1Triage:
+		return unmarshalStep[TriageResult](data)
+	case StepF2Resolve:
+		return unmarshalStep[ResolveResult](data)
+	case StepF3Invest:
+		return unmarshalStep[InvestigateArtifact](data)
+	case StepF4Correlate:
+		return unmarshalStep[CorrelateResult](data)
+	case StepF5Review:
+		return unmarshalStep[ReviewDecision](data)
+	case StepF6Report:
 		return unmarshalStep[map[string]any](data)
 	default:
 		return nil, fmt.Errorf("unknown step %q", step)
@@ -95,17 +94,17 @@ func unmarshalStep[T any](data []byte) (*T, error) {
 // stored in the walker's context.
 func NodeRegistry() framework.NodeRegistry {
 	return framework.NodeRegistry{
-		"recall":      newRCANodeFactory("recall", orchestrate.StepF0Recall),
-		"triage":      newRCANodeFactory("triage", orchestrate.StepF1Triage),
-		"resolve":     newRCANodeFactory("resolve", orchestrate.StepF2Resolve),
-		"investigate": newRCANodeFactory("investigate", orchestrate.StepF3Invest),
-		"correlate":   newRCANodeFactory("correlate", orchestrate.StepF4Correlate),
-		"review":      newRCANodeFactory("review", orchestrate.StepF5Review),
-		"report":      newRCANodeFactory("report", orchestrate.StepF6Report),
+		"recall":      newRCANodeFactory("recall", StepF0Recall),
+		"triage":      newRCANodeFactory("triage", StepF1Triage),
+		"resolve":     newRCANodeFactory("resolve", StepF2Resolve),
+		"investigate": newRCANodeFactory("investigate", StepF3Invest),
+		"correlate":   newRCANodeFactory("correlate", StepF4Correlate),
+		"review":      newRCANodeFactory("review", StepF5Review),
+		"report":      newRCANodeFactory("report", StepF6Report),
 	}
 }
 
-func newRCANodeFactory(name string, step orchestrate.PipelineStep) func(framework.NodeDef) framework.Node {
+func newRCANodeFactory(name string, step PipelineStep) func(framework.NodeDef) framework.Node {
 	return func(def framework.NodeDef) framework.Node {
 		return &rcaNode{
 			nodeName: def.Name,

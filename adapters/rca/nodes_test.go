@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"asterisk/internal/orchestrate"
 
 	framework "github.com/dpopsuev/origami"
 )
@@ -42,11 +41,11 @@ func TestRCANode_Process_Recall(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Process: %v", err)
 	}
-	if art.Type() != string(orchestrate.StepF0Recall) {
-		t.Errorf("Type = %q, want %q", art.Type(), orchestrate.StepF0Recall)
+	if art.Type() != string(StepF0Recall) {
+		t.Errorf("Type = %q, want %q", art.Type(), StepF0Recall)
 	}
 
-	result, ok := art.Raw().(*orchestrate.RecallResult)
+	result, ok := art.Raw().(*RecallResult)
 	if !ok {
 		t.Fatalf("Raw type = %T, want *RecallResult", art.Raw())
 	}
@@ -75,7 +74,7 @@ func TestRCANode_Process_Triage(t *testing.T) {
 		t.Fatalf("Process: %v", err)
 	}
 
-	result, ok := art.Raw().(*orchestrate.TriageResult)
+	result, ok := art.Raw().(*TriageResult)
 	if !ok {
 		t.Fatalf("Raw type = %T, want *TriageResult", art.Raw())
 	}

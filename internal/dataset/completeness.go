@@ -1,7 +1,7 @@
 package dataset
 
 import (
-	"asterisk/internal/calibrate"
+	"asterisk/adapters/rca"
 	"github.com/dpopsuev/origami/curate"
 )
 
@@ -19,7 +19,7 @@ type CompletenessResult struct {
 // CheckCase evaluates a GroundTruthCase for completeness using the
 // Asterisk ground truth schema. All required fields must be present
 // for a case to be promotable.
-func CheckCase(c calibrate.GroundTruthCase, rcas []calibrate.GroundTruthRCA) CompletenessResult {
+func CheckCase(c rca.GroundTruthCase, rcas []rca.GroundTruthRCA) CompletenessResult {
 	record := GroundTruthCaseToRecord(c, rcas)
 	schema := AsteriskSchema()
 	cr := curate.CheckCompleteness(record, schema)
@@ -48,7 +48,7 @@ func CheckCase(c calibrate.GroundTruthCase, rcas []calibrate.GroundTruthRCA) Com
 }
 
 // CheckScenario evaluates all cases in a scenario.
-func CheckScenario(s *calibrate.Scenario) []CompletenessResult {
+func CheckScenario(s *rca.Scenario) []CompletenessResult {
 	results := make([]CompletenessResult, 0, len(s.Cases))
 	for _, c := range s.Cases {
 		results = append(results, CheckCase(c, s.RCAs))

@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"asterisk/internal/orchestrate"
 	"asterisk/adapters/store"
 
 	framework "github.com/dpopsuev/origami"
@@ -17,14 +16,14 @@ type fullPipelineAdapter struct{}
 
 func (a *fullPipelineAdapter) Name() string { return "test-full" }
 func (a *fullPipelineAdapter) SendPrompt(_ string, step string, _ string) (json.RawMessage, error) {
-	switch orchestrate.PipelineStep(step) {
-	case orchestrate.StepF0Recall:
-		return json.Marshal(orchestrate.RecallResult{
+	switch PipelineStep(step) {
+	case StepF0Recall:
+		return json.Marshal(RecallResult{
 			Match: true, Confidence: 0.95, Reasoning: "known failure",
 		})
-	case orchestrate.StepF5Review:
-		return json.Marshal(orchestrate.ReviewDecision{Decision: "approve"})
-	case orchestrate.StepF6Report:
+	case StepF5Review:
+		return json.Marshal(ReviewDecision{Decision: "approve"})
+	case StepF6Report:
 		return json.Marshal(map[string]any{"summary": "done"})
 	default:
 		return json.Marshal(map[string]any{})
@@ -35,7 +34,7 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 	ms := store.NewMemStore()
 	c := &store.Case{ID: 1, Name: "test-case"}
 
-	hooks := orchestrate.StoreHooks(ms, c)
+	hooks := StoreHooks(ms, c)
 
 	result, err := WalkCase(context.Background(), WalkConfig{
 		Store:     ms,
@@ -73,27 +72,27 @@ type triageInvestigateAdapter struct{}
 
 func (a *triageInvestigateAdapter) Name() string { return "test-triage" }
 func (a *triageInvestigateAdapter) SendPrompt(_ string, step string, _ string) (json.RawMessage, error) {
-	switch orchestrate.PipelineStep(step) {
-	case orchestrate.StepF0Recall:
-		return json.Marshal(orchestrate.RecallResult{Match: false, Confidence: 0.1})
-	case orchestrate.StepF1Triage:
-		return json.Marshal(orchestrate.TriageResult{
+	switch PipelineStep(step) {
+	case StepF0Recall:
+		return json.Marshal(RecallResult{Match: false, Confidence: 0.1})
+	case StepF1Triage:
+		return json.Marshal(TriageResult{
 			SymptomCategory: "product_bug",
 			CandidateRepos:  []string{"repo-a"},
 		})
-	case orchestrate.StepF3Invest:
-		return json.Marshal(orchestrate.InvestigateArtifact{
+	case StepF3Invest:
+		return json.Marshal(InvestigateArtifact{
 			ConvergenceScore: 0.8,
 			EvidenceRefs:     []string{"commit-abc"},
 			DefectType:       "product_bug",
 		})
-	case orchestrate.StepF4Correlate:
-		return json.Marshal(orchestrate.CorrelateResult{
+	case StepF4Correlate:
+		return json.Marshal(CorrelateResult{
 			IsDuplicate: false, Confidence: 0.3,
 		})
-	case orchestrate.StepF5Review:
-		return json.Marshal(orchestrate.ReviewDecision{Decision: "approve"})
-	case orchestrate.StepF6Report:
+	case StepF5Review:
+		return json.Marshal(ReviewDecision{Decision: "approve"})
+	case StepF6Report:
 		return json.Marshal(map[string]any{"summary": "done"})
 	default:
 		return json.Marshal(map[string]any{})
@@ -103,7 +102,7 @@ func (a *triageInvestigateAdapter) SendPrompt(_ string, step string, _ string) (
 func TestWalkCase_TriageInvestigatePath(t *testing.T) {
 	ms := store.NewMemStore()
 	c := &store.Case{ID: 2, Name: "test-deep"}
-	hooks := orchestrate.StoreHooks(ms, c)
+	hooks := StoreHooks(ms, c)
 
 	result, err := WalkCase(context.Background(), WalkConfig{
 		Store:     ms,
@@ -130,8 +129,8 @@ func TestWalkCase_TriageInvestigatePath(t *testing.T) {
 
 func TestWalkCase_MissingAdapter(t *testing.T) {
 	nodes := NodeRegistry()
-	th := orchestrate.DefaultThresholds()
-	runner, err := orchestrate.BuildRunnerWith(th, nodes)
+	th := DefaultThresholds()
+	runner, err := BuildRunnerWith(th, nodes)
 	if err != nil {
 		t.Fatalf("BuildRunnerWith: %v", err)
 	}
@@ -139,7 +138,7 @@ func TestWalkCase_MissingAdapter(t *testing.T) {
 
 	walker := framework.NewProcessWalker("test")
 
-	def, err := orchestrate.AsteriskPipelineDef(th)
+	def, err := AsteriskPipelineDef(th)
 	if err != nil {
 		t.Fatalf("AsteriskPipelineDef: %v", err)
 	}

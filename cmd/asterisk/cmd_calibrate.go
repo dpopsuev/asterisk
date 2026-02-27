@@ -13,10 +13,9 @@ import (
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 
-	"asterisk/internal/calibrate"
-	"asterisk/internal/calibrate/adapt"
-	"asterisk/internal/calibrate/scenarios"
-	"asterisk/internal/orchestrate"
+	"asterisk/adapters/rca"
+	"asterisk/adapters/rca/adapt"
+	"asterisk/adapters/calibration/scenarios"
 	"asterisk/adapters/rp"
 	"asterisk/adapters/store"
 )
@@ -71,7 +70,7 @@ func init() {
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
-	var scenario *calibrate.Scenario
+	var scenario *rca.Scenario
 	switch calibrateFlags.scenario {
 	case "ptp-mock":
 		scenario = scenarios.PTPMockScenario()
@@ -101,7 +100,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			return fmt.Errorf("create RP client: %w", err)
 		}
 		rpFetcher = rp.NewFetcher(client, rpProject)
-		if err := calibrate.ResolveRPCases(rpFetcher, scenario); err != nil {
+		if err := rca.ResolveRPCases(rpFetcher, scenario); err != nil {
 			return fmt.Errorf("resolve RP-sourced cases: %w", err)
 		}
 	}
@@ -115,7 +114,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		debugLogger.Info("agent-debug enabled: dispatcher and adapter operations will be traced to stderr")
 	}
 
-	var adapter calibrate.ModelAdapter
+	var adapter rca.ModelAdapter
 	switch calibrateFlags.adapter {
 	case "stub":
 		adapter = adapt.NewStubAdapter(scenario)
@@ -225,12 +224,12 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		return fmt.Errorf("load scorecard: %w", err)
 	}
 
-	cfg := calibrate.RunConfig{
+	cfg := rca.RunConfig{
 		Scenario:     scenario,
 		Adapter:      adapter,
 		Runs:         calibrateFlags.runs,
 		PromptDir:    calibrateFlags.promptDir,
-		Thresholds:   orchestrate.DefaultThresholds(),
+		Thresholds:   rca.DefaultThresholds(),
 		TokenTracker: tokenTracker,
 		Parallel:     parallelN,
 		TokenBudget:  budgetN,
@@ -239,7 +238,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		ScoreCard:    sc,
 	}
 
-	report, err := calibrate.RunCalibration(cmd.Context(), cfg)
+	report, err := rca.RunCalibration(cmd.Context(), cfg)
 
 	if calibrateFlags.adapter == "llm" && calibrateFlags.dispatchMode == "file" {
 		dispatch.FinalizeSignals(calibDir)
@@ -250,11 +249,11 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	}
 
 	out := cmd.OutOrStdout()
-	fmt.Fprint(out, calibrate.FormatReport(report))
+	fmt.Fprint(out, rca.FormatReport(report))
 
-	bill := calibrate.BuildCostBill(report)
+	bill := rca.BuildCostBill(report)
 	if bill != nil {
-		md := calibrate.FormatCostBill(bill)
+		md := rca.FormatCostBill(bill)
 		fmt.Fprint(out, md)
 
 		tokiPath := calibDir + "/tokimeter.md"
@@ -278,7 +277,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	}
 
 	if calibrateFlags.transcript {
-		transcripts, err := calibrate.WeaveTranscripts(report)
+		transcripts, err := rca.WeaveTranscripts(report)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "weave transcripts: %v\n", err)
 		} else if len(transcripts) > 0 {
@@ -287,8 +286,8 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 				fmt.Fprintf(os.Stderr, "create transcript dir: %v\n", err)
 			} else {
 				for i := range transcripts {
-					slug := calibrate.TranscriptSlug(&transcripts[i])
-					md := calibrate.RenderRCATranscript(&transcripts[i])
+					slug := rca.TranscriptSlug(&transcripts[i])
+					md := rca.RenderRCATranscript(&transcripts[i])
 					tPath := filepath.Join(transcriptDir, slug+".md")
 					if err := os.WriteFile(tPath, []byte(md), 0600); err != nil {
 						fmt.Fprintf(os.Stderr, "write transcript %s: %v\n", slug, err)
