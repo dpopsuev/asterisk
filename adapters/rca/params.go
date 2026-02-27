@@ -472,3 +472,41 @@ func loadHistory(st store.Store, symptomID int64) *HistoryParams {
 
 	return history
 }
+
+// LayeredCatalog filters a catalog using layered routing: base → version →
+// investigation. Returns a new catalog containing only the matched sources
+// in dependency-resolved order. If no layer tags are populated, returns
+// the original catalog unchanged (safe default).
+func LayeredCatalog(
+	catalog *knowledge.KnowledgeSourceCatalog,
+	version string,
+	component string,
+	deps *knowledge.DepGraph,
+) *knowledge.KnowledgeSourceCatalog {
+	if catalog == nil {
+		return nil
+	}
+
+	baseTags := map[string]string{knowledge.LayerTagKey: knowledge.LayerBase}
+	versionTags := map[string]string{knowledge.LayerTagKey: knowledge.LayerVersion}
+	investigationTags := map[string]string{knowledge.LayerTagKey: knowledge.LayerInvestigation}
+
+	if component != "" {
+		baseTags["role"] = "sut"
+	}
+	if version != "" {
+		versionTags["version"] = version
+	}
+
+	router := knowledge.NewRouter(catalog, knowledge.RequestTagMatchRule{})
+	sources := router.LayeredRoute(baseTags, versionTags, investigationTags)
+
+	if deps != nil {
+		ordered, err := deps.OrderSources(sources)
+		if err == nil {
+			sources = ordered
+		}
+	}
+
+	return &knowledge.KnowledgeSourceCatalog{Sources: sources}
+}
