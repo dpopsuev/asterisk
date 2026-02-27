@@ -32,7 +32,7 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 |---|----------|-------|
 | 1 | `data-dsl-extraction` | Scenarios + vocabulary to YAML; zero Go struct literals. |
 | 1 | `adapter-migration` | RP adapter lift-and-drop to Origami. |
-| 2 | `sqlite-dsl-adapter` | YAML-defined SQLite adapter in Origami (schema, migrations, CRUD). |
+| ~~2~~ | ~~`sqlite-dsl-adapter`~~ | ~~YAML-defined SQLite adapter in Origami (schema, migrations, CRUD).~~ **DONE** |
 | 3 | `rca-pure-dsl` | Marble discovery: decompose `adapters/rca/` into reusable Origami marbles, validated by Achilles. |
 
 ### Execution order

@@ -304,8 +304,8 @@ func TestSqlStoreV2_Migration(t *testing.T) {
 	if err := s.db.QueryRow("SELECT version FROM schema_version LIMIT 1").Scan(&v); err != nil {
 		t.Fatalf("read schema version: %v", err)
 	}
-	if v != schemaVersionV2 {
-		t.Errorf("schema version: got %d want %d", v, schemaVersionV2)
+	if v != 2 {
+		t.Errorf("schema version: got %d want %d", v, 2)
 	}
 
 	// Check that migration suite was created.
@@ -359,7 +359,7 @@ func createV1DB(t *testing.T, path string) {
 	}
 	defer import_db.Close()
 
-	if _, err := import_db.Exec(schemaV1); err != nil {
+	if _, err := import_db.Exec(schemaV1DDL); err != nil {
 		t.Fatalf("create v1 schema: %v", err)
 	}
 	if _, err := import_db.Exec("INSERT INTO schema_version(version) VALUES(1)"); err != nil {

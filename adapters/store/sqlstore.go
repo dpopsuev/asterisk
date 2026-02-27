@@ -5,19 +5,14 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/dpopsuev/origami/adapters/rp"
-
-	_ "modernc.org/sqlite"
+	"github.com/dpopsuev/origami/adapters/sqlite"
 )
 
-// nowUTC returns the current UTC time as an ISO 8601 string.
 func nowUTC() string { return time.Now().UTC().Format(time.RFC3339) }
 
-// nullStr converts a sql.NullString to a plain string (empty if null).
 func nullStr(ns sql.NullString) string {
 	if ns.Valid {
 		return ns.String
@@ -25,7 +20,6 @@ func nullStr(ns sql.NullString) string {
 	return ""
 }
 
-// nullFloat converts a sql.NullFloat64 to a plain float64 (0 if null).
 func nullFloat(nf sql.NullFloat64) float64 {
 	if nf.Valid {
 		return nf.Float64
@@ -33,134 +27,69 @@ func nullFloat(nf sql.NullFloat64) float64 {
 	return 0
 }
 
-// SqlStore implements Store with SQLite.
+// SqlStore implements Store with SQLite via the Origami sqlite adapter.
 type SqlStore struct {
-	db *sql.DB
+	db *sqlite.DB
 }
 
-// Open opens or creates a SQLite DB at path and runs migrations.
-// Creates the parent directory (e.g. .asterisk) if it does not exist.
+// Open opens or creates a SQLite DB at path with YAML-defined schema and migrations.
 func Open(path string) (*SqlStore, error) {
-	dir := filepath.Dir(path)
-	if err := os.MkdirAll(dir, 0755); err != nil {
-		return nil, fmt.Errorf("create store dir: %w", err)
+	schema, err := LoadSchema()
+	if err != nil {
+		return nil, fmt.Errorf("load schema: %w", err)
 	}
-	db, err := sql.Open("sqlite", path)
+	migrations, err := LoadMigrations()
+	if err != nil {
+		return nil, fmt.Errorf("load migrations: %w", err)
+	}
+
+	db, err := sqlite.Open(path, schema)
 	if err != nil {
 		return nil, fmt.Errorf("open sqlite: %w", err)
 	}
-	if err := db.Ping(); err != nil {
-		_ = db.Close()
-		return nil, fmt.Errorf("ping sqlite: %w", err)
+
+	if err := db.Migrate(migrations); err != nil {
+		db.Close()
+		return nil, fmt.Errorf("run migrations: %w", err)
 	}
-	s := &SqlStore{db: db}
-	if err := s.migrate(); err != nil {
-		_ = db.Close()
-		return nil, err
-	}
-	return s, nil
+
+	return &SqlStore{db: db}, nil
 }
 
-func (s *SqlStore) migrate() error {
-	// Check if schema_version table exists to detect database state.
-	var tableCount int
-	err := s.db.QueryRow(
-		"SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='schema_version'",
-	).Scan(&tableCount)
+// OpenMemory opens an in-memory SQLite DB for testing.
+func OpenMemory() (*SqlStore, error) {
+	schema, err := LoadSchema()
 	if err != nil {
-		return fmt.Errorf("check schema_version table: %w", err)
+		return nil, fmt.Errorf("load schema: %w", err)
 	}
-
-	if tableCount == 0 {
-		// Fresh database — create v2 schema directly.
-		return s.freshInstallV2()
-	}
-
-	// Existing database — check version and migrate if needed.
-	var v int
-	err = s.db.QueryRow("SELECT version FROM schema_version LIMIT 1").Scan(&v)
-	if err != nil && !errors.Is(err, sql.ErrNoRows) {
-		return fmt.Errorf("read schema version: %w", err)
-	}
-	if errors.Is(err, sql.ErrNoRows) {
-		// schema_version exists but is empty — treat as v1.
-		v = schemaVersionV1
-		if _, err := s.db.Exec("INSERT INTO schema_version(version) VALUES(?)", v); err != nil {
-			return fmt.Errorf("set schema version: %w", err)
-		}
-	}
-
-	switch v {
-	case schemaVersionV2:
-		return nil // already at target
-	case schemaVersionV1:
-		return s.migrateV1ToV2()
-	default:
-		return fmt.Errorf("unknown schema version %d", v)
-	}
-}
-
-// freshInstallV2 creates the v2 schema from scratch on an empty database.
-func (s *SqlStore) freshInstallV2() error {
-	if _, err := s.db.Exec(schemaV2); err != nil {
-		return fmt.Errorf("create v2 schema: %w", err)
-	}
-	if _, err := s.db.Exec("INSERT INTO schema_version(version) VALUES(?)", schemaVersionV2); err != nil {
-		return fmt.Errorf("set schema version: %w", err)
-	}
-	return nil
-}
-
-// migrateV1ToV2 migrates an existing v1 database to the v2 schema.
-// Runs inside a transaction to ensure atomicity.
-func (s *SqlStore) migrateV1ToV2() error {
-	tx, err := s.db.Begin()
+	db, err := sqlite.OpenMemory(schema)
 	if err != nil {
-		return fmt.Errorf("begin migration tx: %w", err)
+		return nil, fmt.Errorf("open memory sqlite: %w", err)
 	}
-	defer func() { _ = tx.Rollback() }()
-
-	// Enable foreign keys for the migration.
-	if _, err := tx.Exec("PRAGMA foreign_keys = OFF"); err != nil {
-		return fmt.Errorf("disable fkeys for migration: %w", err)
-	}
-
-	// Execute the migration DDL + data migration.
-	if _, err := tx.Exec(migrationV1ToV2); err != nil {
-		return fmt.Errorf("v1→v2 migration: %w", err)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("commit migration tx: %w", err)
-	}
-	return nil
+	return &SqlStore{db: db}, nil
 }
 
-// Close closes the database connection.
 func (s *SqlStore) Close() error {
 	return s.db.Close()
 }
 
-// CreateCase creates a case for the given RP launch ID and item (failure) ID (v1 style).
-// On a v2 schema, this finds or creates the necessary launch/job scaffolding
-// to satisfy the foreign key constraints. For full v2 creation, use CreateCaseV2.
+// RawDB returns the underlying *sqlite.DB for direct access.
+func (s *SqlStore) RawDB() *sqlite.DB {
+	return s.db
+}
+
 func (s *SqlStore) CreateCase(launchID, itemID int) (int64, error) {
-	// Resolve the launch.id from rp_launch_id. If not found, the v1 scaffolding
-	// hasn't been created yet — return an error directing the caller to use v2 methods.
 	var dbLaunchID int64
 	err := s.db.QueryRow(
 		"SELECT id FROM launches WHERE rp_launch_id = ? LIMIT 1", launchID,
 	).Scan(&dbLaunchID)
 	if errors.Is(err, sql.ErrNoRows) {
-		// Fallback: if no launch exists for this RP ID, we can't create a v2 case
-		// without full scaffolding. Return an error.
 		return 0, fmt.Errorf("no launch found for rp_launch_id=%d; use v2 methods to create the full hierarchy", launchID)
 	}
 	if err != nil {
 		return 0, fmt.Errorf("resolve launch: %w", err)
 	}
 
-	// Find the first job for this launch (placeholder job from migration).
 	var jobID int64
 	err = s.db.QueryRow(
 		"SELECT id FROM jobs WHERE launch_id = ? LIMIT 1", dbLaunchID,
@@ -185,7 +114,6 @@ func (s *SqlStore) CreateCase(launchID, itemID int) (int64, error) {
 	return id, nil
 }
 
-// GetCase returns the case by id. Returns all v2 fields if the schema is v2.
 func (s *SqlStore) GetCase(caseID int64) (*Case, error) {
 	var c Case
 	var rcaID, symptomID, jobID, logTrunc sql.NullInt64
@@ -218,8 +146,6 @@ func (s *SqlStore) GetCase(caseID int64) (*Case, error) {
 	return &c, nil
 }
 
-// ListCasesByLaunch returns all cases for the RP launch ID (v1 key).
-// Resolves via launches.rp_launch_id → cases.launch_id.
 func (s *SqlStore) ListCasesByLaunch(launchID int) ([]*Case, error) {
 	rows, err := s.db.Query(
 		`SELECT c.id, c.job_id, c.launch_id, c.rp_item_id, c.name, c.status, c.rca_id
@@ -254,8 +180,6 @@ func (s *SqlStore) ListCasesByLaunch(launchID int) ([]*Case, error) {
 	return list, nil
 }
 
-// SaveRCA inserts or updates an RCA and returns its id (v1 style — basic fields).
-// If rca.ID is 0, insert; otherwise update (and return same id).
 func (s *SqlStore) SaveRCA(rca *RCA) (int64, error) {
 	if rca == nil {
 		return 0, errors.New("rca is nil")
@@ -286,7 +210,6 @@ func (s *SqlStore) SaveRCA(rca *RCA) (int64, error) {
 	return id, nil
 }
 
-// LinkCaseToRCA sets case.rca_id = rcaID.
 func (s *SqlStore) LinkCaseToRCA(caseID, rcaID int64) error {
 	_, err := s.db.Exec("UPDATE cases SET rca_id = ? WHERE id = ?", rcaID, caseID)
 	if err != nil {
@@ -295,7 +218,6 @@ func (s *SqlStore) LinkCaseToRCA(caseID, rcaID int64) error {
 	return nil
 }
 
-// GetRCA returns the RCA by id (all available fields).
 func (s *SqlStore) GetRCA(rcaID int64) (*RCA, error) {
 	var r RCA
 	var cat, comp, affVer, evRefs, jiraID, jiraLink sql.NullString
@@ -331,7 +253,6 @@ func (s *SqlStore) GetRCA(rcaID int64) (*RCA, error) {
 	return &r, nil
 }
 
-// ListRCAs returns all RCAs (all available fields).
 func (s *SqlStore) ListRCAs() ([]*RCA, error) {
 	rows, err := s.db.Query(
 		`SELECT id, title, description, defect_type, category, component,
@@ -374,9 +295,6 @@ func (s *SqlStore) ListRCAs() ([]*RCA, error) {
 	return list, nil
 }
 
-// SaveEnvelope stores the envelope by RP launch ID. In v2, this creates the
-// necessary scaffolding (suite/version/pipeline/launch) if not already present,
-// and stores the envelope payload in launches.envelope_payload.
 func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 	if env == nil {
 		return errors.New("envelope is nil")
@@ -386,13 +304,11 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 		return fmt.Errorf("marshal envelope: %w", err)
 	}
 
-	// Check if a launch already exists for this RP launch ID.
 	var existingID int64
 	err = s.db.QueryRow(
 		"SELECT id FROM launches WHERE rp_launch_id = ? LIMIT 1", launchID,
 	).Scan(&existingID)
 	if err == nil {
-		// Update existing launch's envelope payload.
 		_, err = s.db.Exec(
 			"UPDATE launches SET envelope_payload = ? WHERE id = ?",
 			payload, existingID,
@@ -406,10 +322,8 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 		return fmt.Errorf("check existing launch: %w", err)
 	}
 
-	// No launch exists — create minimal scaffolding (auto-suite, auto-pipeline).
 	now := nowUTC()
 
-	// Ensure a default suite exists.
 	var suiteID int64
 	err = s.db.QueryRow(
 		"SELECT id FROM investigation_suites WHERE name = 'Default Suite' LIMIT 1",
@@ -427,7 +341,6 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 		return fmt.Errorf("check default suite: %w", err)
 	}
 
-	// Ensure a default version exists.
 	var versionID int64
 	err = s.db.QueryRow("SELECT id FROM versions WHERE label = 'unknown' LIMIT 1").Scan(&versionID)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -440,7 +353,6 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 		return fmt.Errorf("check unknown version: %w", err)
 	}
 
-	// Create pipeline.
 	res, err := s.db.Exec(
 		"INSERT INTO pipelines(suite_id, version_id, name, rp_launch_id, status) VALUES(?, ?, ?, ?, 'UNKNOWN')",
 		suiteID, versionID, fmt.Sprintf("auto-pipeline-%d", launchID), launchID,
@@ -450,7 +362,6 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 	}
 	pipelineID, _ := res.LastInsertId()
 
-	// Create launch with envelope payload.
 	res, err = s.db.Exec(
 		`INSERT INTO launches(pipeline_id, rp_launch_id, name, envelope_payload)
 		 VALUES(?, ?, ?, ?)`,
@@ -461,7 +372,6 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 	}
 	dbLaunchID, _ := res.LastInsertId()
 
-	// Create a placeholder job for the launch (v1 cases need a job_id).
 	_, err = s.db.Exec(
 		"INSERT INTO jobs(launch_id, rp_item_id, name) VALUES(?, 0, 'default-job')",
 		dbLaunchID,
@@ -473,8 +383,6 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 	return nil
 }
 
-// GetEnvelope returns the envelope for the RP launch ID, or nil if not found.
-// In v2, reads from launches.envelope_payload.
 func (s *SqlStore) GetEnvelope(launchID int) (*rp.Envelope, error) {
 	var payload []byte
 	err := s.db.QueryRow(

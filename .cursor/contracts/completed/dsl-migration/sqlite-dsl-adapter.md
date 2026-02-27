@@ -1,6 +1,6 @@
 # Contract — sqlite-dsl-adapter
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Origami provides a YAML-defined SQLite adapter (schema, migrations, query/exec/insert transformers) following the Ansible `sqlite-utils` collection pattern.  
 **Serves:** 100% DSL — Zero Go
 
