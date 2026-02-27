@@ -4,10 +4,8 @@ description: Active goal manifest — single-read orientation for agents to know
 
 # Current Goal
 
-**Goal:** Polishing & Presentation  
-**Summary:** The system works. The PoC proved it (M19=0.83 heuristic, 0.58 AI). The framework matured — Origami's DSL, adapters, marbles, observability, and lint are all shipped. Bundles 1-4 complete (principled metrics, rich names, smart routing, demo polish). Remaining: clean architecture (pure-DSL Asterisk), ingestion pipeline, evidence gaps.
-
-**North Star: Zero Go.** There is no Python in an Ansible repository — only YAML playbooks, roles, and variable files. The Python lives in Ansible (the engine) and in collections (the plugins). Asterisk follows the same model: **zero Go code.** The Go lives in Origami (the engine) and in Origami's adapters (the collections). Asterisk is the "playbook repository" — pure YAML pipelines, scenarios, schemas, prompt templates, and configuration. Achilles (proactive security vulnerability analysis) is a sibling playbook repository — both are RCA analysis tools on Origami, differing only in domain (CI post-mortem vs. security probing). Any Go code in Asterisk is a signal that the framework or its adapters are missing a primitive.
+**Goal:** 100% DSL — Zero Go  
+**Summary:** Asterisk is a playbook repository. There is no Python in an Ansible repo — only YAML. The Python lives in Ansible (the engine) and in collections (the plugins). Asterisk follows the same model: **zero Go code.** The Go lives in Origami (the engine) and in Origami's adapters/marbles (the collections). Achilles is a sibling playbook repository — both are analysis tools on Origami, differing only in domain (CI post-mortem vs. security probing). Any Go code in Asterisk is a signal that the framework or its adapters are missing a primitive.
 
 ## The ROI That Changes Everything
 
@@ -21,176 +19,49 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 **Implication:** Accuracy dominates. Token budget is irrelevant. A system that costs $5 instead of $1 but gets the answer right saves $49,995.
 
-## Vision
-
-**Asterisk (the product):** A pure-DSL project built on Origami. All domain logic in adapters. Principled metrics grounded in ROI. Clean enough to demo, accurate enough to deploy.
-
-**Origami (the engine):** A framework where calibration is a first-class citizen. RichVocabulary powers hover tooltips across Kami, LSP, and Kabuki. The LSP validates pipeline YAML. The engine reveal.
-
 ## PoC Results (baseline)
 
 | Adapter | Scenario | M19 | Key metrics | Notes |
 |---------|----------|-----|-------------|-------|
 | BasicAdapter | ptp-real-ingest (18 verified) | **0.83** | M1=1.00, M2=1.00, M15=0.72 | Heuristic baseline. 19/21 metrics pass. |
-| CursorAdapter | ptp-real-ingest (18 verified) | **0.58** | M2=0.78, M8=0.60, M14b=0.30 | AI baseline. 10/21 pass. Root causes documented. |
+| CursorAdapter | ptp-real-ingest (18 verified) | **0.58** | M2=0.78, M8=0.60, M14b=0.30 | AI baseline. 10/21 pass. |
 
-Full PoC history: `notes/goal-history-poc.md`
+## Active Contracts
 
-## Remaining Contracts — Tandem Bundles
-
-Contracts are grouped into cross-repo tandem bundles. Within each bundle, Origami ships framework primitives first, then Asterisk consumes. Work in bundle priority order; commit at green gates.
-
-### Bundle 1: Principled Metrics -- DONE
-
-Declarative ScoreCard YAML replaces hardcoded metrics. 21 MetricDefs with ROI-grounded thresholds.
-
-### Bundle 2: Rich Names -- DONE
-
-`RichVocabulary` interface in Origami. Asterisk `display/` deleted, replaced by `adapters/vocabulary/` registrations.
-
-### Bundle 3: Smart Routing -- DONE
-
-`ReadPolicy` on `Source` in Origami. Asterisk scenarios declare doc sources. `loadAlwaysReadSources` injects mandatory docs into prompts. No dedicated graph node. Kabuki demo updated.
-
-### Bundle 4: Demo Polish -- DONE
-
-Three-act Kabuki demo (26 sections), War Room with agent tabs/TX/RX/pause/resume/RCA tabs, dagre graph with element-colored nodes, grounded language (allegory + domain terms), Laws of UX + dark mode + responsive scaling. Canonical recording deferred to next wet calibration session.
-
-### Bundle 5: Developer Tooling (vision)
-
-Sequential Origami chain. No Asterisk pairing yet.
-
-```
-[Origami: origami-lsp] -> [Origami: washi]
-```
-
-LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + LSP. Asterisk benefits indirectly.
-
-### Standalone contracts
-
-| Contract | Repo | Tier | Notes |
-|----------|------|------|-------|
-| ~~`asterisk-internal-cleanup`~~ | Asterisk | ~~should~~ | **Complete.** Merged `internal/` into `adapters/`. |
-| ~~`data-ingestion-pipeline`~~ | Asterisk | ~~should~~ | **Complete.** Ingestion as DSL pipeline. |
-| ~~`evidence-gap-brief`~~ | Asterisk | ~~nice~~ | **Complete.** Structured "I don't know" output. |
-| ~~`knowledge-source-evolution`~~ | Asterisk | ~~vision~~ | **Complete.** Layered composition via `Source.Tags`, VersionMatrix, DepGraph, Summarizer. |
-| `data-dsl-extraction` | Asterisk | should | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. |
-| `adapter-migration` | Both | should | RP adapter lift-and-drop to Origami. |
-| `sqlite-dsl-adapter` | Both | should | YAML-defined SQLite adapter in Origami (schema, migrations, CRUD transformers). |
-| `rca-pure-dsl` | Both | gate | Marble discovery: decompose rca/ into reusable Origami marbles, validated by Achilles. |
+| Contract | Tier | Scope |
+|----------|------|-------|
+| `rca-pure-dsl` | gate | Marble discovery: decompose `adapters/rca/` (40+ files, 6K LOC) into reusable Origami marbles, validated by Achilles. |
+| `data-dsl-extraction` | should | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. |
+| `adapter-migration` | should | RP adapter lift-and-drop to Origami. |
+| `sqlite-dsl-adapter` | should | YAML-defined SQLite adapter in Origami (schema, migrations, CRUD transformers). |
 
 ### Execution order
 
 ```
-    ┌─────────────────────┐
-    │  Bundle 1: Metrics   │  ✓ DONE
-    │  Bundle 2: Rich Names│  ✓ DONE
-    │  Bundle 3: Smart     │  ✓ DONE
-    │  Bundle 4: Demo      │  ✓ DONE
-    └────────┬────────────┘
-             │
-    ┌────────▼──────────────────────────────┐
-    │ Standalone: internal-cleanup,         │  ← should/nice (next)
-    │ data-ingestion, evidence-gap-brief    │
-    └───────────────────────────────────────┘
-             │
-    ┌────────▼──────────────────────────────┐
-    │ Bundle 5: LSP -> Washi                │  ← vision
-    │ knowledge-source-evolution            │
+    ┌───────────────────────────────────────┐
+    │ rca-pure-dsl (gate)                   │  ← marble discovery first
+    │ data-dsl-extraction (should)          │  ← scenarios + vocabulary to YAML
+    │ adapter-migration (should)            │  ← RP adapter to Origami
+    │ sqlite-dsl-adapter (should)           │  ← YAML-defined SQLite in Origami
     └───────────────────────────────────────┘
 ```
 
-### CHECKPOINT — Polish validated
+## Open Checklist
 
-```
-Origami:  go build ./... && go test ./...
-Asterisk: go get github.com/dpopsuev/origami@latest
-          go build ./... && go test ./...
-          just calibrate-stub
-          asterisk demo --replay
-```
+- [ ] CursorAdapter M19 >= 0.70 with principled weights (baseline: 0.58)
+- [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
+- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files. Validated by: `data-dsl-extraction` + `adapter-migration` + `sqlite-dsl-adapter` + `rca-pure-dsl`.
 
-Verify: Principled thresholds applied (done). Demo replays (done). `internal/` cleaned up. Ingestion pipeline runs.
+## Completed Work
 
-**Closed/absorbed:**
-- ~~`domain-calibration`~~ → absorbed into `principled-calibration-scorecard`
-- ~~`ground-truth-dataset`~~ → absorbed by `data-ingestion-pipeline` + `consumer-cli-scaffold`
-- ~~`knowledge-source-migration`~~ → Phase 1 done, remainder absorbed by `refine-rtfm-routing-policy` + `knowledge-source-evolution`
+All prior goals achieved. Bundles 1-4 (Principled Metrics, Rich Names, Smart Routing, Demo Polish) complete. Standalone contracts (internal-cleanup, data-ingestion, evidence-gap-brief, knowledge-source-evolution) complete. Origami framework items (DefaultMetrics, DefaultScoreCard, CostBill, CostConfig, calibration DSL pipeline, LSP validation, EvidenceSource rename, probe stimuli, mathutil extraction) all verified.
 
-## Previous Goal History
-
-### System Refinement (complete)
-
-Ran as sprints R1-R4. All Origami framework contracts completed. Asterisk-side contracts (scorecard, RTFM, ingestion, demo) deferred to polishing phase as they depend on the now-complete framework work.
-
-**Origami contracts completed during System Refinement:**
-- `consumer-cli-scaffold` — 8 perennial commands, `origami.NewCLI()` builder.
-- `e2e-dsl-testing` — E2E walk tests gate every checkpoint.
-- `durable-execution` — `Checkpointer` interface + HITL Interrupt/Resume.
-- `origami-adapters` — FQCN resolution on all registries. `imports:` on PipelineDef.
-- `memory-evolution` — MemoryStore: namespaced, searchable, persistent.
-- `origami-observability` — 9 Prometheus metrics + OTel traces. `/metrics` on KamiServer.
-- `origami-api-hygiene` — Configurable `ModelRegistry`. Parameterized probe stimuli.
-- `origami-marbles` — `Marble` interface, `marble:` on NodeDef, composite subgraph.
-- `pipeline-efficiency` — Node caching (InMemoryCache with TTL), fan-in merge strategies.
-- `provider-resilience` — Dispatch fallback chains + intent classifier.
-- `prompt-calibration` — StepAnalyzer, TuningProposal, PromptCalibrationLoop.
-- `origami-lint` — 24 rules, 4 profiles, auto-fix, CLI integration.
-
-### Polishing & Presentation v1 (paused → resumed)
-
-Sprints 1-5 completed. CHECKPOINT E passed. Demo built but mock PoC exposed foundational gaps:
-- Thresholds are arbitrary — no principled "good enough" analysis
-- Calibration is Asterisk-locked — not a reusable framework concern
-- CursorAdapter at M19=0.58 — the AI doesn't reliably produce correct answers
-- Token budget at 60K starves investigation — ROI math says budget is irrelevant
-
-Contracts completed: `consumer-ergonomics`, `walker-experience`, `ouroboros-seed-pipeline`, `kami-live-debugger`, `kabuki-presentation-engine`, `demo-presentation`.
-
-Paused for System Refinement. Now resumed as the current goal with the foundational gaps addressed by framework maturity.
-
-Full PoC history: `notes/goal-history-poc.md`
-
-## What "polished" means
-
-### Asterisk
-- [x] Every metric threshold has a documented rationale (baseline, ceiling, ROI)
-- [x] ScoreCard YAML replaces hardcoded thresholds in metrics.go
-- [ ] CursorAdapter M19 >= 0.70 with principled weights
-- [ ] M14b (smoking gun) passes at >= 0.30
-- [ ] Token budget at 200,000 (ROI-justified)
-- [x] RTFM deleted — ReadPolicy + prompt injection replaces `internal/rtfm/`
-- [ ] 3 YAML pipelines (RCA, ingestion, calibration)
-- [ ] CLI migrated to `origami.NewCLI()` scaffold
-- [x] EvidenceGap output when confidence is low
-- [x] TokiMeter deleted — cost bill from Origami `dispatch.FormatCostBill()`
-- [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
-- [x] `internal/` contains only `dataset/`, `demo/`, `mcpconfig/` — all domain logic in `adapters/`
-- [x] `display/` migrated to Origami `RichMapVocabulary` registration
-- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files. Only YAML pipelines, scenarios, schemas, prompt templates, and configuration. Validated by: `data-dsl-extraction` + `adapter-migration` + `sqlite-dsl-adapter` + `rca-pure-dsl`.
-
-### Origami
-- [x] `MetricDef`, `ScoreCard` types in `calibrate/` package
-- [x] ScoreCard YAML loader with direction-aware evaluation
-- [x] `MetricSet` is flat — `Metrics []Metric` with `ByTier()`/`ByID()` view methods
-- [ ] `DefaultMetrics()` ships 7 universal metrics (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
-- [ ] `DefaultScoreCard()` — three-layer API following Go slog pattern
-- [ ] TokiMeter cost bill in `dispatch/cost_bill.go` — every dispatch gets a cost bill
-- [ ] `FormatTokenSummary` uses `CostConfig` (bug fix — no more hardcoded 3.0/15.0)
-- [ ] Calibration runner as DSL pipeline (visible in Kami)
-- [x] `RichVocabulary` interface with `VocabEntry` (short/long/description) in `vocabulary.go`
-- [x] Kami hover uses `RichVocabulary.Description()` for node tooltips
-- [x] LSP hover uses `RichVocabulary` for pipeline-level node docs
-- [x] Kabuki cards use `RichVocabulary` for labels and descriptions
-- [ ] LSP validates pipeline YAML with completion and hover docs
-- [ ] `curate.Source` renamed to `curate.EvidenceSource`
-- [ ] Ouroboros probe stimuli loadable from config
-- [ ] `Mean`/`Stddev`/`SafeDiv` extracted from `calibrate/` to `internal/mathutil/`
+Full history: `notes/goal-history-poc.md`
 
 ## Goal Transition Protocol
 
-When polishing is complete:
+When zero Go is achieved:
 
-1. Archive this manifest in `notes/` as `goal-history-polishing.md`
+1. Archive this manifest in `notes/` as `goal-history-100-dsl.md`
 2. Evaluate next goal: production hardening, multi-operator expansion, or community release
 3. Reassess all draft contracts — re-tier relative to the next goal
