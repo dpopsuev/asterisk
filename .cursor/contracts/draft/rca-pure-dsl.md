@@ -6,9 +6,9 @@
 
 ## Contract rules
 
-- Any Go domain logic that cannot become DSL is a signal that Origami is missing a framework primitive. File it as an Origami gap, implement the primitive, then DSL-ify the Asterisk code.
-- Asterisk and Achilles are sibling tools on the same framework. Achilles does proactive security RCA; Asterisk does passive CI post-mortem RCA. Patterns extracted here must work for both.
-- Go code remaining in Asterisk after this contract: CLI entry point (`cmd/`), thin loader glue, and tests. Nothing else.
+- There is no Python in an Ansible repository. Asterisk follows the same model: **zero Go code.** Any Go that cannot become YAML is a missing Origami primitive — file it, implement it, then delete the Go.
+- Asterisk and Achilles are sibling playbook repositories on the same framework. Achilles does proactive security RCA; Asterisk does passive CI post-mortem RCA. Patterns extracted here must work for both.
+- Go code remaining in Asterisk after this contract: **none.** The CLI entry point moves to Origami (like `ansible` is the CLI, not the playbook repo). Tests become pipeline validation YAML.
 
 ## Context
 
@@ -107,10 +107,10 @@ Tasks will be defined after the decomposition analysis. The scope and ordering d
 
 ## Acceptance criteria
 
-- **Given** `adapters/rca/`, **when** listing `.go` files, **then** zero domain logic files remain. Only loader glue and tests.
-- **Given** `just calibrate-stub`, **when** run before and after, **then** the report output is identical.
-- **Given** Achilles's 4-node pipeline, **when** using the same Origami DSL primitives, **then** it can express its pipeline without Go domain logic.
-- **Given** a new RCA-style analysis tool, **when** defining its pipeline, **then** it needs only YAML + prompt templates — no Go code beyond CLI entry point.
+- **Given** the Asterisk repository, **when** listing all files, **then** zero `.go` files exist. Only YAML pipelines, scenarios, schemas, prompt templates, and configuration.
+- **Given** `origami run asterisk-rca`, **when** executed against test data, **then** the output is identical to today's `just calibrate-stub`.
+- **Given** Achilles's 4-node pipeline, **when** using the same Origami DSL primitives, **then** it can express its pipeline as pure YAML too.
+- **Given** a new RCA-style analysis tool, **when** defining its pipeline, **then** it needs only YAML + prompt templates — zero Go code.
 
 ## Security assessment
 
