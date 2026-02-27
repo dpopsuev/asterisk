@@ -8,15 +8,15 @@ import (
 	"github.com/dpopsuev/origami/dispatch"
 )
 
-func TestBuildTokiMeterBill_NilTokens(t *testing.T) {
+func TestBuildCostBill_NilTokens(t *testing.T) {
 	report := &CalibrationReport{CalibrationReport: cal.CalibrationReport{Scenario: "test", Adapter: "stub"}}
-	bill := BuildTokiMeterBill(report)
+	bill := BuildCostBill(report)
 	if bill != nil {
 		t.Fatal("expected nil bill when Tokens is nil")
 	}
 }
 
-func TestBuildTokiMeterBill_Basic(t *testing.T) {
+func TestBuildCostBill_Basic(t *testing.T) {
 	report := &CalibrationReport{
 		CalibrationReport: cal.CalibrationReport{
 			Scenario: "ptp-real-ingest",
@@ -45,7 +45,7 @@ func TestBuildTokiMeterBill_Basic(t *testing.T) {
 		},
 	}
 
-	bill := BuildTokiMeterBill(report)
+	bill := BuildCostBill(report)
 	if bill == nil {
 		t.Fatal("expected non-nil bill")
 	}
@@ -83,14 +83,14 @@ func TestBuildTokiMeterBill_Basic(t *testing.T) {
 	}
 }
 
-func TestFormatTokiMeter_Nil(t *testing.T) {
-	out := FormatTokiMeter(nil)
+func TestFormatCostBill_Nil(t *testing.T) {
+	out := FormatCostBill(nil)
 	if out != "" {
 		t.Errorf("expected empty string for nil bill, got %d bytes", len(out))
 	}
 }
 
-func TestFormatTokiMeter_Markdown(t *testing.T) {
+func TestFormatCostBill_Markdown(t *testing.T) {
 	report := &CalibrationReport{
 		CalibrationReport: cal.CalibrationReport{
 			Scenario: "ptp-real-ingest",
@@ -117,8 +117,8 @@ func TestFormatTokiMeter_Markdown(t *testing.T) {
 		},
 	}
 
-	bill := BuildTokiMeterBill(report)
-	md := FormatTokiMeter(bill)
+	bill := BuildCostBill(report)
+	md := FormatCostBill(bill)
 
 	checks := []string{
 		"# TokiMeter",

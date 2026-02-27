@@ -2,13 +2,25 @@ package calibrate_test
 
 import (
 	"context"
+	"math"
 	"testing"
+
+	cal "github.com/dpopsuev/origami/calibrate"
 
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/adapt"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
 )
+
+func loadTestScoreCard(t *testing.T) *cal.ScoreCard {
+	t.Helper()
+	sc, err := cal.LoadScoreCard("../../scorecards/asterisk-rca.yaml")
+	if err != nil {
+		t.Fatalf("load scorecard: %v", err)
+	}
+	return sc
+}
 
 func TestStubCalibration_AllMetricsPass(t *testing.T) {
 	// Override the orchestrate base path to a temp dir
@@ -24,6 +36,7 @@ func TestStubCalibration_AllMetricsPass(t *testing.T) {
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
 		BasePath:   tmpDir,
+		ScoreCard:  loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
@@ -99,6 +112,7 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
 		BasePath:   tmpDir,
+		ScoreCard:  loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
@@ -106,10 +120,10 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 		t.Fatalf("RunCalibration: %v", err)
 	}
 
-	// Variance (M20) should be 0 for deterministic stub
+	// Variance (M20) should be ~0 for deterministic stub
 	for _, m := range report.Metrics.AllMetrics() {
-		if m.ID == "M20" && m.Value != 0 {
-			t.Errorf("M20 run_variance should be 0 for deterministic stub, got %f", m.Value)
+		if m.ID == "M20" && math.Abs(m.Value) > 1e-9 {
+			t.Errorf("M20 run_variance should be ~0 for deterministic stub, got %e", m.Value)
 		}
 	}
 
@@ -129,6 +143,7 @@ func TestFormatReport(t *testing.T) {
 	cfg := calibrate.DefaultRunConfig(scenario, adapter)
 	cfg.Thresholds = orchestrate.DefaultThresholds()
 	cfg.BasePath = tmpDir
+	cfg.ScoreCard = loadTestScoreCard(t)
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
 	if err != nil {
@@ -173,6 +188,7 @@ func TestStubCalibration_DaemonMock(t *testing.T) {
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
 		BasePath:   tmpDir,
+		ScoreCard:  loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
@@ -223,6 +239,7 @@ func TestStubCalibration_PTPReal(t *testing.T) {
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
 		BasePath:   tmpDir,
+		ScoreCard:  loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)

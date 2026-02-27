@@ -10,9 +10,11 @@ import (
 
 	"github.com/spf13/cobra"
 
+	cal "github.com/dpopsuev/origami/calibrate"
+	"github.com/dpopsuev/origami/dispatch"
+
 	"asterisk/internal/calibrate"
 	"asterisk/internal/calibrate/adapt"
-	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/internal/calibrate/scenarios"
 	"asterisk/internal/orchestrate"
 	"asterisk/adapters/rp"
@@ -36,6 +38,7 @@ var calibrateFlags struct {
 	rpKeyPath     string
 	rpProject     string
 	routingLog    string
+	scorecard     string
 }
 
 var calibrateCmd = &cobra.Command{
@@ -64,6 +67,7 @@ func init() {
 	f.StringVar(&calibrateFlags.rpKeyPath, "rp-api-key", ".rp-api-key", "Path to RP API key file")
 	f.StringVar(&calibrateFlags.rpProject, "rp-project", "", "RP project name (default: $ASTERISK_RP_PROJECT)")
 	f.StringVar(&calibrateFlags.routingLog, "routing-log", "", "Write adapter routing log to path (JSON); empty = disabled")
+	f.StringVar(&calibrateFlags.scorecard, "scorecard", "scorecards/asterisk-rca.yaml", "Path to scorecard YAML for metric definitions")
 }
 
 func runCalibrate(cmd *cobra.Command, _ []string) error {
@@ -216,6 +220,11 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		budgetN = parallelN
 	}
 
+	sc, err := cal.LoadScoreCard(calibrateFlags.scorecard)
+	if err != nil {
+		return fmt.Errorf("load scorecard: %w", err)
+	}
+
 	cfg := calibrate.RunConfig{
 		Scenario:     scenario,
 		Adapter:      adapter,
@@ -227,6 +236,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		TokenBudget:  budgetN,
 		BasePath:     basePath,
 		RPFetcher:    rpFetcher,
+		ScoreCard:    sc,
 	}
 
 	report, err := calibrate.RunCalibration(cmd.Context(), cfg)
@@ -242,9 +252,9 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	out := cmd.OutOrStdout()
 	fmt.Fprint(out, calibrate.FormatReport(report))
 
-	bill := calibrate.BuildTokiMeterBill(report)
+	bill := calibrate.BuildCostBill(report)
 	if bill != nil {
-		md := calibrate.FormatTokiMeter(bill)
+		md := calibrate.FormatCostBill(bill)
 		fmt.Fprint(out, md)
 
 		tokiPath := calibDir + "/tokimeter.md"

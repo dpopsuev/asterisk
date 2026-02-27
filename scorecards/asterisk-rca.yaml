@@ -1,0 +1,206 @@
+scorecard: asterisk-rca
+description: >-
+  Principled calibration scorecard for Asterisk RCA pipeline.
+  Thresholds derived from ROI analysis, not arbitrary PoC tuning.
+version: 1
+
+cost_model:
+  cases_per_batch: 30
+  cost_per_batch_usd: 1.00
+  labor_saved_per_batch_person_days: 100
+  person_day_cost_usd: 500
+
+metrics:
+  # --- Tier 1: Outcome Correctness ---
+  - id: M1
+    name: defect_type_accuracy
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.85
+    weight: 0.25
+    strategy: roi_based
+    rationale: "Primary output. At 0.85, 1 in ~7 wrong. Each misclassification costs ~$2,500."
+
+  - id: M2
+    name: symptom_category_accuracy
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.80
+    weight: 0.10
+    strategy: roi_based
+    rationale: "Routes to correct team. At 0.80, wrong routing is tolerable."
+
+  - id: M3
+    name: recall_hit_rate
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.65
+    weight: 0.0
+    strategy: roi_based
+    rationale: "Recall-based routing. Lowered from 0.70 — false negatives are caught by investigation."
+
+  - id: M4
+    name: recall_false_positive_rate
+    tier: outcome
+    direction: lower_is_better
+    threshold: 0.10
+    weight: 0.0
+    strategy: fixed
+    rationale: "Safety gate. False positives waste investigation resources."
+
+  - id: M5
+    name: serial_killer_detection
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.55
+    weight: 0.05
+    strategy: roi_based
+    rationale: "Advanced detection. Lowered from 0.70 — difficult with limited cross-case context."
+
+  - id: M6
+    name: skip_accuracy
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.80
+    weight: 0.0
+    strategy: fixed
+    rationale: "Safety gate. Correct skip decisions prevent wasted analysis."
+
+  - id: M7
+    name: cascade_detection
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.40
+    weight: 0.0
+    strategy: roi_based
+    rationale: "Advanced detection. Lowered from 0.50 — cascade recognition is genuinely hard."
+
+  - id: M8
+    name: convergence_calibration
+    tier: outcome
+    direction: higher_is_better
+    threshold: 0.35
+    weight: 0.0
+    strategy: roi_based
+    rationale: "Health check for confidence scores. Lowered from 0.40 — Pearson r is strict."
+
+  # --- Tier 2: Investigation Quality ---
+  - id: M9
+    name: repo_selection_precision
+    tier: investigation
+    direction: higher_is_better
+    threshold: 0.65
+    weight: 0.05
+    strategy: roi_based
+    rationale: "Cost metric. Lowered from 0.70 — over-selecting repos costs tokens, not correctness."
+
+  - id: M10
+    name: repo_selection_recall
+    tier: investigation
+    direction: higher_is_better
+    threshold: 0.80
+    weight: 0.15
+    strategy: roi_based
+    rationale: "Missing the right repo is unrecoverable. Wet target: 0.85."
+
+  - id: M11
+    name: red_herring_rejection
+    tier: investigation
+    direction: higher_is_better
+    threshold: 0.70
+    weight: 0.0
+    strategy: roi_based
+    rationale: "Lowered from 0.80 — selecting a red herring wastes tokens but doesn't prevent correct answer."
+
+  # --- Tier 3: Detection Quality ---
+  - id: M12
+    name: evidence_recall
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.65
+    weight: 0.10
+    strategy: roi_based
+    rationale: "Finding planted evidence. Raised from 0.60. Foundation of explainable RCA."
+    dry_capped: true
+
+  - id: M13
+    name: evidence_precision
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.45
+    weight: 0.0
+    strategy: roi_based
+    rationale: "Lowered from 0.50 — citing extra evidence is noise, not harm."
+    dry_capped: true
+
+  - id: M14
+    name: rca_message_relevance
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.60
+    weight: 0.10
+    strategy: fixed
+    rationale: "Semantic quality of RCA message. Kept at 0.60."
+
+  - id: M14b
+    name: smoking_gun_hit_rate
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.30
+    weight: 0.0
+    strategy: roi_based
+    rationale: "Raised from 0.00. Future M19 candidate at 0.10 weight when consistently >0.30."
+
+  - id: M15
+    name: component_identification
+    tier: detection
+    direction: higher_is_better
+    threshold: 0.75
+    weight: 0.20
+    strategy: roi_based
+    rationale: "'Where to look' signal. Raised from 0.70. High human value."
+
+  # --- Tier 4: Efficiency ---
+  - id: M16
+    name: pipeline_path_accuracy
+    tier: efficiency
+    direction: higher_is_better
+    threshold: 0.50
+    weight: 0.0
+    strategy: fixed
+    rationale: "Lowered from 0.60. Correct answer via suboptimal path is acceptable."
+
+  - id: M17
+    name: loop_efficiency
+    tier: efficiency
+    direction: range
+    threshold: 3.0
+    weight: 0.0
+    strategy: fixed
+    rationale: "Range 0.3-3.0 (widened from 0.5-2.0). Loops that converge are acceptable."
+
+  - id: M18
+    name: total_prompt_tokens
+    tier: efficiency
+    direction: lower_is_better
+    threshold: 200000
+    weight: 0.0
+    strategy: roi_based
+    rationale: "Budget raised 3.3x from 60K. At $0.003/1K tokens, 200K costs $0.60 — trivial vs $2,500 labor."
+
+  # --- Tier 5: Aggregate & Meta ---
+  - id: M20
+    name: run_variance
+    tier: meta
+    direction: lower_is_better
+    threshold: 0.15
+    weight: 0.0
+    strategy: fixed
+    rationale: "Consistency. Stddev of M19 across runs. Keep tight."
+
+aggregate:
+  id: M19
+  name: overall_accuracy
+  formula: weighted_average
+  threshold: 0.70
+  include: [M1, M2, M5, M9, M10, M12, M14, M15]

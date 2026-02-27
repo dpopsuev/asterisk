@@ -20,14 +20,15 @@ func TestTriagePool_ResultsMatch(t *testing.T) {
 
 	// Serial run
 	serialCfg := calibrate.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapt.NewStubAdapter(scenario),
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
+		Scenario:    scenario,
+		Adapter:     adapt.NewStubAdapter(scenario),
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
 		Thresholds:  orchestrate.DefaultThresholds(),
 		Parallel:    1,
 		TokenBudget: 1,
 		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 	serialReport, err := calibrate.RunCalibration(context.Background(), serialCfg)
 	if err != nil {
@@ -44,6 +45,7 @@ func TestTriagePool_ResultsMatch(t *testing.T) {
 		Parallel:    4,
 		TokenBudget: 4,
 		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 	parallelReport, err := calibrate.RunCalibration(context.Background(), parallelCfg)
 	if err != nil {
@@ -92,14 +94,15 @@ func TestTriagePool_NoRace(t *testing.T) {
 
 	scenario := scenarios.PTPMockScenario()
 	cfg := calibrate.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapt.NewStubAdapter(scenario),
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
+		Scenario:    scenario,
+		Adapter:     adapt.NewStubAdapter(scenario),
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
 		Thresholds:  orchestrate.DefaultThresholds(),
 		Parallel:    4,
 		TokenBudget: 2,
 		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
@@ -129,6 +132,7 @@ func TestInvestigationPool_AllClustersComplete(t *testing.T) {
 		Parallel:    4,
 		TokenBudget: 4,
 		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
@@ -192,6 +196,7 @@ func TestInvestigationPool_TokenSemaphore(t *testing.T) {
 		Parallel:    4,
 		TokenBudget: 1,
 		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)

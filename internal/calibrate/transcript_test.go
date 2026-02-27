@@ -28,6 +28,7 @@ func TestWeaveTranscripts_StubAdapter(t *testing.T) {
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
 		BasePath:   tmpDir,
+		ScoreCard:  loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
@@ -98,6 +99,7 @@ func TestWeaveTranscripts_GroupsByRCA(t *testing.T) {
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
 		BasePath:   tmpDir,
+		ScoreCard:  loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)
@@ -273,6 +275,7 @@ func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 		PromptDir:  ".cursor/prompts",
 		Thresholds: orchestrate.DefaultThresholds(),
 		BasePath:   tmpDir,
+		ScoreCard:  loadTestScoreCard(t),
 	}
 
 	report, err := calibrate.RunCalibration(context.Background(), cfg)

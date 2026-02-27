@@ -8,8 +8,18 @@ import (
 	cal "github.com/dpopsuev/origami/calibrate"
 )
 
-// computeMetrics calculates all 20 calibration metrics from case results.
-func computeMetrics(scenario *Scenario, results []CaseResult) MetricSet {
+// scored is the raw output of a domain scorer: metric ID, computed value, and
+// a human-readable detail string. The ScoreCard converts these into full Metrics.
+type scored struct {
+	id     string
+	value  float64
+	detail string
+}
+
+// computeMetrics calculates all 21 calibration metrics from case results.
+// Raw values are computed by domain-specific scorers; thresholds, pass/fail,
+// direction, and tier come from the ScoreCard definition.
+func computeMetrics(scenario *Scenario, results []CaseResult, sc *cal.ScoreCard) MetricSet {
 	rcaMap := make(map[string]*GroundTruthRCA)
 	for i := range scenario.RCAs {
 		rcaMap[scenario.RCAs[i].ID] = &scenario.RCAs[i]
@@ -20,51 +30,51 @@ func computeMetrics(scenario *Scenario, results []CaseResult) MetricSet {
 	}
 	repoRelevance := buildRepoRelevanceMap(scenario)
 
-	ms := MetricSet{Metrics: []Metric{
-		// M1-M8: Outcome metrics
-		withTier(scoreDefectTypeAccuracy(results, caseMap, rcaMap), cal.TierOutcome),
-		withTier(scoreSymptomCategoryAccuracy(results, caseMap), cal.TierOutcome),
-		withTier(scoreRecallHitRate(results, caseMap), cal.TierOutcome),
-		withTier(scoreRecallFalsePositiveRate(results, caseMap), cal.TierOutcome),
-		withTier(scoreSerialKillerDetection(results, caseMap, rcaMap), cal.TierOutcome),
-		withTier(scoreSkipAccuracy(results, caseMap), cal.TierOutcome),
-		withTier(scoreCascadeDetection(results, caseMap), cal.TierOutcome),
-		withTier(scoreConvergenceCalibration(results, caseMap, rcaMap), cal.TierOutcome),
+	raw := []scored{
+		scoreDefectTypeAccuracy(results, caseMap, rcaMap),
+		scoreSymptomCategoryAccuracy(results, caseMap),
+		scoreRecallHitRate(results, caseMap),
+		scoreRecallFalsePositiveRate(results, caseMap),
+		scoreSerialKillerDetection(results, caseMap, rcaMap),
+		scoreSkipAccuracy(results, caseMap),
+		scoreCascadeDetection(results, caseMap),
+		scoreConvergenceCalibration(results, caseMap, rcaMap),
+		scoreRepoSelectionPrecision(results, caseMap, repoRelevance),
+		scoreRepoSelectionRecall(results, caseMap, repoRelevance),
+		scoreRedHerringRejection(results, caseMap, scenario),
+		scoreEvidenceRecall(results, caseMap),
+		scoreEvidencePrecision(results, caseMap),
+		scoreRCAMessageRelevance(results, caseMap, rcaMap),
+		scoreSmokingGunHitRate(results, caseMap, rcaMap),
+		scoreComponentIdentification(results, caseMap, rcaMap),
+		scorePipelinePathAccuracy(results, caseMap),
+		scoreLoopEfficiency(results, caseMap),
+		scoreTotalPromptTokens(results),
+	}
 
-		// M9-M11: Investigation metrics
-		withTier(scoreRepoSelectionPrecision(results, caseMap, repoRelevance), cal.TierInvestigation),
-		withTier(scoreRepoSelectionRecall(results, caseMap, repoRelevance), cal.TierInvestigation),
-		withTier(scoreRedHerringRejection(results, caseMap, scenario), cal.TierInvestigation),
+	values := make(map[string]float64, len(raw))
+	details := make(map[string]string, len(raw))
+	for _, s := range raw {
+		values[s.id] = s.value
+		details[s.id] = s.detail
+	}
 
-		// M12-M13: Detection metrics
-		withTier(scoreEvidenceRecall(results, caseMap), cal.TierDetection),
-		withTier(scoreEvidencePrecision(results, caseMap), cal.TierDetection),
+	ms := sc.Evaluate(values, details)
 
-		// M14-M15 + smoking gun: Detection metrics (semantic)
-		withTier(scoreRCAMessageRelevance(results, caseMap, rcaMap), cal.TierDetection),
-		withTier(scoreSmokingGunHitRate(results, caseMap, rcaMap), cal.TierDetection),
-		withTier(scoreComponentIdentification(results, caseMap, rcaMap), cal.TierDetection),
+	if sc.Aggregate != nil {
+		agg, err := sc.ComputeAggregate(ms)
+		if err == nil {
+			ms.Metrics = append(ms.Metrics, agg)
+		}
+	}
 
-		// M16-M18: Efficiency metrics
-		withTier(scorePipelinePathAccuracy(results, caseMap), cal.TierEfficiency),
-		withTier(scoreLoopEfficiency(results, caseMap), cal.TierEfficiency),
-		withTier(scoreTotalPromptTokens(results), cal.TierEfficiency),
-	}}
-
-	// M19-M20: Meta metrics (computed from above)
-	m19 := scoreOverallAccuracy(ms)
-	m19.Tier = cal.TierMeta
-	m20 := Metric{ID: "M20", Name: "run_variance", Value: 0, Threshold: 0.15,
-		Pass: true, Detail: "single run", Tier: cal.TierMeta}
-	ms.Metrics = append(ms.Metrics, m19, m20)
+	m20def := sc.FindDef("M20")
+	if m20def != nil {
+		ms.Metrics = append(ms.Metrics, m20def.ToMetric(0, "single run"))
+	}
 
 	applyDryCaps(&ms, scenario.DryCappedMetrics)
 	return ms
-}
-
-func withTier(m Metric, tier cal.CostTier) Metric {
-	m.Tier = tier
-	return m
 }
 
 // applyDryCaps marks metrics that are structurally unsolvable in dry calibration.
@@ -84,7 +94,7 @@ func applyDryCaps(ms *MetricSet, capped []string) {
 }
 
 // --- M1: Defect type accuracy ---
-func scoreDefectTypeAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) Metric {
+func scoreDefectTypeAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) scored {
 	correct, total := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -98,16 +108,11 @@ func scoreDefectTypeAccuracy(results []CaseResult, caseMap map[string]*GroundTru
 			r.DefectTypeCorrect = true
 		}
 	}
-	val := safeDiv(correct, total)
-	return Metric{
-		ID: "M1", Name: "defect_type_accuracy",
-		Value: val, Threshold: 0.80,
-		Pass: val >= 0.80, Detail: fmt.Sprintf("%d/%d", correct, total),
-	}
+	return scored{"M1", safeDiv(correct, total), fmt.Sprintf("%d/%d", correct, total)}
 }
 
 // --- M2: Symptom category accuracy ---
-func scoreSymptomCategoryAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreSymptomCategoryAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	correct, total := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -119,16 +124,11 @@ func scoreSymptomCategoryAccuracy(results []CaseResult, caseMap map[string]*Grou
 			correct++
 		}
 	}
-	val := safeDiv(correct, total)
-	return Metric{
-		ID: "M2", Name: "symptom_category_accuracy",
-		Value: val, Threshold: 0.75,
-		Pass: val >= 0.75, Detail: fmt.Sprintf("%d/%d", correct, total),
-	}
+	return scored{"M2", safeDiv(correct, total), fmt.Sprintf("%d/%d", correct, total)}
 }
 
 // --- M3: Recall hit rate ---
-func scoreRecallHitRate(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreRecallHitRate(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	truePositive, expectedHits := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -140,16 +140,11 @@ func scoreRecallHitRate(results []CaseResult, caseMap map[string]*GroundTruthCas
 			truePositive++
 		}
 	}
-	val := safeDiv(truePositive, expectedHits)
-	return Metric{
-		ID: "M3", Name: "recall_hit_rate",
-		Value: val, Threshold: 0.70,
-		Pass: val >= 0.70, Detail: fmt.Sprintf("%d/%d", truePositive, expectedHits),
-	}
+	return scored{"M3", safeDiv(truePositive, expectedHits), fmt.Sprintf("%d/%d", truePositive, expectedHits)}
 }
 
 // --- M4: Recall false positive rate ---
-func scoreRecallFalsePositiveRate(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreRecallFalsePositiveRate(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	falsePositive, expectedMisses := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -161,17 +156,11 @@ func scoreRecallFalsePositiveRate(results []CaseResult, caseMap map[string]*Grou
 			falsePositive++
 		}
 	}
-	val := safeDiv(falsePositive, expectedMisses)
-	return Metric{
-		ID: "M4", Name: "recall_false_positive_rate",
-		Value: val, Threshold: 0.10,
-		Pass: val <= 0.10, Detail: fmt.Sprintf("%d/%d", falsePositive, expectedMisses),
-	}
+	return scored{"M4", safeDiv(falsePositive, expectedMisses), fmt.Sprintf("%d/%d", falsePositive, expectedMisses)}
 }
 
 // --- M5: Serial killer detection ---
-func scoreSerialKillerDetection(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) Metric {
-	// Build expected links: cases with the same ground truth RCA should be linked
+func scoreSerialKillerDetection(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) scored {
 	rcaCases := make(map[string][]CaseResult)
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -187,7 +176,6 @@ func scoreSerialKillerDetection(results []CaseResult, caseMap map[string]*Ground
 			continue
 		}
 		_ = rcaID
-		// All pairs should share the same RCA ID in the store
 		firstRCA := cases[0].ActualRCAID
 		for i := 1; i < len(cases); i++ {
 			expectedLinks++
@@ -196,16 +184,11 @@ func scoreSerialKillerDetection(results []CaseResult, caseMap map[string]*Ground
 			}
 		}
 	}
-	val := safeDiv(correctLinks, expectedLinks)
-	return Metric{
-		ID: "M5", Name: "serial_killer_detection",
-		Value: val, Threshold: 0.70,
-		Pass: val >= 0.70, Detail: fmt.Sprintf("%d/%d", correctLinks, expectedLinks),
-	}
+	return scored{"M5", safeDiv(correctLinks, expectedLinks), fmt.Sprintf("%d/%d", correctLinks, expectedLinks)}
 }
 
 // --- M6: Skip accuracy ---
-func scoreSkipAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreSkipAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	correct, expected := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -217,16 +200,11 @@ func scoreSkipAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase
 			correct++
 		}
 	}
-	val := safeDiv(correct, expected)
-	return Metric{
-		ID: "M6", Name: "skip_accuracy",
-		Value: val, Threshold: 0.80,
-		Pass: val >= 0.80, Detail: fmt.Sprintf("%d/%d", correct, expected),
-	}
+	return scored{"M6", safeDiv(correct, expected), fmt.Sprintf("%d/%d", correct, expected)}
 }
 
 // --- M7: Cascade detection ---
-func scoreCascadeDetection(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreCascadeDetection(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	detected, expected := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -238,17 +216,11 @@ func scoreCascadeDetection(results []CaseResult, caseMap map[string]*GroundTruth
 			detected++
 		}
 	}
-	val := safeDiv(detected, expected)
-	return Metric{
-		ID: "M7", Name: "cascade_detection",
-		Value: val, Threshold: 0.50,
-		Pass: val >= 0.50, Detail: fmt.Sprintf("%d/%d", detected, expected),
-	}
+	return scored{"M7", safeDiv(detected, expected), fmt.Sprintf("%d/%d", detected, expected)}
 }
 
 // --- M8: Convergence calibration ---
-func scoreConvergenceCalibration(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) Metric {
-	// Pearson correlation between convergence score and actual correctness (0 or 1)
+func scoreConvergenceCalibration(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) scored {
 	var convergences, correctness []float64
 	for _, r := range results {
 		if r.ActualConvergence == 0 {
@@ -267,15 +239,11 @@ func scoreConvergenceCalibration(results []CaseResult, caseMap map[string]*Groun
 		correctness = append(correctness, correct)
 	}
 	corr := pearsonCorrelation(convergences, correctness)
-	return Metric{
-		ID: "M8", Name: "convergence_calibration",
-		Value: corr, Threshold: 0.40,
-		Pass: corr >= 0.40, Detail: fmt.Sprintf("r=%.2f (n=%d)", corr, len(convergences)),
-	}
+	return scored{"M8", corr, fmt.Sprintf("r=%.2f (n=%d)", corr, len(convergences))}
 }
 
 // --- M9: Repo selection precision ---
-func scoreRepoSelectionPrecision(results []CaseResult, caseMap map[string]*GroundTruthCase, repoRelevance map[string]map[string]bool) Metric {
+func scoreRepoSelectionPrecision(results []CaseResult, caseMap map[string]*GroundTruthCase, repoRelevance map[string]map[string]bool) scored {
 	sumPrecision := 0.0
 	count := 0
 	for _, r := range results {
@@ -295,16 +263,11 @@ func scoreRepoSelectionPrecision(results []CaseResult, caseMap map[string]*Groun
 		}
 		sumPrecision += safeDiv(relevantSelected, len(r.ActualSelectedRepos))
 	}
-	val := safeDiv2(sumPrecision, float64(count))
-	return Metric{
-		ID: "M9", Name: "repo_selection_precision",
-		Value: val, Threshold: 0.70,
-		Pass: val >= 0.70, Detail: fmt.Sprintf("avg over %d cases", count),
-	}
+	return scored{"M9", safeDiv2(sumPrecision, float64(count)), fmt.Sprintf("avg over %d cases", count)}
 }
 
 // --- M10: Repo selection recall ---
-func scoreRepoSelectionRecall(results []CaseResult, caseMap map[string]*GroundTruthCase, repoRelevance map[string]map[string]bool) Metric {
+func scoreRepoSelectionRecall(results []CaseResult, caseMap map[string]*GroundTruthCase, repoRelevance map[string]map[string]bool) scored {
 	sumRecall := 0.0
 	count := 0
 	for _, r := range results {
@@ -326,16 +289,11 @@ func scoreRepoSelectionRecall(results []CaseResult, caseMap map[string]*GroundTr
 		}
 		sumRecall += safeDiv(relevantSelected, totalRelevant)
 	}
-	val := safeDiv2(sumRecall, float64(count))
-	return Metric{
-		ID: "M10", Name: "repo_selection_recall",
-		Value: val, Threshold: 0.80,
-		Pass: val >= 0.80, Detail: fmt.Sprintf("avg over %d cases", count),
-	}
+	return scored{"M10", safeDiv2(sumRecall, float64(count)), fmt.Sprintf("avg over %d cases", count)}
 }
 
 // --- M11: Red herring rejection ---
-func scoreRedHerringRejection(results []CaseResult, caseMap map[string]*GroundTruthCase, scenario *Scenario) Metric {
+func scoreRedHerringRejection(results []CaseResult, caseMap map[string]*GroundTruthCase, scenario *Scenario) scored {
 	redHerringRepos := make(map[string]bool)
 	for _, repo := range scenario.Workspace.Repos {
 		if repo.IsRedHerring {
@@ -358,15 +316,11 @@ func scoreRedHerringRejection(results []CaseResult, caseMap map[string]*GroundTr
 		}
 	}
 	val := 1.0 - safeDiv(redHerringSelected, casesWithF2)
-	return Metric{
-		ID: "M11", Name: "red_herring_rejection",
-		Value: val, Threshold: 0.80,
-		Pass: val >= 0.80, Detail: fmt.Sprintf("%d cases with Resolve, %d selected red herring", casesWithF2, redHerringSelected),
-	}
+	return scored{"M11", val, fmt.Sprintf("%d cases with Resolve, %d selected red herring", casesWithF2, redHerringSelected)}
 }
 
 // --- M12: Evidence recall ---
-func scoreEvidenceRecall(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreEvidenceRecall(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	totalFound, totalPlanted := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -377,16 +331,11 @@ func scoreEvidenceRecall(results []CaseResult, caseMap map[string]*GroundTruthCa
 		totalFound += found
 		totalPlanted += total
 	}
-	val := safeDiv(totalFound, totalPlanted)
-	return Metric{
-		ID: "M12", Name: "evidence_recall",
-		Value: val, Threshold: 0.60,
-		Pass: val >= 0.60, Detail: fmt.Sprintf("%d/%d", totalFound, totalPlanted),
-	}
+	return scored{"M12", safeDiv(totalFound, totalPlanted), fmt.Sprintf("%d/%d", totalFound, totalPlanted)}
 }
 
 // --- M13: Evidence precision ---
-func scoreEvidencePrecision(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreEvidencePrecision(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	totalRelevant, totalCited := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -399,16 +348,11 @@ func scoreEvidencePrecision(results []CaseResult, caseMap map[string]*GroundTrut
 			totalRelevant += found
 		}
 	}
-	val := safeDiv(totalRelevant, totalCited)
-	return Metric{
-		ID: "M13", Name: "evidence_precision",
-		Value: val, Threshold: 0.50,
-		Pass: val >= 0.50, Detail: fmt.Sprintf("%d/%d", totalRelevant, totalCited),
-	}
+	return scored{"M13", safeDiv(totalRelevant, totalCited), fmt.Sprintf("%d/%d", totalRelevant, totalCited)}
 }
 
 // --- M14: RCA message relevance (keyword fallback for stub mode) ---
-func scoreRCAMessageRelevance(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) Metric {
+func scoreRCAMessageRelevance(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) scored {
 	sumScore := 0.0
 	count := 0
 	for _, r := range results {
@@ -428,19 +372,14 @@ func scoreRCAMessageRelevance(results []CaseResult, caseMap map[string]*GroundTr
 		score := math.Min(float64(matched)/float64(rca.KeywordThreshold), 1.0)
 		sumScore += score
 	}
-	val := safeDiv2(sumScore, float64(count))
-	return Metric{
-		ID: "M14", Name: "rca_message_relevance",
-		Value: val, Threshold: 0.60,
-		Pass: val >= 0.60, Detail: fmt.Sprintf("avg over %d cases", count),
-	}
+	return scored{"M14", safeDiv2(sumScore, float64(count)), fmt.Sprintf("avg over %d cases", count)}
 }
 
 // --- M14b: Smoking gun hit rate ---
 // Checks if the adapter's RCA message textually reaches the same core conclusion
-// as the PR-proven "smoking gun" phrase. A hit requires ≥50% of the phrase's
+// as the PR-proven "smoking gun" phrase. A hit requires >=50% of the phrase's
 // significant words (>3 chars) to appear in the RCA message.
-func scoreSmokingGunHitRate(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) Metric {
+func scoreSmokingGunHitRate(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) scored {
 	hits, eligible := 0, 0
 	for _, r := range results {
 		if r.ActualRCAMessage == "" {
@@ -464,12 +403,7 @@ func scoreSmokingGunHitRate(results []CaseResult, caseMap map[string]*GroundTrut
 			hits++
 		}
 	}
-	val := safeDiv(hits, eligible)
-	return Metric{
-		ID: "M14b", Name: "smoking_gun_hit_rate",
-		Value: val, Threshold: 0.0,
-		Pass: true, Detail: fmt.Sprintf("%d/%d", hits, eligible),
-	}
+	return scored{"M14b", safeDiv(hits, eligible), fmt.Sprintf("%d/%d", hits, eligible)}
 }
 
 // smokingGunWords tokenizes a smoking gun phrase into significant lowercase words (>3 chars).
@@ -484,7 +418,7 @@ func smokingGunWords(phrase string) []string {
 }
 
 // --- M15: Component identification ---
-func scoreComponentIdentification(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) Metric {
+func scoreComponentIdentification(results []CaseResult, caseMap map[string]*GroundTruthCase, rcaMap map[string]*GroundTruthRCA) scored {
 	correct, total := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -496,23 +430,17 @@ func scoreComponentIdentification(results []CaseResult, caseMap map[string]*Grou
 			continue
 		}
 		total++
-		// Exact match on component field, or keyword in RCA message
 		if r.ActualComponent == rca.Component {
 			correct++
 		} else if r.ActualRCAMessage != "" && strings.Contains(strings.ToLower(r.ActualRCAMessage), strings.ToLower(rca.Component)) {
 			correct++
 		}
 	}
-	val := safeDiv(correct, total)
-	return Metric{
-		ID: "M15", Name: "component_identification",
-		Value: val, Threshold: 0.70,
-		Pass: val >= 0.70, Detail: fmt.Sprintf("%d/%d", correct, total),
-	}
+	return scored{"M15", safeDiv(correct, total), fmt.Sprintf("%d/%d", correct, total)}
 }
 
 // --- M16: Pipeline path accuracy ---
-func scorePipelinePathAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scorePipelinePathAccuracy(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	correct, total := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -524,16 +452,11 @@ func scorePipelinePathAccuracy(results []CaseResult, caseMap map[string]*GroundT
 			correct++
 		}
 	}
-	val := safeDiv(correct, total)
-	return Metric{
-		ID: "M16", Name: "pipeline_path_accuracy",
-		Value: val, Threshold: 0.60,
-		Pass: val >= 0.60, Detail: fmt.Sprintf("%d/%d", correct, total),
-	}
+	return scored{"M16", safeDiv(correct, total), fmt.Sprintf("%d/%d", correct, total)}
 }
 
 // --- M17: Loop efficiency ---
-func scoreLoopEfficiency(results []CaseResult, caseMap map[string]*GroundTruthCase) Metric {
+func scoreLoopEfficiency(results []CaseResult, caseMap map[string]*GroundTruthCase) scored {
 	sumActual, sumExpected := 0, 0
 	for _, r := range results {
 		gt := caseMap[r.CaseID]
@@ -545,25 +468,19 @@ func scoreLoopEfficiency(results []CaseResult, caseMap map[string]*GroundTruthCa
 	}
 	var val float64
 	if sumExpected == 0 && sumActual == 0 {
-		val = 1.0 // perfect: no loops expected, no loops taken
+		val = 1.0
 	} else if sumExpected == 0 {
-		val = float64(sumActual + 1) // penalize unexpected loops
+		val = float64(sumActual + 1)
 	} else {
 		val = float64(sumActual) / float64(sumExpected)
 	}
-	pass := val >= 0.5 && val <= 2.0
-	return Metric{
-		ID: "M17", Name: "loop_efficiency",
-		Value: val, Threshold: 1.0,
-		Pass: pass, Detail: fmt.Sprintf("actual=%d expected=%d", sumActual, sumExpected),
-	}
+	return scored{"M17", val, fmt.Sprintf("actual=%d expected=%d", sumActual, sumExpected)}
 }
 
 // --- M18: Total prompt tokens ---
 // When dispatch.TokenTracker data is present (PromptTokensTotal > 0), uses real
 // measured values. Falls back to step-count estimate for stub mode.
-func scoreTotalPromptTokens(results []CaseResult) Metric {
-	// Check if we have real token data
+func scoreTotalPromptTokens(results []CaseResult) scored {
 	realTokens := 0
 	hasReal := false
 	totalSteps := 0
@@ -575,62 +492,18 @@ func scoreTotalPromptTokens(results []CaseResult) Metric {
 		}
 	}
 
-	budget := 60000.0
-
 	if hasReal {
-		val := float64(realTokens)
-		return Metric{
-			ID: "M18", Name: "total_prompt_tokens",
-			Value: val, Threshold: budget,
-			Pass: val <= budget, Detail: fmt.Sprintf("%d tokens (measured)", realTokens),
-		}
+		return scored{"M18", float64(realTokens), fmt.Sprintf("%d tokens (measured)", realTokens)}
 	}
 
-	// Fallback: estimate from path length (each step ~1000 tokens).
-	// When no real token data is available (e.g. stub adapter), the budget
-	// threshold is not enforced — the estimate is informational only.
 	estimated := totalSteps * 1000
-	val := float64(estimated)
-	return Metric{
-		ID: "M18", Name: "total_prompt_tokens",
-		Value: val, Threshold: budget,
-		Pass: true, Detail: fmt.Sprintf("~%d tokens (%d steps, estimated)", estimated, totalSteps),
-	}
-}
-
-// --- M19: Overall accuracy (weighted average) ---
-func scoreOverallAccuracy(ms MetricSet) Metric {
-	// Weighted average of M1, M2, M5, M9, M10, M12, M14, M15
-	// M15 (component ID) and M9 (repo precision) give 25% combined weight
-	// to "where is the bug?" vs 20% for "what kind of bug?" (M1).
-	weights := map[string]float64{
-		"M1": 0.20, "M2": 0.10, "M5": 0.15,
-		"M9": 0.10, "M10": 0.10, "M12": 0.10,
-		"M14": 0.10, "M15": 0.15,
-	}
-	sum, wsum := 0.0, 0.0
-	all := ms.AllMetrics()
-	for _, m := range all {
-		if w, ok := weights[m.ID]; ok {
-			sum += w * m.Value
-			wsum += w
-		}
-	}
-	val := 0.0
-	if wsum > 0 {
-		val = sum / wsum
-	}
-	return Metric{
-		ID: "M19", Name: "overall_accuracy",
-		Value: val, Threshold: 0.65,
-		Pass: val >= 0.65, Detail: "weighted avg of M1,M2,M5,M9,M10,M12,M14,M15",
-	}
+	return scored{"M18", float64(estimated), fmt.Sprintf("~%d tokens (%d steps, estimated)", estimated, totalSteps)}
 }
 
 // aggregateRunMetrics computes the mean and variance across multiple runs.
 // It delegates to cal.AggregateRunMetrics for averaging, then replaces M19/M20
-// with domain-specific aggregate values (mean and variance).
-func aggregateRunMetrics(runs []MetricSet) MetricSet {
+// with ScoreCard-driven aggregate values.
+func aggregateRunMetrics(runs []MetricSet, sc *cal.ScoreCard) MetricSet {
 	if len(runs) == 0 {
 		return MetricSet{}
 	}
@@ -638,7 +511,12 @@ func aggregateRunMetrics(runs []MetricSet) MetricSet {
 		return runs[0]
 	}
 
-	agg := cal.AggregateRunMetrics(runs, evaluatePass)
+	agg := cal.AggregateRunMetrics(runs, func(m Metric) bool {
+		if def := sc.FindDef(m.ID); def != nil {
+			return def.Evaluate(m.Value)
+		}
+		return m.Value >= m.Threshold
+	})
 
 	var m19vals []float64
 	for _, run := range runs {
@@ -651,19 +529,29 @@ func aggregateRunMetrics(runs []MetricSet) MetricSet {
 	m19mean := cal.Mean(m19vals)
 	variance := cal.Stddev(m19vals)
 
-	// Replace M19 and M20 in the flat slice
+	m19threshold := 0.70
+	if sc.Aggregate != nil {
+		m19threshold = sc.Aggregate.Threshold
+	}
+
+	m20def := sc.FindDef("M20")
+	m20threshold := 0.15
+	if m20def != nil {
+		m20threshold = m20def.Threshold
+	}
+
 	for i := range agg.Metrics {
 		switch agg.Metrics[i].ID {
 		case "M19":
 			agg.Metrics[i] = Metric{
-				ID: "M19", Name: "overall_accuracy", Value: m19mean, Threshold: 0.65,
-				Pass: m19mean >= 0.65, Detail: fmt.Sprintf("mean of %d runs", len(runs)),
+				ID: "M19", Name: "overall_accuracy", Value: m19mean, Threshold: m19threshold,
+				Pass: m19mean >= m19threshold, Detail: fmt.Sprintf("mean of %d runs", len(runs)),
 				Tier: cal.TierMeta,
 			}
 		case "M20":
 			agg.Metrics[i] = Metric{
-				ID: "M20", Name: "run_variance", Value: variance, Threshold: 0.15,
-				Pass: variance <= 0.15, Detail: fmt.Sprintf("stddev=%.3f over %d runs", variance, len(runs)),
+				ID: "M20", Name: "run_variance", Value: variance, Threshold: m20threshold,
+				Pass: variance <= m20threshold, Detail: fmt.Sprintf("stddev=%.3f over %d runs", variance, len(runs)),
 				Tier: cal.TierMeta,
 			}
 		}
@@ -684,20 +572,6 @@ func buildRepoRelevanceMap(scenario *Scenario) map[string]map[string]bool {
 	return m
 }
 
-func evaluatePass(m Metric) bool {
-	switch m.ID {
-	case "M4": // lower is better
-		return m.Value <= m.Threshold
-	case "M17": // range check
-		return m.Value >= 0.5 && m.Value <= 2.0
-	case "M18": // budget
-		return m.Value <= m.Threshold
-	case "M20": // variance
-		return m.Value <= m.Threshold
-	default:
-		return m.Value >= m.Threshold
-	}
-}
 
 // Math helper aliases — delegate to the generic calibrate package.
 var (

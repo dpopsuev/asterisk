@@ -30,6 +30,7 @@ type RunConfig struct {
 	BatchSize    int          // max signals per batch for batch-file dispatch mode; 0 = Parallel
 	BasePath     string       // root directory for investigation artifacts; defaults to DefaultBasePath
 	RPFetcher    rp.EnvelopeFetcher // optional; when set, RP-sourced cases fetch real failure data
+	ScoreCard    *cal.ScoreCard // declarative metric definitions; loaded from YAML at startup
 }
 
 // DefaultRunConfig returns defaults for calibration.
@@ -50,6 +51,9 @@ func DefaultRunConfig(scenario *Scenario, adapter ModelAdapter) RunConfig {
 func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, error) {
 	if cfg.BasePath == "" {
 		cfg.BasePath = orchestrate.DefaultBasePath
+	}
+	if cfg.ScoreCard == nil {
+		return nil, fmt.Errorf("RunConfig.ScoreCard is required (load from scorecards/asterisk-rca.yaml)")
 	}
 
 	report := &CalibrationReport{
@@ -101,7 +105,7 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 			}
 		}
 
-		metrics := computeMetrics(cfg.Scenario, results)
+		metrics := computeMetrics(cfg.Scenario, results, cfg.ScoreCard)
 		allRunMetrics = append(allRunMetrics, metrics)
 	}
 
@@ -109,7 +113,7 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 		report.Metrics = allRunMetrics[0]
 	} else {
 		report.RunMetrics = allRunMetrics
-		report.Metrics = aggregateRunMetrics(allRunMetrics)
+		report.Metrics = aggregateRunMetrics(allRunMetrics, cfg.ScoreCard)
 	}
 
 	return report, nil

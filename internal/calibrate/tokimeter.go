@@ -14,9 +14,9 @@ var asteriskStepOrder = []string{
 	"F4_CORRELATE", "F5_REVIEW", "F6_REPORT",
 }
 
-// BuildTokiMeterBill constructs a dispatch.CostBill from an Asterisk
+// BuildCostBill constructs a dispatch.CostBill from an Asterisk
 // CalibrationReport, injecting domain-specific step names and case metadata.
-func BuildTokiMeterBill(report *CalibrationReport) *dispatch.CostBill {
+func BuildCostBill(report *CalibrationReport) *dispatch.CostBill {
 	if report.Tokens == nil {
 		return nil
 	}
@@ -44,7 +44,7 @@ func BuildTokiMeterBill(report *CalibrationReport) *dispatch.CostBill {
 	)
 }
 
-// FormatTokiMeter produces a markdown-formatted cost bill.
-func FormatTokiMeter(bill *dispatch.CostBill) string {
+// FormatCostBill produces a markdown-formatted cost bill.
+func FormatCostBill(bill *dispatch.CostBill) string {
 	return dispatch.FormatCostBill(bill)
 }
