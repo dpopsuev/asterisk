@@ -3,6 +3,26 @@
 // controls loops, and manages per-case state.
 package rca
 
+// Thresholds holds configurable threshold values for pipeline edge evaluation.
+type Thresholds struct {
+	RecallHit             float64 // when to short-circuit on prior RCA (default 0.80)
+	RecallUncertain       float64 // below this = definite miss (default 0.40)
+	ConvergenceSufficient float64 // when to stop investigating (default 0.70)
+	MaxInvestigateLoops   int     // cap on F3→F2→F3 iterations (default 2)
+	CorrelateDup          float64 // when to auto-link cases to same RCA (default 0.80)
+}
+
+// DefaultThresholds returns conservative default thresholds.
+func DefaultThresholds() Thresholds {
+	return Thresholds{
+		RecallHit:             0.80,
+		RecallUncertain:       0.40,
+		ConvergenceSufficient: 0.50,
+		MaxInvestigateLoops:   1,
+		CorrelateDup:          0.80,
+	}
+}
+
 // PipelineStep represents a step in the F0-F6 (Light) or D0-D4 (Shadow) pipeline.
 type PipelineStep string
 
@@ -92,16 +112,6 @@ type HeuristicAction struct {
 	NextStep         PipelineStep       `json:"next_step"`
 	ContextAdditions map[string]any     `json:"context_additions,omitempty"`
 	Explanation      string             `json:"explanation"`
-}
-
-// HeuristicRule is a named decision rule that the engine evaluates against
-// the current artifact/state to determine the next step.
-type HeuristicRule struct {
-	ID          string       `json:"id"`          // e.g. "H1"
-	Name        string       `json:"name"`        // e.g. "recall-hit"
-	SignalField string       `json:"signal_field"` // field in the artifact to inspect
-	Stage       PipelineStep `json:"stage"`        // which stage output this applies to
-	Evaluate    func(artifact any, state *CaseState) *HeuristicAction `json:"-"`
 }
 
 // --- Typed intermediate artifacts (one per family) ---

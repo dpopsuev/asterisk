@@ -2,6 +2,8 @@ package rca
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"github.com/dpopsuev/origami/logging"
 	"asterisk/adapters/rp"
@@ -104,8 +106,10 @@ func RunStep(
 			break // no artifact yet; need to generate prompt for this step
 		}
 
-		// Artifact exists — evaluate graph edges
-		action, ruleID := cfg.evaluateStep(state.CurrentStep, artifact, state)
+		action, ruleID, evalErr := cfg.evaluateStep(state.CurrentStep, artifact, state)
+		if evalErr != nil {
+			return nil, fmt.Errorf("evaluate step %s: %w", state.CurrentStep, evalErr)
+		}
 
 		logging.New("orchestrate").Info("heuristic evaluated",
 			"step", string(state.CurrentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
@@ -189,7 +193,10 @@ func SaveArtifactAndAdvance(
 		return nil, fmt.Errorf("no artifact found for step %s in %s", state.CurrentStep, caseDir)
 	}
 
-	action, ruleID := cfg.evaluateStep(state.CurrentStep, artifact, state)
+	action, ruleID, evalErr := cfg.evaluateStep(state.CurrentStep, artifact, state)
+	if evalErr != nil {
+		return nil, fmt.Errorf("evaluate step %s: %w", state.CurrentStep, evalErr)
+	}
 
 	logging.New("orchestrate").Info("save: heuristic evaluated",
 		"step", string(state.CurrentStep), "rule", ruleID, "next", string(action.NextStep), "explanation", action.Explanation)
@@ -224,46 +231,18 @@ func SaveArtifactAndAdvance(
 }
 
 // loadCurrentArtifact reads the typed artifact for the given step from the case dir.
+// Delegates to parseTypedArtifact for type resolution.
 func loadCurrentArtifact(caseDir string, step PipelineStep) any {
-	switch step {
-	case StepF0Recall:
-		r, _ := ReadArtifact[RecallResult](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
-	case StepF1Triage:
-		r, _ := ReadArtifact[TriageResult](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
-	case StepF2Resolve:
-		r, _ := ReadArtifact[ResolveResult](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
-	case StepF3Invest:
-		r, _ := ReadArtifact[InvestigateArtifact](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
-	case StepF4Correlate:
-		r, _ := ReadArtifact[CorrelateResult](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
-	case StepF5Review:
-		r, _ := ReadArtifact[ReviewDecision](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
-	case StepF6Report:
-		// F6 doesn't produce an artifact that drives heuristics; check for jira-draft
-		r, _ := ReadArtifact[map[string]any](caseDir, ArtifactFilename(step))
-		if r != nil {
-			return r
-		}
+	path := filepath.Join(caseDir, ArtifactFilename(step))
+	data, err := os.ReadFile(path)
+	if err != nil {
+		return nil
 	}
-	return nil
+	artifact, err := parseTypedArtifact(step, data)
+	if err != nil {
+		return nil
+	}
+	return artifact
 }
 
 // ApplyStoreEffects updates Store entities based on the completed step's artifact.
@@ -479,34 +458,14 @@ func applyReviewEffects(st store.Store, caseData *store.Case, artifact any) erro
 	return nil
 }
 
-// evaluateStep evaluates heuristic edges using the framework graph built from
-// AsteriskPipelineDef. The graph uses the same heuristic closures as Runner.Walk().
-func (cfg RunnerConfig) evaluateStep(step PipelineStep, artifact any, state *CaseState) (*HeuristicAction, string) {
+// evaluateStep evaluates YAML expression edges via the shared evaluator.
+func (cfg RunnerConfig) evaluateStep(step PipelineStep, artifact any, state *CaseState) (*HeuristicAction, string, error) {
 	runner, err := BuildRunner(cfg.Thresholds)
 	if err != nil {
-		logging.New("orchestrate").Warn("build runner for edge eval failed, using legacy heuristics", "error", err)
-		rules := DefaultHeuristics(cfg.Thresholds)
-		return EvaluateHeuristics(rules, step, artifact, state)
+		return nil, "", fmt.Errorf("build runner: %w", err)
 	}
-
-	nodeName := StepToNodeName(step)
-	edges := runner.Graph.EdgesFrom(nodeName)
-	wrappedArtifact := WrapArtifact(step, artifact)
-	wrappedState := caseStateToWalkerState(state)
-
-	for _, e := range edges {
-		t := e.Evaluate(wrappedArtifact, wrappedState)
-		if t != nil {
-			action := &HeuristicAction{
-				NextStep:         NodeNameToStep(t.NextNode),
-				ContextAdditions: t.ContextAdditions,
-				Explanation:      t.Explanation,
-			}
-			return action, e.ID()
-		}
-	}
-
-	return defaultFallback(step), "FALLBACK"
+	action, edgeID := EvaluateGraphEdge(runner, step, artifact, state)
+	return action, edgeID, nil
 }
 
 // ComputeFingerprint generates a deterministic fingerprint from failure attributes.

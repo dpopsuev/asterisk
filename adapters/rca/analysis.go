@@ -106,7 +106,10 @@ func runAnalysisCasePipeline(
 		return result, fmt.Errorf("save state: %w", err)
 	}
 
-	rules := DefaultHeuristics(cfg.Thresholds)
+	runner, runnerErr := BuildRunner(cfg.Thresholds)
+	if runnerErr != nil {
+		return result, fmt.Errorf("build runner: %w", runnerErr)
+	}
 	maxSteps := 20
 
 	for step := 0; step < maxSteps; step++ {
@@ -150,7 +153,7 @@ func runAnalysisCasePipeline(
 
 		extractAnalysisStepData(result, currentStep, artifact)
 
-		action, ruleID := EvaluateHeuristics(rules, currentStep, artifact, state)
+		action, ruleID := EvaluateGraphEdge(runner, currentStep, artifact, state)
 		logging.New("analyze").Info("heuristic evaluated",
 			"step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID),
 			"next", vocabName(string(action.NextStep)), "explanation", action.Explanation)

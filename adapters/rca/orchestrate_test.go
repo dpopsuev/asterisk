@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	framework "github.com/dpopsuev/origami"
 )
 
 // --- Artifact I/O tests ---
@@ -174,164 +176,161 @@ func TestLoopCounting(t *testing.T) {
 	}
 }
 
-// --- Heuristic engine tests ---
+// --- Graph-edge evaluation tests ---
 
-func TestHeuristic_RecallHit(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+// buildTestRunner creates a shared runner for all edge evaluation tests.
+func buildTestRunner(t *testing.T) *framework.Runner {
+	t.Helper()
+	runner, err := BuildRunner(DefaultThresholds())
+	if err != nil {
+		t.Fatalf("BuildRunner: %v", err)
+	}
+	return runner
+}
+
+func TestEdge_RecallHit(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	recall := &RecallResult{Match: true, PriorRCAID: 5, Confidence: 0.9}
-	action, ruleID := EvaluateHeuristics(rules, StepF0Recall, recall, state)
-	if action.NextStep != StepF5Review || ruleID != "H1" {
-		t.Errorf("recall-hit: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF0Recall, recall, state)
+	if action.NextStep != StepF5Review || edgeID != "H1" {
+		t.Errorf("recall-hit: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_RecallMiss(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_RecallMiss(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	recall := &RecallResult{Match: false, Confidence: 0}
-	action, ruleID := EvaluateHeuristics(rules, StepF0Recall, recall, state)
-	if action.NextStep != StepF1Triage || ruleID != "H2" {
-		t.Errorf("recall-miss: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF0Recall, recall, state)
+	if action.NextStep != StepF1Triage || edgeID != "H2" {
+		t.Errorf("recall-miss: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_RecallUncertain(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_RecallUncertain(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	recall := &RecallResult{Match: true, PriorRCAID: 5, Confidence: 0.6}
-	action, ruleID := EvaluateHeuristics(rules, StepF0Recall, recall, state)
-	if action.NextStep != StepF1Triage || ruleID != "H3" {
-		t.Errorf("recall-uncertain: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF0Recall, recall, state)
+	if action.NextStep != StepF1Triage || edgeID != "H3" {
+		t.Errorf("recall-uncertain: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_TriageSkipInfra(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_TriageSkipInfra(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	triage := &TriageResult{SymptomCategory: "infra", SkipInvestigation: true}
-	action, ruleID := EvaluateHeuristics(rules, StepF1Triage, triage, state)
-	if action.NextStep != StepF5Review || ruleID != "H4" {
-		t.Errorf("triage-skip-infra: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF1Triage, triage, state)
+	if action.NextStep != StepF5Review || edgeID != "H4" {
+		t.Errorf("triage-skip-infra: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_TriageInvestigate(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_TriageInvestigate(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	triage := &TriageResult{SymptomCategory: "assertion", SkipInvestigation: false, CandidateRepos: []string{"repo-a", "repo-b"}}
-	action, ruleID := EvaluateHeuristics(rules, StepF1Triage, triage, state)
-	if action.NextStep != StepF2Resolve || ruleID != "H6" {
-		t.Errorf("triage-investigate: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF1Triage, triage, state)
+	if action.NextStep != StepF2Resolve || edgeID != "H6" {
+		t.Errorf("triage-investigate: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_TriageSingleRepo(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_TriageSingleRepo(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	triage := &TriageResult{SymptomCategory: "assertion", SkipInvestigation: false, CandidateRepos: []string{"repo-a"}}
-	action, ruleID := EvaluateHeuristics(rules, StepF1Triage, triage, state)
-	if action.NextStep != StepF3Invest || ruleID != "H7" {
-		t.Errorf("triage-single-repo: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF1Triage, triage, state)
+	if action.NextStep != StepF3Invest || edgeID != "H7" {
+		t.Errorf("triage-single-repo: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_InvestigateConverged(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_InvestigateConverged(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	artifact := &InvestigateArtifact{ConvergenceScore: 0.85}
-	action, ruleID := EvaluateHeuristics(rules, StepF3Invest, artifact, state)
-	if action.NextStep != StepF4Correlate || ruleID != "H9" {
-		t.Errorf("investigate-converged: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF3Invest, artifact, state)
+	if action.NextStep != StepF4Correlate || edgeID != "H9" {
+		t.Errorf("investigate-converged: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_InvestigateLowLoop(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_InvestigateLowLoop(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	artifact := &InvestigateArtifact{ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"}}
-	action, ruleID := EvaluateHeuristics(rules, StepF3Invest, artifact, state)
-	if action.NextStep != StepF2Resolve || ruleID != "H10" {
-		t.Errorf("investigate-low: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF3Invest, artifact, state)
+	if action.NextStep != StepF2Resolve || edgeID != "H10" {
+		t.Errorf("investigate-low: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_InvestigateExhausted(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_InvestigateExhausted(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 	state.LoopCounts["investigate"] = 1 // exhausted (MaxInvestigateLoops=1)
 
 	artifact := &InvestigateArtifact{ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"}}
-	action, ruleID := EvaluateHeuristics(rules, StepF3Invest, artifact, state)
-	if action.NextStep != StepF5Review || ruleID != "H11" {
-		t.Errorf("investigate-exhausted: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF3Invest, artifact, state)
+	if action.NextStep != StepF5Review || edgeID != "H11" {
+		t.Errorf("investigate-exhausted: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_ReviewApprove(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_ReviewApprove(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	review := &ReviewDecision{Decision: "approve"}
-	action, ruleID := EvaluateHeuristics(rules, StepF5Review, review, state)
-	if action.NextStep != StepF6Report || ruleID != "H12" {
-		t.Errorf("review-approve: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF5Review, review, state)
+	if action.NextStep != StepF6Report || edgeID != "H12" {
+		t.Errorf("review-approve: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_ReviewReassess(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_ReviewReassess(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	review := &ReviewDecision{Decision: "reassess", LoopTarget: StepF3Invest}
-	action, ruleID := EvaluateHeuristics(rules, StepF5Review, review, state)
-	if action.NextStep != StepF3Invest || ruleID != "H13" {
-		t.Errorf("review-reassess: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF5Review, review, state)
+	// YAML H13 always loops back to resolve (which leads to investigate)
+	if action.NextStep != StepF2Resolve || edgeID != "H13" {
+		t.Errorf("review-reassess: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_ReviewOverturn(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_ReviewOverturn(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
 	review := &ReviewDecision{
 		Decision:      "overturn",
 		HumanOverride: &HumanOverride{DefectType: "pb001", RCAMessage: "human says this"},
 	}
-	action, ruleID := EvaluateHeuristics(rules, StepF5Review, review, state)
-	if action.NextStep != StepF6Report || ruleID != "H14" {
-		t.Errorf("review-overturn: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF5Review, review, state)
+	if action.NextStep != StepF6Report || edgeID != "H14" {
+		t.Errorf("review-overturn: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }
 
-func TestHeuristic_DefaultFallback(t *testing.T) {
-	th := DefaultThresholds()
-	rules := DefaultHeuristics(th)
+func TestEdge_DefaultFallback(t *testing.T) {
+	runner := buildTestRunner(t)
 	state := InitState(10, 1)
 
-	// F6 has no specific heuristics except the stage-specific ones; should fallback to DONE
-	action, ruleID := EvaluateHeuristics(rules, StepF6Report, nil, state)
-	if action.NextStep != StepDone || ruleID != "FALLBACK" {
-		t.Errorf("f6-fallback: got step=%s rule=%s", action.NextStep, ruleID)
+	action, edgeID := EvaluateGraphEdge(runner, StepF6Report, nil, state)
+	if action.NextStep != StepDone || edgeID != "FALLBACK" {
+		t.Errorf("f6-fallback: got step=%s edge=%s", action.NextStep, edgeID)
 	}
 }

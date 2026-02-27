@@ -8,6 +8,7 @@ import (
 
 	"asterisk/adapters/store"
 
+	framework "github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/logging"
 	"golang.org/x/sync/errgroup"
 )
@@ -375,7 +376,10 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 		return CalTriageResult{Index: job.Index, CaseResult: result, Err: fmt.Errorf("save state: %w", err)}
 	}
 
-	rules := DefaultHeuristics(cfg.Thresholds)
+	runner, runnerErr := BuildRunner(cfg.Thresholds)
+	if runnerErr != nil {
+		return CalTriageResult{Index: job.Index, CaseResult: result, Err: fmt.Errorf("build runner: %w", runnerErr)}
+	}
 
 	tr := CalTriageResult{
 		Index:      job.Index,
@@ -418,7 +422,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 		logger.Warn("store effect error", "step", "Recall", "error", err)
 	}
 
-	action, ruleID := EvaluateHeuristics(rules, StepF0Recall, recallResult, state)
+	action, ruleID := EvaluateGraphEdge(runner, StepF0Recall, recallResult, state)
 	logger.Debug("heuristic evaluated",
 		"case_id", gtCase.ID, "step", "Recall", "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 	AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
@@ -430,7 +434,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 		tr.FinalStep = state.CurrentStep
 
 		// Run remaining steps (F5, F6) in the triage phase
-		remaining := runRemainingSteps(ctx, st, caseData, state, caseDir, gtCase, cfg, result, rules, tokenSem)
+		remaining := runRemainingSteps(ctx, st, caseData, state, caseDir, gtCase, cfg, result, runner, tokenSem)
 		if remaining != nil {
 			tr.Err = remaining
 		}
@@ -471,7 +475,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 			logger.Warn("store effect error", "step", "Triage", "error", err)
 		}
 
-		action, ruleID = EvaluateHeuristics(rules, StepF1Triage, triageResult, state)
+		action, ruleID = EvaluateGraphEdge(runner, StepF1Triage, triageResult, state)
 		logger.Debug("heuristic evaluated",
 			"case_id", gtCase.ID, "step", "Triage", "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 		AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
@@ -481,7 +485,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 		if action.NextStep == StepF5Review || action.NextStep == StepDone {
 			tr.FinalStep = state.CurrentStep
 			if action.NextStep == StepF5Review {
-				remaining := runRemainingSteps(ctx, st, caseData, state, caseDir, gtCase, cfg, result, rules, tokenSem)
+				remaining := runRemainingSteps(ctx, st, caseData, state, caseDir, gtCase, cfg, result, runner, tokenSem)
 				if remaining != nil {
 					tr.Err = remaining
 				}
@@ -498,7 +502,7 @@ func runTriagePhase(ctx context.Context, st store.Store, job TriageJob, suiteID 
 func runRemainingSteps(ctx context.Context, st store.Store, caseData *store.Case,
 	state *CaseState, caseDir string,
 	gtCase GroundTruthCase, cfg RunConfig, result *CaseResult,
-	rules []HeuristicRule, tokenSem chan struct{},
+	runner *framework.Runner, tokenSem chan struct{},
 ) error {
 	maxSteps := 10
 	for step := 0; step < maxSteps; step++ {
@@ -546,7 +550,7 @@ func runRemainingSteps(ctx context.Context, st store.Store, caseData *store.Case
 			logger.Warn("store effect error", "step", vocabName(string(currentStep)), "error", err)
 		}
 
-		action, ruleID := EvaluateHeuristics(rules, currentStep, artifact, state)
+		action, ruleID := EvaluateGraphEdge(runner, currentStep, artifact, state)
 		logger.Debug("heuristic evaluated",
 			"case_id", gtCase.ID, "step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 		AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
@@ -577,7 +581,12 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 		return result
 	}
 
-	rules := DefaultHeuristics(cfg.Thresholds)
+	runner, runnerErr := BuildRunner(cfg.Thresholds)
+	if runnerErr != nil {
+		logger.Error("build runner failed", "case_id", gtCase.ID, "error", runnerErr)
+		result.PipelineError = fmt.Sprintf("build runner: %v", runnerErr)
+		return result
+	}
 	maxSteps := 20
 
 	logger.Info("investigation started",
@@ -613,7 +622,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 				syntheticArtifact := &ResolveResult{SelectedRepos: selections}
 
 				extractStepMetrics(result, currentStep, syntheticArtifact, gtCase)
-				action, ruleID := EvaluateHeuristics(rules, currentStep, syntheticArtifact, state)
+				action, ruleID := EvaluateGraphEdge(runner, currentStep, syntheticArtifact, state)
 				logger.Info("hypothesis repo routing",
 					"case_id", gtCase.ID, "hypothesis", tr.TriageArtifact.DefectTypeHypothesis,
 					"matched", matched, "rule", ruleID, "next", string(action.NextStep))
@@ -673,7 +682,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 		extractStepMetrics(result, currentStep, artifact, gtCase)
 
 		if currentStep == StepF3Invest {
-			action, ruleID := EvaluateHeuristics(rules, currentStep, artifact, state)
+			action, ruleID := EvaluateGraphEdge(runner, currentStep, artifact, state)
 			if action.NextStep == StepF2Resolve {
 				IncrementLoop(state, "investigate")
 			}
@@ -681,7 +690,7 @@ func runInvestigationPhase(ctx context.Context, job InvestigationJob, tokenSem c
 				"case_id", gtCase.ID, "step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID), "next", vocabName(string(action.NextStep)))
 			AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
 		} else {
-			action, ruleID := EvaluateHeuristics(rules, currentStep, artifact, state)
+			action, ruleID := EvaluateGraphEdge(runner, currentStep, artifact, state)
 			if currentStep == StepF5Review &&
 				action.NextStep != StepF6Report &&
 				action.NextStep != StepDone {
