@@ -10,7 +10,11 @@
 // Uses StubAdapter for deterministic validation; real LLM/Cursor runs come later.
 package scenarios
 
-import "asterisk/internal/calibrate"
+import (
+	"asterisk/internal/calibrate"
+
+	"github.com/dpopsuev/origami/knowledge"
+)
 
 // PTPRealScenario returns the real-world calibration scenario.
 func PTPRealScenario() *calibrate.Scenario {
@@ -290,6 +294,7 @@ func ptpRealCases() []calibrate.GroundTruthCase {
 
 func ptpRealWorkspace() calibrate.WorkspaceConfig {
 	return calibrate.WorkspaceConfig{
+		Sources: ptpDocSources(),
 		Repos: []calibrate.RepoConfig{
 			{
 				Name:           "cnf-gotests",
@@ -319,8 +324,20 @@ func ptpRealWorkspace() calibrate.WorkspaceConfig {
 				Name:         "eco-gotests",
 				Purpose:      "Ecosystem QE test framework; may contain shared helpers used by cnf-gotests (NOT PTP-specific)",
 				Branch:       "master",
-				IsRedHerring: true,
-			},
+			IsRedHerring: true,
+		},
+	},
+	}
+}
+
+func ptpDocSources() []knowledge.Source {
+	return []knowledge.Source{
+		{
+			Name:       "ptp-operator-architecture",
+			Kind:       knowledge.SourceKindDoc,
+			Purpose:    "PTP architecture disambiguation: linuxptp-daemon (pod) vs linuxptp-daemon (repo), component relationships, event flow",
+			ReadPolicy: knowledge.ReadAlways,
+			LocalPath:  "datasets/docs/ptp/architecture.md",
 		},
 	}
 }

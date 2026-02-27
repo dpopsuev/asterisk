@@ -1,6 +1,6 @@
 # Contract — Principled Calibration Scorecard
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** Replace arbitrary metric thresholds with principled, ROI-grounded analysis for every metric; elevate calibration from Asterisk-specific code to a first-class Origami framework concern with declarative metric definitions, configurable thresholds, and a calibration pipeline expressible in DSL.  
 **Serves:** Polishing & Presentation (gate)
 

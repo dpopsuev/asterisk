@@ -253,31 +253,33 @@ for {
 		},
 		{
 			ID:    "act3-rtfm",
-			Title: "RTFM / Mandatory Context Lookup",
+			Title: "ReadPolicy / Smart Knowledge Routing",
 			Blocks: []kami.CodeBlock{
 				{
-					Language:   "go",
-					Annotation: "The context node prevents domain confusion",
-					Code: `type ContextResult struct {
-    ArchitectureNotes  string   // e.g. "linuxptp-daemon runs as pod, not host process"
-    Disambiguations    []string // "ptp4l binary != linuxptp-daemon pod"
-    ComponentMapping   map[string]string
-    MandatorySources   []Source // ReadPolicy: "Read: Always"
-    ConditionalSources []Source // ReadPolicy: "Read: When relevant"
-}`,
-				},
-				{
 					Language:   "yaml",
-					Annotation: "Knowledge sources with Read labels",
+					Annotation: "Sources declare their own read policy",
 					Code: `sources:
   - kind: doc
     name: ptp-operator-architecture
-    read_policy: "Read: Always"
+    read_policy: always         # injected into every prompt
     read_when: ""
+    local_path: datasets/docs/ptp/architecture.md
   - kind: repo
     name: ptp-operator
-    read_policy: "Read: When investigating code changes"
-    read_when: "triage.symptom_category == 'code'"`,
+    read_policy: conditional    # follows tag-based routing rules
+    read_when: "investigating code changes"`,
+				},
+				{
+					Language:   "go",
+					Annotation: "Prompt injection replaces a dedicated graph node",
+					Code: `// No context node needed — params.go loads always-read content directly
+sources := catalog.AlwaysReadSources()
+for _, s := range sources {
+    content, _ := os.ReadFile(s.LocalPath)
+    params.AlwaysReadSources = append(params.AlwaysReadSources, AlwaysReadSource{
+        Name: s.Name, Purpose: s.Purpose, Content: string(content),
+    })
+}`,
 				},
 			},
 		},
@@ -362,7 +364,7 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 			Subtitle: "Framework building block: tell agents which knowledge is mandatory vs conditional",
 			Cards: []kami.ConceptCard{
 				{Name: "Source Types", Description: "SourceKindRepo (Git repos), SourceKindDoc (documentation), SourceKindAPI (external APIs). Each source has metadata and access patterns."},
-				{Name: "Read: Always", Description: "Mandatory prerequisite. The context node MUST read these before proceeding. Architecture docs, disambiguation guides."},
+				{Name: "Read: Always", Description: "Mandatory prerequisite knowledge injected into every prompt. Architecture docs, disambiguation guides. No dedicated graph node needed."},
 				{Name: "Read: When...", Description: "Conditional reading. 'Read when investigating code changes' — only relevant for code-related triage categories."},
 				{Name: "Router", Description: "KnowledgeSourceRouter selects sources by tags, case context, and read policy. Prevents irrelevant knowledge from polluting the prompt."},
 			},
@@ -410,7 +412,7 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 			Subtitle: "How a single CI failure flows through the entire system",
 			Cards: []kami.ConceptCard{
 				{Name: "1. Ingest", Description: "RP launch detected. Failure data pulled via ReportPortal API. Items deduplicated, cases created."},
-				{Name: "2. RTFM Context", Description: "Mandatory doc lookup: architecture notes, disambiguations, component mapping. Read: Always sources consumed."},
+				{Name: "2. Knowledge Injection", Description: "ReadPolicy: Always sources auto-injected into prompts. Architecture notes, disambiguations, component mapping — no dedicated graph node."},
 				{Name: "3. Recall → Triage", Description: "Historical lookup (seen this before?). If miss: classify defect type, identify candidate repos."},
 				{Name: "4. Resolve → Investigate", Description: "Repository selection, then deep evidence gathering: logs, commits, pipeline data."},
 				{Name: "5. Correlate → Review", Description: "Pattern matching against known failures. Adversarial review: prosecution vs defense."},

@@ -38,44 +38,17 @@ Full PoC history: `notes/goal-history-poc.md`
 
 Contracts are grouped into cross-repo tandem bundles. Within each bundle, Origami ships framework primitives first, then Asterisk consumes. Work in bundle priority order; commit at green gates.
 
-### Bundle 1: Principled Metrics (gate)
+### Bundle 1: Principled Metrics -- DONE
 
-Blocks everything else. Single contract spanning both repos.
+Declarative ScoreCard YAML replaces hardcoded metrics. 21 MetricDefs with ROI-grounded thresholds.
 
-```
-[Asterisk: principled-calibration-scorecard] <-> [Origami: calibrate/ types]
-```
+### Bundle 2: Rich Names -- DONE
 
-| Step | Repo | What ships |
-|------|------|------------|
-| 1 | Origami | `MetricDef`, `ScoreCard`, `CostTier`, `EvalDirection` in `calibrate/`. `DefaultMetrics()`, `DefaultScoreCard()`. `FormatCostBill()` in `dispatch/`. |
-| 2 | Asterisk | Migrate 21 metrics to `MetricDef` YAML. Reweight M19. Delete TokiMeter — use Origami `CostBill`. |
+`RichVocabulary` interface in Origami. Asterisk `display/` deleted, replaced by `adapters/vocabulary/` registrations.
 
-### Bundle 2: Rich Names (should)
+### Bundle 3: Smart Routing -- DONE
 
-Two separate contracts, coupled by interface dependency.
-
-```
-[Asterisk: asterisk-internal-cleanup (P7)] <-> [Origami: rich-vocabulary]
-```
-
-| Step | Repo | What ships |
-|------|------|------------|
-| 1 | Origami | `RichVocabulary` interface + `RichMapVocabulary`. Wire into Kami hover, LSP hover, Kabuki cards. |
-| 2 | Asterisk | Migrate `display/` (221 LOC) to `RichMapVocabulary` registration. Delete `display/`. |
-
-### Bundle 3: Smart Routing (should)
-
-Single contract spanning both repos.
-
-```
-[Asterisk: refine-rtfm-routing-policy] <-> [Origami: Source/router]
-```
-
-| Step | Repo | What ships |
-|------|------|------------|
-| 1 | Origami | `ReadPolicy` on `Source` type. `KnowledgeSourceRouter` tag-based routing. `{{always_read_sources}}` template var. |
-| 2 | Asterisk | Delete `context` node from pipeline YAML. Delete `internal/rtfm/`. Prompt injection replaces explicit node. |
+`ReadPolicy` on `Source` in Origami. Asterisk scenarios declare doc sources. `loadAlwaysReadSources` injects mandatory docs into prompts. No dedicated graph node. Kabuki demo updated.
 
 ### Bundle 4: Demo Polish (should)
 
@@ -112,28 +85,26 @@ LSP ships first (validation, completion, hover). Washi Phase 2 embeds Monaco + L
 ### Execution order
 
 ```
-                     ┌─────────────────────┐
-                     │  Bundle 1: Metrics   │  ← gate
-                     │  (principled-cal)    │
-                     └────────┬────────────┘
-                              │
-              ┌───────────────┼───────────────┐
-              │               │               │
-    ┌─────────▼──────┐ ┌─────▼──────┐ ┌──────▼────────┐
-    │ Bundle 2:      │ │ Bundle 3:  │ │ Bundle 4:     │  ← should (parallel)
-    │ Rich Names     │ │ Smart      │ │ Demo Polish   │
-    │                │ │ Routing    │ │               │
-    └────────────────┘ └────────────┘ └───────────────┘
-              │
-    ┌─────────▼──────────────────────────────┐
-    │ Standalone: internal-cleanup,          │  ← should/nice
-    │ data-ingestion, evidence-gap-brief     │
-    └────────────────────────────────────────┘
-              │
-    ┌─────────▼──────────────────────────────┐
-    │ Bundle 5: LSP -> Washi                 │  ← vision
-    │ knowledge-source-evolution             │
-    └────────────────────────────────────────┘
+    ┌─────────────────────┐
+    │  Bundle 1: Metrics   │  ✓ DONE
+    │  Bundle 2: Rich Names│  ✓ DONE
+    │  Bundle 3: Smart     │  ✓ DONE
+    └────────┬────────────┘
+             │
+    ┌────────▼──────────┐
+    │ Bundle 4:         │  ← should (next)
+    │ Demo Polish       │
+    └────────┬──────────┘
+             │
+    ┌────────▼──────────────────────────────┐
+    │ Standalone: internal-cleanup,         │  ← should/nice
+    │ data-ingestion, evidence-gap-brief    │
+    └───────────────────────────────────────┘
+             │
+    ┌────────▼──────────────────────────────┐
+    │ Bundle 5: LSP -> Washi                │  ← vision
+    │ knowledge-source-evolution            │
+    └───────────────────────────────────────┘
 ```
 
 ### CHECKPOINT — Polish validated
@@ -190,33 +161,33 @@ Full PoC history: `notes/goal-history-poc.md`
 ## What "polished" means
 
 ### Asterisk
-- [ ] Every metric threshold has a documented rationale (baseline, ceiling, ROI)
-- [ ] ScoreCard YAML replaces hardcoded thresholds in metrics.go
+- [x] Every metric threshold has a documented rationale (baseline, ceiling, ROI)
+- [x] ScoreCard YAML replaces hardcoded thresholds in metrics.go
 - [ ] CursorAdapter M19 >= 0.70 with principled weights
 - [ ] M14b (smoking gun) passes at >= 0.30
 - [ ] Token budget at 200,000 (ROI-justified)
-- [ ] RTFM deleted — ReadPolicy + prompt injection replaces `internal/rtfm/`
+- [x] RTFM deleted — ReadPolicy + prompt injection replaces `internal/rtfm/`
 - [ ] 3 YAML pipelines (RCA, ingestion, calibration)
 - [ ] CLI migrated to `origami.NewCLI()` scaffold
 - [ ] EvidenceGap output when confidence is low
-- [ ] TokiMeter deleted — cost bill from Origami `dispatch.FormatCostBill()`
+- [x] TokiMeter deleted — cost bill from Origami `dispatch.FormatCostBill()`
 - [ ] `StepNameFunc` adapter for display names (maps F0-F6 to human names)
 - [ ] `internal/` contains only `dataset/`, `demo/`, `mcpconfig/` — all domain logic in `adapters/`
-- [ ] `display/` migrated to Origami `RichMapVocabulary` registration (blocked on `rich-vocabulary`)
+- [x] `display/` migrated to Origami `RichMapVocabulary` registration
 
 ### Origami
-- [ ] `MetricDef`, `ScoreCard` types in `calibrate/` package
-- [ ] ScoreCard YAML loader with direction-aware evaluation
-- [ ] `MetricSet` is flat — `Metrics []Metric` with `ByTier()`/`ByID()` view methods
+- [x] `MetricDef`, `ScoreCard` types in `calibrate/` package
+- [x] ScoreCard YAML loader with direction-aware evaluation
+- [x] `MetricSet` is flat — `Metrics []Metric` with `ByTier()`/`ByID()` view methods
 - [ ] `DefaultMetrics()` ships 7 universal metrics (token_usage, token_cost_usd, latency_seconds, path_efficiency, loop_ratio, confidence_calibration, run_variance)
 - [ ] `DefaultScoreCard()` — three-layer API following Go slog pattern
 - [ ] TokiMeter cost bill in `dispatch/cost_bill.go` — every dispatch gets a cost bill
 - [ ] `FormatTokenSummary` uses `CostConfig` (bug fix — no more hardcoded 3.0/15.0)
 - [ ] Calibration runner as DSL pipeline (visible in Kami)
-- [ ] `RichVocabulary` interface with `VocabEntry` (short/long/description) in `vocabulary.go`
-- [ ] Kami hover uses `RichVocabulary.Description()` for node tooltips
-- [ ] LSP hover uses `RichVocabulary` for pipeline-level node docs
-- [ ] Kabuki cards use `RichVocabulary` for labels and descriptions
+- [x] `RichVocabulary` interface with `VocabEntry` (short/long/description) in `vocabulary.go`
+- [x] Kami hover uses `RichVocabulary.Description()` for node tooltips
+- [x] LSP hover uses `RichVocabulary` for pipeline-level node docs
+- [x] Kabuki cards use `RichVocabulary` for labels and descriptions
 - [ ] LSP validates pipeline YAML with completion and hover docs
 - [ ] `curate.Source` renamed to `curate.EvidenceSource`
 - [ ] Ouroboros probe stimuli loadable from config

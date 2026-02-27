@@ -15,5 +15,6 @@ func ScenarioToCatalog(wc WorkspaceConfig) *knowledge.KnowledgeSourceCatalog {
 			Branch:  r.Branch,
 		})
 	}
+	cat.Sources = append(cat.Sources, wc.Sources...)
 	return cat
 }

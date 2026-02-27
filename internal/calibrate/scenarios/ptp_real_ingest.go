@@ -9,6 +9,8 @@ import (
 	"path/filepath"
 
 	"asterisk/internal/calibrate"
+
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 // PTPRealIngestScenario returns the real-world PTP calibration scenario
@@ -1756,6 +1758,7 @@ func ptpRealIngestWorkspace() calibrate.WorkspaceConfig {
 	ws := func(rel string) string { return filepath.Join(home, "Workspace", rel) }
 
 	return calibrate.WorkspaceConfig{
+		Sources: ptpIngestDocSources(),
 		Repos: []calibrate.RepoConfig{
 			{
 				Name:    "cnf-gotests",
@@ -1794,5 +1797,17 @@ func ptpRealIngestWorkspace() calibrate.WorkspaceConfig {
 			IsRedHerring: true,
 		},
 	},
+	}
+}
+
+func ptpIngestDocSources() []knowledge.Source {
+	return []knowledge.Source{
+		{
+			Name:       "ptp-operator-architecture",
+			Kind:       knowledge.SourceKindDoc,
+			Purpose:    "PTP architecture disambiguation: linuxptp-daemon (pod) vs linuxptp-daemon (repo), component relationships, event flow",
+			ReadPolicy: knowledge.ReadAlways,
+			LocalPath:  "datasets/docs/ptp/architecture.md",
+		},
 	}
 }

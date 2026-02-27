@@ -3,7 +3,10 @@
 // and measures how closely the agent's conclusions match the known answers.
 package calibrate
 
-import cal "github.com/dpopsuev/origami/calibrate"
+import (
+	cal "github.com/dpopsuev/origami/calibrate"
+	"github.com/dpopsuev/origami/knowledge"
+)
 
 // Metric is an alias for the generic calibrate.Metric type.
 type Metric = cal.Metric
@@ -142,7 +145,8 @@ type ExpectedReview struct {
 
 // WorkspaceConfig describes the context workspace for F2/F3.
 type WorkspaceConfig struct {
-	Repos []RepoConfig `json:"repos"`
+	Repos   []RepoConfig       `json:"repos"`
+	Sources []knowledge.Source  `json:"sources,omitempty"`
 }
 
 // RepoConfig describes one repo in the workspace.
