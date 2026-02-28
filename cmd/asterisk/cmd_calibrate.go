@@ -127,26 +127,14 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		}
 		adapter = ba
 	case "llm":
-		var dispatcher dispatch.Dispatcher
-		switch calibrateFlags.dispatchMode {
-		case "stdin":
-			dispatcher = dispatch.NewStdinDispatcherWithTemplate(asteriskStdinTemplate())
-		case "file":
-			cfg := dispatch.DefaultFileDispatcherConfig()
-			cfg.Logger = debugLogger
-			dispatcher = dispatch.NewFileDispatcher(cfg)
-		case "batch-file":
-			cfg := dispatch.BatchFileDispatcherConfig{
-				FileConfig: dispatch.FileDispatcherConfig{
-					Logger: debugLogger,
-				},
-				SuiteDir:  filepath.Join(".asterisk", "calibrate", "batch"),
-				BatchSize: calibrateFlags.batchSize,
-				Logger:    debugLogger,
-			}
-			dispatcher = dispatch.NewBatchFileDispatcher(cfg)
-		default:
-			return fmt.Errorf("unknown dispatch mode: %s (available: stdin, file, batch-file)", calibrateFlags.dispatchMode)
+		dispatcher, err := buildDispatcher(DispatchOpts{
+			Mode:      calibrateFlags.dispatchMode,
+			Logger:    debugLogger,
+			SuiteDir:  filepath.Join(".asterisk", "calibrate", "batch"),
+			BatchSize: calibrateFlags.batchSize,
+		})
+		if err != nil {
+			return err
 		}
 		trackedDispatcher := dispatch.NewTokenTrackingDispatcher(dispatcher, tokenTracker)
 		adapter = adapt.NewLLMAdapter(calibrateFlags.promptDir, adapt.WithDispatcher(trackedDispatcher), adapt.WithBasePath(calibDir))

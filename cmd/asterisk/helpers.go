@@ -3,7 +3,9 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"os"
+	"path/filepath"
 	"strconv"
 	"time"
 
@@ -12,6 +14,45 @@ import (
 	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
 )
+
+// DispatchOpts collects the parameters needed to construct a dispatcher.
+type DispatchOpts struct {
+	Mode      string
+	Logger    *slog.Logger
+	SuiteDir  string // batch-file only
+	BatchSize int    // batch-file only
+}
+
+// buildDispatcher creates a dispatch.Dispatcher from declarative options.
+// Supported modes: stdin, file, batch-file.
+func buildDispatcher(opts DispatchOpts) (dispatch.Dispatcher, error) {
+	switch opts.Mode {
+	case "stdin":
+		return dispatch.NewStdinDispatcherWithTemplate(asteriskStdinTemplate()), nil
+	case "file":
+		cfg := dispatch.DefaultFileDispatcherConfig()
+		cfg.Logger = opts.Logger
+		return dispatch.NewFileDispatcher(cfg), nil
+	case "batch-file":
+		suiteDir := opts.SuiteDir
+		if suiteDir == "" {
+			suiteDir = filepath.Join(".asterisk", "calibrate", "batch")
+		}
+		batchSize := opts.BatchSize
+		if batchSize <= 0 {
+			batchSize = 4
+		}
+		cfg := dispatch.BatchFileDispatcherConfig{
+			FileConfig: dispatch.FileDispatcherConfig{Logger: opts.Logger},
+			SuiteDir:   suiteDir,
+			BatchSize:  batchSize,
+			Logger:     opts.Logger,
+		}
+		return dispatch.NewBatchFileDispatcher(cfg), nil
+	default:
+		return nil, fmt.Errorf("unknown dispatch mode: %s (available: stdin, file, batch-file)", opts.Mode)
+	}
+}
 
 func asteriskStdinTemplate() dispatch.StdinTemplate {
 	return dispatch.StdinTemplate{

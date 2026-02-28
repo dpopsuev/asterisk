@@ -13,7 +13,6 @@ import (
 
 	"asterisk/adapters/rca"
 	"asterisk/adapters/rca/adapt"
-	"github.com/dpopsuev/origami/dispatch"
 	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
@@ -156,14 +155,9 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		}
 		adapter = ba
 	case "llm":
-		var dispatcher dispatch.Dispatcher
-		switch analyzeFlags.dispatchMode {
-		case "stdin":
-			dispatcher = dispatch.NewStdinDispatcherWithTemplate(asteriskStdinTemplate())
-		case "file":
-			dispatcher = dispatch.NewFileDispatcher(dispatch.DefaultFileDispatcherConfig())
-		default:
-			return fmt.Errorf("unknown dispatch mode: %s (available: stdin, file)", analyzeFlags.dispatchMode)
+		dispatcher, err := buildDispatcher(DispatchOpts{Mode: analyzeFlags.dispatchMode})
+		if err != nil {
+			return err
 		}
 		basePath := filepath.Join(".asterisk", "analyze")
 		if err := os.MkdirAll(basePath, 0755); err != nil {
