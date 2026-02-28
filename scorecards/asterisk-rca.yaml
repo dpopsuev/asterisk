@@ -18,6 +18,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.85
     weight: 0.25
+    scorer: defect_type_accuracy
     strategy: roi_based
     rationale: "Primary output. At 0.85, 1 in ~7 wrong. Each misclassification costs ~$2,500."
 
@@ -27,6 +28,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.80
     weight: 0.10
+    scorer: symptom_category_accuracy
     strategy: roi_based
     rationale: "Routes to correct team. At 0.80, wrong routing is tolerable."
 
@@ -36,6 +38,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.65
     weight: 0.0
+    scorer: recall_hit_rate
     strategy: roi_based
     rationale: "Recall-based routing. Lowered from 0.70 — false negatives are caught by investigation."
 
@@ -45,6 +48,7 @@ metrics:
     direction: lower_is_better
     threshold: 0.10
     weight: 0.0
+    scorer: recall_false_positive_rate
     strategy: fixed
     rationale: "Safety gate. False positives waste investigation resources."
 
@@ -54,6 +58,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.55
     weight: 0.05
+    scorer: serial_killer_detection
     strategy: roi_based
     rationale: "Advanced detection. Lowered from 0.70 — difficult with limited cross-case context."
 
@@ -63,6 +68,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.80
     weight: 0.0
+    scorer: skip_accuracy
     strategy: fixed
     rationale: "Safety gate. Correct skip decisions prevent wasted analysis."
 
@@ -72,6 +78,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.40
     weight: 0.0
+    scorer: cascade_detection
     strategy: roi_based
     rationale: "Advanced detection. Lowered from 0.50 — cascade recognition is genuinely hard."
 
@@ -81,6 +88,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.35
     weight: 0.0
+    scorer: convergence_calibration
     strategy: roi_based
     rationale: "Health check for confidence scores. Lowered from 0.40 — Pearson r is strict."
 
@@ -91,6 +99,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.65
     weight: 0.05
+    scorer: repo_selection_precision
     strategy: roi_based
     rationale: "Cost metric. Lowered from 0.70 — over-selecting repos costs tokens, not correctness."
 
@@ -100,6 +109,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.80
     weight: 0.15
+    scorer: repo_selection_recall
     strategy: roi_based
     rationale: "Missing the right repo is unrecoverable. Wet target: 0.85."
 
@@ -109,6 +119,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.70
     weight: 0.0
+    scorer: red_herring_rejection
     strategy: roi_based
     rationale: "Lowered from 0.80 — selecting a red herring wastes tokens but doesn't prevent correct answer."
 
@@ -119,6 +130,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.65
     weight: 0.10
+    scorer: evidence_recall
     strategy: roi_based
     rationale: "Finding planted evidence. Raised from 0.60. Foundation of explainable RCA."
     dry_capped: true
@@ -129,6 +141,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.45
     weight: 0.0
+    scorer: evidence_precision
     strategy: roi_based
     rationale: "Lowered from 0.50 — citing extra evidence is noise, not harm."
     dry_capped: true
@@ -139,6 +152,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.60
     weight: 0.10
+    scorer: rca_message_relevance
     strategy: fixed
     rationale: "Semantic quality of RCA message. Kept at 0.60."
 
@@ -148,6 +162,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.30
     weight: 0.0
+    scorer: smoking_gun_hit_rate
     strategy: roi_based
     rationale: "Raised from 0.00. Future M19 candidate at 0.10 weight when consistently >0.30."
 
@@ -157,6 +172,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.75
     weight: 0.20
+    scorer: component_identification
     strategy: roi_based
     rationale: "'Where to look' signal. Raised from 0.70. High human value."
 
@@ -167,6 +183,7 @@ metrics:
     direction: higher_is_better
     threshold: 0.50
     weight: 0.0
+    scorer: pipeline_path_accuracy
     strategy: fixed
     rationale: "Lowered from 0.60. Correct answer via suboptimal path is acceptable."
 
@@ -176,6 +193,7 @@ metrics:
     direction: range
     threshold: 3.0
     weight: 0.0
+    scorer: loop_efficiency
     strategy: fixed
     rationale: "Range 0.3-3.0 (widened from 0.5-2.0). Loops that converge are acceptable."
 
@@ -185,6 +203,7 @@ metrics:
     direction: lower_is_better
     threshold: 200000
     weight: 0.0
+    scorer: total_prompt_tokens
     strategy: roi_based
     rationale: "Budget raised 3.3x from 60K. At $0.003/1K tokens, 200K costs $0.60 — trivial vs $2,500 labor."
 
@@ -197,6 +216,26 @@ metrics:
     weight: 0.0
     strategy: fixed
     rationale: "Consistency. Stddev of M19 across runs. Keep tight."
+
+  - id: M21
+    name: gap_precision
+    tier: meta
+    direction: higher_is_better
+    threshold: 0.0
+    weight: 0.0
+    scorer: gap_precision
+    strategy: fixed
+    rationale: "Stub — manual verification required."
+
+  - id: M22
+    name: gap_recall
+    tier: meta
+    direction: higher_is_better
+    threshold: 0.0
+    weight: 0.0
+    scorer: gap_recall
+    strategy: fixed
+    rationale: "Stub — manual verification required."
 
 aggregate:
   id: M19

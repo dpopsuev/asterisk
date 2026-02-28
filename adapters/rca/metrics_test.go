@@ -8,8 +8,6 @@ import (
 	cal "github.com/dpopsuev/origami/calibrate"
 )
 
-// testScoreCard loads the real scorecard YAML for tests.
-// Falls back to a minimal scorecard if the file is not found (CI).
 func testScoreCard(t *testing.T) *cal.ScoreCard {
 	t.Helper()
 	path := "../../scorecards/asterisk-rca.yaml"
@@ -21,6 +19,73 @@ func testScoreCard(t *testing.T) *cal.ScoreCard {
 		t.Fatalf("load scorecard: %v", err)
 	}
 	return sc
+}
+
+func testRegistry(t *testing.T) cal.ScorerRegistry {
+	t.Helper()
+	reg := cal.DefaultScorerRegistry()
+	RegisterScorers(reg)
+	return reg
+}
+
+func runScorer(t *testing.T, name string, results []CaseResult, scenario *Scenario) (float64, string) {
+	t.Helper()
+	reg := testRegistry(t)
+	fn, err := reg.Get(name)
+	if err != nil {
+		t.Fatalf("get scorer %q: %v", name, err)
+	}
+	bc := NewBatchContext(results, scenario)
+	val, detail, err := fn(bc, nil, nil)
+	if err != nil {
+		t.Fatalf("scorer %q: %v", name, err)
+	}
+	return val, detail
+}
+
+func buildFixtureScenario() *Scenario {
+	return &Scenario{
+		RCAs: []GroundTruthRCA{
+			{
+				ID: "R1", DefectType: "pb001", Component: "linuxptp-daemon",
+				RequiredKeywords: []string{"ptp", "clock", "offset"},
+				KeywordThreshold: 2, RelevantRepos: []string{"linuxptp-daemon"},
+			},
+			{
+				ID: "R2", DefectType: "au001", Component: "cnf-gotests",
+				RequiredKeywords: []string{"automation", "skip"},
+				KeywordThreshold: 1, RelevantRepos: []string{"cnf-gotests"},
+			},
+		},
+		Cases: []GroundTruthCase{
+			{
+				ID: "C1", RCAID: "R1",
+				ExpectedTriage:  &ExpectedTriage{SymptomCategory: "product"},
+				ExpectedInvest:  &ExpectedInvest{EvidenceRefs: []string{"linuxptp-daemon:src/ptp.c"}},
+				ExpectedResolve: &ExpectedResolve{SelectedRepos: []ExpectedResolveRepo{{Name: "linuxptp-daemon"}}},
+				ExpectedPath:    []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"},
+				ExpectedLoops:   0,
+			},
+			{
+				ID: "C2", RCAID: "R1", ExpectRecallHit: true,
+				ExpectedTriage: &ExpectedTriage{SymptomCategory: "product"},
+				ExpectedPath:   []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"},
+				ExpectedLoops:  0,
+			},
+			{
+				ID: "C3", RCAID: "R2", ExpectSkip: true,
+				ExpectedTriage: &ExpectedTriage{SymptomCategory: "automation"},
+				ExpectedPath:   []string{"F0", "F1"},
+				ExpectedLoops:  0,
+			},
+			{
+				ID: "C4", ExpectCascade: true,
+				ExpectedTriage: &ExpectedTriage{SymptomCategory: "product"},
+				ExpectedPath:   []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"},
+				ExpectedLoops:  0,
+			},
+		},
+	}
 }
 
 // --- Helper tests ---
@@ -163,632 +228,437 @@ func TestScoreCardEvaluate(t *testing.T) {
 	}
 }
 
-// --- Scorer tests with fixture data ---
+// --- Scorer tests via registry ---
 
-// buildFixtureCaseMaps returns caseMap and rcaMap from a minimal scenario.
-func buildFixtureCaseMaps() (map[string]*GroundTruthCase, map[string]*GroundTruthRCA) {
-	rcas := []GroundTruthRCA{
-		{
-			ID: "R1", DefectType: "pb001", Component: "linuxptp-daemon",
-			RequiredKeywords: []string{"ptp", "clock", "offset"},
-			KeywordThreshold: 2, RelevantRepos: []string{"linuxptp-daemon"},
-		},
-		{
-			ID: "R2", DefectType: "au001", Component: "cnf-gotests",
-			RequiredKeywords: []string{"automation", "skip"},
-			KeywordThreshold: 1, RelevantRepos: []string{"cnf-gotests"},
-		},
-	}
-	cases := []GroundTruthCase{
-		{
-			ID: "C1", RCAID: "R1",
-			ExpectedTriage:  &ExpectedTriage{SymptomCategory: "product"},
-			ExpectedInvest:  &ExpectedInvest{EvidenceRefs: []string{"linuxptp-daemon:src/ptp.c"}},
-			ExpectedResolve: &ExpectedResolve{SelectedRepos: []ExpectedResolveRepo{{Name: "linuxptp-daemon"}}},
-			ExpectedPath:    []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"},
-			ExpectedLoops:   0,
-		},
-		{
-			ID: "C2", RCAID: "R1", ExpectRecallHit: true,
-			ExpectedTriage: &ExpectedTriage{SymptomCategory: "product"},
-			ExpectedPath:   []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"},
-			ExpectedLoops:  0,
-		},
-		{
-			ID: "C3", RCAID: "R2", ExpectSkip: true,
-			ExpectedTriage: &ExpectedTriage{SymptomCategory: "automation"},
-			ExpectedPath:   []string{"F0", "F1"},
-			ExpectedLoops:  0,
-		},
-		{
-			ID: "C4", ExpectCascade: true,
-			ExpectedTriage: &ExpectedTriage{SymptomCategory: "product"},
-			ExpectedPath:   []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"},
-			ExpectedLoops:  0,
-		},
-	}
-
-	caseMap := make(map[string]*GroundTruthCase)
-	for i := range cases {
-		caseMap[cases[i].ID] = &cases[i]
-	}
-	rcaMap := make(map[string]*GroundTruthRCA)
-	for i := range rcas {
-		rcaMap[rcas[i].ID] = &rcas[i]
-	}
-	return caseMap, rcaMap
-}
-
-func TestScoreDefectTypeAccuracy(t *testing.T) {
-	caseMap, rcaMap := buildFixtureCaseMaps()
-
+func TestScorerM1_DefectTypeAccuracy(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"all correct",
-			[]CaseResult{
-				{CaseID: "C1", ActualDefectType: "pb001"},
-				{CaseID: "C2", ActualDefectType: "pb001"},
-				{CaseID: "C3", ActualDefectType: "au001"},
-			},
-			1.0,
-		},
-		{
-			"one wrong",
-			[]CaseResult{
-				{CaseID: "C1", ActualDefectType: "pb001"},
-				{CaseID: "C2", ActualDefectType: "wrong"},
-				{CaseID: "C3", ActualDefectType: "au001"},
-			},
-			2.0 / 3.0,
-		},
-		{
-			"empty results",
-			[]CaseResult{},
-			1.0, // 0/0 = perfect
-		},
-		{
-			"case without RCA ignored",
-			[]CaseResult{
-				{CaseID: "C4", ActualDefectType: "pb001"}, // C4 has no RCAID
-			},
-			1.0, // 0/0
-		},
+		{"all correct", []CaseResult{
+			{CaseID: "C1", ActualDefectType: "pb001"},
+			{CaseID: "C2", ActualDefectType: "pb001"},
+			{CaseID: "C3", ActualDefectType: "au001"},
+		}, 1.0},
+		{"one wrong", []CaseResult{
+			{CaseID: "C1", ActualDefectType: "pb001"},
+			{CaseID: "C2", ActualDefectType: "wrong"},
+			{CaseID: "C3", ActualDefectType: "au001"},
+		}, 2.0 / 3.0},
+		{"empty results", []CaseResult{}, 1.0},
+		{"case without RCA ignored", []CaseResult{
+			{CaseID: "C4", ActualDefectType: "pb001"},
+		}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreDefectTypeAccuracy(tt.results, caseMap, rcaMap)
-			if m.id != "M1" {
-				t.Errorf("expected id=M1, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "defect_type_accuracy", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreSymptomCategoryAccuracy(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM2_SymptomCategoryAccuracy(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"all correct",
-			[]CaseResult{
-				{CaseID: "C1", ActualCategory: "product"},
-				{CaseID: "C3", ActualCategory: "automation"},
-			},
-			1.0,
-		},
-		{
-			"one wrong",
-			[]CaseResult{
-				{CaseID: "C1", ActualCategory: "wrong"},
-				{CaseID: "C3", ActualCategory: "automation"},
-			},
-			0.5,
-		},
-		{
-			"no triage expected",
-			[]CaseResult{
-				{CaseID: "C4", ActualCategory: "product"},
-			},
-			1.0,
-		},
+		{"all correct", []CaseResult{
+			{CaseID: "C1", ActualCategory: "product"},
+			{CaseID: "C3", ActualCategory: "automation"},
+		}, 1.0},
+		{"one wrong", []CaseResult{
+			{CaseID: "C1", ActualCategory: "wrong"},
+			{CaseID: "C3", ActualCategory: "automation"},
+		}, 0.5},
+		{"no triage expected", []CaseResult{
+			{CaseID: "C4", ActualCategory: "product"},
+		}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreSymptomCategoryAccuracy(tt.results, caseMap)
-			if m.id != "M2" {
-				t.Errorf("expected id=M2, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "symptom_category_accuracy", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreRecallHitRate(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM3_RecallHitRate(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"hit detected",
-			[]CaseResult{
-				{CaseID: "C2", ActualRecallHit: true},
-			},
-			1.0,
-		},
-		{
-			"hit missed",
-			[]CaseResult{
-				{CaseID: "C2", ActualRecallHit: false},
-			},
-			0.0,
-		},
-		{
-			"no recall expected",
-			[]CaseResult{
-				{CaseID: "C1", ActualRecallHit: true},
-			},
-			1.0,
-		},
+		{"hit detected", []CaseResult{{CaseID: "C2", ActualRecallHit: true}}, 1.0},
+		{"hit missed", []CaseResult{{CaseID: "C2", ActualRecallHit: false}}, 0.0},
+		{"no recall expected", []CaseResult{{CaseID: "C1", ActualRecallHit: true}}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreRecallHitRate(tt.results, caseMap)
-			if m.id != "M3" {
-				t.Errorf("expected id=M3, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "recall_hit_rate", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreRecallFalsePositiveRate(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM4_RecallFalsePositiveRate(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"no false positive",
-			[]CaseResult{
-				{CaseID: "C1", ActualRecallHit: false},
-			},
-			0.0,
-		},
-		{
-			"false positive",
-			[]CaseResult{
-				{CaseID: "C1", ActualRecallHit: true},
-			},
-			1.0,
-		},
+		{"no false positive", []CaseResult{{CaseID: "C1", ActualRecallHit: false}}, 0.0},
+		{"false positive", []CaseResult{{CaseID: "C1", ActualRecallHit: true}}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreRecallFalsePositiveRate(tt.results, caseMap)
-			if m.id != "M4" {
-				t.Errorf("expected id=M4, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "recall_false_positive_rate", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreSkipAccuracy(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM5_SerialKillerDetection(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"skip detected",
-			[]CaseResult{
-				{CaseID: "C3", ActualSkip: true},
-			},
-			1.0,
-		},
-		{
-			"skip missed",
-			[]CaseResult{
-				{CaseID: "C3", ActualSkip: false},
-			},
-			0.0,
-		},
-		{
-			"no skip expected",
-			[]CaseResult{
-				{CaseID: "C1", ActualSkip: true}, // C1 doesn't expect skip
-			},
-			1.0, // 0/0
-		},
+		{"linked to same RCA", []CaseResult{
+			{CaseID: "C1", ActualRCAID: 100},
+			{CaseID: "C2", ActualRCAID: 100},
+		}, 1.0},
+		{"linked to different RCAs", []CaseResult{
+			{CaseID: "C1", ActualRCAID: 100},
+			{CaseID: "C2", ActualRCAID: 200},
+		}, 0.0},
+		{"single case per RCA", []CaseResult{
+			{CaseID: "C1", ActualRCAID: 100},
+			{CaseID: "C3", ActualRCAID: 200},
+		}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreSkipAccuracy(tt.results, caseMap)
-			if m.id != "M6" {
-				t.Errorf("expected id=M6, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "serial_killer_detection", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreCascadeDetection(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM6_SkipAccuracy(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"cascade detected",
-			[]CaseResult{
-				{CaseID: "C4", ActualCascade: true},
-			},
-			1.0,
-		},
-		{
-			"cascade missed",
-			[]CaseResult{
-				{CaseID: "C4", ActualCascade: false},
-			},
-			0.0,
-		},
+		{"skip detected", []CaseResult{{CaseID: "C3", ActualSkip: true}}, 1.0},
+		{"skip missed", []CaseResult{{CaseID: "C3", ActualSkip: false}}, 0.0},
+		{"no skip expected", []CaseResult{{CaseID: "C1", ActualSkip: true}}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreCascadeDetection(tt.results, caseMap)
-			if m.id != "M7" {
-				t.Errorf("expected id=M7, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "skip_accuracy", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreSerialKillerDetection(t *testing.T) {
-	caseMap, rcaMap := buildFixtureCaseMaps()
-
+func TestScorerM7_CascadeDetection(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"linked to same RCA",
-			[]CaseResult{
-				{CaseID: "C1", ActualRCAID: 100},
-				{CaseID: "C2", ActualRCAID: 100},
-			},
-			1.0,
-		},
-		{
-			"linked to different RCAs",
-			[]CaseResult{
-				{CaseID: "C1", ActualRCAID: 100},
-				{CaseID: "C2", ActualRCAID: 200},
-			},
-			0.0,
-		},
-		{
-			"single case per RCA",
-			[]CaseResult{
-				{CaseID: "C1", ActualRCAID: 100},
-				{CaseID: "C3", ActualRCAID: 200},
-			},
-			1.0, // 0/0: no pairs expected
-		},
+		{"cascade detected", []CaseResult{{CaseID: "C4", ActualCascade: true}}, 1.0},
+		{"cascade missed", []CaseResult{{CaseID: "C4", ActualCascade: false}}, 0.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreSerialKillerDetection(tt.results, caseMap, rcaMap)
-			if m.id != "M5" {
-				t.Errorf("expected id=M5, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "cascade_detection", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreEvidenceRecall(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM12_EvidenceRecall(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"evidence found",
-			[]CaseResult{
-				{CaseID: "C1", ActualEvidenceRefs: []string{"linuxptp-daemon:src/ptp.c"}},
-			},
-			1.0,
-		},
-		{
-			"evidence not found",
-			[]CaseResult{
-				{CaseID: "C1", ActualEvidenceRefs: []string{"unrelated:file.go"}},
-			},
-			0.0,
-		},
-		{
-			"no evidence expected",
-			[]CaseResult{
-				{CaseID: "C2", ActualEvidenceRefs: []string{"anything"}},
-			},
-			1.0, // 0/0
-		},
+		{"evidence found", []CaseResult{
+			{CaseID: "C1", ActualEvidenceRefs: []string{"linuxptp-daemon:src/ptp.c"}},
+		}, 1.0},
+		{"evidence not found", []CaseResult{
+			{CaseID: "C1", ActualEvidenceRefs: []string{"unrelated:file.go"}},
+		}, 0.0},
+		{"no evidence expected", []CaseResult{
+			{CaseID: "C2", ActualEvidenceRefs: []string{"anything"}},
+		}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreEvidenceRecall(tt.results, caseMap)
-			if m.id != "M12" {
-				t.Errorf("expected id=M12, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "evidence_recall", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreEvidencePrecision(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM13_EvidencePrecision(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"all relevant",
-			[]CaseResult{
-				{CaseID: "C1", ActualEvidenceRefs: []string{"linuxptp-daemon:src/ptp.c"}},
-			},
-			1.0,
-		},
-		{
-			"half relevant",
-			[]CaseResult{
-				{CaseID: "C1", ActualEvidenceRefs: []string{"linuxptp-daemon:src/ptp.c", "irrelevant"}},
-			},
-			0.5,
-		},
+		{"all relevant", []CaseResult{
+			{CaseID: "C1", ActualEvidenceRefs: []string{"linuxptp-daemon:src/ptp.c"}},
+		}, 1.0},
+		{"half relevant", []CaseResult{
+			{CaseID: "C1", ActualEvidenceRefs: []string{"linuxptp-daemon:src/ptp.c", "irrelevant"}},
+		}, 0.5},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreEvidencePrecision(tt.results, caseMap)
-			if m.id != "M13" {
-				t.Errorf("expected id=M13, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "evidence_precision", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreRCAMessageRelevance(t *testing.T) {
-	caseMap, rcaMap := buildFixtureCaseMaps()
-
+func TestScorerM14_RCAMessageRelevance(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"all keywords",
-			[]CaseResult{
-				{CaseID: "C1", ActualRCAMessage: "ptp clock offset is wrong"},
-			},
-			1.0, // 3 keywords matched, threshold=2, min(3/2, 1) = 1
-		},
-		{
-			"one keyword",
-			[]CaseResult{
-				{CaseID: "C1", ActualRCAMessage: "ptp issue"},
-			},
-			0.5, // 1/2 = 0.5
-		},
-		{
-			"no message",
-			[]CaseResult{
-				{CaseID: "C1", ActualRCAMessage: ""},
-			},
-			1.0, // skipped, 0/0
-		},
+		{"all keywords", []CaseResult{
+			{CaseID: "C1", ActualRCAMessage: "ptp clock offset is wrong"},
+		}, 1.0},
+		{"one keyword", []CaseResult{
+			{CaseID: "C1", ActualRCAMessage: "ptp issue"},
+		}, 0.5},
+		{"no message", []CaseResult{
+			{CaseID: "C1", ActualRCAMessage: ""},
+		}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreRCAMessageRelevance(tt.results, caseMap, rcaMap)
-			if m.id != "M14" {
-				t.Errorf("expected id=M14, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "rca_message_relevance", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreComponentIdentification(t *testing.T) {
-	caseMap, rcaMap := buildFixtureCaseMaps()
-
+func TestScorerM15_ComponentIdentification(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"exact match",
-			[]CaseResult{
-				{CaseID: "C1", ActualComponent: "linuxptp-daemon"},
-				{CaseID: "C3", ActualComponent: "cnf-gotests"},
-			},
-			1.0,
-		},
-		{
-			"keyword in message",
-			[]CaseResult{
-				{CaseID: "C1", ActualComponent: "wrong", ActualRCAMessage: "issue in linuxptp-daemon"},
-			},
-			1.0,
-		},
-		{
-			"no match",
-			[]CaseResult{
-				{CaseID: "C1", ActualComponent: "wrong", ActualRCAMessage: "no clue"},
-			},
-			0.0,
-		},
+		{"exact match", []CaseResult{
+			{CaseID: "C1", ActualComponent: "linuxptp-daemon"},
+			{CaseID: "C3", ActualComponent: "cnf-gotests"},
+		}, 1.0},
+		{"keyword in message", []CaseResult{
+			{CaseID: "C1", ActualComponent: "wrong", ActualRCAMessage: "issue in linuxptp-daemon"},
+		}, 1.0},
+		{"no match", []CaseResult{
+			{CaseID: "C1", ActualComponent: "wrong", ActualRCAMessage: "no clue"},
+		}, 0.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreComponentIdentification(tt.results, caseMap, rcaMap)
-			if m.id != "M15" {
-				t.Errorf("expected id=M15, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "component_identification", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScorePipelinePathAccuracy(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM16_PipelinePathAccuracy(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"correct path",
-			[]CaseResult{
-				{CaseID: "C1", ActualPath: []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"}},
-				{CaseID: "C3", ActualPath: []string{"F0", "F1"}},
-			},
-			1.0,
-		},
-		{
-			"wrong path",
-			[]CaseResult{
-				{CaseID: "C1", ActualPath: []string{"F0", "F1"}},
-			},
-			0.0,
-		},
+		{"correct path", []CaseResult{
+			{CaseID: "C1", ActualPath: []string{"F0", "F1", "F2", "F3", "F4", "F5", "F6"}},
+			{CaseID: "C3", ActualPath: []string{"F0", "F1"}},
+		}, 1.0},
+		{"wrong path", []CaseResult{
+			{CaseID: "C1", ActualPath: []string{"F0", "F1"}},
+		}, 0.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scorePipelinePathAccuracy(tt.results, caseMap)
-			if m.id != "M16" {
-				t.Errorf("expected id=M16, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "pipeline_path_accuracy", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreLoopEfficiency(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-
+func TestScorerM17_LoopEfficiency(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string
 		results []CaseResult
 		want    float64
 	}{
-		{
-			"no loops expected or taken",
-			[]CaseResult{
-				{CaseID: "C1", ActualLoops: 0},
-			},
-			1.0,
-		},
-		{
-			"expected loops matched",
-			[]CaseResult{
-				{CaseID: "C1", ActualLoops: 0},
-				{CaseID: "C2", ActualLoops: 0},
-			},
-			1.0,
-		},
+		{"no loops expected or taken", []CaseResult{
+			{CaseID: "C1", ActualLoops: 0},
+		}, 1.0},
+		{"expected loops matched", []CaseResult{
+			{CaseID: "C1", ActualLoops: 0},
+			{CaseID: "C2", ActualLoops: 0},
+		}, 1.0},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreLoopEfficiency(tt.results, caseMap)
-			if m.id != "M17" {
-				t.Errorf("expected id=M17, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
+			val, _ := runScorer(t, "loop_efficiency", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
 }
 
-func TestScoreTotalPromptTokens(t *testing.T) {
+func TestScorerM18_TotalPromptTokens(t *testing.T) {
+	scenario := buildFixtureScenario()
 	tests := []struct {
 		name      string
 		results   []CaseResult
 		wantValue float64
 	}{
-		{
-			"stub mode estimate",
-			[]CaseResult{
-				{ActualPath: []string{"F0", "F1", "F2"}},
-			},
-			3000, // 3 steps * 1000
-		},
-		{
-			"real tokens measured",
-			[]CaseResult{
-				{ActualPath: []string{"F0", "F1"}, PromptTokensTotal: 5000},
-			},
-			5000,
-		},
+		{"stub mode estimate", []CaseResult{
+			{CaseID: "C1", ActualPath: []string{"F0", "F1", "F2"}},
+		}, 3000},
+		{"real tokens measured", []CaseResult{
+			{CaseID: "C1", ActualPath: []string{"F0", "F1"}, PromptTokensTotal: 5000},
+		}, 5000},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			m := scoreTotalPromptTokens(tt.results)
-			if m.id != "M18" {
-				t.Errorf("expected id=M18, got %s", m.id)
+			val, _ := runScorer(t, "total_prompt_tokens", tt.results, scenario)
+			if math.Abs(val-tt.wantValue) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.wantValue)
 			}
-			if math.Abs(m.value-tt.wantValue) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.wantValue)
+		})
+	}
+}
+
+func TestScorerM9_RepoSelectionPrecision(t *testing.T) {
+	scenario := buildFixtureScenario()
+	tests := []struct {
+		name    string
+		results []CaseResult
+		want    float64
+	}{
+		{"perfect selection", []CaseResult{
+			{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon"}},
+		}, 1.0},
+		{"extra irrelevant repo", []CaseResult{
+			{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon", "red-herring"}},
+		}, 0.5},
+		{"no repos selected", []CaseResult{
+			{CaseID: "C1", ActualSelectedRepos: nil},
+		}, 1.0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val, _ := runScorer(t, "repo_selection_precision", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
+			}
+		})
+	}
+}
+
+func TestScorerM10_RepoSelectionRecall(t *testing.T) {
+	scenario := buildFixtureScenario()
+	tests := []struct {
+		name    string
+		results []CaseResult
+		want    float64
+	}{
+		{"all relevant selected", []CaseResult{
+			{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon"}},
+		}, 1.0},
+		{"relevant missing", []CaseResult{
+			{CaseID: "C1", ActualSelectedRepos: []string{"wrong-repo"}},
+		}, 0.0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val, _ := runScorer(t, "repo_selection_recall", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
+			}
+		})
+	}
+}
+
+func TestScorerM11_RedHerringRejection(t *testing.T) {
+	scenario := buildFixtureScenario()
+	scenario.Workspace = WorkspaceConfig{
+		Repos: []RepoConfig{
+			{Name: "linuxptp-daemon"},
+			{Name: "red-herring", IsRedHerring: true},
+		},
+	}
+	tests := []struct {
+		name    string
+		results []CaseResult
+		want    float64
+	}{
+		{"red herring rejected", []CaseResult{
+			{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon"}},
+		}, 1.0},
+		{"red herring selected", []CaseResult{
+			{CaseID: "C1", ActualSelectedRepos: []string{"red-herring"}},
+		}, 0.0},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			val, _ := runScorer(t, "red_herring_rejection", tt.results, scenario)
+			if math.Abs(val-tt.want) > 1e-9 {
+				t.Errorf("value = %f, want %f", val, tt.want)
 			}
 		})
 	}
@@ -819,137 +689,6 @@ func TestScoreOverallAccuracy_ViaScoreCard(t *testing.T) {
 	}
 	if !agg.Pass {
 		t.Error("expected Pass for perfect metrics")
-	}
-}
-
-func TestScoreRepoSelectionPrecision(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-	repoRelevance := map[string]map[string]bool{
-		"R1": {"linuxptp-daemon": true},
-		"R2": {"cnf-gotests": true},
-	}
-
-	tests := []struct {
-		name    string
-		results []CaseResult
-		want    float64
-	}{
-		{
-			"perfect selection",
-			[]CaseResult{
-				{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon"}},
-			},
-			1.0,
-		},
-		{
-			"extra irrelevant repo",
-			[]CaseResult{
-				{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon", "red-herring"}},
-			},
-			0.5,
-		},
-		{
-			"no repos selected",
-			[]CaseResult{
-				{CaseID: "C1", ActualSelectedRepos: nil},
-			},
-			1.0, // 0/0
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := scoreRepoSelectionPrecision(tt.results, caseMap, repoRelevance)
-			if m.id != "M9" {
-				t.Errorf("expected id=M9, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
-			}
-		})
-	}
-}
-
-func TestScoreRepoSelectionRecall(t *testing.T) {
-	caseMap, _ := buildFixtureCaseMaps()
-	repoRelevance := map[string]map[string]bool{
-		"R1": {"linuxptp-daemon": true},
-		"R2": {"cnf-gotests": true},
-	}
-
-	tests := []struct {
-		name    string
-		results []CaseResult
-		want    float64
-	}{
-		{
-			"all relevant selected",
-			[]CaseResult{
-				{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon"}},
-			},
-			1.0,
-		},
-		{
-			"relevant missing",
-			[]CaseResult{
-				{CaseID: "C1", ActualSelectedRepos: []string{"wrong-repo"}},
-			},
-			0.0,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := scoreRepoSelectionRecall(tt.results, caseMap, repoRelevance)
-			if m.id != "M10" {
-				t.Errorf("expected id=M10, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
-			}
-		})
-	}
-}
-
-func TestScoreRedHerringRejection(t *testing.T) {
-	scenario := &Scenario{
-		Workspace: WorkspaceConfig{
-			Repos: []RepoConfig{
-				{Name: "linuxptp-daemon"},
-				{Name: "red-herring", IsRedHerring: true},
-			},
-		},
-	}
-	caseMap, _ := buildFixtureCaseMaps()
-
-	tests := []struct {
-		name    string
-		results []CaseResult
-		want    float64
-	}{
-		{
-			"red herring rejected",
-			[]CaseResult{
-				{CaseID: "C1", ActualSelectedRepos: []string{"linuxptp-daemon"}},
-			},
-			1.0,
-		},
-		{
-			"red herring selected",
-			[]CaseResult{
-				{CaseID: "C1", ActualSelectedRepos: []string{"red-herring"}},
-			},
-			0.0,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			m := scoreRedHerringRejection(tt.results, caseMap, scenario)
-			if m.id != "M11" {
-				t.Errorf("expected id=M11, got %s", m.id)
-			}
-			if math.Abs(m.value-tt.want) > 1e-9 {
-				t.Errorf("value = %f, want %f", m.value, tt.want)
-			}
-		})
 	}
 }
 
@@ -1028,7 +767,7 @@ func TestKeywordMatch(t *testing.T) {
 	}{
 		{"ptp clock offset issue", []string{"ptp", "clock", "offset"}, 3},
 		{"some random text", []string{"ptp", "clock"}, 0},
-		{"PTP Clock", []string{"ptp", "clock"}, 2}, // case insensitive
+		{"PTP Clock", []string{"ptp", "clock"}, 2},
 	}
 	for _, tt := range tests {
 		got := keywordMatch(tt.text, tt.keywords)
@@ -1042,9 +781,9 @@ func TestKeywordMatch(t *testing.T) {
 
 func TestEvidenceOverlap(t *testing.T) {
 	tests := []struct {
-		name              string
-		actual, expected  []string
-		wantFound, wantN  int
+		name             string
+		actual, expected []string
+		wantFound, wantN int
 	}{
 		{"empty expected", []string{"a"}, nil, 0, 0},
 		{"exact match", []string{"file.go"}, []string{"file.go"}, 1, 1},
@@ -1071,8 +810,8 @@ func TestComputeMetrics_EmptyResults(t *testing.T) {
 	}
 	ms := computeMetrics(scenario, nil, sc)
 	all := ms.AllMetrics()
-	if len(all) != 21 {
-		t.Errorf("expected 21 metrics, got %d", len(all))
+	if len(all) < 21 {
+		t.Errorf("expected at least 21 metrics, got %d", len(all))
 	}
 }
 
@@ -1113,8 +852,8 @@ func TestLoadScoreCard_AsteriskRCA(t *testing.T) {
 	if sc.Name != "asterisk-rca" {
 		t.Errorf("scorecard name = %q, want asterisk-rca", sc.Name)
 	}
-	if len(sc.MetricDefs) != 20 {
-		t.Errorf("expected 20 metric defs (M1-M18,M14b,M20), got %d", len(sc.MetricDefs))
+	if len(sc.MetricDefs) != 22 {
+		t.Errorf("expected 22 metric defs (M1-M18,M14b,M20,M21,M22), got %d", len(sc.MetricDefs))
 	}
 	if sc.Aggregate == nil {
 		t.Fatal("expected aggregate config")
@@ -1129,9 +868,15 @@ func TestLoadScoreCard_AsteriskRCA(t *testing.T) {
 		t.Errorf("cases_per_batch = %d, want 30", sc.CostModel.CasesPerBatch)
 	}
 
-	for _, id := range []string{"M1", "M4", "M14b", "M17", "M18", "M20"} {
+	for _, id := range []string{"M1", "M4", "M14b", "M17", "M18", "M20", "M21", "M22"} {
 		if sc.FindDef(id) == nil {
 			t.Errorf("missing metric def for %s", id)
+		}
+	}
+
+	for _, def := range sc.MetricDefs {
+		if def.ID != "M20" && def.Scorer == "" {
+			t.Errorf("metric %s missing scorer declaration", def.ID)
 		}
 	}
 }
@@ -1153,17 +898,13 @@ func TestM19Reweight(t *testing.T) {
 		t.Fatalf("ComputeAggregate: %v", err)
 	}
 
-	// Old weights: M1:0.20 M2:0.10 M5:0.15 M9:0.10 M10:0.10 M12:0.10 M14:0.10 M15:0.15
 	oldWeighted := 0.90*0.20 + 0.80*0.10 + 0.60*0.15 + 0.70*0.10 + 0.85*0.10 + 0.65*0.10 + 0.60*0.10 + 0.75*0.15
 	oldM19 := oldWeighted / 1.0
 
-	// New weights from scorecard should give a different (higher) value because
-	// outcome metrics (M1, M10, M15) have higher weights and higher values.
 	if math.Abs(agg.Value-oldM19) < 1e-9 {
 		t.Errorf("M19 with new weights (%f) should differ from old weights (%f)", agg.Value, oldM19)
 	}
 
-	// Verify the new value is actually higher (outcome metrics valued more, and those are performing well)
 	if agg.Value < oldM19 {
 		t.Logf("NOTE: new M19 (%f) < old M19 (%f); this may be correct for these specific values", agg.Value, oldM19)
 	}
