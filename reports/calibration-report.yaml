@@ -1,0 +1,66 @@
+name: calibration-report
+format: terminal
+sections:
+  - type: header
+    title: "Calibration Report"
+    level: 1
+
+  - type: text
+    content: "Scenario: {{ .scenario_name }}  Adapter: {{ .adapter }}  Cases: {{ .total_cases }}"
+
+  - type: header
+    title: "Outcome Metrics"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Threshold, Pass]
+    data: outcome_metrics
+
+  - type: header
+    title: "Investigation Metrics"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Threshold, Pass]
+    data: investigation_metrics
+
+  - type: header
+    title: "Detection Metrics"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Threshold, Pass]
+    data: detection_metrics
+
+  - type: header
+    title: "Efficiency Metrics"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Threshold, Pass]
+    data: efficiency_metrics
+
+  - type: header
+    title: "Meta Metrics"
+    level: 2
+
+  - type: table
+    columns: [ID, Metric, Value, Threshold, Pass]
+    data: meta_metrics
+
+  - type: header
+    title: "Dataset Health"
+    level: 2
+
+  - type: text
+    content: "Verified RCAs: {{ .verified_count }}  Candidate cases: {{ .candidate_count }}"
+
+  - type: header
+    title: "Per-Case Breakdown"
+    level: 2
+
+  - type: repeat
+    items: case_results
+    body:
+      - type: text
+        content: "{{ .case_id }}: {{ .defect_type }} ({{ .path }})"
