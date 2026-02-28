@@ -1,12 +1,14 @@
 package rca
 
 import (
-	"github.com/dpopsuev/origami/format"
-	"github.com/dpopsuev/origami/logging"
+	"context"
 	"fmt"
 	"strings"
 
 	"asterisk/adapters/store"
+
+	"github.com/dpopsuev/origami/format"
+	"github.com/dpopsuev/origami/logging"
 )
 
 // AnalysisConfig holds configuration for an analysis run.
@@ -48,6 +50,7 @@ type AnalysisCaseResult struct {
 
 // RunAnalysis drives the F0–F6 pipeline for a set of cases using the provided adapter.
 // Unlike RunCalibration, there is no ground truth scoring — just investigation results.
+// Each case is walked through the pipeline graph using WalkCase with store-effect hooks.
 func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg AnalysisConfig) (*AnalysisReport, error) {
 	report := &AnalysisReport{
 		Adapter:    cfg.Adapter.Name(),
@@ -61,7 +64,7 @@ func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg Analysi
 		logger.Info("processing case",
 			"label", caseLabel, "index", i+1, "total", len(cases), "test", caseData.Name)
 
-		result, err := runAnalysisCasePipeline(st, caseData, suiteID, caseLabel, cfg)
+		result, err := walkAnalysisCase(st, caseData, caseLabel, cfg)
 		if err != nil {
 			logger.Error("case pipeline failed", "label", caseLabel, "error", err)
 			result = &AnalysisCaseResult{
@@ -76,12 +79,11 @@ func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg Analysi
 	return report, nil
 }
 
-// runAnalysisCasePipeline drives the orchestrator for a single case until done.
-// Same pipeline as calibrate's runCasePipeline but without ground truth extraction.
-func runAnalysisCasePipeline(
+// walkAnalysisCase runs a single case through the RCA pipeline via a framework
+// graph walk. Store effects fire automatically via hooks declared in the pipeline YAML.
+func walkAnalysisCase(
 	st store.Store,
 	caseData *store.Case,
-	suiteID int64,
 	caseLabel string,
 	cfg AnalysisConfig,
 ) (*AnalysisCaseResult, error) {
@@ -91,93 +93,29 @@ func runAnalysisCasePipeline(
 		StoreCaseID: caseData.ID,
 	}
 
-	basePath := cfg.BasePath
-	if basePath == "" {
-		basePath = DefaultBasePath
+	hooks := StoreHooks(st, caseData)
+
+	walkCfg := WalkConfig{
+		Store:      st,
+		CaseData:   caseData,
+		Adapter:    cfg.Adapter,
+		CaseLabel:  caseLabel,
+		Thresholds: cfg.Thresholds,
+		Hooks:      hooks,
 	}
-	caseDir, err := EnsureCaseDir(basePath, suiteID, caseData.ID)
+
+	walkResult, err := WalkCase(context.Background(), walkCfg)
 	if err != nil {
-		return result, fmt.Errorf("ensure case dir: %w", err)
+		return result, fmt.Errorf("walk: %w", err)
 	}
 
-	state := InitState(caseData.ID, suiteID)
-	AdvanceStep(state, StepF0Recall, "INIT", "start pipeline")
-	if err := SaveState(caseDir, state); err != nil {
-		return result, fmt.Errorf("save state: %w", err)
+	result.Path = walkResult.Path
+
+	for nodeName, art := range walkResult.StepArtifacts {
+		step := NodeNameToStep(nodeName)
+		extractAnalysisStepData(result, step, art.Raw())
 	}
 
-	runner, runnerErr := BuildRunner(cfg.Thresholds)
-	if runnerErr != nil {
-		return result, fmt.Errorf("build runner: %w", runnerErr)
-	}
-	maxSteps := 20
-
-	for step := 0; step < maxSteps; step++ {
-		if state.CurrentStep == StepDone {
-			break
-		}
-
-		currentStep := state.CurrentStep
-		result.Path = append(result.Path, stepName(currentStep))
-
-		response, err := cfg.Adapter.SendPrompt(caseLabel, string(currentStep), "")
-		if err != nil {
-			return result, fmt.Errorf("adapter.SendPrompt(%s, %s): %w", caseLabel, currentStep, err)
-		}
-
-		var artifact any
-		switch currentStep {
-		case StepF0Recall:
-			artifact, err = parseJSON[RecallResult](response)
-		case StepF1Triage:
-			artifact, err = parseJSON[TriageResult](response)
-		case StepF2Resolve:
-			artifact, err = parseJSON[ResolveResult](response)
-		case StepF3Invest:
-			artifact, err = parseJSON[InvestigateArtifact](response)
-		case StepF4Correlate:
-			artifact, err = parseJSON[CorrelateResult](response)
-		case StepF5Review:
-			artifact, err = parseJSON[ReviewDecision](response)
-		case StepF6Report:
-			artifact, err = parseJSON[map[string]any](response)
-		}
-		if err != nil {
-			return result, fmt.Errorf("parse artifact for %s: %w", currentStep, err)
-		}
-
-		artifactFile := ArtifactFilename(currentStep)
-		if err := WriteArtifact(caseDir, artifactFile, artifact); err != nil {
-			return result, fmt.Errorf("write artifact: %w", err)
-		}
-
-		extractAnalysisStepData(result, currentStep, artifact)
-
-		action, ruleID := EvaluateGraphEdge(runner, currentStep, artifact, state)
-		logging.New("analyze").Info("heuristic evaluated",
-			"step", vocabName(string(currentStep)), "rule", vocabNameWithCode(ruleID),
-			"next", vocabName(string(action.NextStep)), "explanation", action.Explanation)
-
-		if currentStep == StepF3Invest && action.NextStep == StepF2Resolve {
-			IncrementLoop(state, "investigate")
-		}
-		if currentStep == StepF5Review &&
-			action.NextStep != StepF6Report &&
-			action.NextStep != StepDone {
-			IncrementLoop(state, "reassess")
-		}
-
-		if err := ApplyStoreEffects(st, caseData, currentStep, artifact); err != nil {
-			logging.New("analyze").Warn("store side-effect error", "step", string(currentStep), "error", err)
-		}
-
-		AdvanceStep(state, action.NextStep, ruleID, action.Explanation)
-		if err := SaveState(caseDir, state); err != nil {
-			return result, fmt.Errorf("save state: %w", err)
-		}
-	}
-
-	// Refresh case from store for final field values
 	updated, err := st.GetCaseV2(caseData.ID)
 	if err == nil && updated != nil {
 		result.RCAID = updated.RCAID

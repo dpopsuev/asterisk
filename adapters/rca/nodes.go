@@ -17,7 +17,6 @@ const (
 )
 
 // rcaNode is a real processing node that delegates to a ModelAdapter.
-// Unlike the old passthrough bridgeNode, this actually does work.
 type rcaNode struct {
 	nodeName string
 	step     PipelineStep

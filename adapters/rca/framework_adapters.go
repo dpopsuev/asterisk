@@ -1,10 +1,9 @@
 package rca
 
 import (
-	"context"
 	"fmt"
 
-	"github.com/dpopsuev/origami"
+	framework "github.com/dpopsuev/origami"
 )
 
 // DoneNodeName is the terminal pseudo-node name used in pipeline definitions.
@@ -32,26 +31,6 @@ func StepToNodeName(step PipelineStep) string {
 	default:
 		return ""
 	}
-}
-
-// buildNodeRegistry creates a NodeRegistry with passthrough nodes for each family.
-//
-// Deprecated: Use adapters/rca.NodeRegistry() for real processing nodes.
-// This registry remains for backward compatibility with the procedural runner.
-func buildNodeRegistry() framework.NodeRegistry {
-	return framework.NodeRegistry{
-		"recall":      passthroughNode,
-		"triage":      passthroughNode,
-		"resolve":     passthroughNode,
-		"investigate": passthroughNode,
-		"correlate":   passthroughNode,
-		"review":      passthroughNode,
-		"report":      passthroughNode,
-	}
-}
-
-func passthroughNode(def framework.NodeDef) framework.Node {
-	return &bridgeNode{name: def.Name, element: framework.Element(def.Element)}
 }
 
 // NodeNameToStep converts a YAML node name back to a PipelineStep enum.
@@ -120,17 +99,3 @@ func walkerStateToCaseState(ws *framework.WalkerState) *CaseState {
 	return state
 }
 
-// bridgeNode is a passthrough Node used by the framework graph.
-// Processing is handled externally by the orchestrate runner.
-//
-// Deprecated: Use adapters/rca.rcaNode which implements real processing.
-type bridgeNode struct {
-	name    string
-	element framework.Element
-}
-
-func (n *bridgeNode) Name() string                { return n.name }
-func (n *bridgeNode) ElementAffinity() framework.Element { return n.element }
-func (n *bridgeNode) Process(_ context.Context, _ framework.NodeContext) (framework.Artifact, error) {
-	return nil, fmt.Errorf("bridge nodes do not process directly; use the orchestrate runner")
-}

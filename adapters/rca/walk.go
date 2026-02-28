@@ -21,8 +21,9 @@ type WalkConfig struct {
 
 // WalkResult captures the outcome of a walk-based RCA.
 type WalkResult struct {
-	Path     []string
-	Artifact framework.Artifact
+	Path          []string
+	Artifact      framework.Artifact
+	StepArtifacts map[string]framework.Artifact
 }
 
 // WalkCase runs a single case through the RCA pipeline using a real graph walk
@@ -46,6 +47,7 @@ func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 
 	var path []string
 	var lastArtifact framework.Artifact
+	stepArtifacts := map[string]framework.Artifact{}
 
 	observer := framework.WalkObserverFunc(func(event framework.WalkEvent) {
 		if event.Type == framework.EventNodeEnter {
@@ -53,6 +55,7 @@ func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 		}
 		if event.Type == framework.EventNodeExit && event.Artifact != nil {
 			lastArtifact = event.Artifact
+			stepArtifacts[event.Node] = event.Artifact
 		}
 	})
 
@@ -71,7 +74,8 @@ func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 	}
 
 	return &WalkResult{
-		Path:     path,
-		Artifact: lastArtifact,
+		Path:          path,
+		Artifact:      lastArtifact,
+		StepArtifacts: stepArtifacts,
 	}, nil
 }
