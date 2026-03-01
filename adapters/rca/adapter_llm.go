@@ -164,7 +164,7 @@ func (a *LLMAdapter) SendPrompt(caseID string, step string, _ string) (json.RawM
 		return nil, fmt.Errorf("llm: unknown case %q", caseID)
 	}
 
-	updated, err := a.st.GetCaseV2(ctx.storeCase.ID)
+	updated, err := a.st.GetCase(ctx.storeCase.ID)
 	if err == nil && updated != nil {
 		ctx.storeCase = updated
 	}

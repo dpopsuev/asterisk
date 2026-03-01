@@ -424,7 +424,7 @@ func (s *SqlStore) ListJobsByLaunch(launchID int64) ([]*Job, error) {
 
 // --- Case v2 ---
 
-func (s *SqlStore) CreateCaseV2(c *Case) (int64, error) {
+func (s *SqlStore) CreateCase(c *Case) (int64, error) {
 	if c == nil {
 		return 0, errors.New("case is nil")
 	}
@@ -454,10 +454,6 @@ func (s *SqlStore) CreateCaseV2(c *Case) (int64, error) {
 		return 0, fmt.Errorf("insert case v2: %w", err)
 	}
 	return res.LastInsertId()
-}
-
-func (s *SqlStore) GetCaseV2(id int64) (*Case, error) {
-	return s.getCase(id)
 }
 
 func (s *SqlStore) ListCasesByJob(jobID int64) ([]*Case, error) {
@@ -747,7 +743,7 @@ func (s *SqlStore) MarkDormantSymptoms(staleDays int) (int64, error) {
 
 // --- RCA v2 ---
 
-func (s *SqlStore) SaveRCAV2(rca *RCA) (int64, error) {
+func (s *SqlStore) SaveRCA(rca *RCA) (int64, error) {
 	if rca == nil {
 		return 0, errors.New("rca is nil")
 	}
@@ -791,10 +787,6 @@ func (s *SqlStore) SaveRCAV2(rca *RCA) (int64, error) {
 		return 0, fmt.Errorf("insert rca v2: %w", err)
 	}
 	return res.LastInsertId()
-}
-
-func (s *SqlStore) GetRCAV2(id int64) (*RCA, error) {
-	return s.getRCA(id)
 }
 
 func (s *SqlStore) ListRCAsByStatus(status string) ([]*RCA, error) {

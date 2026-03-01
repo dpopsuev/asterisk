@@ -32,14 +32,14 @@ func TestBuildParams_RecallWithPriorSymptom(t *testing.T) {
 		t.Fatalf("CreateSymptom: %v", err)
 	}
 
-	rcaID, err := st.SaveRCAV2(&store.RCA{
+	rcaID, err := st.SaveRCA(&store.RCA{
 		Title:            "linuxptp-daemon: time jump during switchover",
 		DefectType:       "pb001",
 		Status:           "open",
 		AffectedVersions: `["4.21"]`,
 	})
 	if err != nil {
-		t.Fatalf("SaveRCAV2: %v", err)
+		t.Fatalf("SaveRCA: %v", err)
 	}
 
 	if _, err := st.LinkSymptomToRCA(&store.SymptomRCA{
@@ -135,7 +135,7 @@ func TestBuildParams_RecallPicksBestCandidate(t *testing.T) {
 		t.Fatalf("CreateSymptom B: %v", err)
 	}
 
-	rcaID, _ := st.SaveRCAV2(&store.RCA{
+	rcaID, _ := st.SaveRCA(&store.RCA{
 		Title:      "PTP recovery regression",
 		DefectType: "pb001",
 		Status:     "open",
@@ -209,7 +209,7 @@ func TestBuildParams_RecallDormantReactivation(t *testing.T) {
 		Status:       "dormant",
 	})
 
-	rcaID, _ := st.SaveRCAV2(&store.RCA{
+	rcaID, _ := st.SaveRCA(&store.RCA{
 		Title:      "Old resolved RCA",
 		DefectType: "pb001",
 		Status:     "resolved",

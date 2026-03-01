@@ -11,7 +11,7 @@ import (
 type MemStore struct {
 	mu        sync.Mutex
 	envelopes map[int]*rp.Envelope
-	v2data    *memStoreV2 // lazy-initialized v2 entity storage
+	data    *memStoreData // lazy-initialized entity storage
 }
 
 // NewMemStore returns a new in-memory Store.
@@ -25,8 +25,8 @@ func NewMemStore() *MemStore {
 func (s *MemStore) LinkCaseToRCA(caseID, rcaID int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.v2data != nil {
-		if c, ok := s.v2data.casesV2[caseID]; ok {
+	if s.data != nil {
+		if c, ok := s.data.cases[caseID]; ok {
 			c.RCAID = rcaID
 		}
 	}
@@ -37,9 +37,9 @@ func (s *MemStore) LinkCaseToRCA(caseID, rcaID int64) error {
 func (s *MemStore) ListRCAs() ([]*RCA, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
-	out := make([]*RCA, 0, len(d.rcasV2))
-	for _, r := range d.rcasV2 {
+	d := s.ensureData()
+	out := make([]*RCA, 0, len(d.rcas))
+	for _, r := range d.rcas {
 		cp := *r
 		out = append(out, &cp)
 	}

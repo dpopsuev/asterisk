@@ -19,9 +19,9 @@ func TestApplyStoreEffects_F0Recall_NoMatch(t *testing.T) {
 	}
 
 	// No links should be created
-	updated, err := st.GetCaseV2(caseData.ID)
+	updated, err := st.GetCase(caseData.ID)
 	if err != nil {
-		t.Fatalf("GetCaseV2: %v", err)
+		t.Fatalf("GetCase: %v", err)
 	}
 	if updated.SymptomID != 0 {
 		t.Errorf("expected no symptom link, got %d", updated.SymptomID)
@@ -43,7 +43,7 @@ func TestApplyStoreEffects_F0Recall_Match(t *testing.T) {
 	}
 
 	rca := &store.RCA{Title: "test rca", Status: "open"}
-	rcaID, err := st.SaveRCAV2(rca)
+	rcaID, err := st.SaveRCA(rca)
 	if err != nil {
 		t.Fatalf("save rca: %v", err)
 	}
@@ -119,7 +119,7 @@ func TestApplyStoreEffects_F3Investigate(t *testing.T) {
 	}
 
 	// RCA fields should be correct
-	rca, err := st.GetRCAV2(caseData.RCAID)
+	rca, err := st.GetRCA(caseData.RCAID)
 	if err != nil {
 		t.Fatalf("get rca: %v", err)
 	}
@@ -140,7 +140,7 @@ func TestApplyStoreEffects_F4Correlate_Duplicate(t *testing.T) {
 
 	// Create a pre-existing RCA
 	rca := &store.RCA{Title: "existing rca", Status: "open"}
-	rcaID, _ := st.SaveRCAV2(rca)
+	rcaID, _ := st.SaveRCA(rca)
 
 	artifact := &CorrelateResult{
 		IsDuplicate: true,
@@ -193,7 +193,7 @@ func TestApplyStoreEffects_F5Review_Overturn(t *testing.T) {
 
 	// Create an RCA to overturn
 	rca := &store.RCA{Title: "original", Description: "original rca", DefectType: "pb001", Status: "open"}
-	rcaID, _ := st.SaveRCAV2(rca)
+	rcaID, _ := st.SaveRCA(rca)
 	caseData.RCAID = rcaID
 
 	artifact := &ReviewDecision{
@@ -213,7 +213,7 @@ func TestApplyStoreEffects_F5Review_Overturn(t *testing.T) {
 	}
 
 	// RCA should be updated with human correction
-	updated, err := st.GetRCAV2(rcaID)
+	updated, err := st.GetRCA(rcaID)
 	if err != nil {
 		t.Fatalf("get rca: %v", err)
 	}
@@ -313,7 +313,7 @@ func createTestCase(t *testing.T, st store.Store) *store.Case {
 		Status:       "open",
 		ErrorMessage: "test error",
 	}
-	caseID, err := st.CreateCaseV2(c)
+	caseID, err := st.CreateCase(c)
 	if err != nil {
 		t.Fatalf("create case: %v", err)
 	}

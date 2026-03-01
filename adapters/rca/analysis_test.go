@@ -65,7 +65,7 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 			ErrorMessage: ci.err,
 			LogSnippet:   ci.log,
 		}
-		caseID, err := st.CreateCaseV2(c)
+		caseID, err := st.CreateCase(c)
 		if err != nil {
 			t.Fatalf("create case %d: %v", i, err)
 		}

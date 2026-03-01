@@ -98,20 +98,20 @@ func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 	}
 
 	// --- Case v2 ---
-	caseID, err := s.CreateCaseV2(&Case{
+	caseID, err := s.CreateCase(&Case{
 		JobID: jobID, LaunchID: launchID, RPItemID: 200,
 		Name: "PTP Recovery ptp process restart", Status: "open",
 		ErrorMessage: "context deadline exceeded",
 	})
 	if err != nil {
-		t.Fatalf("CreateCaseV2: %v", err)
+		t.Fatalf("CreateCase: %v", err)
 	}
-	c, err := s.GetCaseV2(caseID)
+	c, err := s.GetCase(caseID)
 	if err != nil || c == nil || c.Name != "PTP Recovery ptp process restart" {
-		t.Fatalf("GetCaseV2: got %+v err %v", c, err)
+		t.Fatalf("GetCase: got %+v err %v", c, err)
 	}
 	if c.Status != "open" || c.ErrorMessage != "context deadline exceeded" {
-		t.Fatalf("GetCaseV2 fields: status=%q err_msg=%q", c.Status, c.ErrorMessage)
+		t.Fatalf("GetCase fields: status=%q err_msg=%q", c.Status, c.ErrorMessage)
 	}
 
 	cases, err := s.ListCasesByJob(jobID)
@@ -123,7 +123,7 @@ func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 	if err := s.UpdateCaseStatus(caseID, "triaged"); err != nil {
 		t.Fatalf("UpdateCaseStatus: %v", err)
 	}
-	c, _ = s.GetCaseV2(caseID)
+	c, _ = s.GetCase(caseID)
 	if c.Status != "triaged" {
 		t.Errorf("case status after update: got %q want %q", c.Status, "triaged")
 	}
@@ -164,7 +164,7 @@ func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 	if err := s.LinkCaseToSymptom(caseID, symID); err != nil {
 		t.Fatalf("LinkCaseToSymptom: %v", err)
 	}
-	c, _ = s.GetCaseV2(caseID)
+	c, _ = s.GetCase(caseID)
 	if c.SymptomID != symID {
 		t.Errorf("case symptom_id: got %d want %d", c.SymptomID, symID)
 	}
@@ -191,7 +191,7 @@ func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 	}
 
 	// --- RCA v2 ---
-	rcaID, err := s.SaveRCAV2(&RCA{
+	rcaID, err := s.SaveRCA(&RCA{
 		Title:            "PTP holdover timeout reduced",
 		Description:      "ptp4l fails to acquire lock because holdover timeout was reduced",
 		DefectType:       "pb001",
@@ -201,11 +201,11 @@ func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 		ConvergenceScore: 0.85,
 	})
 	if err != nil {
-		t.Fatalf("SaveRCAV2: %v", err)
+		t.Fatalf("SaveRCA: %v", err)
 	}
-	rca, err := s.GetRCAV2(rcaID)
+	rca, err := s.GetRCA(rcaID)
 	if err != nil || rca == nil || rca.Title != "PTP holdover timeout reduced" || rca.Status != "open" {
-		t.Fatalf("GetRCAV2: got %+v err %v", rca, err)
+		t.Fatalf("GetRCA: got %+v err %v", rca, err)
 	}
 	if rca.ConvergenceScore != 0.85 {
 		t.Errorf("rca convergence: got %f want 0.85", rca.ConvergenceScore)
@@ -215,7 +215,7 @@ func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 	if err := s.UpdateRCAStatus(rcaID, "resolved"); err != nil {
 		t.Fatalf("UpdateRCAStatus resolved: %v", err)
 	}
-	rca, _ = s.GetRCAV2(rcaID)
+	rca, _ = s.GetRCA(rcaID)
 	if rca.Status != "resolved" || rca.ResolvedAt == "" {
 		t.Errorf("rca resolved: status=%q resolvedAt=%q", rca.Status, rca.ResolvedAt)
 	}

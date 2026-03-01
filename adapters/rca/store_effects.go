@@ -128,7 +128,7 @@ func applyInvestigateEffects(st store.Store, caseData *store.Case, artifact any)
 		ConvergenceScore: r.ConvergenceScore,
 		Status:           "open",
 	}
-	rcaID, err := st.SaveRCAV2(rca)
+	rcaID, err := st.SaveRCA(rca)
 	if err != nil {
 		return fmt.Errorf("save rca: %w", err)
 	}
@@ -193,11 +193,11 @@ func applyReviewEffects(st store.Store, caseData *store.Case, artifact any) erro
 	}
 	if r.Decision == "overturn" && r.HumanOverride != nil {
 		if caseData.RCAID != 0 {
-			rca, err := st.GetRCAV2(caseData.RCAID)
+			rca, err := st.GetRCA(caseData.RCAID)
 			if err == nil && rca != nil {
 				rca.Description = r.HumanOverride.RCAMessage
 				rca.DefectType = r.HumanOverride.DefectType
-				if _, err := st.SaveRCAV2(rca); err != nil {
+				if _, err := st.SaveRCA(rca); err != nil {
 					logging.New("orchestrate").Warn("update RCA after overturn failed", "error", err)
 				}
 			}

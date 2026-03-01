@@ -48,7 +48,7 @@ func runSaveOrchestrated(cmd *cobra.Command) error {
 	}
 	defer st.Close()
 
-	caseData, err := st.GetCaseV2(saveFlags.caseID)
+	caseData, err := st.GetCase(saveFlags.caseID)
 	if err != nil || caseData == nil {
 		return fmt.Errorf("case #%d not found", saveFlags.caseID)
 	}

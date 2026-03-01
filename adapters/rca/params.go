@@ -189,7 +189,7 @@ func loadHistory(st store.Store, symptomID int64) *HistoryParams {
 	links, err := st.GetRCAsForSymptom(symptomID)
 	if err == nil {
 		for _, link := range links {
-			rca, err := st.GetRCAV2(link.RCAID)
+			rca, err := st.GetRCA(link.RCAID)
 			if err != nil || rca == nil {
 				continue
 			}

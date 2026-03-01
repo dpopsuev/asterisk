@@ -78,7 +78,7 @@ func (s *SqlStore) RawDB() *sqlite.DB {
 	return s.db
 }
 
-func (s *SqlStore) getCase(caseID int64) (*Case, error) {
+func (s *SqlStore) GetCase(caseID int64) (*Case, error) {
 	var c Case
 	var rcaID, symptomID, jobID, logTrunc sql.NullInt64
 	var polarionID, errMsg, logSnip, startedAt, endedAt sql.NullString
@@ -118,7 +118,7 @@ func (s *SqlStore) LinkCaseToRCA(caseID, rcaID int64) error {
 	return nil
 }
 
-func (s *SqlStore) getRCA(rcaID int64) (*RCA, error) {
+func (s *SqlStore) GetRCA(rcaID int64) (*RCA, error) {
 	var r RCA
 	var cat, comp, affVer, evRefs, jiraID, jiraLink sql.NullString
 	var resolvedAt, verifiedAt, archivedAt sql.NullString

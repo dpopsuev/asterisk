@@ -47,9 +47,9 @@ type Store interface {
 	GetJob(id int64) (*Job, error)
 	ListJobsByLaunch(launchID int64) ([]*Job, error)
 
-	// Case v2 operations (expanded fields)
-	CreateCaseV2(c *Case) (int64, error)
-	GetCaseV2(id int64) (*Case, error)
+	// Case operations
+	CreateCase(c *Case) (int64, error)
+	GetCase(id int64) (*Case, error)
 	ListCasesByJob(jobID int64) ([]*Case, error)
 	ListCasesBySymptom(symptomID int64) ([]*Case, error)
 	UpdateCaseStatus(caseID int64, status string) error
@@ -81,8 +81,8 @@ type Store interface {
 	MarkDormantSymptoms(staleDays int) (int64, error)
 
 	// RCA operations
-	SaveRCAV2(rca *RCA) (int64, error)
-	GetRCAV2(id int64) (*RCA, error)
+	SaveRCA(rca *RCA) (int64, error)
+	GetRCA(id int64) (*RCA, error)
 	// ListRCAs returns all RCAs.
 	ListRCAs() ([]*RCA, error)
 	ListRCAsByStatus(status string) ([]*RCA, error)

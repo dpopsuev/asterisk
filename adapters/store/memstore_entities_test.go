@@ -56,16 +56,16 @@ func TestMemStoreV2_FullHierarchy(t *testing.T) {
 	}
 
 	// Case v2
-	caseID, err := s.CreateCaseV2(&Case{
+	caseID, err := s.CreateCase(&Case{
 		JobID: jobID, LaunchID: launchID, RPItemID: 200,
 		Name: "test-case", ErrorMessage: "timeout",
 	})
 	if err != nil {
-		t.Fatalf("CreateCaseV2: %v", err)
+		t.Fatalf("CreateCase: %v", err)
 	}
-	c, _ := s.GetCaseV2(caseID)
+	c, _ := s.GetCase(caseID)
 	if c == nil || c.Name != "test-case" || c.Status != "open" {
-		t.Fatalf("GetCaseV2: %+v", c)
+		t.Fatalf("GetCase: %+v", c)
 	}
 	if err := s.UpdateCaseStatus(caseID, "triaged"); err != nil {
 		t.Fatalf("UpdateCaseStatus: %v", err)
@@ -108,21 +108,21 @@ func TestMemStoreV2_FullHierarchy(t *testing.T) {
 	}
 
 	// RCA v2
-	rcaID, err := s.SaveRCAV2(&RCA{
+	rcaID, err := s.SaveRCA(&RCA{
 		Title: "test-rca", Description: "desc", DefectType: "pb001",
 		ConvergenceScore: 0.9,
 	})
 	if err != nil {
-		t.Fatalf("SaveRCAV2: %v", err)
+		t.Fatalf("SaveRCA: %v", err)
 	}
-	rca, _ := s.GetRCAV2(rcaID)
+	rca, _ := s.GetRCA(rcaID)
 	if rca == nil || rca.Status != "open" {
-		t.Fatalf("GetRCAV2: %+v", rca)
+		t.Fatalf("GetRCA: %+v", rca)
 	}
 	if err := s.UpdateRCAStatus(rcaID, "resolved"); err != nil {
 		t.Fatalf("UpdateRCAStatus: %v", err)
 	}
-	rca, _ = s.GetRCAV2(rcaID)
+	rca, _ = s.GetRCA(rcaID)
 	if rca.Status != "resolved" {
 		t.Errorf("rca status: %q", rca.Status)
 	}

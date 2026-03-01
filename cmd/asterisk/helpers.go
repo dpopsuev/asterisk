@@ -219,14 +219,14 @@ func createAnalysisScaffolding(st store.Store, env *rp.Envelope) (int64, []*stor
 
 	var cases []*store.Case
 	for _, f := range env.FailureList {
-		caseID, _ := st.CreateCaseV2(&store.Case{
+		caseID, _ := st.CreateCase(&store.Case{
 			JobID:    jID,
 			LaunchID: lID,
 			RPItemID: f.ID,
 			Name:     f.Name,
 			Status:   "open",
 		})
-		c, _ := st.GetCaseV2(caseID)
+		c, _ := st.GetCase(caseID)
 		if c != nil {
 			cases = append(cases, c)
 		}
@@ -291,7 +291,7 @@ func ensureCaseInStore(st store.Store, env *rp.Envelope, rpLaunchID int, item rp
 		Name:     item.Name,
 	})
 
-	caseID, _ := st.CreateCaseV2(&store.Case{
+	caseID, _ := st.CreateCase(&store.Case{
 		JobID:    jID,
 		LaunchID: lID,
 		RPItemID: item.ID,
@@ -299,7 +299,7 @@ func ensureCaseInStore(st store.Store, env *rp.Envelope, rpLaunchID int, item rp
 		Status:   "open",
 	})
 
-	caseData, _ := st.GetCaseV2(caseID)
+	caseData, _ := st.GetCase(caseID)
 	if caseData == nil {
 		fmt.Fprintf(os.Stderr, "failed to create case in store\n")
 		os.Exit(1)

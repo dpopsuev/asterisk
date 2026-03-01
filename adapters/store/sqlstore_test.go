@@ -59,13 +59,13 @@ func TestSqlStore_Integration(t *testing.T) {
 		t.Fatalf("CreateJob: %v", err)
 	}
 
-	caseID1, err := s.CreateCaseV2(&Case{JobID: jobID, LaunchID: launchID, RPItemID: 1, Name: "case-1", Status: "open"})
+	caseID1, err := s.CreateCase(&Case{JobID: jobID, LaunchID: launchID, RPItemID: 1, Name: "case-1", Status: "open"})
 	if err != nil {
-		t.Fatalf("CreateCaseV2 1: %v", err)
+		t.Fatalf("CreateCase 1: %v", err)
 	}
-	_, err = s.CreateCaseV2(&Case{JobID: jobID, LaunchID: launchID, RPItemID: 2, Name: "case-2", Status: "open"})
+	_, err = s.CreateCase(&Case{JobID: jobID, LaunchID: launchID, RPItemID: 2, Name: "case-2", Status: "open"})
 	if err != nil {
-		t.Fatalf("CreateCaseV2 2: %v", err)
+		t.Fatalf("CreateCase 2: %v", err)
 	}
 
 	cases, err := s.ListCasesByJob(jobID)
@@ -76,25 +76,25 @@ func TestSqlStore_Integration(t *testing.T) {
 		t.Errorf("ListCasesByJob: want 2, got %d", len(cases))
 	}
 
-	c, err := s.GetCaseV2(caseID1)
+	c, err := s.GetCase(caseID1)
 	if err != nil || c == nil || c.RPItemID != 1 {
-		t.Errorf("GetCaseV2: got %+v err %v", c, err)
+		t.Errorf("GetCase: got %+v err %v", c, err)
 	}
 	if c.Status != "open" {
-		t.Errorf("GetCaseV2 status: got %q want %q", c.Status, "open")
+		t.Errorf("GetCase status: got %q want %q", c.Status, "open")
 	}
 
 	// RCA via v2, then link and list
-	rcaID, err := s.SaveRCAV2(&RCA{Title: "R1", Description: "desc", DefectType: "ti001", Status: "open"})
+	rcaID, err := s.SaveRCA(&RCA{Title: "R1", Description: "desc", DefectType: "ti001", Status: "open"})
 	if err != nil {
-		t.Fatalf("SaveRCAV2: %v", err)
+		t.Fatalf("SaveRCA: %v", err)
 	}
 	if err := s.LinkCaseToRCA(caseID1, rcaID); err != nil {
 		t.Fatalf("LinkCaseToRCA: %v", err)
 	}
-	r, err := s.GetRCAV2(rcaID)
+	r, err := s.GetRCA(rcaID)
 	if err != nil || r == nil || r.Title != "R1" {
-		t.Errorf("GetRCAV2: got %+v err %v", r, err)
+		t.Errorf("GetRCA: got %+v err %v", r, err)
 	}
 	rcas, err := s.ListRCAs()
 	if err != nil || len(rcas) != 1 {

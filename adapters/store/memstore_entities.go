@@ -10,8 +10,8 @@ import (
 // v2 fields for MemStore. Extends the base MemStore with v2 entity storage.
 // These will be initialized lazily on first v2 method call.
 
-// memStoreV2 holds v2 entity maps. Embedded into MemStore via initV2().
-type memStoreV2 struct {
+// memStoreData holds v2 entity maps. Embedded into MemStore via initV2().
+type memStoreData struct {
 	once            sync.Once
 	suites          map[int64]*InvestigationSuite
 	nextSuite       int64
@@ -24,38 +24,38 @@ type memStoreV2 struct {
 	nextLaunch      int64
 	jobs            map[int64]*Job
 	nextJob         int64
-	casesV2         map[int64]*Case
-	nextCaseV2      int64
+	cases         map[int64]*Case
+	nextCase      int64
 	triages         map[int64]*Triage // keyed by case_id
 	nextTriage      int64
 	symptoms        map[int64]*Symptom
 	symptomsByFP    map[string]int64 // fingerprint -> symptom id
 	nextSymptom     int64
-	rcasV2          map[int64]*RCA
-	nextRCAV2       int64
+	rcas          map[int64]*RCA
+	nextRCA       int64
 	symptomRCAs     map[int64]*SymptomRCA
 	nextSymptomRCA  int64
 }
 
-func (s *MemStore) v2() *memStoreV2 {
-	if s.v2data == nil {
-		s.v2data = &memStoreV2{}
+func (s *MemStore) ensureData() *memStoreData {
+	if s.data == nil {
+		s.data = &memStoreData{}
 	}
-	s.v2data.once.Do(func() {
-		s.v2data.suites = make(map[int64]*InvestigationSuite)
-		s.v2data.versions = make(map[int64]*Version)
-		s.v2data.versionsByLabel = make(map[string]int64)
-		s.v2data.circuits = make(map[int64]*Circuit)
-		s.v2data.launches = make(map[int64]*Launch)
-		s.v2data.jobs = make(map[int64]*Job)
-		s.v2data.casesV2 = make(map[int64]*Case)
-		s.v2data.triages = make(map[int64]*Triage)
-		s.v2data.symptoms = make(map[int64]*Symptom)
-		s.v2data.symptomsByFP = make(map[string]int64)
-		s.v2data.rcasV2 = make(map[int64]*RCA)
-		s.v2data.symptomRCAs = make(map[int64]*SymptomRCA)
+	s.data.once.Do(func() {
+		s.data.suites = make(map[int64]*InvestigationSuite)
+		s.data.versions = make(map[int64]*Version)
+		s.data.versionsByLabel = make(map[string]int64)
+		s.data.circuits = make(map[int64]*Circuit)
+		s.data.launches = make(map[int64]*Launch)
+		s.data.jobs = make(map[int64]*Job)
+		s.data.cases = make(map[int64]*Case)
+		s.data.triages = make(map[int64]*Triage)
+		s.data.symptoms = make(map[int64]*Symptom)
+		s.data.symptomsByFP = make(map[string]int64)
+		s.data.rcas = make(map[int64]*RCA)
+		s.data.symptomRCAs = make(map[int64]*SymptomRCA)
 	})
-	return s.v2data
+	return s.data
 }
 
 func now() string { return time.Now().UTC().Format(time.RFC3339) }
@@ -68,7 +68,7 @@ func (s *MemStore) CreateSuite(suite *InvestigationSuite) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	d.nextSuite++
 	cp := *suite
 	cp.ID = d.nextSuite
@@ -85,7 +85,7 @@ func (s *MemStore) CreateSuite(suite *InvestigationSuite) (int64, error) {
 func (s *MemStore) GetSuite(id int64) (*InvestigationSuite, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().suites[id]
+	v, ok := s.ensureData().suites[id]
 	if !ok {
 		return nil, nil
 	}
@@ -96,8 +96,8 @@ func (s *MemStore) GetSuite(id int64) (*InvestigationSuite, error) {
 func (s *MemStore) ListSuites() ([]*InvestigationSuite, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := make([]*InvestigationSuite, 0, len(s.v2().suites))
-	for _, v := range s.v2().suites {
+	out := make([]*InvestigationSuite, 0, len(s.ensureData().suites))
+	for _, v := range s.ensureData().suites {
 		cp := *v
 		out = append(out, &cp)
 	}
@@ -107,7 +107,7 @@ func (s *MemStore) ListSuites() ([]*InvestigationSuite, error) {
 func (s *MemStore) CloseSuite(id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().suites[id]
+	v, ok := s.ensureData().suites[id]
 	if !ok {
 		return errors.New("suite not found")
 	}
@@ -124,7 +124,7 @@ func (s *MemStore) CreateVersion(ver *Version) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	if _, exists := d.versionsByLabel[ver.Label]; exists {
 		return 0, fmt.Errorf("version label %q already exists", ver.Label)
 	}
@@ -139,7 +139,7 @@ func (s *MemStore) CreateVersion(ver *Version) (int64, error) {
 func (s *MemStore) GetVersion(id int64) (*Version, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().versions[id]
+	v, ok := s.ensureData().versions[id]
 	if !ok {
 		return nil, nil
 	}
@@ -150,7 +150,7 @@ func (s *MemStore) GetVersion(id int64) (*Version, error) {
 func (s *MemStore) GetVersionByLabel(label string) (*Version, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	id, ok := d.versionsByLabel[label]
 	if !ok {
 		return nil, nil
@@ -162,8 +162,8 @@ func (s *MemStore) GetVersionByLabel(label string) (*Version, error) {
 func (s *MemStore) ListVersions() ([]*Version, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := make([]*Version, 0, len(s.v2().versions))
-	for _, v := range s.v2().versions {
+	out := make([]*Version, 0, len(s.ensureData().versions))
+	for _, v := range s.ensureData().versions {
 		cp := *v
 		out = append(out, &cp)
 	}
@@ -178,7 +178,7 @@ func (s *MemStore) CreateCircuit(p *Circuit) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	d.nextCircuit++
 	cp := *p
 	cp.ID = d.nextCircuit
@@ -189,7 +189,7 @@ func (s *MemStore) CreateCircuit(p *Circuit) (int64, error) {
 func (s *MemStore) GetCircuit(id int64) (*Circuit, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().circuits[id]
+	v, ok := s.ensureData().circuits[id]
 	if !ok {
 		return nil, nil
 	}
@@ -201,7 +201,7 @@ func (s *MemStore) ListCircuitsBySuite(suiteID int64) ([]*Circuit, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Circuit
-	for _, p := range s.v2().circuits {
+	for _, p := range s.ensureData().circuits {
 		if p.SuiteID == suiteID {
 			cp := *p
 			out = append(out, &cp)
@@ -218,7 +218,7 @@ func (s *MemStore) CreateLaunch(l *Launch) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	d.nextLaunch++
 	cp := *l
 	cp.ID = d.nextLaunch
@@ -229,7 +229,7 @@ func (s *MemStore) CreateLaunch(l *Launch) (int64, error) {
 func (s *MemStore) GetLaunch(id int64) (*Launch, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().launches[id]
+	v, ok := s.ensureData().launches[id]
 	if !ok {
 		return nil, nil
 	}
@@ -240,7 +240,7 @@ func (s *MemStore) GetLaunch(id int64) (*Launch, error) {
 func (s *MemStore) GetLaunchByRPID(circuitID int64, rpLaunchID int) (*Launch, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	for _, l := range s.v2().launches {
+	for _, l := range s.ensureData().launches {
 		if l.CircuitID == circuitID && l.RPLaunchID == rpLaunchID {
 			cp := *l
 			return &cp, nil
@@ -253,7 +253,7 @@ func (s *MemStore) ListLaunchesByCircuit(circuitID int64) ([]*Launch, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Launch
-	for _, l := range s.v2().launches {
+	for _, l := range s.ensureData().launches {
 		if l.CircuitID == circuitID {
 			cp := *l
 			out = append(out, &cp)
@@ -270,7 +270,7 @@ func (s *MemStore) CreateJob(j *Job) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	d.nextJob++
 	cp := *j
 	cp.ID = d.nextJob
@@ -281,7 +281,7 @@ func (s *MemStore) CreateJob(j *Job) (int64, error) {
 func (s *MemStore) GetJob(id int64) (*Job, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().jobs[id]
+	v, ok := s.ensureData().jobs[id]
 	if !ok {
 		return nil, nil
 	}
@@ -293,7 +293,7 @@ func (s *MemStore) ListJobsByLaunch(launchID int64) ([]*Job, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Job
-	for _, j := range s.v2().jobs {
+	for _, j := range s.ensureData().jobs {
 		if j.LaunchID == launchID {
 			cp := *j
 			out = append(out, &cp)
@@ -304,16 +304,16 @@ func (s *MemStore) ListJobsByLaunch(launchID int64) ([]*Job, error) {
 
 // --- Case v2 ---
 
-func (s *MemStore) CreateCaseV2(c *Case) (int64, error) {
+func (s *MemStore) CreateCase(c *Case) (int64, error) {
 	if c == nil {
 		return 0, errors.New("case is nil")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
-	d.nextCaseV2++
+	d := s.ensureData()
+	d.nextCase++
 	cp := *c
-	cp.ID = d.nextCaseV2
+	cp.ID = d.nextCase
 	if cp.Status == "" {
 		cp.Status = "open"
 	}
@@ -321,14 +321,14 @@ func (s *MemStore) CreateCaseV2(c *Case) (int64, error) {
 		cp.CreatedAt = now()
 	}
 	cp.UpdatedAt = now()
-	d.casesV2[cp.ID] = &cp
+	d.cases[cp.ID] = &cp
 	return cp.ID, nil
 }
 
-func (s *MemStore) GetCaseV2(id int64) (*Case, error) {
+func (s *MemStore) GetCase(id int64) (*Case, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().casesV2[id]
+	v, ok := s.ensureData().cases[id]
 	if !ok {
 		return nil, nil
 	}
@@ -340,7 +340,7 @@ func (s *MemStore) ListCasesByJob(jobID int64) ([]*Case, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Case
-	for _, c := range s.v2().casesV2 {
+	for _, c := range s.ensureData().cases {
 		if c.JobID == jobID {
 			cp := *c
 			out = append(out, &cp)
@@ -353,7 +353,7 @@ func (s *MemStore) ListCasesBySymptom(symptomID int64) ([]*Case, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Case
-	for _, c := range s.v2().casesV2 {
+	for _, c := range s.ensureData().cases {
 		if c.SymptomID == symptomID {
 			cp := *c
 			out = append(out, &cp)
@@ -365,7 +365,7 @@ func (s *MemStore) ListCasesBySymptom(symptomID int64) ([]*Case, error) {
 func (s *MemStore) UpdateCaseStatus(caseID int64, status string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	c, ok := s.v2().casesV2[caseID]
+	c, ok := s.ensureData().cases[caseID]
 	if !ok {
 		return errors.New("case not found")
 	}
@@ -377,7 +377,7 @@ func (s *MemStore) UpdateCaseStatus(caseID int64, status string) error {
 func (s *MemStore) LinkCaseToSymptom(caseID, symptomID int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	c, ok := s.v2().casesV2[caseID]
+	c, ok := s.ensureData().cases[caseID]
 	if !ok {
 		return errors.New("case not found")
 	}
@@ -394,7 +394,7 @@ func (s *MemStore) CreateTriage(t *Triage) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	d.nextTriage++
 	cp := *t
 	cp.ID = d.nextTriage
@@ -408,7 +408,7 @@ func (s *MemStore) CreateTriage(t *Triage) (int64, error) {
 func (s *MemStore) GetTriageByCase(caseID int64) (*Triage, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().triages[caseID]
+	v, ok := s.ensureData().triages[caseID]
 	if !ok {
 		return nil, nil
 	}
@@ -424,7 +424,7 @@ func (s *MemStore) CreateSymptom(sym *Symptom) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	if _, exists := d.symptomsByFP[sym.Fingerprint]; exists {
 		return 0, fmt.Errorf("symptom with fingerprint %q already exists", sym.Fingerprint)
 	}
@@ -451,7 +451,7 @@ func (s *MemStore) CreateSymptom(sym *Symptom) (int64, error) {
 func (s *MemStore) GetSymptom(id int64) (*Symptom, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().symptoms[id]
+	v, ok := s.ensureData().symptoms[id]
 	if !ok {
 		return nil, nil
 	}
@@ -462,7 +462,7 @@ func (s *MemStore) GetSymptom(id int64) (*Symptom, error) {
 func (s *MemStore) GetSymptomByFingerprint(fingerprint string) (*Symptom, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	id, ok := d.symptomsByFP[fingerprint]
 	if !ok {
 		return nil, nil
@@ -480,7 +480,7 @@ func (s *MemStore) FindSymptomCandidates(testName string) ([]*Symptom, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Symptom
-	for _, sym := range s.v2().symptoms {
+	for _, sym := range s.ensureData().symptoms {
 		if sym.Name == testName {
 			cp := *sym
 			out = append(out, &cp)
@@ -492,7 +492,7 @@ func (s *MemStore) FindSymptomCandidates(testName string) ([]*Symptom, error) {
 func (s *MemStore) UpdateSymptomSeen(id int64) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	sym, ok := s.v2().symptoms[id]
+	sym, ok := s.ensureData().symptoms[id]
 	if !ok {
 		return errors.New("symptom not found")
 	}
@@ -507,8 +507,8 @@ func (s *MemStore) UpdateSymptomSeen(id int64) error {
 func (s *MemStore) ListSymptoms() ([]*Symptom, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := make([]*Symptom, 0, len(s.v2().symptoms))
-	for _, v := range s.v2().symptoms {
+	out := make([]*Symptom, 0, len(s.ensureData().symptoms))
+	for _, v := range s.ensureData().symptoms {
 		cp := *v
 		out = append(out, &cp)
 	}
@@ -521,8 +521,8 @@ func (s *MemStore) ListSymptoms() ([]*Symptom, error) {
 func (s *MemStore) SnapshotSymptoms() []*Symptom {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	out := make([]*Symptom, 0, len(s.v2().symptoms))
-	for _, v := range s.v2().symptoms {
+	out := make([]*Symptom, 0, len(s.ensureData().symptoms))
+	for _, v := range s.ensureData().symptoms {
 		cp := *v
 		out = append(out, &cp)
 	}
@@ -534,7 +534,7 @@ func (s *MemStore) MarkDormantSymptoms(staleDays int) (int64, error) {
 	defer s.mu.Unlock()
 	cutoff := time.Now().UTC().AddDate(0, 0, -staleDays).Format(time.RFC3339)
 	var count int64
-	for _, sym := range s.v2().symptoms {
+	for _, sym := range s.ensureData().symptoms {
 		if sym.Status == "active" && sym.LastSeenAt < cutoff {
 			sym.Status = "dormant"
 			count++
@@ -545,37 +545,37 @@ func (s *MemStore) MarkDormantSymptoms(staleDays int) (int64, error) {
 
 // --- RCA v2 ---
 
-func (s *MemStore) SaveRCAV2(rca *RCA) (int64, error) {
+func (s *MemStore) SaveRCA(rca *RCA) (int64, error) {
 	if rca == nil {
 		return 0, errors.New("rca is nil")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	if rca.ID != 0 {
-		if _, ok := d.rcasV2[rca.ID]; ok {
+		if _, ok := d.rcas[rca.ID]; ok {
 			cp := *rca
-			d.rcasV2[rca.ID] = &cp
+			d.rcas[rca.ID] = &cp
 			return rca.ID, nil
 		}
 	}
-	d.nextRCAV2++
+	d.nextRCA++
 	cp := *rca
-	cp.ID = d.nextRCAV2
+	cp.ID = d.nextRCA
 	if cp.Status == "" {
 		cp.Status = "open"
 	}
 	if cp.CreatedAt == "" {
 		cp.CreatedAt = now()
 	}
-	d.rcasV2[cp.ID] = &cp
+	d.rcas[cp.ID] = &cp
 	return cp.ID, nil
 }
 
-func (s *MemStore) GetRCAV2(id int64) (*RCA, error) {
+func (s *MemStore) GetRCA(id int64) (*RCA, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().rcasV2[id]
+	v, ok := s.ensureData().rcas[id]
 	if !ok {
 		return nil, nil
 	}
@@ -587,7 +587,7 @@ func (s *MemStore) ListRCAsByStatus(status string) ([]*RCA, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*RCA
-	for _, r := range s.v2().rcasV2 {
+	for _, r := range s.ensureData().rcas {
 		if r.Status == status {
 			cp := *r
 			out = append(out, &cp)
@@ -599,7 +599,7 @@ func (s *MemStore) ListRCAsByStatus(status string) ([]*RCA, error) {
 func (s *MemStore) UpdateRCAStatus(id int64, status string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	r, ok := s.v2().rcasV2[id]
+	r, ok := s.ensureData().rcas[id]
 	if !ok {
 		return errors.New("rca not found")
 	}
@@ -626,7 +626,7 @@ func (s *MemStore) LinkSymptomToRCA(link *SymptomRCA) (int64, error) {
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	d := s.v2()
+	d := s.ensureData()
 	// Check for duplicate
 	for _, existing := range d.symptomRCAs {
 		if existing.SymptomID == link.SymptomID && existing.RCAID == link.RCAID {
@@ -647,7 +647,7 @@ func (s *MemStore) GetRCAsForSymptom(symptomID int64) ([]*SymptomRCA, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*SymptomRCA
-	for _, link := range s.v2().symptomRCAs {
+	for _, link := range s.ensureData().symptomRCAs {
 		if link.SymptomID == symptomID {
 			cp := *link
 			out = append(out, &cp)
@@ -660,7 +660,7 @@ func (s *MemStore) GetSymptomsForRCA(rcaID int64) ([]*SymptomRCA, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*SymptomRCA
-	for _, link := range s.v2().symptomRCAs {
+	for _, link := range s.ensureData().symptomRCAs {
 		if link.RCAID == rcaID {
 			cp := *link
 			out = append(out, &cp)

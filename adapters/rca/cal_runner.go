@@ -233,7 +233,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 			ErrorMessage: gtCase.ErrorMessage,
 			LogSnippet:   gtCase.LogSnippet,
 		}
-		caseID, err := st.CreateCaseV2(caseData)
+		caseID, err := st.CreateCase(caseData)
 		if err != nil {
 			return nil, suiteID, fmt.Errorf("create case %s: %w", gtCase.ID, err)
 		}
@@ -402,11 +402,11 @@ func runCaseCircuit(
 
 	result.ActualLoops = walker.state.LoopCounts["investigate"]
 
-	updatedCase, err := st.GetCaseV2(caseData.ID)
+	updatedCase, err := st.GetCase(caseData.ID)
 	if err == nil && updatedCase != nil {
 		result.ActualRCAID = updatedCase.RCAID
 		if updatedCase.RCAID != 0 {
-			rcaRec, err := st.GetRCAV2(updatedCase.RCAID)
+			rcaRec, err := st.GetRCA(updatedCase.RCAID)
 			if err == nil && rcaRec != nil {
 				result.ActualDefectType = rcaRec.DefectType
 				result.ActualRCAMessage = rcaRec.Description
@@ -539,7 +539,7 @@ func selectRepoByHypothesis(hypothesis string, repos []RepoConfig) []string {
 // updateIDMaps updates the adapter's RCA/symptom ID maps after a case
 // completes, so subsequent cases can reference prior RCAs/symptoms by store ID.
 func updateIDMaps(mapper IDMappable, st store.Store, caseData *store.Case, gtCase GroundTruthCase, scenario *Scenario) {
-	updated, err := st.GetCaseV2(caseData.ID)
+	updated, err := st.GetCase(caseData.ID)
 	if err != nil || updated == nil {
 		return
 	}

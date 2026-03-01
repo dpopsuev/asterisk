@@ -116,11 +116,11 @@ func walkAnalysisCase(
 		extractAnalysisStepData(result, step, art.Raw())
 	}
 
-	updated, err := st.GetCaseV2(caseData.ID)
+	updated, err := st.GetCase(caseData.ID)
 	if err == nil && updated != nil {
 		result.RCAID = updated.RCAID
 		if updated.RCAID != 0 {
-			rcaRec, err := st.GetRCAV2(updated.RCAID)
+			rcaRec, err := st.GetRCA(updated.RCAID)
 			if err == nil && rcaRec != nil {
 				result.DefectType = rcaRec.DefectType
 				result.RCAMessage = rcaRec.Description
