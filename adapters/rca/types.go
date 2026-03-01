@@ -23,7 +23,7 @@ func DefaultThresholds() Thresholds {
 	}
 }
 
-// PipelineStep represents a step in the F0-F6 (Light) or D0-D4 (Shadow) pipeline.
+// PipelineStep represents a step in the F0-F6 (Thesis) or D0-D4 (Antithesis) pipeline.
 type PipelineStep string
 
 const (
@@ -77,7 +77,7 @@ func (s PipelineStep) Family() string {
 	}
 }
 
-// IsDialecticStep returns true if the step belongs to the D0-D4 Shadow pipeline.
+// IsDialecticStep returns true if the step belongs to the D0-D4 Antithesis pipeline.
 func (s PipelineStep) IsDialecticStep() bool {
 	switch s {
 	case StepD0Indict, StepD1Discover, StepD2Defend, StepD3Hearing, StepD4Verdict:

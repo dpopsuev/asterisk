@@ -54,7 +54,7 @@ Examples:
 ```
 feat(framework): add Mask of Correlation for cross-case matching
 fix(calibrate): correct M19 computation for edge cases
-docs(guide): add Shadow Court section to framework guide
+docs(guide): add Adversarial Dialectic section to framework guide
 ```
 
 ## Development Cycle

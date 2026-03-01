@@ -18,7 +18,7 @@
 - **Kami Live Debugger** (Origami, complete): EventBridge, KamiServer, Debug API, MCP tools, Recorder/Replayer, React frontend.
 - **Red Hat Presentation DNA** (`origami/.cursor/docs/rh-presentation-dna.md`): Color system, web section patterns. Kabuki implements the layout; Asterisk provides the color tokens and content.
 - **Pipeline RCA** (`internal/orchestrate/pipeline_rca.yaml`): Asterisk's 7-node pipeline with 3 zones (Backcourt, Frontcourt, Paint). This is the graph visualized in the demo.
-- **Origami Personas** (`persona.go`): 8 personas (Herald, Seeker, Sentinel, Weaver + Shadow counterparts) with element affinities and personality traits.
+- **Origami Personas** (`persona.go`): 8 personas (Herald, Seeker, Sentinel, Weaver + Antithesis counterparts) with element affinities and personality traits.
 - **Origami Elements** (`element.go`): Fire (decisive), Water (thorough), Earth (methodical), Air (creative), Diamond (precise), Lightning (fast).
 - **Calibration results**: PoC demonstrated M19=0.83 (BasicAdapter) and M19=0.58 (CursorAdapter) on 18 verified cases. The demo should showcase a real calibration run with visible RCA evidence accumulation.
 - **Inside Out inspiration**: Agents have distinct personalities and argue during cooperation. The Police Station metaphor: Asterisk investigates "crimes against CI." Agents wear police hats.

@@ -88,7 +88,7 @@ type GroundTruthCase struct {
 	RPIssueType    string `json:"rp_issue_type,omitempty" yaml:"rp_issue_type,omitempty"`    // populated at runtime by ResolveRPCases
 	RPAutoAnalyzed bool   `json:"rp_auto_analyzed,omitempty" yaml:"rp_auto_analyzed,omitempty"` // populated at runtime by ResolveRPCases
 
-	// Shadow dialectic expectations (optional)
+	// Antithesis dialectic expectations (optional)
 	ExpectedSynthesis string `json:"expected_synthesis,omitempty" yaml:"expected_synthesis,omitempty"` // expected SynthesisDecision if dialectic activates
 }
 

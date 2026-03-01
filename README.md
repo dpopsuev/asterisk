@@ -129,11 +129,11 @@ pipelines/asterisk-rca.yaml   Domain-specific RCA pipeline definition
 **Key concepts:**
 
 - **Elements** — 6 behavioral archetypes (Fire, Lightning, Earth, Diamond, Water, Air) with quantified traits governing speed, persistence, convergence, and failure modes.
-- **Personas** — 8 named agent identities (4 Light + 4 Shadow), each with a color, element, court position, and prompt preamble.
+- **Personas** — 8 named agent identities (4 Thesis + 4 Antithesis), each with a color, element, court position, and prompt preamble.
 - **Pipeline DSL** — YAML pipelines compiled to executable directed graphs with conditional edges, zones, and loop control.
 - **Graph Walk** — A Walker (agent) traverses nodes, producing artifacts that drive edge evaluation. First matching edge fires. Definition-order evaluation ensures determinism.
 - **Masks** — Detachable middleware that injects capabilities at specific nodes without changing the node or agent.
-- **Shadow Court** — An adversarial D0-D4 pipeline where prosecution, defense, and judge deliberate over uncertain classifications. Same interfaces as the Light pipeline.
+- **Adversarial Dialectic** — An adversarial D0-D4 pipeline where prosecution, defense, and judge deliberate over uncertain classifications. Same interfaces as the Thesis pipeline.
 - **Element Cycles** — Generative and destructive interactions between elements (inspired by Wu Xing) that govern agent routing.
 
 The framework is the engine; the RCA pipeline is one car built on it. See the [Framework Developer Guide](docs/framework-guide.md) for the full design document, or run `make playground` to see it in action.

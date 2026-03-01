@@ -28,7 +28,7 @@
 - **Completed `origami-cursor-first-architecture`** (Origami): CLIDispatcher, skill scaffold, provider routing. Cursor as first-class citizen.
 - **Completed `knowledge-source-catalog`** (Origami): KnowledgeSourceCatalog + Source types, KnowledgeSourceRouter for tag-based routing.
 - **RTFM node** (`internal/rtfm/`, `internal/orchestrate/`): Deterministic doc lookup via `DocRegistry`, version extraction, `ContextResult` artifact. The `context` node in the pipeline. Showcased in Act 3.
-- **Adversarial Dialectic** (Origami, `agentic-framework-III.3-shadow`): D0-D4 escalation levels, shadow personas, prosecution vs defense. Showcased in Act 2.
+- **Adversarial Dialectic** (Origami, `agentic-framework-III.3-shadow`): D0-D4 escalation levels, antithesis personas, prosecution vs defense. Showcased in Act 2.
 - **Masks** (Origami, `agentic-framework-III.2-masks`): Detachable middleware masks. Showcased in Act 2.
 - **Three MCP servers**: `origami-pipeline-marshaller` (pipeline operations), `origami-kami-debugger` (14 debug tools), `origami-ouroboros-metacalibration` (discovery + marshaller). All complete and running. Showcased in Act 2.
 - **Soft dependencies**: `origami-adapters` (Origami, draft/vision) and `origami-marbles` (Origami, draft/vision) for Act 2 DSL purity story. Not blockers — demo proceeds with conceptual placeholders.
@@ -215,7 +215,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
   - `origami-kami-debugger`: `kami_pause`, `kami_resume`, `kami_highlight_nodes`, `kami_set_breakpoint`, etc. (14 tools)
   - `origami-ouroboros-metacalibration`: marshaller tools + `assemble_model_profiles`
   (Asterisk `kabuki.go`)
-- [ ] **A2-6** Adversarial Dialectic section — D0-D4 escalation levels: shadow personas challenging conclusions. Prosecution vs defense, confidence threshold gates. Concept cards showing the escalation ladder (Asterisk `kabuki.go`)
+- [ ] **A2-6** Adversarial Dialectic section — D0-D4 escalation levels: antithesis personas challenging conclusions. Prosecution vs defense, confidence threshold gates. Concept cards showing the escalation ladder (Asterisk `kabuki.go`)
 - [ ] **A2-7** Masks section — detachable behavioral middleware. How masks modify agent behavior without changing identity. Composable: stack multiple masks. Concept card explaining the pattern with examples (Asterisk `kabuki.go`)
 - [ ] **A2-8** Knowledge Sources with Read Labels section — framework building block: `KnowledgeSourceCatalog`, `Source` types (`SourceKindRepo`, `SourceKindDoc`, `SourceKindAPI`), `KnowledgeSourceRouter` for tag-based selection. Showcase the `ReadPolicy` labels (`Read: Always`, `Read: When...`) that tell agents which knowledge is mandatory prerequisite reading and which is conditionally relevant. Concept cards showing the policy system + code showcase with example `Source` definitions including `ReadPolicy` and `ReadWhen` fields (Asterisk `kabuki.go`)
 - [ ] **A2-9** Adapters & Marbles section — conceptual design with DSL surface examples. Adapters: helper bundles (transformers, extractors, hooks). Marbles: reusable graph nodes (atomic, composite subgraphs). Marked as "coming next" (Asterisk `kabuki.go`)
@@ -225,7 +225,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 ### Phase 7 — Act 3 Content: Deep Science
 
 - [ ] **A3-1** Ouroboros section — meta-calibration process: 3-node seed pipeline (Generator, Subject, Judge), PersonaSheet, auto-routing, discovery-tuning. Concept cards (Asterisk `kabuki.go`)
-- [ ] **A3-2** Persona Deep Dive section — the 8 personas (Herald, Seeker, Sentinel, Weaver + Shadow counterparts), their elements, behavioral traits, quantified affinity scores. Concept cards with element colors (Asterisk `kabuki.go`)
+- [ ] **A3-2** Persona Deep Dive section — the 8 personas (Herald, Seeker, Sentinel, Weaver + Antithesis counterparts), their elements, behavioral traits, quantified affinity scores. Concept cards with element colors (Asterisk `kabuki.go`)
 - [ ] **A3-3** Papercup Protocol section — v2 choreography: server generates worker prompts, workers independently loop `get_next_step`/`submit_step`. Zone stickiness routes steps to the right worker. Work stealing handles stragglers. Adaptive lifecycle: workers self-terminate when done. Code showcase showing the choreography sequence or concept cards (Asterisk `kabuki.go`)
 - [ ] **A3-4** Cursor Skills section — two showcases:
   - `asterisk-calibrate`: parent supervisor launches 4 parallel worker subagents via Task tool. Workers own the `get_next_step`/`submit_step` loop independently.
@@ -288,7 +288,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 
 **Given** the Adversarial Dialectic section,  
 **When** displayed,  
-**Then** concept cards show the D0-D4 escalation ladder with shadow persona roles.
+**Then** concept cards show the D0-D4 escalation ladder with antithesis persona roles.
 
 **Given** the Papercup Protocol section,  
 **When** displayed,  
