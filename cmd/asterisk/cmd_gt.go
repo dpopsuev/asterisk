@@ -1,9 +1,8 @@
 package main
 
 import (
-	"asterisk/adapters/rca"
 	"asterisk/adapters/calibration/scenarios"
-	"asterisk/internal/dataset"
+	"asterisk/adapters/rca"
 	"context"
 	"fmt"
 	"os"
@@ -25,7 +24,7 @@ var gtStatusCmd = &cobra.Command{
 	Short: "Show dataset completeness overview",
 	Args:  cobra.MaximumNArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store := dataset.NewFileStore(gtDataDir)
+		store := NewFileStore(gtDataDir)
 		ctx := context.Background()
 
 		if len(args) == 0 {
@@ -49,7 +48,7 @@ var gtStatusCmd = &cobra.Command{
 			return err
 		}
 
-		results := dataset.CheckScenario(scenario)
+		results := CheckScenario(scenario)
 
 		w := tabwriter.NewWriter(os.Stdout, 0, 4, 2, ' ', 0)
 		fmt.Fprintf(w, "Case\tRCA\tScore\tPromotable\tMissing\n")
@@ -90,7 +89,7 @@ var gtImportCmd = &cobra.Command{
 			return err
 		}
 
-		store := dataset.NewFileStore(gtDataDir)
+		store := NewFileStore(gtDataDir)
 		if err := store.Save(context.Background(), scenario); err != nil {
 			return fmt.Errorf("save dataset: %w", err)
 		}
@@ -106,7 +105,7 @@ var gtExportCmd = &cobra.Command{
 	Short: "Load a JSON dataset for calibration use",
 	Args:  cobra.ExactArgs(1),
 	RunE: func(cmd *cobra.Command, args []string) error {
-		store := dataset.NewFileStore(gtDataDir)
+		store := NewFileStore(gtDataDir)
 		scenario, err := store.Load(context.Background(), args[0])
 		if err != nil {
 			return err

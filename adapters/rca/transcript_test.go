@@ -7,7 +7,6 @@ import (
 	"strings"
 	"testing"
 
-	"asterisk/adapters/rca/adapt"
 	"asterisk/adapters/rca"
 )
 
@@ -15,7 +14,7 @@ import (
 // and verifies the weaver produces transcripts grouped by RCA.
 func TestWeaveTranscripts_StubAdapter(t *testing.T) {
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 
 	tmpDir := t.TempDir()
 
@@ -86,7 +85,7 @@ func TestWeaveTranscripts_EmptyCaseResults(t *testing.T) {
 // appear in the same transcript.
 func TestWeaveTranscripts_GroupsByRCA(t *testing.T) {
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 
 	tmpDir := t.TempDir()
 
@@ -160,9 +159,11 @@ func TestRenderRCATranscript_ReverseOrder(t *testing.T) {
 		},
 	}
 
-	md := rca.RenderRCATranscript(tr)
+	md, err := rca.RenderTranscript(tr)
+	if err != nil {
+		t.Fatalf("RenderTranscript: %v", err)
+	}
 
-	// F3 must appear before F1, and F1 before F0 in the output.
 	posF3 := strings.Index(md, "F3_INVESTIGATE")
 	posF1 := strings.Index(md, "F1_TRIAGE")
 	posF0 := strings.Index(md, "F0_RECALL")
@@ -203,7 +204,10 @@ func TestRenderRCATranscript_IncludesPromptWhenAvailable(t *testing.T) {
 		},
 	}
 
-	md := rca.RenderRCATranscript(tr)
+	md, err := rca.RenderTranscript(tr)
+	if err != nil {
+		t.Fatalf("RenderTranscript: %v", err)
+	}
 
 	if !strings.Contains(md, "#### Prompt") {
 		t.Error("expected Prompt section in output")
@@ -213,9 +217,9 @@ func TestRenderRCATranscript_IncludesPromptWhenAvailable(t *testing.T) {
 	}
 }
 
-// TestRenderRCATranscript_OmitsPromptWhenEmpty verifies that the Prompt section
+// TestRenderTranscript_OmitsPromptWhenEmpty verifies that the Prompt section
 // is skipped when no prompt content is available (e.g. stub/basic adapter).
-func TestRenderRCATranscript_OmitsPromptWhenEmpty(t *testing.T) {
+func TestRenderTranscript_OmitsPromptWhenEmpty(t *testing.T) {
 	tr := &rca.RCATranscript{
 		RCAID:      1,
 		Component:  "test-comp",
@@ -230,7 +234,10 @@ func TestRenderRCATranscript_OmitsPromptWhenEmpty(t *testing.T) {
 		},
 	}
 
-	md := rca.RenderRCATranscript(tr)
+	md, err := rca.RenderTranscript(tr)
+	if err != nil {
+		t.Fatalf("RenderTranscript: %v", err)
+	}
 
 	if strings.Contains(md, "#### Prompt") {
 		t.Error("Prompt section should be omitted when prompt is empty")
@@ -262,7 +269,7 @@ func TestTranscriptSlug(t *testing.T) {
 // weave, render, and write transcript files to disk.
 func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 
 	tmpDir := t.TempDir()
 
@@ -293,7 +300,10 @@ func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 
 	for i := range transcripts {
 		slug := rca.TranscriptSlug(&transcripts[i])
-		md := rca.RenderRCATranscript(&transcripts[i])
+		md, renderErr := rca.RenderTranscript(&transcripts[i])
+		if renderErr != nil {
+			t.Fatalf("RenderTranscript %s: %v", slug, renderErr)
+		}
 		tPath := filepath.Join(transcriptDir, slug+".md")
 		if err := os.WriteFile(tPath, []byte(md), 0644); err != nil {
 			t.Fatalf("write transcript: %v", err)

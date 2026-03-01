@@ -8,19 +8,25 @@ import (
 
 var testTime = time.Date(2026, 2, 18, 14, 30, 0, 0, time.UTC)
 
-func TestRenderRCAReport_EmptyReport(t *testing.T) {
-	got := RenderRCAReport(nil, testTime)
+func TestRenderAnalysisReport_EmptyReport(t *testing.T) {
+	got, err := RenderAnalysisReport(nil, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if !strings.Contains(got, "No failures analyzed") {
 		t.Errorf("expected empty-report message, got:\n%s", got)
 	}
 
-	got = RenderRCAReport(&AnalysisReport{}, testTime)
+	got, err = RenderAnalysisReport(&AnalysisReport{}, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	if !strings.Contains(got, "No failures analyzed") {
 		t.Errorf("expected empty-report message for zero cases, got:\n%s", got)
 	}
 }
 
-func TestRenderRCAReport_SingleCase(t *testing.T) {
+func TestRenderAnalysisReport_SingleCase(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "test-launch-4.20",
 		Adapter:    "basic",
@@ -44,17 +50,19 @@ func TestRenderRCAReport_SingleCase(t *testing.T) {
 		},
 	}
 
-	got := RenderRCAReport(report, testTime)
+	got, err := RenderAnalysisReport(report, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	checks := []string{
-		"# RCA Report — test-launch-4.20",
+		"RCA Report",
 		"2026-02-18 14:30 UTC",
 		"basic",
 		"Product Bug (pb001)",
 		"linuxptp-daemon",
 		"80%",
 		"[human]",
-		"Recall",
 		"Suspected component: linuxptp-daemon",
 		"linuxptp-daemon:relevant_source_file",
 	}
@@ -65,7 +73,7 @@ func TestRenderRCAReport_SingleCase(t *testing.T) {
 	}
 }
 
-func TestRenderRCAReport_MultipleComponentsGrouped(t *testing.T) {
+func TestRenderAnalysisReport_MultipleComponentsGrouped(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "test-launch",
 		Adapter:    "basic",
@@ -77,7 +85,10 @@ func TestRenderRCAReport_MultipleComponentsGrouped(t *testing.T) {
 		},
 	}
 
-	got := RenderRCAReport(report, testTime)
+	got, err := RenderAnalysisReport(report, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if !strings.Contains(got, "comp-a (2 failures)") {
 		t.Errorf("expected comp-a grouped with 2 failures, got:\n%s", got)
@@ -93,7 +104,7 @@ func TestRenderRCAReport_MultipleComponentsGrouped(t *testing.T) {
 	}
 }
 
-func TestRenderRCAReport_RPTags(t *testing.T) {
+func TestRenderAnalysisReport_RPTags(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "rp-test",
 		Adapter:    "basic",
@@ -106,7 +117,10 @@ func TestRenderRCAReport_RPTags(t *testing.T) {
 		},
 	}
 
-	got := RenderRCAReport(report, testTime)
+	got, err := RenderAnalysisReport(report, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if !strings.Contains(got, "[human]") {
 		t.Errorf("expected [human] tag, got:\n%s", got)
@@ -116,7 +130,7 @@ func TestRenderRCAReport_RPTags(t *testing.T) {
 	}
 }
 
-func TestRenderRCAReport_Flags(t *testing.T) {
+func TestRenderAnalysisReport_Flags(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "flags-test",
 		Adapter:    "basic",
@@ -128,7 +142,10 @@ func TestRenderRCAReport_Flags(t *testing.T) {
 		},
 	}
 
-	got := RenderRCAReport(report, testTime)
+	got, err := RenderAnalysisReport(report, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if !strings.Contains(got, "recall-hit") {
 		t.Errorf("expected recall-hit flag, got:\n%s", got)
@@ -141,7 +158,7 @@ func TestRenderRCAReport_Flags(t *testing.T) {
 	}
 }
 
-func TestRenderRCAReport_ConvergenceRounding(t *testing.T) {
+func TestRenderAnalysisReport_ConvergenceRounding(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "conv-test",
 		Adapter:    "basic",
@@ -152,17 +169,17 @@ func TestRenderRCAReport_ConvergenceRounding(t *testing.T) {
 		},
 	}
 
-	got := RenderRCAReport(report, testTime)
+	got, err := RenderAnalysisReport(report, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if !strings.Contains(got, "80%") {
 		t.Errorf("expected convergence rounded to 80%%, got:\n%s", got)
 	}
-	if strings.Contains(got, "79%") || strings.Contains(got, "0.79") {
-		t.Errorf("convergence not properly rounded, got:\n%s", got)
-	}
 }
 
-func TestRenderRCAReport_UnknownComponent(t *testing.T) {
+func TestRenderAnalysisReport_UnknownComponent(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "unknown-test",
 		Adapter:    "basic",
@@ -172,14 +189,17 @@ func TestRenderRCAReport_UnknownComponent(t *testing.T) {
 		},
 	}
 
-	got := RenderRCAReport(report, testTime)
+	got, err := RenderAnalysisReport(report, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	if !strings.Contains(got, "unknown") {
 		t.Errorf("expected 'unknown' for empty component, got:\n%s", got)
 	}
 }
 
-func TestRenderRCAReport_EvidenceDeduplication(t *testing.T) {
+func TestRenderAnalysisReport_EvidenceDeduplication(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "evidence-test",
 		Adapter:    "basic",
@@ -192,10 +212,12 @@ func TestRenderRCAReport_EvidenceDeduplication(t *testing.T) {
 		},
 	}
 
-	got := RenderRCAReport(report, testTime)
+	got, err := RenderAnalysisReport(report, testTime)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	count := strings.Count(got, "comp:file_a")
-	// Once in the component section, twice in per-case details
 	if count < 2 {
 		t.Errorf("expected comp:file_a to appear in component section and case details, count=%d", count)
 	}

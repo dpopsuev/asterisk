@@ -24,6 +24,3 @@ func vocabRPIssueTag(issueType string, autoAnalyzed bool) string {
 	return vocabulary.RPIssueTag(defaultVocab, issueType, autoAnalyzed)
 }
 
-func vocabClusterKey(key string) string {
-	return vocabulary.ClusterKey(defaultVocab, key)
-}

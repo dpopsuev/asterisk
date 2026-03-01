@@ -60,7 +60,6 @@ func TestBuildCostBill_Basic(t *testing.T) {
 		t.Errorf("StepLines: got %d, want 3", len(bill.StepLines))
 	}
 
-	// Verify step ordering follows pipeline order
 	if bill.StepLines[0].Step != "F0_RECALL" {
 		t.Errorf("first step: got %s, want F0_RECALL", bill.StepLines[0].Step)
 	}
@@ -71,7 +70,6 @@ func TestBuildCostBill_Basic(t *testing.T) {
 		t.Errorf("third step: got %s, want F3_INVESTIGATE", bill.StepLines[2].Step)
 	}
 
-	// Verify cost calculation for C1
 	cost := dispatch.DefaultCostConfig()
 	for _, cl := range bill.CaseLines {
 		if cl.CaseID == "C1" {
@@ -84,7 +82,7 @@ func TestBuildCostBill_Basic(t *testing.T) {
 }
 
 func TestFormatCostBill_Nil(t *testing.T) {
-	out := FormatCostBill(nil)
+	out := dispatch.FormatCostBill(nil)
 	if out != "" {
 		t.Errorf("expected empty string for nil bill, got %d bytes", len(out))
 	}
@@ -118,7 +116,7 @@ func TestFormatCostBill_Markdown(t *testing.T) {
 	}
 
 	bill := BuildCostBill(report)
-	md := FormatCostBill(bill)
+	md := dispatch.FormatCostBill(bill)
 
 	checks := []string{
 		"# TokiMeter",

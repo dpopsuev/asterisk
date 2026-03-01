@@ -7,7 +7,6 @@ import (
 
 	cal "github.com/dpopsuev/origami/calibrate"
 
-	"asterisk/adapters/rca/adapt"
 	"asterisk/adapters/calibration/scenarios"
 	"asterisk/adapters/rca"
 )
@@ -36,7 +35,7 @@ func TestStubCalibration_AllMetricsPass(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
@@ -112,7 +111,7 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
@@ -147,7 +146,7 @@ func TestFormatReport(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 	cfg := rca.DefaultRunConfig(scenario, adapter)
 	cfg.Thresholds = rca.DefaultThresholds()
 	cfg.BasePath = tmpDir
@@ -158,12 +157,14 @@ func TestFormatReport(t *testing.T) {
 		t.Fatalf("RunCalibration: %v", err)
 	}
 
-	output := rca.FormatReport(report)
+	output, renderErr := rca.RenderCalibrationReport(report)
+	if renderErr != nil {
+		t.Fatalf("RenderCalibrationReport: %v", renderErr)
+	}
 	if len(output) == 0 {
-		t.Fatal("FormatReport returned empty string")
+		t.Fatal("RenderCalibrationReport returned empty string")
 	}
 
-	// Verify key sections are present (auto-generated from Tier)
 	checks := []string{
 		"Asterisk Calibration Report",
 		"ptp-mock",
@@ -188,7 +189,7 @@ func TestStubCalibration_DaemonMock(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "daemon-mock")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,
@@ -239,7 +240,7 @@ func TestStubCalibration_PTPReal(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-real")
-	adapter := adapt.NewStubAdapter(scenario)
+	adapter := rca.NewStubAdapter(scenario)
 	cfg := rca.RunConfig{
 		Scenario:   scenario,
 		Adapter:    adapter,

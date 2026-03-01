@@ -10,8 +10,6 @@ import (
 	"github.com/dpopsuev/origami/kami"
 	"github.com/dpopsuev/origami/logging"
 	"github.com/spf13/cobra"
-
-	"asterisk/internal/demo"
 )
 
 var (
@@ -45,8 +43,8 @@ func runDemo(cmd *cobra.Command, _ []string) error {
 	bridge := kami.NewEventBridge(nil)
 	defer bridge.Close()
 
-	theme := demo.PoliceStationTheme{}
-	kabuki := demo.PoliceStationKabuki{}
+	theme := PoliceStationTheme{}
+	kabuki := PoliceStationKabuki{}
 	srv := kami.NewServer(kami.Config{
 		Port:   demoPort,
 		Bind:   demoBind,

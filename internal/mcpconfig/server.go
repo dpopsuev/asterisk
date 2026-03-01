@@ -8,10 +8,10 @@ import (
 	"time"
 
 	"asterisk/adapters/rca"
-	"asterisk/adapters/rca/adapt"
 	"asterisk/adapters/calibration/scenarios"
-	"github.com/dpopsuev/origami/adapters/rp"
+	astrp "asterisk/adapters/rp"
 	"asterisk/adapters/store"
+	"github.com/dpopsuev/origami/adapters/rp"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 	fwmcp "github.com/dpopsuev/origami/mcp"
@@ -53,7 +53,10 @@ func (s *Server) buildConfig() fwmcp.PipelineConfig {
 			if !ok {
 				return "", nil, fmt.Errorf("unexpected result type: %T", result)
 			}
-			formatted := rca.FormatReport(report)
+			formatted, err := rca.RenderCalibrationReport(report)
+			if err != nil {
+				return "", nil, fmt.Errorf("render calibration report: %w", err)
+			}
 			return formatted, report, nil
 		},
 	}
@@ -89,7 +92,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 			return nil, fwmcp.SessionMeta{}, fmt.Errorf("create RP client: %w", err)
 		}
 		rpFetcher = rp.NewFetcher(client, rpProject)
-		if err := rca.ResolveRPCases(rpFetcher, scenario); err != nil {
+		if err := astrp.ResolveRPCases(rpFetcher, scenario); err != nil {
 			return nil, fwmcp.SessionMeta{}, fmt.Errorf("resolve RP-sourced cases: %w", err)
 		}
 	}
@@ -104,7 +107,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	var adapter rca.ModelAdapter
 	switch adapterName {
 	case "stub":
-		adapter = adapt.NewStubAdapter(scenario)
+		adapter = rca.NewStubAdapter(scenario)
 	case "basic":
 		basicSt, err := store.Open(":memory:")
 		if err != nil {
@@ -114,19 +117,19 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 		for _, r := range scenario.Workspace.Repos {
 			repoNames = append(repoNames, r.Name)
 		}
-		ba := adapt.NewBasicAdapter(basicSt, repoNames)
+		ba := rca.NewBasicAdapter(basicSt, repoNames)
 		for _, c := range scenario.Cases {
-			ba.RegisterCase(c.ID, &adapt.BasicCaseInfo{
+			ba.RegisterCase(c.ID, &rca.BasicCaseInfo{
 				Name:         c.TestName,
 				ErrorMessage: c.ErrorMessage,
 			})
 		}
 		adapter = ba
 	default:
-		adapter = adapt.NewLLMAdapter(
+		adapter = rca.NewLLMAdapter(
 			promptDir,
-			adapt.WithDispatcher(tracked),
-			adapt.WithBasePath(basePath),
+			rca.WithDispatcher(tracked),
+			rca.WithBasePath(basePath),
 		)
 	}
 

@@ -5,8 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"path/filepath"
 	"strings"
+	"sync"
 
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
@@ -14,6 +14,7 @@ import (
 
 	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
+	"golang.org/x/sync/errgroup"
 )
 
 // RunConfig holds configuration for a calibration run.
@@ -143,17 +144,16 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 
 // runSingleCalibration runs one complete calibration pass: all cases, fresh store.
 // Returns the case results and the suite ID used for artifact directories.
+// When cfg.Parallel > 1, cases are processed concurrently via errgroup.
 func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int64, error) {
 	st := store.NewMemStore()
 
-	// Create the investigation scaffolding in the store
 	suite := &store.InvestigationSuite{Name: cfg.Scenario.Name, Status: "active"}
 	suiteID, err := st.CreateSuite(suite)
 	if err != nil {
 		return nil, 0, fmt.Errorf("create suite: %w", err)
 	}
 
-	// Create versions
 	versionMap := make(map[string]int64)
 	for _, c := range cfg.Scenario.Cases {
 		if _, exists := versionMap[c.Version]; !exists {
@@ -166,7 +166,6 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		}
 	}
 
-	// Create pipelines and jobs per version+job combo
 	pipelineMap := make(map[pipeKey]int64)
 	jobMap := make(map[pipeKey]int64)
 	launchMap := make(map[pipeKey]int64)
@@ -206,30 +205,21 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		}
 	}
 
-	// When parallel > 1, delegate to the parallel runner
-	if cfg.Parallel > 1 {
-		results, err := runParallelCalibration(ctx, cfg, st, suiteID, versionMap, jobMap, launchMap)
-		return results, suiteID, err
-	}
-
-	// Wire store-aware adapters to this run's store and suite
 	if sa, ok := cfg.Adapter.(StoreAware); ok {
 		sa.SetStore(st)
 		sa.SetSuiteID(suiteID)
 		sa.SetCatalog(ScenarioToCatalog(cfg.Scenario.Workspace))
 	}
 
-	// Check if adapter supports ID mapping (for post-pipeline updates)
 	idMapper, hasIDMap := cfg.Adapter.(IDMappable)
-
-	// Process each case in order
 	logger := logging.New("calibrate")
 
-	var results []CaseResult
+	type caseEntry struct {
+		gtCase   GroundTruthCase
+		caseData *store.Case
+	}
+	entries := make([]caseEntry, len(cfg.Scenario.Cases))
 	for i, gtCase := range cfg.Scenario.Cases {
-		logger.Info("processing case",
-			"case_id", gtCase.ID, "index", i+1, "total", len(cfg.Scenario.Cases), "test", gtCase.TestName)
-
 		pk := pipeKey{gtCase.Version, gtCase.Job}
 		caseData := &store.Case{
 			JobID:        jobMap[pk],
@@ -245,33 +235,58 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		}
 		caseData.ID = caseID
 
-		// Register case with store-aware adapters so they can build prompts
 		if sa, ok := cfg.Adapter.(StoreAware); ok {
 			sa.RegisterCase(gtCase.ID, caseData)
 		}
+		entries[i] = caseEntry{gtCase: gtCase, caseData: caseData}
+	}
 
-		result, err := runCasePipeline(ctx, st, caseData, suiteID, gtCase, cfg)
+	results := make([]CaseResult, len(entries))
+	var mu sync.Mutex
+
+	runCase := func(gCtx context.Context, i int, entry caseEntry) {
+		logger.Info("processing case",
+			"case_id", entry.gtCase.ID, "index", i+1, "total", len(entries), "test", entry.gtCase.TestName)
+
+		result, err := runCasePipeline(gCtx, st, entry.caseData, suiteID, entry.gtCase, cfg)
 		if err != nil {
-			logger.Error("case pipeline failed", "case_id", gtCase.ID, "error", err)
+			logger.Error("case pipeline failed", "case_id", entry.gtCase.ID, "error", err)
 			result = &CaseResult{
-				CaseID:        gtCase.ID,
-				TestName:      gtCase.TestName,
-				Version:       gtCase.Version,
-				Job:           gtCase.Job,
-				StoreCaseID:   caseID,
+				CaseID:        entry.gtCase.ID,
+				TestName:      entry.gtCase.TestName,
+				Version:       entry.gtCase.Version,
+				Job:           entry.gtCase.Job,
+				StoreCaseID:   entry.caseData.ID,
 				PipelineError: err.Error(),
 			}
 		}
 
-		// After the pipeline, update ID maps from store
 		if hasIDMap {
-			updateIDMaps(idMapper, st, caseData, gtCase, cfg.Scenario)
+			mu.Lock()
+			updateIDMaps(idMapper, st, entry.caseData, entry.gtCase, cfg.Scenario)
+			mu.Unlock()
 		}
 
-		results = append(results, *result)
+		results[i] = *result
 	}
 
-	// Post-process: set per-case scoring flags
+	if cfg.Parallel > 1 {
+		g, gCtx := errgroup.WithContext(ctx)
+		g.SetLimit(cfg.Parallel)
+		for i, entry := range entries {
+			i, entry := i, entry
+			g.Go(func() error {
+				runCase(gCtx, i, entry)
+				return nil
+			})
+		}
+		_ = g.Wait()
+	} else {
+		for i, entry := range entries {
+			runCase(ctx, i, entry)
+		}
+	}
+
 	for i := range results {
 		scoreCaseResult(&results[i], cfg.Scenario)
 	}
@@ -294,7 +309,7 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 	}
 
 	// Path accuracy
-	r.PathCorrect = pathsEqual(r.ActualPath, gt.ExpectedPath)
+	r.PathCorrect = cal.PathsEqual(r.ActualPath, gt.ExpectedPath)
 
 	// Defect type and component — look up ground truth RCA
 	if gt.RCAID != "" {
@@ -590,31 +605,6 @@ func cleanJSON(data []byte) []byte {
 	return s
 }
 
-// pathsEqual compares two pipeline paths (e.g. ["F0","F1","F2","F3","F5","F6"]).
-func pathsEqual(a, b []string) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i := range a {
-		if a[i] != b[i] {
-			return false
-		}
-	}
-	return true
-}
-
-
-// keywordMatch counts how many keywords from the list appear in the text.
-func keywordMatch(text string, keywords []string) int {
-	lower := strings.ToLower(text)
-	count := 0
-	for _, kw := range keywords {
-		if strings.Contains(lower, strings.ToLower(kw)) {
-			count++
-		}
-	}
-	return count
-}
 
 // buildDatasetHealth creates a dataset health summary from the scenario.
 func buildDatasetHealth(s *Scenario) *DatasetHealth {
@@ -645,40 +635,3 @@ func buildDatasetHealth(s *Scenario) *DatasetHealth {
 	return dh
 }
 
-// evidenceOverlap computes set overlap between actual and expected evidence refs.
-// Uses normalized path matching (partial path match allowed).
-// Format: "repo:file_path:identifier". Matching is lenient:
-//   1. Exact substring match (either direction)
-//   2. filepath.Base match
-//   3. Same repo + same file path (ignoring identifier suffix)
-func evidenceOverlap(actual, expected []string) (found, total int) {
-	total = len(expected)
-	if total == 0 {
-		return 0, 0
-	}
-	for _, exp := range expected {
-		expNorm := filepath.Base(exp)
-		matched := false
-		for _, act := range actual {
-			if strings.Contains(act, expNorm) || strings.Contains(exp, act) || act == exp {
-				matched = true
-				break
-			}
-		}
-		if !matched {
-			expParts := strings.SplitN(exp, ":", 3)
-			if len(expParts) >= 2 {
-				for _, act := range actual {
-					if strings.HasPrefix(act, expParts[0]+":") && strings.Contains(act, expParts[1]) {
-						matched = true
-						break
-					}
-				}
-			}
-		}
-		if matched {
-			found++
-		}
-	}
-	return found, total
-}

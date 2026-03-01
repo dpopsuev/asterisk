@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"asterisk/adapters/rca/adapt"
 	"asterisk/adapters/store"
 	"asterisk/adapters/rca"
 )
@@ -54,7 +53,7 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 		{"Automation Test", "automation: test setup failed", "ginkgo internal error"},
 	}
 
-	adapter := adapt.NewBasicAdapter(st, []string{"linuxptp-daemon", "cloud-event-proxy"})
+	adapter := rca.NewBasicAdapter(st, []string{"linuxptp-daemon", "cloud-event-proxy"})
 	var storeCases []*store.Case
 
 	for i, ci := range caseInfos {
@@ -75,7 +74,7 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 
 		// Register with the adapter using the label RunAnalysis will use
 		label := fmt.Sprintf("A%d", i+1)
-		adapter.RegisterCase(label, &adapt.BasicCaseInfo{
+		adapter.RegisterCase(label, &rca.BasicCaseInfo{
 			Name:         ci.name,
 			ErrorMessage: ci.err,
 			LogSnippet:   ci.log,
@@ -120,7 +119,7 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 func TestRunAnalysis_EmptyCases(t *testing.T) {
 	tmpDir := t.TempDir()
 	st := store.NewMemStore()
-	adapter := adapt.NewBasicAdapter(st, nil)
+	adapter := rca.NewBasicAdapter(st, nil)
 
 	cfg := rca.AnalysisConfig{
 		Adapter:    adapter,

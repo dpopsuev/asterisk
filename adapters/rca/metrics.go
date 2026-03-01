@@ -2,22 +2,18 @@ package rca
 
 import (
 	"fmt"
-	"math"
-	"strings"
 
 	cal "github.com/dpopsuev/origami/calibrate"
 )
 
-// computeMetrics calculates all 21 calibration metrics from case results.
-// Scorer implementations are looked up from the ScorerRegistry via the
-// scorer name declared in each MetricDef. Values, pass/fail, direction,
-// and tier come from the ScoreCard definition.
+// computeMetrics calculates all calibration metrics from case results using
+// the framework's batch scorer patterns. Domain-specific Go scorers are gone;
+// the scorecard YAML declares pattern + params for each metric.
 func computeMetrics(scenario *Scenario, results []CaseResult, sc *cal.ScoreCard) MetricSet {
 	reg := cal.DefaultScorerRegistry()
-	RegisterScorers(reg)
 
-	bc := NewBatchContext(results, scenario)
-	values, details, err := sc.ScoreCase(bc, nil, reg)
+	batchItems, batchCtx := PrepareBatchInput(results, scenario)
+	values, details, err := sc.ScoreCase(batchItems, batchCtx, reg)
 	if err != nil {
 		values = make(map[string]float64)
 		details = make(map[string]string)
@@ -57,20 +53,115 @@ func applyDryCaps(ms *MetricSet, capped []string) {
 	}
 }
 
-// smokingGunWords tokenizes a smoking gun phrase into significant lowercase words (>3 chars).
-func smokingGunWords(phrase string) []string {
-	var words []string
-	for _, w := range strings.Fields(strings.ToLower(phrase)) {
-		if len(w) > 3 {
-			words = append(words, w)
+// PrepareBatchInput converts typed Asterisk structs into the generic
+// []map[string]any batch format consumed by Origami's batch scorer patterns.
+// Each item merges CaseResult fields + GroundTruthCase fields + joined RCA fields.
+// The second return value is batch-level context (red herring repos, etc.).
+func PrepareBatchInput(results []CaseResult, scenario *Scenario) ([]map[string]any, map[string]any) {
+	caseMap := make(map[string]*GroundTruthCase, len(scenario.Cases))
+	for i := range scenario.Cases {
+		caseMap[scenario.Cases[i].ID] = &scenario.Cases[i]
+	}
+	rcaMap := make(map[string]*GroundTruthRCA, len(scenario.RCAs))
+	for i := range scenario.RCAs {
+		rcaMap[scenario.RCAs[i].ID] = &scenario.RCAs[i]
+	}
+	repoRelevance := buildRepoRelevanceMap(scenario)
+
+	batch := make([]map[string]any, 0, len(results))
+	for _, r := range results {
+		item := map[string]any{
+			"case_id":              r.CaseID,
+			"actual_defect_type":   r.ActualDefectType,
+			"actual_category":      r.ActualCategory,
+			"actual_recall_hit":    r.ActualRecallHit,
+			"actual_skip":          r.ActualSkip,
+			"actual_cascade":       r.ActualCascade,
+			"actual_convergence":   r.ActualConvergence,
+			"actual_selected_repos": r.ActualSelectedRepos,
+			"actual_evidence_refs": r.ActualEvidenceRefs,
+			"actual_rca_message":   r.ActualRCAMessage,
+			"actual_component":     r.ActualComponent,
+			"actual_path":          r.ActualPath,
+			"actual_loops":         r.ActualLoops,
+			"actual_rca_id":        r.ActualRCAID,
+			"prompt_tokens_total":  r.PromptTokensTotal,
+			"actual_path_length":   len(r.ActualPath),
+			"defect_type_correct":  r.DefectTypeCorrect,
+			"evidence_gap_count":   len(r.EvidenceGaps),
+		}
+
+		// Derived: wrong prediction with gap briefs (for M22)
+		wrongWithGaps := 0
+		if !r.DefectTypeCorrect && r.ActualDefectType != "" && len(r.EvidenceGaps) > 0 {
+			wrongWithGaps = 1
+		}
+		item["wrong_with_gaps"] = wrongWithGaps
+
+		gt := caseMap[r.CaseID]
+		if gt != nil {
+			item["rca_id"] = gt.RCAID
+			item["expect_recall_hit"] = gt.ExpectRecallHit
+			item["expect_skip"] = gt.ExpectSkip
+			item["expect_cascade"] = gt.ExpectCascade
+			item["expected_path"] = gt.ExpectedPath
+			item["expected_loops"] = gt.ExpectedLoops
+			item["has_expected_resolve"] = gt.ExpectedResolve != nil
+
+			if gt.ExpectedTriage != nil {
+				item["expected_symptom_category"] = gt.ExpectedTriage.SymptomCategory
+			}
+			if gt.ExpectedInvest != nil {
+				item["expected_evidence_refs"] = gt.ExpectedInvest.EvidenceRefs
+			}
+
+			if rca := rcaMap[gt.RCAID]; rca != nil {
+				item["rca_defect_type"] = rca.DefectType
+				item["rca_component"] = rca.Component
+				item["rca_relevant_repos"] = rca.RelevantRepos
+				item["rca_required_keywords"] = rca.RequiredKeywords
+				item["rca_keyword_threshold"] = rca.KeywordThreshold
+				item["rca_smoking_gun"] = rca.SmokingGun
+				item["rca_smoking_gun_words"] = cal.SmokingGunWords(rca.SmokingGun)
+
+				correct := 0.0
+				if r.ActualDefectType == rca.DefectType {
+					correct = 1.0
+				}
+				item["defect_type_correct_float"] = correct
+			}
+
+			// Repo relevance for M9/M10
+			if rel, ok := repoRelevance[gt.RCAID]; ok {
+				repos := make([]string, 0, len(rel))
+				for repo := range rel {
+					repos = append(repos, repo)
+				}
+				item["rca_relevant_repos"] = repos
+			}
+		}
+
+		// has_convergence filter for M8
+		item["has_convergence"] = r.ActualConvergence > 0
+
+		batch = append(batch, item)
+	}
+
+	// Batch-level context
+	var redHerringRepos []string
+	for _, repo := range scenario.Workspace.Repos {
+		if repo.IsRedHerring {
+			redHerringRepos = append(redHerringRepos, repo.Name)
 		}
 	}
-	return words
+	batchCtx := map[string]any{
+		"red_herring_repos": redHerringRepos,
+	}
+
+	return batch, batchCtx
 }
 
 // aggregateRunMetrics computes the mean and variance across multiple runs.
-// It delegates to cal.AggregateRunMetrics for averaging, then replaces M19/M20
-// with ScoreCard-driven aggregate values.
 func aggregateRunMetrics(runs []MetricSet, sc *cal.ScoreCard) MetricSet {
 	if len(runs) == 0 {
 		return MetricSet{}
@@ -138,47 +229,4 @@ func buildRepoRelevanceMap(scenario *Scenario) map[string]map[string]bool {
 		}
 	}
 	return m
-}
-
-
-// Math helper aliases — delegate to the generic calibrate package.
-var (
-	safeDiv  = cal.SafeDiv
-	safeDiv2 = cal.SafeDivFloat
-	mean     = cal.Mean
-	stddev   = cal.Stddev
-)
-
-
-func pearsonCorrelation(x, y []float64) float64 {
-	if len(x) != len(y) || len(x) < 2 {
-		return 0
-	}
-	mx, my := mean(x), mean(y)
-	var num, dx2, dy2 float64
-	for i := range x {
-		dx := x[i] - mx
-		dy := y[i] - my
-		num += dx * dy
-		dx2 += dx * dx
-		dy2 += dy * dy
-	}
-	denom := math.Sqrt(dx2 * dy2)
-	if denom == 0 {
-		// Zero variance in one or both series. If all correctness values are 1.0
-		// (perfect answers), this is a valid state (stub mode). Return 1.0 to
-		// indicate that convergence scores are well-calibrated for this scenario.
-		allCorrect := true
-		for _, v := range y {
-			if v != 1.0 {
-				allCorrect = false
-				break
-			}
-		}
-		if allCorrect && len(y) > 0 {
-			return 1.0
-		}
-		return 0
-	}
-	return num / denom
 }

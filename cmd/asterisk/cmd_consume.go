@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/calibration/scenarios"
-	"asterisk/adapters/ingest"
 	"context"
 	"fmt"
 	"os"
@@ -41,12 +40,12 @@ var consumeRunCmd = &cobra.Command{
 		}
 		symptoms := scenario.Symptoms
 
-		dedupIdx, err := ingest.LoadDedupIndex(consumeDatasetDir, consumeCandidateDir)
+		dedupIdx, err := LoadDedupIndex(consumeDatasetDir, consumeCandidateDir)
 		if err != nil {
 			return fmt.Errorf("load dedup index: %w", err)
 		}
 
-		var fetcher ingest.LaunchFetcher
+		var fetcher LaunchFetcher
 		if consumeDryRun {
 			fmt.Fprintln(cmd.OutOrStdout(), "[dry-run] Using stub fetcher (no RP API calls)")
 			fetcher = &stubFetcher{}
@@ -69,7 +68,7 @@ var consumeRunCmd = &cobra.Command{
 			fetcher = &rpLaunchFetcher{client: client, project: consumeProject}
 		}
 
-		nodeReg := ingest.IngestNodeRegistry(
+		nodeReg := IngestNodeRegistry(
 			fetcher, symptoms, consumeProject, dedupIdx, consumeCandidateDir,
 		)
 
@@ -105,7 +104,7 @@ var consumeRunCmd = &cobra.Command{
 		}
 
 		walker := framework.NewProcessWalker("consume")
-		walker.State().Context["config"] = &ingest.IngestConfig{
+		walker.State().Context["config"] = &IngestConfig{
 			RPProject:    consumeProject,
 			LookbackDays: consumeLookbackDays,
 			DatasetDir:   consumeDatasetDir,
@@ -117,7 +116,7 @@ var consumeRunCmd = &cobra.Command{
 		}
 
 		if summary, ok := walker.State().Context["summary"]; ok {
-			if s, ok := summary.(ingest.IngestSummary); ok {
+			if s, ok := summary.(IngestSummary); ok {
 				fmt.Fprintf(cmd.OutOrStdout(),
 					"Fetched %d launches, found %d failures, matched %d symptoms, "+
 						"created %d candidates (%d deduplicated)\n",
@@ -145,10 +144,10 @@ func (e *consumeForwardEdge) Evaluate(_ framework.Artifact, _ *framework.WalkerS
 
 type stubFetcher struct{}
 
-func (f *stubFetcher) FetchLaunches(_ string, _ time.Time) ([]ingest.LaunchInfo, error) {
+func (f *stubFetcher) FetchLaunches(_ string, _ time.Time) ([]LaunchInfo, error) {
 	return nil, nil
 }
-func (f *stubFetcher) FetchFailures(_ int) ([]ingest.FailureInfo, error) {
+func (f *stubFetcher) FetchFailures(_ int) ([]FailureInfo, error) {
 	return nil, nil
 }
 
@@ -157,7 +156,7 @@ type rpLaunchFetcher struct {
 	project string
 }
 
-func (f *rpLaunchFetcher) FetchLaunches(project string, since time.Time) ([]ingest.LaunchInfo, error) {
+func (f *rpLaunchFetcher) FetchLaunches(project string, since time.Time) ([]LaunchInfo, error) {
 	ctx := context.Background()
 	paged, err := f.client.Project(project).Launches().List(ctx,
 		rp.WithPageSize(100),
@@ -167,7 +166,7 @@ func (f *rpLaunchFetcher) FetchLaunches(project string, since time.Time) ([]inge
 		return nil, fmt.Errorf("list launches: %w", err)
 	}
 
-	var launches []ingest.LaunchInfo
+	var launches []LaunchInfo
 	for _, l := range paged.Content {
 		var startTime time.Time
 		if l.StartTime != nil {
@@ -182,7 +181,7 @@ func (f *rpLaunchFetcher) FetchLaunches(project string, since time.Time) ([]inge
 				failed = execs
 			}
 		}
-		launches = append(launches, ingest.LaunchInfo{
+		launches = append(launches, LaunchInfo{
 			ID:          l.ID,
 			UUID:        l.UUID,
 			Name:        l.Name,
@@ -195,7 +194,7 @@ func (f *rpLaunchFetcher) FetchLaunches(project string, since time.Time) ([]inge
 	return launches, nil
 }
 
-func (f *rpLaunchFetcher) FetchFailures(launchID int) ([]ingest.FailureInfo, error) {
+func (f *rpLaunchFetcher) FetchFailures(launchID int) ([]FailureInfo, error) {
 	ctx := context.Background()
 	items, err := f.client.Project(f.project).Items().ListAll(ctx,
 		rp.WithLaunchID(launchID),
@@ -205,9 +204,9 @@ func (f *rpLaunchFetcher) FetchFailures(launchID int) ([]ingest.FailureInfo, err
 		return nil, fmt.Errorf("list failed items: %w", err)
 	}
 
-	var failures []ingest.FailureInfo
+	var failures []FailureInfo
 	for _, item := range items {
-		fi := ingest.FailureInfo{
+		fi := FailureInfo{
 			LaunchID: launchID,
 			ItemID:   item.ID,
 			ItemUUID: item.UUID,

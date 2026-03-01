@@ -1,7 +1,6 @@
 package main
 
 import (
-	"asterisk/adapters/ingest"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -50,7 +49,7 @@ var datasetReviewCmd = &cobra.Command{
 			if err != nil {
 				continue
 			}
-			var c ingest.CandidateCase
+			var c CandidateCase
 			if json.Unmarshal(data, &c) != nil {
 				continue
 			}
@@ -87,7 +86,7 @@ var datasetPromoteCmd = &cobra.Command{
 			return fmt.Errorf("candidate %q not found: %w", candidateID, err)
 		}
 
-		var c ingest.CandidateCase
+		var c CandidateCase
 		if err := json.Unmarshal(data, &c); err != nil {
 			return fmt.Errorf("parse candidate: %w", err)
 		}

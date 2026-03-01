@@ -14,10 +14,10 @@ import (
 	"github.com/dpopsuev/origami/dispatch"
 
 	"asterisk/adapters/rca"
-	"asterisk/adapters/rca/adapt"
 	"asterisk/adapters/calibration/scenarios"
-	"github.com/dpopsuev/origami/adapters/rp"
+	astrp "asterisk/adapters/rp"
 	"asterisk/adapters/store"
+	"github.com/dpopsuev/origami/adapters/rp"
 )
 
 var calibrateFlags struct {
@@ -91,7 +91,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			return fmt.Errorf("create RP client: %w", err)
 		}
 		rpFetcher = rp.NewFetcher(client, rpProject)
-		if err := rca.ResolveRPCases(rpFetcher, scenario); err != nil {
+		if err := astrp.ResolveRPCases(rpFetcher, scenario); err != nil {
 			return fmt.Errorf("resolve RP-sourced cases: %w", err)
 		}
 	}
@@ -108,7 +108,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	var adapter rca.ModelAdapter
 	switch calibrateFlags.adapter {
 	case "stub":
-		adapter = adapt.NewStubAdapter(scenario)
+		adapter = rca.NewStubAdapter(scenario)
 	case "basic":
 		basicSt, err := store.Open(":memory:")
 		if err != nil {
@@ -118,9 +118,9 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		for _, r := range scenario.Workspace.Repos {
 			repoNames = append(repoNames, r.Name)
 		}
-		ba := adapt.NewBasicAdapter(basicSt, repoNames)
+		ba := rca.NewBasicAdapter(basicSt, repoNames)
 		for _, c := range scenario.Cases {
-			ba.RegisterCase(c.ID, &adapt.BasicCaseInfo{
+			ba.RegisterCase(c.ID, &rca.BasicCaseInfo{
 				Name:         c.TestName,
 				ErrorMessage: c.ErrorMessage,
 			})
@@ -137,14 +137,14 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			return err
 		}
 		trackedDispatcher := dispatch.NewTokenTrackingDispatcher(dispatcher, tokenTracker)
-		adapter = adapt.NewLLMAdapter(calibrateFlags.promptDir, adapt.WithDispatcher(trackedDispatcher), adapt.WithBasePath(calibDir))
+		adapter = rca.NewLLMAdapter(calibrateFlags.promptDir, rca.WithDispatcher(trackedDispatcher), rca.WithBasePath(calibDir))
 	default:
 		return fmt.Errorf("unknown adapter: %s (available: stub, basic, llm)", calibrateFlags.adapter)
 	}
 
-	var routingRecorder *adapt.RoutingRecorder
+	var routingRecorder *rca.RoutingRecorder
 	if calibrateFlags.routingLog != "" {
-		routingRecorder = adapt.NewRoutingRecorder(adapter, adapterColor(calibrateFlags.adapter))
+		routingRecorder = rca.NewRoutingRecorder(adapter, adapterColor(calibrateFlags.adapter))
 		adapter = routingRecorder
 	}
 
@@ -228,11 +228,15 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	}
 
 	out := cmd.OutOrStdout()
-	fmt.Fprint(out, rca.FormatReport(report))
+	rendered, err := rca.RenderCalibrationReport(report)
+	if err != nil {
+		return fmt.Errorf("render calibration report: %w", err)
+	}
+	fmt.Fprint(out, rendered)
 
 	bill := rca.BuildCostBill(report)
 	if bill != nil {
-		md := rca.FormatCostBill(bill)
+		md := dispatch.FormatCostBill(bill)
 		fmt.Fprint(out, md)
 
 		tokiPath := calibDir + "/tokimeter.md"
@@ -266,7 +270,11 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			} else {
 				for i := range transcripts {
 					slug := rca.TranscriptSlug(&transcripts[i])
-					md := rca.RenderRCATranscript(&transcripts[i])
+					md, renderErr := rca.RenderTranscript(&transcripts[i])
+					if renderErr != nil {
+						fmt.Fprintf(os.Stderr, "render transcript %s: %v\n", slug, renderErr)
+						continue
+					}
 					tPath := filepath.Join(transcriptDir, slug+".md")
 					if err := os.WriteFile(tPath, []byte(md), 0600); err != nil {
 						fmt.Fprintf(os.Stderr, "write transcript %s: %v\n", slug, err)
@@ -280,7 +288,7 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 	}
 
 	if routingRecorder != nil {
-		if err := adapt.SaveRoutingLog(calibrateFlags.routingLog, routingRecorder.Log()); err != nil {
+		if err := rca.SaveRoutingLog(calibrateFlags.routingLog, routingRecorder.Log()); err != nil {
 			fmt.Fprintf(os.Stderr, "save routing log: %v\n", err)
 		} else {
 			fmt.Fprintf(out, "\nRouting log: %s (%d entries)\n", calibrateFlags.routingLog, routingRecorder.Log().Len())

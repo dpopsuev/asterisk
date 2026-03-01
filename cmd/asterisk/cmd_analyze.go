@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"asterisk/adapters/rca"
-	"asterisk/adapters/rca/adapt"
 	"asterisk/adapters/store"
 	"github.com/dpopsuev/origami/knowledge"
 )
@@ -143,10 +142,10 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	var adapter rca.ModelAdapter
 	switch analyzeFlags.adapterName {
 	case "basic":
-		ba := adapt.NewBasicAdapter(st, repoNames)
+		ba := rca.NewBasicAdapter(st, repoNames)
 		for i, c := range cases {
 			label := fmt.Sprintf("A%d", i+1)
-			ba.RegisterCase(label, &adapt.BasicCaseInfo{
+			ba.RegisterCase(label, &rca.BasicCaseInfo{
 				Name:         c.Name,
 				ErrorMessage: c.ErrorMessage,
 				LogSnippet:   c.LogSnippet,
@@ -163,9 +162,9 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		if err := os.MkdirAll(basePath, 0755); err != nil {
 			return fmt.Errorf("create analyze dir: %w", err)
 		}
-		adapter = adapt.NewLLMAdapter(analyzeFlags.promptDir,
-			adapt.WithDispatcher(dispatcher),
-			adapt.WithBasePath(basePath),
+		adapter = rca.NewLLMAdapter(analyzeFlags.promptDir,
+			rca.WithDispatcher(dispatcher),
+			rca.WithBasePath(basePath),
 		)
 	default:
 		return fmt.Errorf("unknown adapter: %s (supported: basic, llm)", analyzeFlags.adapterName)
@@ -201,7 +200,10 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	if analyzeFlags.report {
 		mdPath := strings.TrimSuffix(artifactPath, ".json") + ".md"
-		mdContent := rca.RenderRCAReport(report, time.Now())
+		mdContent, renderErr := rca.RenderAnalysisReport(report, time.Now())
+		if renderErr != nil {
+			return fmt.Errorf("render RCA report: %w", renderErr)
+		}
 		if err := os.WriteFile(mdPath, []byte(mdContent), 0600); err != nil {
 			return fmt.Errorf("write report markdown: %w", err)
 		}

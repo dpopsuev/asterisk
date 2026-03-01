@@ -1,0 +1,57 @@
+# PTP-domain heuristic rules for the basic (zero-LLM) adapter.
+# Each section maps pipeline steps to keyword-based classification rules.
+# Rules are evaluated in order; first match wins.
+
+defect_classification:
+  automation_skip:
+    - ["automation:", "add version conditions", "flip-flop between 6 and 248", "they should work with ntpfailover"]
+  environment_skip:
+    - ["ordinary clock 2 port failure"]
+  automation_generic:
+    - ["test setup failed", "ginkgo internal", "test teardown"]
+  product:
+    - ["ptp", "linuxptp", "phc2sys", "ptp4l", "clock", "gnss",
+       "offset", "configmap", "sidecar", "consumer", "cloud event",
+       "ptp_events", "ptp_recovery", "ptp_interfaces", "ntpfailover",
+       "workload partitioning", "holdover", "locked"]
+  firmware:
+    - ["firmware", "bios", "hardware fault"]
+  infra:
+    - ["timeout", "connection refused", "dns", "network",
+       "node not ready", "kubelet", "unreachable"]
+
+component_rules:
+  # Priority-ordered component detection. More specific patterns first.
+  cnf-features-deploy:
+    - ["losing subscription to events"]
+    - ["remove phc2sys", "option"]
+    - ["ocpbugs-49372"]
+    - ["ocpbugs-49373"]
+  cnf-gotests:
+    - ["ntpfailover-specific tests"]
+    - ["tracking issue for failures"]
+  cloud-event-proxy:
+    - ["cloud event", "cloud-event-proxy"]
+    - ["gnss sync state"]
+    - ["configmap", "update"]
+    - ["sidecar container"]
+  linuxptp-daemon:
+    - ["phc2sys", "ptp4l"]
+    - ["clock state", "locked"]
+    - ["offset threshold"]
+    - ["ptp_recovery.go"]
+    - ["ptp_events_and_metrics.go"]
+    - ["ptp_interfaces.go"]
+    - ["ocpbugs-54967"]
+
+cascade_keywords:
+  - "aftereach"
+  - "beforeeach"
+  - "setup failure"
+  - "suite setup"
+
+convergence:
+  jira_keywords: ["ocpbugs-", "cnf-"]
+  descriptive_keywords: ["phc2sys", "ptp4l", "clock", "gnss", "holdover",
+    "offset", "broken pipe", "configmap", "sidecar"]
+  version_keywords: ["4.1", "4.2", "4.3", "release-", "v4.", "ocp-"]
