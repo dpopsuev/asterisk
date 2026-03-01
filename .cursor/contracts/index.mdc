@@ -8,15 +8,16 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 ## active/ -- Contracts being executed
 
-(No active contracts.)
+| Contract | Goal | Tier |
+|----------|------|------|
+| `rca-pure-dsl.md` | Marble discovery: decompose rca/ (30 files, 6.2K LOC) into reusable Origami marbles. Ph1-2 done, Ph3-5 partial. | gate |
 
 ## draft/ -- Planned, not yet being executed
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `data-dsl-extraction.md` | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. | should |
-| `adapter-migration.md` | RP adapter lift-and-drop to Origami. | should |
-| `rca-pure-dsl.md` | Marble discovery: decompose rca/ (40+ files, 6K LOC) into reusable Origami marbles. | gate |
+| `scorer-pattern.md` | Batch scorer patterns in Origami; 21 Asterisk scorers to YAML declarations. Split from rca-pure-dsl G5. | gate |
+| `origami-fold.md` | `origami fold` compiles YAML project to binary; eliminates cmd/, mcpconfig/ (~3,700 LOC). Split from rca-pure-dsl G8. | gate |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
@@ -148,11 +149,13 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |
 
-### completed/dsl-migration/ (1)
+### completed/dsl-migration/ (3)
 
 | Contract | Goal |
 |----------|------|
 | `sqlite-dsl-adapter.md` | YAML-defined SQLite adapter in Origami; Asterisk schema.go replaced by schema.yaml + migrations. |
+| `data-dsl-extraction.md` | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. Loaders remain (121 LOC). |
+| `adapter-migration.md` | RP adapter lift-and-drop to Origami. Residual `rp_source.go` (93 LOC) covered by rca-pure-dsl. |
 
 ### completed/presentation/ (1)
 

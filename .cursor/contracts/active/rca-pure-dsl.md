@@ -1,6 +1,6 @@
 # Contract — rca-pure-dsl
 
-**Status:** draft  
+**Status:** active  
 **Goal:** The entire `adapters/rca/` directory (40+ files, 6,000+ LOC) is expressed as DSL — zero Go domain logic remains in Asterisk.  
 **Serves:** 100% DSL — Zero Go
 
@@ -109,35 +109,35 @@ Deliverables produced:
 - [x] Achilles cross-validation: every marble validated against scan→classify→assess→report pipeline
 - [x] 22% gap areas cataloged: ingest, cmd, mcpconfig, demo, dataset
 
-### Phase 2: Foundation gaps (Origami)
+### Phase 2: Foundation gaps (Origami) — COMPLETE
 
-- [ ] G7: Add `Meta map[string]any` to `NodeDef` — smallest gap, unblocks all marbles
-- [ ] G1: Declarative extractor DSL — built-in `json-schema` extractor type, YAML-configured
-- [ ] G2: Declarative transformer DSL — `template-params` and `go-template` types, YAML-configured
-- [ ] G4: Hook persistence DSL — YAML-declared `file_write` and `sqlite_exec` hook actions
+- [x] G7: Add `Meta map[string]any` to `NodeDef` — smallest gap, unblocks all marbles
+- [x] G1: Declarative extractor DSL — built-in `json-schema` extractor type, YAML-configured
+- [x] G2: Declarative transformer DSL — `template-params` and `go-template` types, YAML-configured
+- [x] G4: Hook persistence DSL — YAML-declared `file_write` and `sqlite_exec` hook actions
 
-### Phase 3: Marble implementation (Origami)
+### Phase 3: Marble implementation (Origami) — PARTIAL
 
-- [ ] G3: YAML-configured provider chains (`dispatch` marble) — replaces `adapt/basic.go` (577 LOC), `adapt/llm.go` (269 LOC), `adapt/stub.go` (218 LOC), `adapt/routing.go` (214 LOC)
-- [ ] G5: Scorer registry + evaluation engine (`score` marble) — replaces `metrics.go` (646 LOC), `cluster.go` (165 LOC), `evidence_gap.go` (61 LOC)
-- [ ] G6: Report template engine (`report` marble) — replaces `report.go` (126 LOC), `rca_report.go` (257 LOC), `transcript.go` (266 LOC), `briefing.go` (129 LOC), `tokimeter.go` (48 LOC)
+- [x] G3: YAML-configured provider chains (`dispatch` marble) — `adapt/` package eliminated; StaticDispatcher + `heuristics.yaml`
+- [→] G5: Scorer registry + evaluation engine (`score` marble) — **covered by `scorer-pattern` contract**
+- [~] G6: Report template engine (`report` marble) — data-prep functions in `report_data.go`; 4 YAML templates created; old `report.go`, `rca_report.go`, `transcript.go`, `briefing.go`, `tokimeter.go` deleted. Remaining: Go renderers that call templates
 
-### Phase 4: Asterisk migration
+### Phase 4: Asterisk migration — PARTIAL
 
-- [ ] Replace `adapters/rca/adapt/` (1,278 LOC) with `dispatch` marble YAML config
-- [ ] Replace `adapters/rca/metrics.go` + domain logic (872 LOC) with `score` marble + registered scorers
-- [ ] Replace `adapters/rca/` report files (826 LOC) with `report` marble templates
-- [ ] Replace `adapters/rca/` orchestration (2,518 LOC) with framework walk + marble-configured nodes
-- [ ] Delete `adapters/rca/` persistence glue (154 LOC) — absorbed by `persist` marble hooks
-- [ ] Move `rp_source.go` (92 LOC) to `adapters/rp/`
+- [x] Replace `adapters/rca/adapt/` (1,278 LOC) with `dispatch` marble YAML config — adapt/ eliminated
+- [~] Replace `adapters/rca/metrics.go` + domain logic — scorers registered in YAML, Go implementations remain → **scorer-pattern** contract
+- [~] Replace `adapters/rca/` report files — old files deleted, `report_data.go` + YAML templates created; Go rendering wrappers remain
+- [~] Replace `adapters/rca/` orchestration — RunAnalysis rewired to WalkCase + StoreHooks; bridgeNode/passthroughNode/buildNodeRegistry deleted; RunStep/SaveArtifactAndAdvance kept for manual modes
+- [~] Delete `adapters/rca/` persistence glue — StoreHooks integration preserved; full DSL hook migration pending
+- [x] Move `rp_source.go` (93 LOC) to `adapters/rp/`
 
-### Phase 5: Gap area migration (future contracts)
+### Phase 5: Gap area migration — PARTIAL
 
-- [ ] G9: Generic transformers — eliminate `adapters/ingest/` (634 LOC)
-- [ ] G8: `origami fold` — eliminate `cmd/asterisk/` (2,032 LOC) + `internal/mcpconfig/` (1,249 LOC)
-- [ ] G11: Calibration-as-pipeline — eliminate `cal_runner.go` (684 LOC) + `parallel.go` (752 LOC)
-- [ ] Extract `internal/demo/` (1,436 LOC) to YAML
-- [ ] Absorb `internal/dataset/` (649 LOC) into framework `curate/`
+- [x] G9: Generic transformers — `adapters/ingest/` eliminated, inlined into `cmd/asterisk/ingest.go` (will be eliminated by **origami-fold**)
+- [→] G8: `origami fold` — **covered by `origami-fold` contract**
+- [~] G11: Calibration-as-pipeline — `parallel.go` (753 LOC), `cluster.go` (165 LOC), `briefing.go` (129 LOC) deleted; `cal_runner.go` simplified with errgroup parallelism. Remaining: full calibration-as-pipeline migration
+- [x] Extract `internal/demo/` — eliminated, inlined into `cmd/asterisk/demo_*.go` (will be eliminated by **origami-fold**)
+- [x] Absorb `internal/dataset/` — eliminated, inlined into `cmd/asterisk/dataset.go` (will be eliminated by **origami-fold**)
 
 ### Tail
 
@@ -160,6 +160,9 @@ Deliverables produced:
 
 ## Notes
 
+2026-02-28 23:00 — G8 (origami fold) split into dedicated `origami-fold` contract. Properly scoped: 13 tasks, 2 phases, manifest spec + codegen + FQCN resolver + CLI command. Eliminates ~3,400 LOC (cmd/, mcpconfig/, cursor wrapper).
+2026-02-28 22:00 — G5 (scorer registry + evaluation engine) split into dedicated `scorer-pattern` contract. Deconstruction identified 10 generic batch patterns covering all 21 metrics. Phase 3 G5 task updated to reference the new contract.
+2026-02-28 20:00 — Phase 4[Leftovers]+5 sweep complete (B1-B7). B1: G1 extractor DSL in Origami (resolveExtractor, pipeline-level ExtractorDef). B2: G3 dispatch marble — StaticDispatcher, adapt/ package eliminated, heuristics.yaml extracted, consumers updated. B3: G4 sqlite-exec hook in Origami, StoreHooks integration preserved. B4: G6 report marble — report_data.go data-prep functions for YAML templates, runtime template loading. B5: G11 calibration simplification — deleted parallel.go (753 LOC), cluster.go (165 LOC), briefing.go (129 LOC), briefing_test.go, cluster_test.go; replaced with simple errgroup parallelism in cal_runner.go. B6: G9 ingest migration — adapters/ingest/ package eliminated, inlined into cmd/asterisk/ingest.go. B7: internal/demo/ and internal/dataset/ packages eliminated, inlined into cmd/asterisk/. B8 (G8 origami fold) cancelled — requires building code-gen feature in Origami, marked Large effort. Total: ~2,500 LOC deleted across 15+ files. All builds green, all tests green.
 2026-02-28 16:30 — Phase 4 partial. Metrics: fully migrated to ScorerRegistry (21 scorers, YAML scorer: declarations, computeMetrics via ScoreCard.ScoreCase). Reports: 4 YAML templates created (calibration, briefing, rca, transcript); Go renderers kept — data-prep deferred. Dispatch: shared buildDispatcher helper extracted; BuildRouter deferred (overkill for current single-mode selection). Orchestration: RunAnalysis rewired to WalkCase with StoreHooks and per-step artifact collection; bridgeNode/passthroughNode/buildNodeRegistry deleted; BuildRunner defaults to real NodeRegistry. RunStep/SaveArtifactAndAdvance kept for manual cmd_cursor/cmd_save mode. Origami gained: ScorerFunc detail strings, ReportDef repeat sections, graph loop auto-increment for expression edges. Remaining for Phase 5: adapt/ replacement (1,278 LOC), rp_source move (blocked by circular dep), full persistence absorption, cal_runner/parallel.go migration.
 2026-02-28 03:00 — Phase 1 complete. Marble catalog (6 marbles), framework gaps inventory (11 gaps), and RCA decomposition analysis (62 files, 14,600 LOC classified) produced. Achilles cross-validated. Phase 2-5 tasks now concrete. Migration order: G7 (NodeDef meta) → G1+G2 (extractor+transformer DSL) → G3 (dispatch) → G4 (persist) → G5 (score) → G6 (report) → G9 (generic transformers) → G8 (origami fold) → G11 (calibration-as-pipeline).
 2026-02-28 01:00 — Expanded Phase 1 to catalog the 22% gap (ingest, cmd, mcpconfig, demo, dataset). Added framework gaps: NodeDef `meta:` field, `origami fold` concept. Phase 1 now produces the complete Origami gaps inventory for achieving zero Go across all 28K LOC.

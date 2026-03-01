@@ -26,48 +26,62 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 | BasicAdapter | ptp-real-ingest (18 verified) | **0.83** | M1=1.00, M2=1.00, M15=0.72 | Heuristic baseline. 19/21 metrics pass. |
 | CursorAdapter | ptp-real-ingest (18 verified) | **0.58** | M2=0.78, M8=0.60, M14b=0.30 | AI baseline. 10/21 pass. |
 
+## Current Go LOC (12,872 prod)
+
+| Area | Prod LOC | Files | Covered by | Status |
+|------|----------|-------|-----------|--------|
+| `adapters/rca/` | 6,253 | 30 | **rca-pure-dsl** + **scorer-pattern** | Phase 1 done, Phases 2-5 partial |
+| `cmd/asterisk/` | 3,306 | 18 | **origami-fold** | Draft (includes relocated demo/dataset/ingest) |
+| `adapters/store/` | 2,581 | 8 | Store DSL migration (gap) | Origami sqlite-dsl-adapter exists; Asterisk migration pending |
+| `internal/mcpconfig/` | 268 | 2 | **origami-fold** | Draft |
+| `adapters/calibration/` | 177 | 2 | **rca-pure-dsl** (thin glue) | Calibration nodes — absorbed when G11 completes |
+| `cmd/asterisk-analyze-rp-cursor/` | 115 | 1 | **origami-fold** | Draft (cursor wrapper binary) |
+| `adapters/rp/` | 93 | 1 | **rca-pure-dsl** residual | `rp_source.go` — domain utility, not generic adapter |
+| `adapters/vocabulary/` | 79 | 1 | — (loader, expected) | YAML loader — data-dsl-extraction complete |
+| `adapters/calibration/scenarios/` | 42 | 1 | — (loader, expected) | YAML loader — data-dsl-extraction complete |
+
+**True zero Go:** 12,872 LOC total. Loaders (121 LOC) are expected residual from completed contracts. Target: eliminate 12,751 LOC.
+
 ## Active Contracts
 
-| # | Contract | Scope |
-|---|----------|-------|
-| 1 | `data-dsl-extraction` | Scenarios + vocabulary to YAML; zero Go struct literals. |
-| 1 | `adapter-migration` | RP adapter lift-and-drop to Origami. |
-| ~~2~~ | ~~`sqlite-dsl-adapter`~~ | ~~YAML-defined SQLite adapter in Origami (schema, migrations, CRUD).~~ **DONE** |
-| 3 | `rca-pure-dsl` | Marble discovery: decompose `adapters/rca/` into reusable Origami marbles, validated by Achilles. |
+| # | Contract | Dir | Scope | Status |
+|---|----------|-----|-------|--------|
+| 1 | `rca-pure-dsl` | active/ | Marble decomposition of `adapters/rca/` (6,253 LOC) + calibration glue (177 LOC) + rp residual (93 LOC) | Ph1 done, Ph2 done, Ph3-5 partial |
+| 2 | `scorer-pattern` | draft/ | 10 batch scorer patterns in Origami; 21 Asterisk scorers to YAML. Split from rca-pure-dsl G5. | Not started |
+| 3 | `origami-fold` | draft/ | `origami fold` compiles YAML project to binary; eliminates cmd/ (3,306), mcpconfig/ (268), cursor wrapper (115) = 3,689 LOC | Not started |
 
 ### Execution order
 
 ```
-    ┌────────────────────────────────────┐
-    │ 1. data-dsl-extraction  (parallel) │  ← scenarios + vocabulary to YAML
-    │ 1. adapter-migration    (parallel) │  ← RP adapter to Origami
-    └──────────────┬─────────────────────┘
-                   │
-    ┌──────────────▼─────────────────────┐
-    │ 2. sqlite-dsl-adapter              │  ← depends on adapter-migration
-    └──────────────┬─────────────────────┘
-                   │
-    ┌──────────────▼─────────────────────┐
-    │ 3. rca-pure-dsl                    │  ← depends on sqlite-dsl-adapter
-    └────────────────────────────────────┘
+    ┌──────────────────────────────────────┐
+    │ 1. rca-pure-dsl (IN PROGRESS)        │  ← adapters/rca/ → marbles + DSL
+    │    ├─ Phase 2: Foundation gaps  DONE  │
+    │    ├─ Phase 3: Marbles  PARTIAL       │
+    │    ├─ Phase 4: Migration  PARTIAL     │
+    │    └─ Phase 5: Gap areas  PARTIAL     │
+    └─────────────┬────────────────────────┘
+                  │ G5 split
+    ┌─────────────▼────────────────────────┐
+    │ 2. scorer-pattern                    │  ← 10 batch patterns + 21 scorers to YAML
+    │    depends: rca-pure-dsl Phase 2     │    (met — foundation gaps done)
+    └─────────────┬────────────────────────┘
+                  │
+    ┌─────────────▼────────────────────────┐
+    │ 3. origami-fold                      │  ← YAML manifest → compiled binary
+    │    depends: rca-pure-dsl, scorer     │    (cmd/ code must be stable before fold)
+    └──────────────────────────────────────┘
 
-    rca-pure-dsl Phase 1 (design only) can overlap with step 1.
+    Store DSL migration (gap) can proceed in parallel once scope is defined.
 ```
 
-## 22% Gap Resolution
+### Uncovered gap: `adapters/store/` (2,581 LOC)
 
-The 4 contracts cover ~22K of ~28K LOC (78%). The remaining ~6,200 LOC resolves as follows:
+Origami's YAML-defined SQLite adapter exists (`sqlite-dsl-adapter` contract — done). The Asterisk consumer code still uses hand-written Go store implementations. Resolution paths:
+- v1 stores (`sqlstore.go` 406 + `memstore.go` 148 = 554 LOC) — likely dead code, verify and delete.
+- v2 implementations (`sqlstore_v2.go` 992 + `memstore_v2.go` 670 = 1,662 LOC) — migrate to Origami's YAML-driven adapter.
+- Store facade + types (`store.go` 110 + `types.go` 157 + `schema.go` 80 + `adapter.go` 18 = 365 LOC) — interfaces for framework.
 
-| Uncovered area | LOC | Resolution |
-|----------------|-----|------------|
-| `cmd/asterisk/` | 2,032 | `origami fold` — CLI commands become manifest YAML |
-| `internal/demo/` | 1,436 | Pure data extraction — Kabuki content to YAML (trivial) |
-| `internal/mcpconfig/` | 1,249 | `origami fold` — MCP wiring becomes manifest config |
-| `internal/dataset/` | 649 | Absorbed by scenario YAML loader |
-| `adapters/ingest/` | 634 | Generic transformers configured by YAML (Option C) |
-| `adapters/calibration/nodes.go` | 111 | Thin glue — absorbed by framework calibration runner |
-
-All 6,200 LOC has a resolution path. Discovery happens during `rca-pure-dsl` Phase 1.
+**Decision pending.** Scope during rca-pure-dsl Phase 3 or as a dedicated contract.
 
 ## End-State Architecture
 
@@ -104,13 +118,17 @@ flowchart TB
 
 - [ ] CursorAdapter M19 >= 0.70 with principled weights (baseline: 0.58)
 - [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
-- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 28K LOC resolved.
+- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 12,872 LOC resolved.
 
-## Completed Work
+## Completed Contracts (this goal)
 
-All prior goals achieved. Bundles 1-4 (Principled Metrics, Rich Names, Smart Routing, Demo Polish) complete. Standalone contracts (internal-cleanup, data-ingestion, evidence-gap-brief, knowledge-source-evolution) complete. Origami framework items (DefaultMetrics, DefaultScoreCard, CostBill, CostConfig, calibration DSL pipeline, LSP validation, EvidenceSource rename, probe stimuli, mathutil extraction) all verified.
+| Contract | LOC impact | Phase |
+|----------|-----------|-------|
+| `data-dsl-extraction` | -2,900 LOC (scenario struct literals → YAML) | dsl-migration |
+| `adapter-migration` | -600 LOC (RP adapter → Origami) | dsl-migration |
+| `sqlite-dsl-adapter` | Origami primitive built; Asterisk migration pending | dsl-migration |
 
-Full history: `notes/goal-history-poc.md`
+All prior goals achieved. Bundles 1-4 (Principled Metrics, Rich Names, Smart Routing, Demo Polish) complete. Full history: `notes/goal-history-poc.md`
 
 ## Goal Transition Protocol
 

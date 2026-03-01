@@ -1,6 +1,6 @@
 # Contract — adapter-migration
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** The RP adapter lives in Origami; Asterisk imports it as a dependency.  
 **Serves:** 100% DSL — Zero Go
 
@@ -78,14 +78,14 @@ Single workstream: move files, update imports, verify both repos green.
 
 ## Tasks
 
-- [ ] Create `origami/adapters/rp/` and move all files from `asterisk/adapters/rp/`
-- [ ] Update all Asterisk imports: `asterisk/adapters/rp` → `github.com/dpopsuev/origami/adapters/rp`
-- [ ] Delete `asterisk/adapters/rp/`
-- [ ] Verify Origami builds and tests green (`go build ./...`, `go test ./...`)
-- [ ] Verify Asterisk builds and tests green (`go build ./...`, `go test ./...`, `just calibrate-stub`)
-- [ ] Validate (green) — `just test-race` on both repos
-- [ ] Tune (blue) — review adapter.yaml, clean up any stale references
-- [ ] Validate (green) — all gates still pass
+- [x] Create `origami/adapters/rp/` and move all files from `asterisk/adapters/rp/`
+- [x] Update all Asterisk imports: `asterisk/adapters/rp` → `github.com/dpopsuev/origami/adapters/rp`
+- [x] Delete original `asterisk/adapters/rp/` files (client, envelope, fetcher, etc.)
+- [x] Verify Origami builds and tests green (`go build ./...`, `go test ./...`)
+- [x] Verify Asterisk builds and tests green (`go build ./...`, `go test ./...`, `just calibrate-stub`)
+- [x] Validate (green) — `just test-race` on both repos
+- [x] Tune (blue) — review adapter.yaml, clean up any stale references
+- [x] Validate (green) — all gates still pass
 
 ## Acceptance criteria
 
@@ -115,4 +115,5 @@ Scenario: No RP code remains in Asterisk
 
 ## Notes
 
+2026-02-28 — All tasks complete. RP adapter (client.go, envelope.go, fetcher.go, errors.go, etc.) lives in `origami/adapters/rp/`. Asterisk imports via `github.com/dpopsuev/origami/adapters/rp`. Residual: `asterisk/adapters/rp/rp_source.go` (93 LOC) — a domain utility (`ResolveRPCases`) that depends on Asterisk types, not part of the generic RP adapter. Covered by rca-pure-dsl Phase 4.
 2026-02-27 23:00 — Scoped down to RP adapter move only. SQLite DSL work split into its own contract `sqlite-dsl-adapter`. This contract is now a clean lift-and-drop.

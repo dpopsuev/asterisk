@@ -1,6 +1,6 @@
 # Contract — data-dsl-extraction
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** All calibration scenarios and vocabulary defined as YAML files; zero Go struct literals for ground truth data.  
 **Serves:** 100% DSL — Zero Go
 
@@ -92,16 +92,16 @@ Bottom-up: define the YAML schema, convert one scenario as proof, then mechanica
 
 ## Tasks
 
-- [ ] YAML loader: `LoadScenario(name string) (*rca.Scenario, error)` with `//go:embed scenarios/*.yaml`
-- [ ] Convert `ptp_mock.go` to `scenarios/ptp-mock.yaml`; add round-trip test; delete Go file
-- [ ] Convert `daemon_mock.go` to `scenarios/daemon-mock.yaml`; delete Go file
-- [ ] Convert `ptp_real.go` to `scenarios/ptp-real.yaml`; delete Go file
-- [ ] Convert `ptp_real_ingest.go` to `scenarios/ptp-real-ingest.yaml`; delete Go file
-- [ ] Extract vocabulary tables to `adapters/vocabulary/vocabulary.yaml` + YAML loader; delete Go map literals
-- [ ] Replace hardcoded scenario `switch` in `cmd_calibrate.go` with loader-based discovery
-- [ ] Validate (green) — `go build`, `go test`, `just calibrate-stub`, `just test-race`
-- [ ] Tune (blue) — review YAML for consistency, field naming, comments
-- [ ] Validate (green) — all gates still pass after tuning
+- [x] YAML loader: `LoadScenario(name string) (*rca.Scenario, error)` with `//go:embed scenarios/*.yaml`
+- [x] Convert `ptp_mock.go` to `scenarios/ptp-mock.yaml`; add round-trip test; delete Go file
+- [x] Convert `daemon_mock.go` to `scenarios/daemon-mock.yaml`; delete Go file
+- [x] Convert `ptp_real.go` to `scenarios/ptp-real.yaml`; delete Go file
+- [x] Convert `ptp_real_ingest.go` to `scenarios/ptp-real-ingest.yaml`; delete Go file
+- [x] Extract vocabulary tables to `adapters/vocabulary/vocabulary.yaml` + YAML loader; delete Go map literals
+- [x] Replace hardcoded scenario `switch` in `cmd_calibrate.go` with loader-based discovery
+- [x] Validate (green) — `go build`, `go test`, `just calibrate-stub`, `just test-race`
+- [x] Tune (blue) — review YAML for consistency, field naming, comments
+- [x] Validate (green) — all gates still pass after tuning
 
 ## Acceptance criteria
 
@@ -117,5 +117,6 @@ No trust boundaries affected. Scenarios are embedded at compile time or loaded f
 
 ## Notes
 
+2026-02-28 — All tasks complete. 4 scenario YAML files (`ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest`) + loader in `adapters/calibration/scenarios/`. Vocabulary in `adapters/vocabulary/vocabulary.yaml` + YAML loader. `cmd_calibrate.go` uses `scenarios.LoadScenario()`. Zero Go struct literals remain. Residual Go: loader (42 LOC) + vocabulary loader (79 LOC) — expected, these are embed-based YAML readers.
 2026-02-27 22:00 — Restored Task 6 (vocabulary extraction). Vocabulary stays in this contract as a standalone YAML file with loader.
 2026-02-27 20:15 — Contract drafted from DSL purity assessment. Scenarios are the single biggest non-DSL surface remaining in Asterisk (~2,900 lines of Go struct literals).
