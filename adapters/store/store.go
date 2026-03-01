@@ -12,30 +12,7 @@ const DefaultDBPath = ".asterisk/asterisk.db"
 // Domain and CLI code use only this interface; implementation is SQLite or in-memory.
 type Store interface {
 	// ---------------------------------------------------------------
-	// v1 methods (backward-compatible, kept for existing CLI commands)
-	// ---------------------------------------------------------------
-
-	// CreateCase creates a case from RP launch ID and item ID (v1 style).
-	CreateCase(launchID, itemID int) (caseID int64, err error)
-	// GetCase returns the case by its DB id (populates all available fields).
-	GetCase(caseID int64) (*Case, error)
-	// ListCasesByLaunch returns all cases for the RP launch (v1 key).
-	ListCasesByLaunch(launchID int) ([]*Case, error)
-	// SaveRCA inserts or updates an RCA; if rca.ID != 0, updates.
-	SaveRCA(rca *RCA) (rcaID int64, err error)
-	// LinkCaseToRCA sets case.rca_id (the verdict shortcut).
-	LinkCaseToRCA(caseID, rcaID int64) error
-	// GetRCA returns the RCA by id.
-	GetRCA(rcaID int64) (*RCA, error)
-	// ListRCAs returns all RCAs.
-	ListRCAs() ([]*RCA, error)
-	// SaveEnvelope stores an envelope blob by RP launch ID.
-	SaveEnvelope(launchID int, env *rp.Envelope) error
-	// GetEnvelope returns the envelope for the RP launch ID.
-	GetEnvelope(launchID int) (*rp.Envelope, error)
-
-	// ---------------------------------------------------------------
-	// v2 methods — Investigation-scoped entities
+	// Investigation-scoped entities
 	// ---------------------------------------------------------------
 
 	// Suite operations
@@ -60,6 +37,10 @@ type Store interface {
 	GetLaunch(id int64) (*Launch, error)
 	GetLaunchByRPID(circuitID int64, rpLaunchID int) (*Launch, error)
 	ListLaunchesByCircuit(circuitID int64) ([]*Launch, error)
+	// SaveEnvelope stores an envelope blob by RP launch ID.
+	SaveEnvelope(launchID int, env *rp.Envelope) error
+	// GetEnvelope returns the envelope for the RP launch ID.
+	GetEnvelope(launchID int) (*rp.Envelope, error)
 
 	// Job operations
 	CreateJob(j *Job) (int64, error)
@@ -72,6 +53,8 @@ type Store interface {
 	ListCasesByJob(jobID int64) ([]*Case, error)
 	ListCasesBySymptom(symptomID int64) ([]*Case, error)
 	UpdateCaseStatus(caseID int64, status string) error
+	// LinkCaseToRCA sets case.rca_id (the verdict shortcut).
+	LinkCaseToRCA(caseID, rcaID int64) error
 	LinkCaseToSymptom(caseID, symptomID int64) error
 
 	// Triage operations
@@ -79,7 +62,7 @@ type Store interface {
 	GetTriageByCase(caseID int64) (*Triage, error)
 
 	// ---------------------------------------------------------------
-	// v2 methods — Global knowledge entities
+	// Global knowledge entities
 	// ---------------------------------------------------------------
 
 	// Symptom operations
@@ -97,9 +80,11 @@ type Store interface {
 	// Returns the number of rows affected.
 	MarkDormantSymptoms(staleDays int) (int64, error)
 
-	// RCA v2 operations (expanded fields)
+	// RCA operations
 	SaveRCAV2(rca *RCA) (int64, error)
 	GetRCAV2(id int64) (*RCA, error)
+	// ListRCAs returns all RCAs.
+	ListRCAs() ([]*RCA, error)
 	ListRCAsByStatus(status string) ([]*RCA, error)
 	UpdateRCAStatus(id int64, status string) error
 

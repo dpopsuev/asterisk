@@ -332,10 +332,22 @@ func TestSqlStoreV2_Migration(t *testing.T) {
 		t.Errorf("migrated envelope: got %+v", env)
 	}
 
-	// Check that v1 cases were migrated.
-	cases, err := s.ListCasesByLaunch(33195)
+	// Check that v1 cases were migrated via v2 hierarchy.
+	circuits, err := s.ListCircuitsBySuite(suites[0].ID)
+	if err != nil || len(circuits) == 0 {
+		t.Fatalf("ListCircuitsBySuite after migration: got %d err %v", len(circuits), err)
+	}
+	launches, err := s.ListLaunchesByCircuit(circuits[0].ID)
+	if err != nil || len(launches) == 0 {
+		t.Fatalf("ListLaunchesByCircuit after migration: got %d err %v", len(launches), err)
+	}
+	jobs, err := s.ListJobsByLaunch(launches[0].ID)
+	if err != nil || len(jobs) == 0 {
+		t.Fatalf("ListJobsByLaunch after migration: got %d err %v", len(jobs), err)
+	}
+	cases, err := s.ListCasesByJob(jobs[0].ID)
 	if err != nil {
-		t.Fatalf("ListCasesByLaunch after migration: %v", err)
+		t.Fatalf("ListCasesByJob after migration: %v", err)
 	}
 	if len(cases) != 2 {
 		t.Errorf("migrated cases: got %d want 2", len(cases))

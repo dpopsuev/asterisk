@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"os"
-	"strconv"
 
 	"github.com/spf13/cobra"
 
-	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/rca"
 	"asterisk/adapters/store"
 )
@@ -38,67 +35,10 @@ func init() {
 }
 
 func runSave(cmd *cobra.Command, _ []string) error {
-	if saveFlags.caseID != 0 && saveFlags.suiteID != 0 {
-		return runSaveOrchestrated(cmd)
+	if saveFlags.caseID == 0 || saveFlags.suiteID == 0 {
+		return fmt.Errorf("--case-id and --suite-id are required")
 	}
-	return runSaveLegacy(cmd)
-}
-
-func runSaveLegacy(cmd *cobra.Command) error {
-	data, err := os.ReadFile(saveFlags.artifactPath)
-	if err != nil {
-		return fmt.Errorf("read artifact: %w", err)
-	}
-	var a rp.Artifact
-	if err := json.Unmarshal(data, &a); err != nil {
-		return fmt.Errorf("parse artifact: %w", err)
-	}
-	launchID, _ := strconv.Atoi(a.LaunchID)
-	if launchID == 0 {
-		return fmt.Errorf("invalid launch_id in artifact")
-	}
-
-	st, err := store.Open(saveFlags.dbPath)
-	if err != nil {
-		return fmt.Errorf("open store: %w", err)
-	}
-	defer st.Close()
-
-	title := a.RCAMessage
-	if len(title) > 80 {
-		title = title[:80] + "..."
-	}
-	if title == "" {
-		title = "RCA"
-	}
-	rcaID, err := st.SaveRCA(&store.RCA{
-		Title:       title,
-		Description: a.RCAMessage,
-		DefectType:  a.DefectType,
-	})
-	if err != nil {
-		return fmt.Errorf("save RCA: %w", err)
-	}
-	cases, _ := st.ListCasesByLaunch(launchID)
-	for _, c := range cases {
-		for _, itemID := range a.CaseIDs {
-			if c.RPItemID == itemID {
-				_ = st.LinkCaseToRCA(c.ID, rcaID)
-				break
-			}
-		}
-	}
-	if len(cases) == 0 {
-		for _, itemID := range a.CaseIDs {
-			caseID, err := st.CreateCase(launchID, itemID)
-			if err != nil {
-				continue
-			}
-			_ = st.LinkCaseToRCA(caseID, rcaID)
-		}
-	}
-	fmt.Fprintf(cmd.OutOrStdout(), "Saved RCA (id=%d); linked to %d case(s)\n", rcaID, len(a.CaseIDs))
-	return nil
+	return runSaveOrchestrated(cmd)
 }
 
 func runSaveOrchestrated(cmd *cobra.Command) error {

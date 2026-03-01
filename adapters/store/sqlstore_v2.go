@@ -457,8 +457,7 @@ func (s *SqlStore) CreateCaseV2(c *Case) (int64, error) {
 }
 
 func (s *SqlStore) GetCaseV2(id int64) (*Case, error) {
-	// Reuse GetCase — it already reads all v2 fields.
-	return s.GetCase(id)
+	return s.getCase(id)
 }
 
 func (s *SqlStore) ListCasesByJob(jobID int64) ([]*Case, error) {
@@ -795,8 +794,7 @@ func (s *SqlStore) SaveRCAV2(rca *RCA) (int64, error) {
 }
 
 func (s *SqlStore) GetRCAV2(id int64) (*RCA, error) {
-	// Reuse GetRCA — it already reads all v2 fields.
-	return s.GetRCA(id)
+	return s.getRCA(id)
 }
 
 func (s *SqlStore) ListRCAsByStatus(status string) ([]*RCA, error) {

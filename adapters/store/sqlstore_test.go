@@ -17,10 +17,10 @@ func TestSqlStore_Integration(t *testing.T) {
 	}
 	defer s.Close()
 
-	// Envelope
+	// Envelope (stored on launch via v1 envelope API)
 	env := &rp.Envelope{
-		RunID:  "33195",
-		Name:   "test-launch",
+		RunID: "33195",
+		Name:  "test-launch",
 		FailureList: []rp.FailureItem{
 			{ID: 1, Name: "fail1", Status: "FAILED"},
 			{ID: 2, Name: "fail2", Status: "FAILED"},
@@ -37,41 +37,64 @@ func TestSqlStore_Integration(t *testing.T) {
 		t.Errorf("GetEnvelope: got %+v", got)
 	}
 
-	// Cases
-	id1, err := s.CreateCase(33195, 1)
+	// Set up v2 hierarchy: Suite -> Version -> Circuit -> Launch -> Job -> Case
+	suiteID, err := s.CreateSuite(&InvestigationSuite{Name: "test-suite", Status: "active"})
 	if err != nil {
-		t.Fatalf("CreateCase 1: %v", err)
+		t.Fatalf("CreateSuite: %v", err)
 	}
-	_, err = s.CreateCase(33195, 2)
+	versionID, err := s.CreateVersion(&Version{Label: "v1.0"})
 	if err != nil {
-		t.Fatalf("CreateCase 2: %v", err)
+		t.Fatalf("CreateVersion: %v", err)
 	}
-	list, err := s.ListCasesByLaunch(33195)
+	circuitID, err := s.CreateCircuit(&Circuit{SuiteID: suiteID, VersionID: versionID, Name: "test-circuit"})
 	if err != nil {
-		t.Fatalf("ListCasesByLaunch: %v", err)
+		t.Fatalf("CreateCircuit: %v", err)
 	}
-	if len(list) != 2 {
-		t.Errorf("ListCasesByLaunch: want 2, got %d", len(list))
+	launchID, err := s.CreateLaunch(&Launch{CircuitID: circuitID, RPLaunchID: 33195, Name: "test-launch"})
+	if err != nil {
+		t.Fatalf("CreateLaunch: %v", err)
 	}
-	c, err := s.GetCase(id1)
-	if err != nil || c == nil || c.RPItemID != 1 || c.LaunchID == 0 {
-		t.Errorf("GetCase: got %+v err %v", c, err)
-	}
-	if c.Status != "open" {
-		t.Errorf("GetCase status: got %q want %q", c.Status, "open")
+	jobID, err := s.CreateJob(&Job{LaunchID: launchID, RPItemID: 0, Name: "default-job"})
+	if err != nil {
+		t.Fatalf("CreateJob: %v", err)
 	}
 
-	// RCA
-	rcaID, err := s.SaveRCA(&RCA{Title: "R1", Description: "desc", DefectType: "ti001"})
+	caseID1, err := s.CreateCaseV2(&Case{JobID: jobID, LaunchID: launchID, RPItemID: 1, Name: "case-1", Status: "open"})
 	if err != nil {
-		t.Fatalf("SaveRCA: %v", err)
+		t.Fatalf("CreateCaseV2 1: %v", err)
 	}
-	if err := s.LinkCaseToRCA(id1, rcaID); err != nil {
+	_, err = s.CreateCaseV2(&Case{JobID: jobID, LaunchID: launchID, RPItemID: 2, Name: "case-2", Status: "open"})
+	if err != nil {
+		t.Fatalf("CreateCaseV2 2: %v", err)
+	}
+
+	cases, err := s.ListCasesByJob(jobID)
+	if err != nil {
+		t.Fatalf("ListCasesByJob: %v", err)
+	}
+	if len(cases) != 2 {
+		t.Errorf("ListCasesByJob: want 2, got %d", len(cases))
+	}
+
+	c, err := s.GetCaseV2(caseID1)
+	if err != nil || c == nil || c.RPItemID != 1 {
+		t.Errorf("GetCaseV2: got %+v err %v", c, err)
+	}
+	if c.Status != "open" {
+		t.Errorf("GetCaseV2 status: got %q want %q", c.Status, "open")
+	}
+
+	// RCA via v2, then link and list
+	rcaID, err := s.SaveRCAV2(&RCA{Title: "R1", Description: "desc", DefectType: "ti001", Status: "open"})
+	if err != nil {
+		t.Fatalf("SaveRCAV2: %v", err)
+	}
+	if err := s.LinkCaseToRCA(caseID1, rcaID); err != nil {
 		t.Fatalf("LinkCaseToRCA: %v", err)
 	}
-	r, err := s.GetRCA(rcaID)
+	r, err := s.GetRCAV2(rcaID)
 	if err != nil || r == nil || r.Title != "R1" {
-		t.Errorf("GetRCA: got %+v err %v", r, err)
+		t.Errorf("GetRCAV2: got %+v err %v", r, err)
 	}
 	rcas, err := s.ListRCAs()
 	if err != nil || len(rcas) != 1 {

@@ -146,7 +146,10 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 // Returns the case results and the suite ID used for artifact directories.
 // When cfg.Parallel > 1, cases are processed concurrently via errgroup.
 func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int64, error) {
-	st := store.NewMemStore()
+	st, err := store.OpenMemory()
+	if err != nil {
+		return nil, 0, fmt.Errorf("open memory store: %w", err)
+	}
 
 	suite := &store.InvestigationSuite{Name: cfg.Scenario.Name, Status: "active"}
 	suiteID, err := st.CreateSuite(suite)
@@ -224,6 +227,7 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		caseData := &store.Case{
 			JobID:        jobMap[pk],
 			LaunchID:     launchMap[pk],
+			RPItemID:     i + 1,
 			Name:         gtCase.TestName,
 			Status:       "open",
 			ErrorMessage: gtCase.ErrorMessage,

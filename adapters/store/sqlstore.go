@@ -78,43 +78,7 @@ func (s *SqlStore) RawDB() *sqlite.DB {
 	return s.db
 }
 
-func (s *SqlStore) CreateCase(launchID, itemID int) (int64, error) {
-	var dbLaunchID int64
-	err := s.db.QueryRow(
-		"SELECT id FROM launches WHERE rp_launch_id = ? LIMIT 1", launchID,
-	).Scan(&dbLaunchID)
-	if errors.Is(err, sql.ErrNoRows) {
-		return 0, fmt.Errorf("no launch found for rp_launch_id=%d; use v2 methods to create the full hierarchy", launchID)
-	}
-	if err != nil {
-		return 0, fmt.Errorf("resolve launch: %w", err)
-	}
-
-	var jobID int64
-	err = s.db.QueryRow(
-		"SELECT id FROM jobs WHERE launch_id = ? LIMIT 1", dbLaunchID,
-	).Scan(&jobID)
-	if err != nil {
-		return 0, fmt.Errorf("resolve job: %w", err)
-	}
-
-	now := nowUTC()
-	res, err := s.db.Exec(
-		`INSERT INTO cases(job_id, launch_id, rp_item_id, name, status, rca_id, created_at, updated_at)
-		 VALUES(?, ?, ?, '', 'open', NULL, ?, ?)`,
-		jobID, dbLaunchID, itemID, now, now,
-	)
-	if err != nil {
-		return 0, fmt.Errorf("insert case: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("last insert id: %w", err)
-	}
-	return id, nil
-}
-
-func (s *SqlStore) GetCase(caseID int64) (*Case, error) {
+func (s *SqlStore) getCase(caseID int64) (*Case, error) {
 	var c Case
 	var rcaID, symptomID, jobID, logTrunc sql.NullInt64
 	var polarionID, errMsg, logSnip, startedAt, endedAt sql.NullString
@@ -146,70 +110,6 @@ func (s *SqlStore) GetCase(caseID int64) (*Case, error) {
 	return &c, nil
 }
 
-func (s *SqlStore) ListCasesByLaunch(launchID int) ([]*Case, error) {
-	rows, err := s.db.Query(
-		`SELECT c.id, c.job_id, c.launch_id, c.rp_item_id, c.name, c.status, c.rca_id
-		 FROM cases c
-		 JOIN launches l ON c.launch_id = l.id
-		 WHERE l.rp_launch_id = ?
-		 ORDER BY c.id`,
-		launchID,
-	)
-	if err != nil {
-		return nil, fmt.Errorf("list cases: %w", err)
-	}
-	defer rows.Close()
-	var list []*Case
-	for rows.Next() {
-		var c Case
-		var rcaID, jobID sql.NullInt64
-		if err := rows.Scan(&c.ID, &jobID, &c.LaunchID, &c.RPItemID, &c.Name, &c.Status, &rcaID); err != nil {
-			return nil, fmt.Errorf("scan case: %w", err)
-		}
-		if jobID.Valid {
-			c.JobID = jobID.Int64
-		}
-		if rcaID.Valid {
-			c.RCAID = rcaID.Int64
-		}
-		list = append(list, &c)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("list cases: %w", err)
-	}
-	return list, nil
-}
-
-func (s *SqlStore) SaveRCA(rca *RCA) (int64, error) {
-	if rca == nil {
-		return 0, errors.New("rca is nil")
-	}
-	now := nowUTC()
-	if rca.ID != 0 {
-		_, err := s.db.Exec(
-			"UPDATE rcas SET title=?, description=?, defect_type=?, jira_ticket_id=?, jira_link=? WHERE id=?",
-			rca.Title, rca.Description, rca.DefectType, rca.JiraTicketID, rca.JiraLink, rca.ID,
-		)
-		if err != nil {
-			return 0, fmt.Errorf("update rca: %w", err)
-		}
-		return rca.ID, nil
-	}
-	res, err := s.db.Exec(
-		`INSERT INTO rcas(title, description, defect_type, jira_ticket_id, jira_link, status, created_at)
-		 VALUES(?, ?, ?, ?, ?, 'open', ?)`,
-		rca.Title, rca.Description, rca.DefectType, rca.JiraTicketID, rca.JiraLink, now,
-	)
-	if err != nil {
-		return 0, fmt.Errorf("insert rca: %w", err)
-	}
-	id, err := res.LastInsertId()
-	if err != nil {
-		return 0, fmt.Errorf("last insert id: %w", err)
-	}
-	return id, nil
-}
-
 func (s *SqlStore) LinkCaseToRCA(caseID, rcaID int64) error {
 	_, err := s.db.Exec("UPDATE cases SET rca_id = ? WHERE id = ?", rcaID, caseID)
 	if err != nil {
@@ -218,7 +118,7 @@ func (s *SqlStore) LinkCaseToRCA(caseID, rcaID int64) error {
 	return nil
 }
 
-func (s *SqlStore) GetRCA(rcaID int64) (*RCA, error) {
+func (s *SqlStore) getRCA(rcaID int64) (*RCA, error) {
 	var r RCA
 	var cat, comp, affVer, evRefs, jiraID, jiraLink sql.NullString
 	var resolvedAt, verifiedAt, archivedAt sql.NullString
