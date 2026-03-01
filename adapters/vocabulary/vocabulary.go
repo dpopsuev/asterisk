@@ -1,5 +1,5 @@
 // Package vocabulary provides the Asterisk domain vocabulary as a
-// RichMapVocabulary. It registers defect types, pipeline stages,
+// RichMapVocabulary. It registers defect types, circuit stages,
 // metrics, and heuristics — all four display-name domains.
 package vocabulary
 
@@ -23,7 +23,7 @@ type vocabFile struct {
 }
 
 // New builds and returns a fully populated RichMapVocabulary containing
-// all Asterisk domain codes: defect types, pipeline stages, metrics,
+// all Asterisk domain codes: defect types, circuit stages, metrics,
 // and heuristics.
 func New() *framework.RichMapVocabulary {
 	v := framework.NewRichMapVocabulary()

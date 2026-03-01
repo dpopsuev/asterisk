@@ -5,9 +5,9 @@ description: Shared domain definitions for Asterisk
 # Glossary
 
 - **Asterisk** — Standalone Go CLI for RCA on test failures using external repos and CI/infra context. **Command:** `asterisk`. Interacts with ReportPortal via the **RP API** (client, not an RP plugin). Built on the Origami framework.
-- **RCA** — Root Cause Analysis based on evidence (logs, commits, pipeline context).
+- **RCA** — Root Cause Analysis based on evidence (logs, commits, circuit context).
 - **RP** — ReportPortal.
-- **Origami** — The agentic pipeline framework that Asterisk is built on. Separate repo at `github.com/dpopsuev/origami`. For framework terms (Node, Edge, Graph, Walker, Element, Persona, Extractor, etc.), see the Origami glossary.
+- **Origami** — The agentic circuit framework that Asterisk is built on. Separate repo at `github.com/dpopsuev/origami`. For framework terms (Node, Edge, Graph, Walker, Element, Persona, Extractor, etc.), see the Origami glossary.
 - **Achilles** — Go vulnerability scanner, the second Origami reference implementation. `github.com/dpopsuev/achilles`.
 - **MCP** — Model Context Protocol; standardized tool interface for AI to access external systems.
 - **Execution DB** — Source of execution data (launch, test items, failures). **RP is the Execution DB:** envelope and failure list come from Report Portal via API (e.g. launch by ID). See `docs/envelope-mental-model.mdc`.
@@ -15,7 +15,7 @@ description: Shared domain definitions for Asterisk
 - **Context Workspace** — key-value config on FS (YAML/JSON/TOML) listing pointers to local or remote git repos plus **agentic meta** (purpose/role per repo for RCA). See `docs/context-workspace.mdc`.
 - **ExecutionEnvelope** — adapter-normalized run container used as Asterisk analysis input. Includes **vital git metadata** (`git.branch`, `git.commit`, optional `git.remote`/repo URL). See `docs/execution-envelope.mdc`.
 - **Investigation case** — one failed test case; unit of agent work. Keyed by **investigation envelope** (job ID, run path, failed test name, etc.). See `docs/cli-data-model.mdc`.
-- **Storage adapter** — abstraction over persistence (cases, RCAs, pipeline hierarchy). Implementation is SQLite today, swappable later. See `docs/cli-data-model.mdc`.
+- **Storage adapter** — abstraction over persistence (cases, RCAs, circuit hierarchy). Implementation is SQLite today, swappable later. See `docs/cli-data-model.mdc`.
 - **Investigation envelope** — context identifying a single failure (job ID, run ID, clock type, artifact paths); used to key investigation cases and avoid duplicates.
 - **RCA** (in data model) — first-class entity in DB: title, description, defect type, evidence; optional **Jira ticket ID** and **Jira link**. Many cases can reference one RCA. See `docs/cli-data-model.mdc`.
 - **Convergence check** — the process of deciding whether the analysis has converged on an RCA; outcome gates the next step.
@@ -30,7 +30,7 @@ Three calibration modes form a progression. Each adds a variable.
 
 | Mode | Adapter | Scenario | What it validates |
 |------|---------|----------|-------------------|
-| **Stub** | Stub (canned responses) | Mock (synthetic) | Pipeline machinery, heuristics, scoring math. Deterministic. |
+| **Stub** | Stub (canned responses) | Mock (synthetic) | Circuit machinery, heuristics, scoring math. Deterministic. |
 | **Dry** | Cursor (real LLM) | Mock (synthetic) | Prompt quality and model behavior against synthetic ground truth. LLM fires, but at blank targets. Army analogy: dry fire — weapon cycles, no live ammo. |
 | **Wet** | Cursor (real LLM) | Real (production data) | End-to-end production accuracy. LLM fires at real RP failures with real repos. Army analogy: wet fire — loaded guns, live range. |
 
@@ -57,7 +57,7 @@ A failed **Test Case** is a witness reporting a crime. The **Symptom** is the st
 
 - **Investigation Suite** -- Top-level grouping for a regression analysis. Spans versions.
 - **Version** -- Product/OCP version (e.g. `4.21`). First-class entity shared across suites.
-- **Pipeline** -- One CI pipeline run for one version. Bound to a suite + version. Contains launches.
+- **Circuit** -- One CI circuit run for one version. Bound to a suite + version. Contains launches.
 - **Launch** -- One RP launch. Contains jobs. Stores extracted fields plus full envelope payload.
 - **Job** -- One test execution group within a launch. Contains cases. Carries execution stats.
 - **Triage** -- F1 prompt family output per case. Records symptom category, severity, defect type hypothesis.

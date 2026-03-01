@@ -69,7 +69,7 @@ func (c RunConfig) ResolvedGapInconclusiveThreshold() float64 {
 }
 
 // RunCalibration executes the full calibration loop.
-// For each run: create a fresh store, run all cases through the pipeline, score.
+// For each run: create a fresh store, run all cases through the circuit, score.
 // The context enables cancellation of in-flight work across all goroutines.
 func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, error) {
 	if cfg.BasePath == "" {
@@ -166,25 +166,25 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		}
 	}
 
-	pipelineMap := make(map[pipeKey]int64)
+	circuitMap := make(map[pipeKey]int64)
 	jobMap := make(map[pipeKey]int64)
 	launchMap := make(map[pipeKey]int64)
 
 	for _, c := range cfg.Scenario.Cases {
 		pk := pipeKey{c.Version, c.Job}
-		if _, exists := pipelineMap[pk]; !exists {
-			pipe := &store.Pipeline{
+		if _, exists := circuitMap[pk]; !exists {
+			pipe := &store.Circuit{
 				SuiteID: suiteID, VersionID: versionMap[c.Version],
 				Name: fmt.Sprintf("CI %s %s", c.Version, c.Job), Status: "complete",
 			}
-			pipeID, err := st.CreatePipeline(pipe)
+			pipeID, err := st.CreateCircuit(pipe)
 			if err != nil {
-				return nil, suiteID, fmt.Errorf("create pipeline: %w", err)
+				return nil, suiteID, fmt.Errorf("create circuit: %w", err)
 			}
-			pipelineMap[pk] = pipeID
+			circuitMap[pk] = pipeID
 
 			launch := &store.Launch{
-				PipelineID: pipeID, RPLaunchID: 0,
+				CircuitID: pipeID, RPLaunchID: 0,
 				Name: fmt.Sprintf("Launch %s %s", c.Version, c.Job), Status: "complete",
 			}
 			launchID, err := st.CreateLaunch(launch)
@@ -248,16 +248,16 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		logger.Info("processing case",
 			"case_id", entry.gtCase.ID, "index", i+1, "total", len(entries), "test", entry.gtCase.TestName)
 
-		result, err := runCasePipeline(gCtx, st, entry.caseData, suiteID, entry.gtCase, cfg)
+		result, err := runCaseCircuit(gCtx, st, entry.caseData, suiteID, entry.gtCase, cfg)
 		if err != nil {
-			logger.Error("case pipeline failed", "case_id", entry.gtCase.ID, "error", err)
+			logger.Error("case circuit failed", "case_id", entry.gtCase.ID, "error", err)
 			result = &CaseResult{
 				CaseID:        entry.gtCase.ID,
 				TestName:      entry.gtCase.TestName,
 				Version:       entry.gtCase.Version,
 				Job:           entry.gtCase.Job,
 				StoreCaseID:   entry.caseData.ID,
-				PipelineError: err.Error(),
+				CircuitError: err.Error(),
 			}
 		}
 
@@ -326,11 +326,11 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 	}
 }
 
-// runCasePipeline drives the pipeline for a single case using framework
+// runCaseCircuit drives the circuit for a single case using framework
 // Runner.Walk(). The calibrationWalker handles adapter dispatch, artifact
 // parsing, metric extraction, and store side effects. The framework graph
 // walk handles edge evaluation (heuristics) and state advancement.
-func runCasePipeline(
+func runCaseCircuit(
 	ctx context.Context,
 	st store.Store,
 	caseData *store.Case,
@@ -371,7 +371,7 @@ func runCasePipeline(
 	})
 
 	if err := runner.Walk(ctx, walker, "recall"); err != nil {
-		return result, fmt.Errorf("pipeline walk: %w", err)
+		return result, fmt.Errorf("circuit walk: %w", err)
 	}
 
 	// Persist the case state to disk so transcript weaving can read it.
@@ -417,7 +417,7 @@ func runCasePipeline(
 
 
 // extractStepMetrics populates CaseResult fields from per-step artifacts.
-func extractStepMetrics(result *CaseResult, step PipelineStep, artifact any, gt GroundTruthCase) {
+func extractStepMetrics(result *CaseResult, step CircuitStep, artifact any, gt GroundTruthCase) {
 	switch step {
 	case StepF0Recall:
 		if r, ok := artifact.(*RecallResult); ok && r != nil {
@@ -551,13 +551,13 @@ func updateIDMaps(mapper IDMappable, st store.Store, caseData *store.Case, gtCas
 	}
 }
 
-// pipeKey uniquely identifies a (version, job) combination for pipeline/launch/job mapping.
+// pipeKey uniquely identifies a (version, job) combination for circuit/launch/job mapping.
 type pipeKey struct{ version, job string }
 
 // stepName returns the short machine code (F0, F1, ...) for internal path tracking.
 // Use vocabName() or vocabStagePath() to humanize for output.
-func stepName(s PipelineStep) string {
-	m := map[PipelineStep]string{
+func stepName(s CircuitStep) string {
+	m := map[CircuitStep]string{
 		StepF0Recall:    "F0",
 		StepF1Triage:    "F1",
 		StepF2Resolve:   "F2",

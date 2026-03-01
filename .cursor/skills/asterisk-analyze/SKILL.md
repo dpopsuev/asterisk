@@ -138,7 +138,7 @@ Every artifact must be wrapped with the `dispatch_id`:
 
 Wrong or missing `dispatch_id` causes the dispatcher to ignore the artifact.
 
-### Pipeline steps
+### Circuit steps
 
 | Step | Question | Key output |
 |------|----------|------------|
@@ -226,7 +226,7 @@ The Go process fails fast instead of waiting for timeout.
 
 ### Present the RCA report
 
-After the pipeline completes, the `--report` flag produces a Markdown report.
+After the circuit completes, the `--report` flag produces a Markdown report.
 **Read** the `.md` file and **present its contents to the user verbatim**.
 
 ```bash
@@ -256,7 +256,7 @@ Each parallel slot runs an independent pull-dispatch-submit loop (see `agent-bus
 
 ### Sticky subagents
 
-Subagents persist across pipeline steps for the same case using the `Task` tool's `resume` parameter. Maintain a `case_id -> agent_id` map:
+Subagents persist across circuit steps for the same case using the `Task` tool's `resume` parameter. Maintain a `case_id -> agent_id` map:
 
 - **First step for a case:** spawn a fresh `Task` subagent; store `agent_id`.
 - **Subsequent steps:** `Task(resume=agent_id)` — the subagent retains prior context (triage, repos, error messages).
@@ -292,7 +292,7 @@ When triggered with no args, "help", or non-numeric input:
 >
 > **What it does:**
 >
-> Fetches failures from the RP launch, runs the F0-F6 evidence pipeline with
+> Fetches failures from the RP launch, runs the F0-F6 evidence circuit with
 > the Cursor agent as the AI reasoning engine, and produces an RCA artifact
 > with defect classifications, suspected components, and confidence scores.
 

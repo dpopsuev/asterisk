@@ -11,13 +11,13 @@ The first Asterisk Kabuki demo was presented using the initial `demo-presentatio
 
 ### 1. No live action
 
-The demo had no War Room — just a passive graph with an event log. No agent tabs, no TX/RX panels, no pause/resume controls. The audience couldn't see the multi-agent pipeline in action.
+The demo had no War Room — just a passive graph with an event log. No agent tabs, no TX/RX panels, no pause/resume controls. The audience couldn't see the multi-agent circuit in action.
 
 **Fix:** Redesigned `LiveDemoSection` as a War Room: agent tabs (colored by element), TX/RX panels showing selected agent's prompt/response, pause/resume via WebSocket, RCA case tabs. Works in both replay and live mode.
 
 ### 2. Poor graph
 
-`PipelineGraph` used flat horizontal layout (`x: 200*i, y: 100`). No auto-layout, no edge arrows, no hover tooltips. Nodes were uniform grey circles that conveyed no information about pipeline topology.
+`CircuitGraph` used flat horizontal layout (`x: 200*i, y: 100`). No auto-layout, no edge arrows, no hover tooltips. Nodes were uniform grey circles that conveyed no information about circuit topology.
 
 **Fix:** Replaced with dagre auto-layout (`@dagrejs/dagre`), directional edge arrows, hover tooltips from theme `NodeDescriptions()`, element-colored active nodes, `@keyframes node-pulse` blink animation, dark grey unvisited nodes.
 

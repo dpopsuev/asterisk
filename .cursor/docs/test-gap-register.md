@@ -29,8 +29,8 @@ Severity-rated test coverage gaps with function-level detail. Updated as part of
 - **File:** `internal/calibrate/runner.go` (~450 LOC)
 - **Functions:** `RunCalibration`, `runSingleCalibration`
 - **Current coverage:** Only via `parallel_test.go` which tests the parallel wrapper, not the core runner logic.
-- **Risk:** Pipeline sequencing bugs, state transition errors.
-- **Remediation:** Create `runner_test.go` with minimal store + stub adapter, testing pipeline step sequencing and state transitions.
+- **Risk:** Circuit sequencing bugs, state transition errors.
+- **Remediation:** Create `runner_test.go` with minimal store + stub adapter, testing circuit step sequencing and state transitions.
 - **Contract:** `critical-test-coverage.md`
 
 #### GAP-C3: `calibrate/analysis.go` — No test for RunAnalysis
@@ -38,7 +38,7 @@ Severity-rated test coverage gaps with function-level detail. Updated as part of
 - **File:** `internal/calibrate/analysis.go` (~370 LOC)
 - **Functions:** `RunAnalysis`, `FormatAnalysisReport`
 - **Current coverage:** Zero tests. `RunAnalysis` drives the full F0–F6 analysis flow.
-- **Risk:** Analysis pipeline breakage goes undetected.
+- **Risk:** Analysis circuit breakage goes undetected.
 - **Remediation:** Unit test with stub adapter + fixture envelope.
 - **Contract:** `critical-test-coverage.md`
 

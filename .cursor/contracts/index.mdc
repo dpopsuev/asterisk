@@ -10,13 +10,12 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `rca-pure-dsl.md` | Marble discovery: decompose rca/ (30 files, 6.2K LOC) into reusable Origami marbles. Ph1-2 done, Ph3-5 partial. | gate |
+| `rca-pure-dsl.md` | Marble discovery: decompose rca/ (32 files, 5.6K LOC) into reusable Origami marbles. Ph1-3 done, Ph4-5 partial. | gate |
 
 ## draft/ -- Planned, not yet being executed
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `scorer-pattern.md` | Batch scorer patterns in Origami; 21 Asterisk scorers to YAML declarations. Split from rca-pure-dsl G5. | gate |
 | `origami-fold.md` | `origami fold` compiles YAML project to binary; eliminates cmd/, mcpconfig/ (~3,700 LOC). Split from rca-pure-dsl G8. | gate |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
@@ -52,7 +51,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 
 | Contract | Goal |
 |----------|------|
-| `prompt-families.md` | Prompt family taxonomy (F0-F6), pipelines, loops, routing heuristics. |
+| `prompt-families.md` | Prompt family taxonomy (F0-F6), circuits, loops, routing heuristics. |
 | `investigation-context.md` | Two-tier data model: investigation tree + global knowledge. |
 
 ### completed/poc-v2/ (9)
@@ -61,7 +60,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 |----------|------|
 | `logging-standardization.md` | Standardize all logs on `log/slog` with per-module `component` attribute, level gating, and CLI flags. |
 | `storage-adapter-v2.md` | Migrate Store to two-tier schema (execution tree + symptoms + RCAs). |
-| `prompt-orchestrator.md` | F0-F6 pipeline engine: heuristics, artifact I/O, template filler, CLI. |
+| `prompt-orchestrator.md` | F0-F6 circuit engine: heuristics, artifact I/O, template filler, CLI. |
 | `e2e-calibration.md` | Closed-world E2E test: 20 metrics, 3 scenarios, all stub-passing. |
 | `phase-5a-mitigation.md` | Phase 5a mitigation umbrella: taxonomy translator, color-coded agents, workspace MVP, dataset expansion. All 9 tasks complete. |
 | `workspace-mvp.md` | Wire RP launch attrs, Jira links, repo paths into prompts. Resolution status. M12/M13=0.00 → >0. 11 tasks, 5 tests. |
@@ -69,7 +68,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `data-swipe.md` | Scrub internal infrastructure hostnames from git history. |
 | `improve-human-operator-output.md` | Human narration during calibration: vocabulary, templates, ETA, position tags. |
 
-### completed/pipeline/ (3)
+### completed/circuit/ (3)
 
 | Contract | Goal |
 |----------|------|
@@ -112,9 +111,9 @@ Grouped by original development phase. All contracts below are **complete** (or 
 
 The following completed contract groups were moved to `github.com/dpopsuev/origami/.cursor/contracts/completed/`:
 - **framework/** (14 contracts) — Tomes I-IV: ontology, DSL, elements, cycles, personas, masks, adversarial dialectic, Ouroboros (metacalibration), discovery.
-- **mcp/** (5 contracts) — MCP server, pipeline tools, calibration mode, underload decouple, Ouroboros server.
+- **mcp/** (5 contracts) — MCP server, circuit tools, calibration mode, underload decouple, Ouroboros server.
 - **multi-subagent/** (4 contracts) — batch dispatch, adaptive scheduler, multi-subagent skill.
-- Cherry-picks from pipeline/ (fs-dispatcher, cleanup-lifecycle) and poc-v2/ (concurrent-subagents, subagent-testing).
+- Cherry-picks from circuit/ (fs-dispatcher, cleanup-lifecycle) and poc-v2/ (concurrent-subagents, subagent-testing).
 
 ### completed/architecture/ (7)
 
@@ -126,7 +125,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `concurrency-modernization.md` | errgroup + context.Context propagation; eliminate mutable globals. |
 | `deadcode-dedup-architecture.md` | Remove dead code, catalog deduplication candidates, produce boundary map. Stale framework files deleted. |
 | `rename-origami-to-dataset.md` | Rename `internal/origami/` to `internal/dataset/`. Mechanical rename, no behavior changes. |
-| `investigate-pipeline-artifact-store.md` | Investigated `internal/store/`: v1 alive (5 callers), no generic extraction, no interface split needed. Investigation-only. |
+| `investigate-circuit-artifact-store.md` | Investigated `internal/store/`: v1 alive (5 callers), no generic extraction, no interface split needed. Investigation-only. |
 
 ### completed/knowledge-store/ (3)
 
@@ -144,18 +143,19 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `principled-calibration-scorecard.md` | Replace arbitrary metric thresholds with ROI-grounded analysis; declarative ScoreCard YAML. Bundle 1. |
 | `refine-rtfm-routing-policy.md` | Replace RTFM node with `ReadPolicy` on Origami `Source`; prompt injection replaces dedicated graph node. Bundle 3. |
 | `improve-asterisk-kabuki-demo.md` | Three-act Kabuki demo: War Room, grounded language, interactive graphs, 26 sections, responsive scaling. Bundle 4. |
-| `data-ingestion-pipeline.md` | Data ingestion as DSL pipeline (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review. |
+| `data-ingestion-circuit.md` | Data ingestion as DSL circuit (`asterisk-ingest.yaml`). RP source adapter, symptom matching, dedup, candidate creation, human review. |
 | `asterisk-internal-cleanup.md` | Merge `internal/` packages (`orchestrate`, `calibrate`, `investigate`, `ingest`) into `adapters/`; pure-DSL migration. |
-| `evidence-gap-brief.md` | Structured "what's missing" output when pipeline confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
+| `evidence-gap-brief.md` | Structured "what's missing" output when circuit confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |
 
-### completed/dsl-migration/ (3)
+### completed/dsl-migration/ (4)
 
 | Contract | Goal |
 |----------|------|
 | `sqlite-dsl-adapter.md` | YAML-defined SQLite adapter in Origami; Asterisk schema.go replaced by schema.yaml + migrations. |
 | `data-dsl-extraction.md` | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. Loaders remain (121 LOC). |
 | `adapter-migration.md` | RP adapter lift-and-drop to Origami. Residual `rp_source.go` (93 LOC) covered by rca-pure-dsl. |
+| `scorer-pattern.md` | 10 batch scorer patterns in Origami; 21 Asterisk scorers expressed as YAML declarations. Split from rca-pure-dsl G5. |
 
 ### completed/presentation/ (1)
 
@@ -178,7 +178,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 
 | Contract | Goal |
 |----------|------|
-| `ground-truth-dataset.md` | Grow dataset to 50+. Phases 1-2 done. Absorbed by `data-ingestion-pipeline` + `consumer-cli-scaffold`. |
+| `ground-truth-dataset.md` | Grow dataset to 50+. Phases 1-2 done. Absorbed by `data-ingestion-circuit` + `consumer-cli-scaffold`. |
 | `knowledge-source-migration.md` | Migrate to `knowledge` types. Phase 1 done. Absorbed by `refine-rtfm-routing-policy` + `knowledge-source-evolution`. |
 
 ---

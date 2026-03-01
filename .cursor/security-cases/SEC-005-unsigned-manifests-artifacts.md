@@ -18,7 +18,7 @@ Batch manifest (`batch-manifest.json`), signal files (`signal.json`), and artifa
 
 - **Confidentiality:** N/A (no secrets in manifests).
 - **Integrity:** Tampered artifacts lead to incorrect RCA conclusions. Tampered manifests could redirect subagent work.
-- **Availability:** Corrupted manifests could halt the pipeline.
+- **Availability:** Corrupted manifests could halt the circuit.
 
 ## Reproduction
 

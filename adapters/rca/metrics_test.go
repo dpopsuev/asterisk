@@ -359,7 +359,7 @@ func TestScorerM15_ComponentIdentification(t *testing.T) {
 	}
 }
 
-func TestScorerM16_PipelinePathAccuracy(t *testing.T) {
+func TestScorerM16_CircuitPathAccuracy(t *testing.T) {
 	scenario := buildFixtureScenario()
 	tests := []struct {
 		name    string

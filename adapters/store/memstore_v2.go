@@ -18,8 +18,8 @@ type memStoreV2 struct {
 	versions        map[int64]*Version
 	versionsByLabel map[string]int64
 	nextVersion     int64
-	pipelines       map[int64]*Pipeline
-	nextPipeline    int64
+	circuits       map[int64]*Circuit
+	nextCircuit    int64
 	launches        map[int64]*Launch
 	nextLaunch      int64
 	jobs            map[int64]*Job
@@ -45,7 +45,7 @@ func (s *MemStore) v2() *memStoreV2 {
 		s.v2data.suites = make(map[int64]*InvestigationSuite)
 		s.v2data.versions = make(map[int64]*Version)
 		s.v2data.versionsByLabel = make(map[string]int64)
-		s.v2data.pipelines = make(map[int64]*Pipeline)
+		s.v2data.circuits = make(map[int64]*Circuit)
 		s.v2data.launches = make(map[int64]*Launch)
 		s.v2data.jobs = make(map[int64]*Job)
 		s.v2data.casesV2 = make(map[int64]*Case)
@@ -170,26 +170,26 @@ func (s *MemStore) ListVersions() ([]*Version, error) {
 	return out, nil
 }
 
-// --- Pipeline ---
+// --- Circuit ---
 
-func (s *MemStore) CreatePipeline(p *Pipeline) (int64, error) {
+func (s *MemStore) CreateCircuit(p *Circuit) (int64, error) {
 	if p == nil {
-		return 0, errors.New("pipeline is nil")
+		return 0, errors.New("circuit is nil")
 	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	d := s.v2()
-	d.nextPipeline++
+	d.nextCircuit++
 	cp := *p
-	cp.ID = d.nextPipeline
-	d.pipelines[cp.ID] = &cp
+	cp.ID = d.nextCircuit
+	d.circuits[cp.ID] = &cp
 	return cp.ID, nil
 }
 
-func (s *MemStore) GetPipeline(id int64) (*Pipeline, error) {
+func (s *MemStore) GetCircuit(id int64) (*Circuit, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	v, ok := s.v2().pipelines[id]
+	v, ok := s.v2().circuits[id]
 	if !ok {
 		return nil, nil
 	}
@@ -197,11 +197,11 @@ func (s *MemStore) GetPipeline(id int64) (*Pipeline, error) {
 	return &cp, nil
 }
 
-func (s *MemStore) ListPipelinesBySuite(suiteID int64) ([]*Pipeline, error) {
+func (s *MemStore) ListCircuitsBySuite(suiteID int64) ([]*Circuit, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	var out []*Pipeline
-	for _, p := range s.v2().pipelines {
+	var out []*Circuit
+	for _, p := range s.v2().circuits {
 		if p.SuiteID == suiteID {
 			cp := *p
 			out = append(out, &cp)
@@ -237,11 +237,11 @@ func (s *MemStore) GetLaunch(id int64) (*Launch, error) {
 	return &cp, nil
 }
 
-func (s *MemStore) GetLaunchByRPID(pipelineID int64, rpLaunchID int) (*Launch, error) {
+func (s *MemStore) GetLaunchByRPID(circuitID int64, rpLaunchID int) (*Launch, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	for _, l := range s.v2().launches {
-		if l.PipelineID == pipelineID && l.RPLaunchID == rpLaunchID {
+		if l.CircuitID == circuitID && l.RPLaunchID == rpLaunchID {
 			cp := *l
 			return &cp, nil
 		}
@@ -249,12 +249,12 @@ func (s *MemStore) GetLaunchByRPID(pipelineID int64, rpLaunchID int) (*Launch, e
 	return nil, nil
 }
 
-func (s *MemStore) ListLaunchesByPipeline(pipelineID int64) ([]*Launch, error) {
+func (s *MemStore) ListLaunchesByCircuit(circuitID int64) ([]*Launch, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var out []*Launch
 	for _, l := range s.v2().launches {
-		if l.PipelineID == pipelineID {
+		if l.CircuitID == circuitID {
 			cp := *l
 			out = append(out, &cp)
 		}

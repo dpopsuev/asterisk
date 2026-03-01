@@ -9,7 +9,7 @@
 - Changes span **two repos**: Origami (framework `Source` type, router logic) and Asterisk (delete `internal/rtfm/`, remove `context` node, update prompt templates).
 - `ReadPolicy` is a framework-level concept on Origami's `Source`. Asterisk consumes it; Asterisk does not define its own parallel policy type.
 - Backward compatible: sources without an explicit `ReadPolicy` default to `conditional` (existing behavior unchanged).
-- The "always" policy means the source content is injected into every pipeline run regardless of tag matching or routing rules. It is mandatory prerequisite knowledge.
+- The "always" policy means the source content is injected into every circuit run regardless of tag matching or routing rules. It is mandatory prerequisite knowledge.
 - The "conditional" policy means the source follows existing `RouteRule` logic — included only when tags match.
 - `ReadWhen` is a human-readable condition string for conditional sources (e.g., "when investigating PTP operator failures"). It serves documentation and demo purposes, not runtime logic.
 - **RTFM is fully superseded.** The `context` node, edges H6/H6b, `DocRegistry`, `DocEntry`, `DocSourceConfig`, and `ContextResult` are all deleted. No shims, no deprecation markers.
@@ -86,7 +86,7 @@ flowchart LR
 
 ## Execution strategy
 
-Phase 1 adds `ReadPolicy` and `ReadWhen` to Origami's `Source` type and updates the router to always include always-read sources. Phase 2 deletes `internal/rtfm/`, removes the `context` node from the pipeline YAML, deletes `DocSourceConfig`, and updates `params.go` to inject always-read source content via `{{always_read_sources}}`. Phase 3 converts existing PTP doc sources to `Source{ReadPolicy: Always}` in the knowledge catalog. Phase 4 validates across both repos.
+Phase 1 adds `ReadPolicy` and `ReadWhen` to Origami's `Source` type and updates the router to always include always-read sources. Phase 2 deletes `internal/rtfm/`, removes the `context` node from the circuit YAML, deletes `DocSourceConfig`, and updates `params.go` to inject always-read source content via `{{always_read_sources}}`. Phase 3 converts existing PTP doc sources to `Source{ReadPolicy: Always}` in the knowledge catalog. Phase 4 validates across both repos.
 
 ## Coverage matrix
 
@@ -95,7 +95,7 @@ Phase 1 adds `ReadPolicy` and `ReadWhen` to Origami's `Source` type and updates 
 | **Unit** | yes | Router always-read bypass, params.go injects always-read content, default policy backward compat |
 | **Integration** | yes | Stub calibration passes without context node, always-read doc content appears in prompt |
 | **Contract** | yes | Source struct fields, ReadPolicy enum values, router behavior with always-read sources |
-| **E2E** | yes | Full pipeline walk with `context` node removed, always-read content injected, metrics unchanged |
+| **E2E** | yes | Full circuit walk with `context` node removed, always-read content injected, metrics unchanged |
 | **Concurrency** | no | Source catalog is read-only at runtime |
 | **Security** | no | No trust boundaries affected — local file reads, same as today |
 
@@ -113,7 +113,7 @@ Phase 1 adds `ReadPolicy` and `ReadWhen` to Origami's `Source` type and updates 
 ### Phase 2 — Delete RTFM, inject into prompts (Asterisk)
 
 - [ ] **R1** Delete `internal/rtfm/` package entirely (registry.go and all tests)
-- [ ] **R2** Remove `context` node from `pipelines/asterisk-rca.yaml`
+- [ ] **R2** Remove `context` node from `circuits/asterisk-rca.yaml`
 - [ ] **R3** Remove edges H6 (triage→context) and H6b (context→resolve); add direct edge triage→resolve
 - [ ] **R4** Delete `DocSourceConfig` from `internal/calibrate/types.go`
 - [ ] **R5** Delete `ContextResult` artifact type and all references to `Prior.ContextResult` in prompt templates
@@ -153,8 +153,8 @@ Phase 1 adds `ReadPolicy` and `ReadWhen` to Origami's `Source` type and updates 
 **When** `params.go` builds prompt parameters for the F2_RESOLVE step,  
 **Then** the doc content is injected into the prompt via `{{always_read_sources}}` without requiring a `context` node.
 
-**Given** `pipelines/asterisk-rca.yaml` with the `context` node removed,  
-**When** the pipeline graph is built,  
+**Given** `circuits/asterisk-rca.yaml` with the `context` node removed,  
+**When** the circuit graph is built,  
 **Then** `triage` connects directly to `resolve` via a single edge. No context node exists in the graph.
 
 **Given** `just calibrate-stub` with RTFM deleted and ReadPolicy injecting doc content,  

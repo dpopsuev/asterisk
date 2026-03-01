@@ -35,8 +35,8 @@
 - [x] Retrofit `agent-adapter-overloading.md` — added Current Architecture (single-adapter path, 1 flowchart) and Desired Architecture (three-layer routing, 1 flowchart)
 - [x] Retrofit `defect-court.md` — added Current Architecture (linear F0-F6, 1 flowchart) and Desired Architecture (D0-D4 court phase, 1 flowchart + 1 sequenceDiagram for role interaction)
 - [x] Retrofit `workspace-revisited.md` — added Current Architecture (flat repo list, 1 flowchart) and Desired Architecture (layered catalog with resolution chain, 1 flowchart)
-- [x] Extend `docs/architecture.md` — added 3 diagrams: pipeline flow (flowchart), adapter dispatch (sequenceDiagram), MCP session lifecycle (sequenceDiagram). Total now 4 mermaid diagrams.
-- [x] Validate — all 3 contracts have Current/Desired sections with mermaid diagrams; `docs/architecture.md` has 4 diagrams; pipeline flow in architecture.md matches F0-F6 referenced in contract Current Architecture sections
+- [x] Extend `docs/architecture.md` — added 3 diagrams: circuit flow (flowchart), adapter dispatch (sequenceDiagram), MCP session lifecycle (sequenceDiagram). Total now 4 mermaid diagrams.
+- [x] Validate — all 3 contracts have Current/Desired sections with mermaid diagrams; `docs/architecture.md` has 4 diagrams; circuit flow in architecture.md matches F0-F6 referenced in contract Current Architecture sections
 - [x] Tune — 11 diagrams across 4 files reviewed; taxonomy-compliant (flowchart, sequenceDiagram); no redundancy
 - [x] Validate — all diagrams present, no orphaned references, 21/21 cross-contract checks pass
 
@@ -60,6 +60,6 @@
 
 ## Notes
 
-- 2026-02-19 02:00 — Retrofit complete. All 3 contracts now have Current/Desired Architecture sections with mermaid diagrams. `docs/architecture.md` extended with 3 new diagrams (pipeline flow, adapter dispatch, MCP session). Total: 7 new mermaid diagrams across 4 files + 1 existing. Diagram count before: 1. After: 11.
+- 2026-02-19 02:00 — Retrofit complete. All 3 contracts now have Current/Desired Architecture sections with mermaid diagrams. `docs/architecture.md` extended with 3 new diagrams (circuit flow, adapter dispatch, MCP session). Total: 7 new mermaid diagrams across 4 files + 1 existing. Diagram count before: 1. After: 11.
 - 2026-02-19 01:30 — Contract created. Rule `architecture-snapshots.mdc` written. Knowledge-store persistence protocol updated. Three draft contracts identified for retrofit: `agent-adapter-overloading`, `defect-court`, `workspace-revisited`. 933 plan files in `~/.cursor/plans/` identified as the source of architectural knowledge loss.
 - 2026-02-19 03:30 — Contract closed. All validation checks pass. 11 mermaid diagrams across 4 files, taxonomy-compliant, no orphaned references. Moved to completed/knowledge-store/.

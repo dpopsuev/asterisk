@@ -1,7 +1,7 @@
 # Contract — Efficiency [M16/M17/M18] Tuning
 
 **Status:** complete  
-**Goal:** Lift M16 (Pipeline Path Accuracy) from 0.42 to >= 0.60, bring M17 (Loop Efficiency) into the 0.5–2.0 range, and reduce M18 (Total Prompt Tokens) to <= 60000.  
+**Goal:** Lift M16 (Circuit Path Accuracy) from 0.42 to >= 0.60, bring M17 (Loop Efficiency) into the 0.5–2.0 range, and reduce M18 (Total Prompt Tokens) to <= 60000.  
 **Serves:** PoC completion (gate: rp-e2e-launch)
 
 ## Contract rules
@@ -28,7 +28,7 @@ Fix the root (convergence behavior) and the downstream metrics improve.
 
 ### M16 failure analysis
 
-Pipeline Path Accuracy: 5/12 cases matched expected path. The 7 failures:
+Circuit Path Accuracy: 5/12 cases matched expected path. The 7 failures:
 
 | Case | Expected path | Actual path | Root cause |
 |------|--------------|-------------|------------|
@@ -50,8 +50,8 @@ Loop Efficiency = actual_loops / expected_loops. Expected: 0 total loops. Actual
 
 The workers repeatedly fail to converge on first pass because:
 1. **No real repo content** — the worker can't cite specific evidence, so convergence stays low.
-2. **Convergence threshold** — the pipeline requires convergence >= 0.75 to proceed; workers typically produce 0.48–0.65 on first pass in dry mode.
-3. **Loop budget** — the pipeline allows up to 3 Resolve→Investigate loops per case before forcing advancement.
+2. **Convergence threshold** — the circuit requires convergence >= 0.75 to proceed; workers typically produce 0.48–0.65 on first pass in dry mode.
+3. **Loop budget** — the circuit allows up to 3 Resolve→Investigate loops per case before forcing advancement.
 
 Levers:
 1. **Lower convergence threshold for dry mode** — accept that dry calibration can't achieve high convergence without real files.

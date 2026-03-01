@@ -8,7 +8,7 @@ import (
 
 // StepExtractor wraps parseJSON[T] as a framework.Extractor implementation.
 // Demonstrates that the Extractor interface handles the existing calibration
-// pattern: json.RawMessage -> typed struct per pipeline step.
+// pattern: json.RawMessage -> typed struct per circuit step.
 //
 // Input: json.RawMessage or []byte. Output: *T.
 type StepExtractor[T any] struct {

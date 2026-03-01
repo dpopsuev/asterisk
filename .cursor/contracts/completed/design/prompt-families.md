@@ -1,7 +1,7 @@
-# Contract — Prompt Families, Pipelines, and Routing Heuristics
+# Contract — Prompt Families, Circuits, and Routing Heuristics
 
 **Status:** complete (2026-02-17) — design consumed by prompt-orchestrator (F0–F6)  
-**Goal:** Design the prompt family taxonomy, define prompt pipelines (with loops), and specify heuristics the orchestrator uses to decide which prompt to fire next — replacing the current single-shot `rca.md` with a layered, evidence-first system.
+**Goal:** Design the prompt family taxonomy, define prompt circuits (with loops), and specify heuristics the orchestrator uses to decide which prompt to fire next — replacing the current single-shot `rca.md` with a layered, evidence-first system.
 
 ## Contract rules
 
@@ -9,7 +9,7 @@
 - Prompts are file-based templates (Go `text/template`); dev location `.cursor/prompts/`, shipped via CLI prompt dir. See `docs/prompts.mdc`.
 - Each prompt family produces a **typed intermediate artifact** (JSON) that the next stage can read from disk — no reliance on chat context surviving between steps.
 - Every heuristic must be explainable (no opaque "pick a prompt" logic); log the decision and the signal that triggered it.
-- Generic model: families and pipelines are CI/operator-agnostic; scenario-specific prompt *content* lives in per-scenario subdirs (e.g. `ptp-ci/`). See `rules/abstraction-boundaries.mdc`.
+- Generic model: families and circuits are CI/operator-agnostic; scenario-specific prompt *content* lives in per-scenario subdirs (e.g. `ptp-ci/`). See `rules/abstraction-boundaries.mdc`.
 
 ## Context
 
@@ -128,12 +128,12 @@ Six families, ordered by increasing depth and cost. Each family is a **directory
 | Aspect | Detail |
 |--------|--------|
 | **Trigger** | After F3, when other cases exist for the same launch (or across launches in the suite). |
-| **Input** | Current case artifact + artifacts or RCAs from other cases in the same launch/pipeline. Inject `History.SymptomInfo` (cross-version occurrence data) and sibling/cross-suite cases sharing the same `symptom_id`. Query: `SELECT * FROM cases WHERE symptom_id = ? AND id != ? AND status != 'closed'`. |
+| **Input** | Current case artifact + artifacts or RCAs from other cases in the same launch/circuit. Inject `History.SymptomInfo` (cross-version occurrence data) and sibling/cross-suite cases sharing the same `symptom_id`. Query: `SELECT * FROM cases WHERE symptom_id = ? AND id != ? AND status != 'closed'`. |
 | **Method** | Compare: same symptom fingerprint? same error pattern? same defect type? same code path? Check cross-version: does the same symptom appear in 4.20, 4.21, 4.22 with the same RCA? Suggest "same RCA as case #N" or "distinct." If same symptom + same RCA across versions, flag as "serial killer." |
 | **Output** | `correlate-result.json`: `{is_duplicate: bool, linked_rca_id?, confidence, reasoning, cross_version_match?: bool, affected_versions?: []}`. |
 | **Cost** | Low-medium: reads existing artifacts + DB queries, no new git operations. ~600-token prompt. |
 
-**Data model integration:** F4 is the primary consumer of cross-case and cross-suite queries. Queries the `cases` table by `symptom_id` to find sibling failures across jobs, pipelines, and suites. Queries `symptom_rca` junction to find if existing RCAs already explain the current case's symptom. On successful correlation, links `case.rca_id` to the shared RCA, creates/updates `symptom_rca` junction entry. See `contracts/investigation-context.md` §2 (Navigational queries) and §4 (Temporal query examples).
+**Data model integration:** F4 is the primary consumer of cross-case and cross-suite queries. Queries the `cases` table by `symptom_id` to find sibling failures across jobs, circuits, and suites. Queries `symptom_rca` junction to find if existing RCAs already explain the current case's symptom. On successful correlation, links `case.rca_id` to the shared RCA, creates/updates `symptom_rca` junction entry. See `contracts/investigation-context.md` §2 (Navigational queries) and §4 (Temporal query examples).
 
 **Template:** `correlate/match-cases.md` — "Given RCA for case X, existing RCA #Y, and symptom S (seen N times across versions [...]), are they the same root cause? Is this a serial killer (same root cause spanning versions)? Return JSON."
 
@@ -169,7 +169,7 @@ This is the "serial killer" detector from `cli-data-model.mdc` (many cases → o
 | **Output** | `jira-draft.json`, `regression-report.md`. |
 | **Cost** | Low: text generation from structured data. |
 
-**Data model integration:** F6 is the primary consumer of suite-wide aggregation queries. Traverses the full tree: Suite → Pipeline → Launch → Job → Case, grouping by RCA and Version. Also queries `symptoms` for occurrence stats and `symptom_rca` for the knowledge graph. See `contracts/investigation-context.md` §4 (Temporal query examples — F6 Report query).
+**Data model integration:** F6 is the primary consumer of suite-wide aggregation queries. Traverses the full tree: Suite → Circuit → Launch → Job → Case, grouping by RCA and Version. Also queries `symptoms` for occurrence stats and `symptom_rca` for the knowledge graph. See `contracts/investigation-context.md` §4 (Temporal query examples — F6 Report query).
 
 **Templates:**
 - `report/jira-product-bug.md` — Jira ticket template for product defects.
@@ -178,7 +178,7 @@ This is the "serial killer" detector from `cli-data-model.mdc` (many cases → o
 
 ---
 
-## 2  Prompt pipelines
+## 2  Prompt circuits
 
 ### 2.1  Happy path (full investigation)
 
@@ -206,11 +206,11 @@ F0 Recall ──miss──→ F1 Triage ──skip (infra/flake)──→ F5 Rev
 F2 Resolve ──selects repo A + repo B──→ F3 Investigate(A) ──→ F3 Investigate(B) ──→ merge artifacts ──→ F4 Correlate ──→ F5 Review
 ```
 
-### 2.5  Batch pipeline (multiple failures in one launch)
+### 2.5  Batch circuit (multiple failures in one launch)
 
 ```
 For each failure in launch:
-  run pipeline 2.1/2.2/2.3 per case
+  run circuit 2.1/2.2/2.3 per case
 After all cases:
   F4 Correlate (cross-case within launch)
   F5 Review (batch or per-case)
@@ -287,7 +287,7 @@ For a given case at a given stage, the orchestrator evaluates heuristics in this
 1. **Stage-specific heuristics** — only heuristics whose signal matches the current stage's output.
 2. **Most specific first** — e.g., H7 (single repo shortcut) before H6 (generic investigate).
 3. **Threshold-based** — numeric thresholds (convergence, confidence) evaluated in descending order (highest threshold first).
-4. **Fallback** — if no heuristic matches, proceed to the next family in the default pipeline (2.1).
+4. **Fallback** — if no heuristic matches, proceed to the next family in the default circuit (2.1).
 
 ### 4.3  Configurable thresholds
 
@@ -335,7 +335,7 @@ The full parameter specification lives in `docs/prompts.mdc` (Template parameter
 | **Sibling failures** | `Siblings` | Envelope failure list | F1, F4 |
 | **Workspace repos** | `Workspace` | Context workspace file | F2, F3 |
 | **URLs** | `URLs` | Constructed from config + IDs | All (evidence links) |
-| **Pipeline stage context** | `Prior` | Previous family artifacts | F2 (loop), F3, F4, F5 |
+| **Circuit stage context** | `Prior` | Previous family artifacts | F2 (loop), F3, F4, F5 |
 | **Historical context** | `History` | Local DB (prior RCAs, failure freq) | F0, F1, F5 |
 | **Taxonomy reference** | `Taxonomy` | Static (baked into CLI) | F1, F3 |
 
@@ -356,7 +356,7 @@ Each template pulls only the fields it needs; the orchestrator populates everyth
 
 ### Timestamp integrity and clock skew
 
-Timestamps in CI pipelines originate from **three independent clock planes** — executor (Jenkins), testing (Ginkgo on node), and SUT (cluster nodes/pods). These are frequently misaligned by hours due to timezone misconfiguration, NTP drift, or UTC-vs-localtime differences.
+Timestamps in CI circuits originate from **three independent clock planes** — executor (Jenkins), testing (Ginkgo on node), and SUT (cluster nodes/pods). These are frequently misaligned by hours due to timezone misconfiguration, NTP drift, or UTC-vs-localtime differences.
 
 **Impact on prompt families:**
 
@@ -461,7 +461,7 @@ The prompt system relies on the two-tier data model defined in `contracts/invest
 | **F3 Investigate** | Repo code, git history, logs | `rcas` (new or updated), `cases.rca_id`, `symptom_rca` (new link), `cases.status` → `investigated` | Git log scoped by timestamps; code search |
 | **F4 Correlate** | `cases` (by `symptom_id`), `symptom_rca`, `rcas` | `cases.rca_id` (link to shared RCA), `symptom_rca` (new/update) | Cross-case/cross-suite symptom match; serial killer detection |
 | **F5 Review** | All case data, triage, RCA, symptom info | `cases.status` → `reviewed`/`closed`, `rcas.status` updates | Full case context for human presentation |
-| **F6 Report** | Full tree (suite → pipeline → launch → job → case), `rcas`, `symptoms` | — (output is `regression-report.md`, `jira-draft.json`) | Suite-wide aggregation by RCA; version-grouped failure counts |
+| **F6 Report** | Full tree (suite → circuit → launch → job → case), `rcas`, `symptoms` | — (output is `regression-report.md`, `jira-draft.json`) | Suite-wide aggregation by RCA; version-grouped failure counts |
 
 ### Template injection groups from data model
 
@@ -505,7 +505,7 @@ See `contracts/investigation-context.md` §4 for full injection field definition
 ## Acceptance criteria
 
 - **Given** a failure from an RP launch,
-- **When** the orchestrator runs the prompt pipeline,
+- **When** the orchestrator runs the prompt circuit,
 - **Then** each family fires in the correct order based on heuristic signals,
 - **And** each family produces a typed intermediate artifact persisted to disk,
 - **And** loops are bounded by configurable max iterations,
@@ -519,4 +519,4 @@ See `contracts/investigation-context.md` §4 for full injection field definition
 - 2026-02-17 01:00 — Updated F0, F1, F4, F6 sections with data model integration notes. F0 now references Symptom table, fingerprint matching, SymptomRCA junction, regression detection (dormant reactivation). F1 now documents orchestrator-side symptom upsert after triage. F4 now documents cross-version/cross-suite correlation via symptom_id queries. F6 now documents suite-wide aggregation queries. All reference `contracts/investigation-context.md` for detailed entity definitions, DDL, and temporal rules.
 - 2026-02-17 00:15 — Section 8: Prompt guards and edge cases. 34 guards across 7 categories: data quality (G1–G5), test framework / Ginkgo (G6–G10), model reasoning (G11–G17), environment / infra (G18–G22), cross-case reasoning (G23–G26), evidence chain (G27–G31), output quality (G32–G34). Added `cascade_suspected` and `data_quality_notes` to triage-result schema. Added `Failure.LogTruncated` to prompt params.
 - 2026-02-16 23:30 — Added cross-cutting concern: timestamp integrity and clock skew across executor/testing/SUT planes. F1 Triage gets mandatory clock skew guard (`clock_skew_suspected` field, `ClockPlaneNote` injection). Heuristic H17 added. All timestamp-using templates must include `ClockPlaneNote` — structural invariant. See `docs/prompts.mdc` (Timestamps and clock skew awareness).
-- 2026-02-16 22:00 — Initial brainstorm. Six families (F0–F6) designed. Heuristic table with 16 rules. Three loop types defined (low-confidence, reassess, recall feedback). Intermediate artifact types specified per family. Replaces single-shot `rca.md` with layered pipeline.
+- 2026-02-16 22:00 — Initial brainstorm. Six families (F0–F6) designed. Heuristic table with 16 rules. Three loop types defined (low-confidence, reassess, recall feedback). Intermediate artifact types specified per family. Replaces single-shot `rca.md` with layered circuit.

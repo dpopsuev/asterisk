@@ -1,4 +1,4 @@
-# Contract — investigate-pipeline-artifact-store
+# Contract — investigate-circuit-artifact-store
 
 **Status:** complete  
 **Goal:** Determine whether `internal/store/` contains dead v1 code to remove, interfaces to split, or generic patterns to extract to Origami — then act on the findings.  
@@ -54,7 +54,7 @@ flowchart TB
 ```mermaid
 flowchart TB
     subgraph store ["internal/store/ (target: ~2,500 lines)"]
-        iface_inv["InvestigationStore\nSuite, Pipeline, Launch,\nJob, Case, Triage"]
+        iface_inv["InvestigationStore\nSuite, Circuit, Launch,\nJob, Case, Triage"]
         iface_know["KnowledgeStore\nSymptom, RCA, SymptomRCA"]
         types["types.go"]
         schema["schema.go\nv2 only + cleanup migration"]
@@ -165,7 +165,7 @@ v1 methods are actively used. Callers outside `internal/store/`:
 
 ### Generic Extraction Assessment
 
-**Achilles heuristic: No.** Achilles (vulnerability scanner) uses SARIF reports, not a relational store. The store schema is deeply RP/RCA-specific (suites, pipelines, launches, jobs, cases, triages, symptoms, RCAs). No generic "pipeline artifact store" pattern is extractable.
+**Achilles heuristic: No.** Achilles (vulnerability scanner) uses SARIF reports, not a relational store. The store schema is deeply RP/RCA-specific (suites, circuits, launches, jobs, cases, triages, symptoms, RCAs). No generic "circuit artifact store" pattern is extractable.
 
 ### Recommendation
 

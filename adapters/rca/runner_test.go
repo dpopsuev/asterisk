@@ -8,9 +8,9 @@ import (
 	"asterisk/adapters/store"
 )
 
-// TestRunnerFullPipeline exercises the complete F0→F6 pipeline with mock artifacts.
+// TestRunnerFullCircuit exercises the complete F0→F6 circuit with mock artifacts.
 // It verifies heuristic routing, state transitions, and store side effects.
-func TestRunnerFullPipeline(t *testing.T) {
+func TestRunnerFullCircuit(t *testing.T) {
 	// Set up temp dirs and MemStore
 	tmpDir := t.TempDir()
 	testBasePath := filepath.Join(tmpDir, "investigations")
@@ -20,8 +20,8 @@ func TestRunnerFullPipeline(t *testing.T) {
 	// Create scaffolding in store
 	suiteID, _ := st.CreateSuite(&store.InvestigationSuite{Name: "test suite"})
 	vID, _ := st.CreateVersion(&store.Version{Label: "4.21"})
-	pID, _ := st.CreatePipeline(&store.Pipeline{SuiteID: suiteID, VersionID: vID, Name: "test pipeline"})
-	lID, _ := st.CreateLaunch(&store.Launch{PipelineID: pID, RPLaunchID: 33195, Name: "launch"})
+	pID, _ := st.CreateCircuit(&store.Circuit{SuiteID: suiteID, VersionID: vID, Name: "test circuit"})
+	lID, _ := st.CreateLaunch(&store.Launch{CircuitID: pID, RPLaunchID: 33195, Name: "launch"})
 	jID, _ := st.CreateJob(&store.Job{LaunchID: lID, RPItemID: 100, Name: "test job"})
 	caseID, _ := st.CreateCaseV2(&store.Case{
 		JobID:        jID,
@@ -69,7 +69,7 @@ func TestRunnerFullPipeline(t *testing.T) {
 		t.Fatalf("RunStep F0: %v", err)
 	}
 	if result.IsDone {
-		t.Fatal("pipeline should not be done yet")
+		t.Fatal("circuit should not be done yet")
 	}
 	if result.NextStep != StepF0Recall {
 		t.Errorf("expected F0_RECALL, got %s", result.NextStep)
@@ -225,7 +225,7 @@ func TestRunnerFullPipeline(t *testing.T) {
 		t.Fatalf("RunStep DONE: %v", err)
 	}
 	if !result.IsDone {
-		t.Error("expected pipeline to be done")
+		t.Error("expected circuit to be done")
 	}
 
 	// Verify final state
@@ -246,8 +246,8 @@ func TestRunnerRecallHitShortCircuit(t *testing.T) {
 	st := store.NewMemStore()
 	suiteID, _ := st.CreateSuite(&store.InvestigationSuite{Name: "test"})
 	vID, _ := st.CreateVersion(&store.Version{Label: "4.21"})
-	pID, _ := st.CreatePipeline(&store.Pipeline{SuiteID: suiteID, VersionID: vID, Name: "p"})
-	lID, _ := st.CreateLaunch(&store.Launch{PipelineID: pID, RPLaunchID: 1})
+	pID, _ := st.CreateCircuit(&store.Circuit{SuiteID: suiteID, VersionID: vID, Name: "p"})
+	lID, _ := st.CreateLaunch(&store.Launch{CircuitID: pID, RPLaunchID: 1})
 	jID, _ := st.CreateJob(&store.Job{LaunchID: lID, RPItemID: 1})
 	caseID, _ := st.CreateCaseV2(&store.Case{JobID: jID, LaunchID: lID, RPItemID: 2, Name: "test", Status: "open"})
 	caseData, _ := st.GetCaseV2(caseID)
@@ -297,8 +297,8 @@ func TestRunnerInvestigateLoop(t *testing.T) {
 	st := store.NewMemStore()
 	suiteID, _ := st.CreateSuite(&store.InvestigationSuite{Name: "test"})
 	vID, _ := st.CreateVersion(&store.Version{Label: "4.21"})
-	pID, _ := st.CreatePipeline(&store.Pipeline{SuiteID: suiteID, VersionID: vID, Name: "p"})
-	lID, _ := st.CreateLaunch(&store.Launch{PipelineID: pID, RPLaunchID: 1})
+	pID, _ := st.CreateCircuit(&store.Circuit{SuiteID: suiteID, VersionID: vID, Name: "p"})
+	lID, _ := st.CreateLaunch(&store.Launch{CircuitID: pID, RPLaunchID: 1})
 	jID, _ := st.CreateJob(&store.Job{LaunchID: lID, RPItemID: 1})
 	caseID, _ := st.CreateCaseV2(&store.Case{JobID: jID, LaunchID: lID, RPItemID: 2, Name: "test", Status: "open"})
 	caseData, _ := st.GetCaseV2(caseID)

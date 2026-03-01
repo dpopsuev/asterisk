@@ -8,10 +8,10 @@ import (
 	"github.com/dpopsuev/origami/logging"
 )
 
-//go:embed pipeline_rca.yaml
-var pipelineRCAYAML []byte
+//go:embed circuit_rca.yaml
+var circuitRCAYAML []byte
 
-// ThresholdsToVars converts typed Thresholds to a map for pipeline vars / expression config.
+// ThresholdsToVars converts typed Thresholds to a map for circuit vars / expression config.
 func ThresholdsToVars(th Thresholds) map[string]any {
 	return map[string]any{
 		"recall_hit":             th.RecallHit,
@@ -22,18 +22,18 @@ func ThresholdsToVars(th Thresholds) map[string]any {
 	}
 }
 
-// AsteriskPipelineDef loads the RCA pipeline from the embedded YAML and
+// AsteriskCircuitDef loads the RCA circuit from the embedded YAML and
 // overrides vars with the provided thresholds.
-func AsteriskPipelineDef(th Thresholds) (*framework.PipelineDef, error) {
-	def, err := framework.LoadPipeline(pipelineRCAYAML)
+func AsteriskCircuitDef(th Thresholds) (*framework.CircuitDef, error) {
+	def, err := framework.LoadCircuit(circuitRCAYAML)
 	if err != nil {
-		return nil, fmt.Errorf("load embedded pipeline YAML: %w", err)
+		return nil, fmt.Errorf("load embedded circuit YAML: %w", err)
 	}
 	def.Vars = ThresholdsToVars(th)
 	return def, nil
 }
 
-// BuildRunner constructs a framework.Runner from the Asterisk pipeline
+// BuildRunner constructs a framework.Runner from the Asterisk circuit
 // definition with the given thresholds. Expression edges are compiled at
 // build time and evaluate against the config derived from thresholds.
 func BuildRunner(th Thresholds, hooks ...framework.HookRegistry) (*framework.Runner, error) {
@@ -43,7 +43,7 @@ func BuildRunner(th Thresholds, hooks ...framework.HookRegistry) (*framework.Run
 // BuildRunnerWith constructs a framework.Runner using the provided node registry
 // and hooks. When nodes is nil, defaults to the real processing NodeRegistry.
 func BuildRunnerWith(th Thresholds, nodes framework.NodeRegistry, hooks ...framework.HookRegistry) (*framework.Runner, error) {
-	def, err := AsteriskPipelineDef(th)
+	def, err := AsteriskCircuitDef(th)
 	if err != nil {
 		return nil, err
 	}
@@ -58,10 +58,10 @@ func BuildRunnerWith(th Thresholds, nodes framework.NodeRegistry, hooks ...frame
 }
 
 // EvaluateGraphEdge evaluates the YAML-defined expression edges for the given
-// pipeline step. The runner should be built once (via BuildRunner) and reused
+// circuit step. The runner should be built once (via BuildRunner) and reused
 // across evaluations. This is the single routing path — all callers use YAML
 // edges, no Go closures.
-func EvaluateGraphEdge(runner *framework.Runner, step PipelineStep, artifact any, state *CaseState) (*HeuristicAction, string) {
+func EvaluateGraphEdge(runner *framework.Runner, step CircuitStep, artifact any, state *CaseState) (*HeuristicAction, string) {
 	nodeName := StepToNodeName(step)
 	edges := runner.Graph.EdgesFrom(nodeName)
 	wrappedArtifact := WrapArtifact(step, artifact)
@@ -78,15 +78,15 @@ func EvaluateGraphEdge(runner *framework.Runner, step PipelineStep, artifact any
 		}
 	}
 
-	logging.New("pipeline").Debug("no edge matched, using fallback",
+	logging.New("circuit").Debug("no edge matched, using fallback",
 		"step", string(step), "node", nodeName)
 	return defaultFallback(step), "FALLBACK"
 }
 
-// defaultFallback returns the next step in the happy-path pipeline when no
+// defaultFallback returns the next step in the happy-path circuit when no
 // edge matches. This should rarely fire — the YAML edges are exhaustive.
-func defaultFallback(current PipelineStep) *HeuristicAction {
-	next := map[PipelineStep]PipelineStep{
+func defaultFallback(current CircuitStep) *HeuristicAction {
+	next := map[CircuitStep]CircuitStep{
 		StepInit:        StepF0Recall,
 		StepF0Recall:    StepF1Triage,
 		StepF1Triage:    StepF2Resolve,
@@ -99,8 +99,8 @@ func defaultFallback(current PipelineStep) *HeuristicAction {
 	if n, ok := next[current]; ok {
 		return &HeuristicAction{
 			NextStep:    n,
-			Explanation: fmt.Sprintf("fallback: default pipeline progression from %s to %s", current, n),
+			Explanation: fmt.Sprintf("fallback: default circuit progression from %s to %s", current, n),
 		}
 	}
-	return &HeuristicAction{NextStep: StepDone, Explanation: "fallback: end of pipeline"}
+	return &HeuristicAction{NextStep: StepDone, Explanation: "fallback: end of circuit"}
 }

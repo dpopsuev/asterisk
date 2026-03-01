@@ -39,7 +39,7 @@
 | Concern | Files | LOC |
 |---------|-------|-----|
 | Data types | `types.go` | 230 |
-| Pipeline runner | `runner.go`, `analysis.go` | 819 |
+| Circuit runner | `runner.go`, `analysis.go` | 819 |
 | Parallel execution | `parallel.go` | 531 |
 | Metrics scoring | `metrics.go` | 707 |
 | Formatting | `report.go`, `briefing.go`, `tokimeter.go` | 447 |
@@ -122,7 +122,7 @@
 
 | Component | LOC | Justification |
 |-----------|-----|---------------|
-| Pipeline heuristics (H1–H18) | ~400 | Deeply domain-specific; no generic rules engine fits |
+| Circuit heuristics (H1–H18) | ~400 | Deeply domain-specific; no generic rules engine fits |
 | Metrics scoring (M1–M20) | ~707 | Entirely domain-specific; no library exists |
 | RP client | ~762 | Proprietary API; no community client |
 | Store (SQLite) | ~2,992 | Right-sized for raw SQL; ORM is overkill |

@@ -17,7 +17,7 @@ Before writing or modifying production code, verify that each applicable layer h
 | **Unit** | Function-level branches and edge cases | Parsers, classifiers, scoring, error paths, nil/empty inputs |
 | **Integration** | Cross-boundary interactions | RP API calls, Git providers, CI adapters, store read/write, dispatcher send/receive |
 | **Contract** | API schemas and interface compliance | Request/response shapes, auth scopes, rate-limit behavior, adapter interfaces |
-| **E2E** | Full pipeline validation | RP launch intake through F0–F6 to RCA output; stub and real calibration scenarios |
+| **E2E** | Full circuit validation | RP launch intake through F0–F6 to RCA output; stub and real calibration scenarios |
 | **Concurrency** | Shared state and parallel paths | Race detector (`-race`), deadlock-free channels, `sync.WaitGroup`, semaphore bounds |
 | **Security** | Trust boundaries and external data | OWASP checklist (`rules/security-analysis.mdc`), secret redaction, input validation, SSRF |
 
@@ -46,7 +46,7 @@ Before implementing the fix, add logging and instrumentation that surfaces **fai
 Implement the minimal production code to pass the Red test. Run the full affected test suite. Everything must be green.
 
 - Do not over-implement. The test defines the scope.
-- If the change touches the pipeline, run stub calibration to verify no regression.
+- If the change touches the circuit, run stub calibration to verify no regression.
 
 ### 4. Yellow — instrument success signals
 

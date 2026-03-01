@@ -10,13 +10,13 @@ import (
 	framework "github.com/dpopsuev/origami"
 )
 
-// fullPipelineAdapter returns deterministic responses for all RCA steps,
-// driving the pipeline through recall-hit → review-approve → report-done.
-type fullPipelineAdapter struct{}
+// fullCircuitAdapter returns deterministic responses for all RCA steps,
+// driving the circuit through recall-hit → review-approve → report-done.
+type fullCircuitAdapter struct{}
 
-func (a *fullPipelineAdapter) Name() string { return "test-full" }
-func (a *fullPipelineAdapter) SendPrompt(_ string, step string, _ string) (json.RawMessage, error) {
-	switch PipelineStep(step) {
+func (a *fullCircuitAdapter) Name() string { return "test-full" }
+func (a *fullCircuitAdapter) SendPrompt(_ string, step string, _ string) (json.RawMessage, error) {
+	switch CircuitStep(step) {
 	case StepF0Recall:
 		return json.Marshal(RecallResult{
 			Match: true, Confidence: 0.95, Reasoning: "known failure",
@@ -39,7 +39,7 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 	result, err := WalkCase(context.Background(), WalkConfig{
 		Store:     ms,
 		CaseData:  c,
-		Adapter:   &fullPipelineAdapter{},
+		Adapter:   &fullCircuitAdapter{},
 		CaseLabel: "T1",
 		Hooks:     hooks,
 	})
@@ -72,7 +72,7 @@ type triageInvestigateAdapter struct{}
 
 func (a *triageInvestigateAdapter) Name() string { return "test-triage" }
 func (a *triageInvestigateAdapter) SendPrompt(_ string, step string, _ string) (json.RawMessage, error) {
-	switch PipelineStep(step) {
+	switch CircuitStep(step) {
 	case StepF0Recall:
 		return json.Marshal(RecallResult{Match: false, Confidence: 0.1})
 	case StepF1Triage:
@@ -138,9 +138,9 @@ func TestWalkCase_MissingAdapter(t *testing.T) {
 
 	walker := framework.NewProcessWalker("test")
 
-	def, err := AsteriskPipelineDef(th)
+	def, err := AsteriskCircuitDef(th)
 	if err != nil {
-		t.Fatalf("AsteriskPipelineDef: %v", err)
+		t.Fatalf("AsteriskCircuitDef: %v", err)
 	}
 
 	err = runner.Walk(context.Background(), walker, def.Start)

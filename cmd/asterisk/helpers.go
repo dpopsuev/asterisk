@@ -196,7 +196,7 @@ func createAnalysisScaffolding(st store.Store, env *rp.Envelope) (int64, []*stor
 		}
 	}
 
-	pID, _ := st.CreatePipeline(&store.Pipeline{
+	pID, _ := st.CreateCircuit(&store.Circuit{
 		SuiteID:    suiteID,
 		VersionID:  vID,
 		Name:       env.Name,
@@ -205,7 +205,7 @@ func createAnalysisScaffolding(st store.Store, env *rp.Envelope) (int64, []*stor
 	})
 
 	lID, _ := st.CreateLaunch(&store.Launch{
-		PipelineID: pID,
+		CircuitID: pID,
 		RPLaunchID: rpLaunchID,
 		Name:       env.Name,
 		Status:     "complete",
@@ -242,9 +242,9 @@ func ensureCaseInStore(st store.Store, env *rp.Envelope, rpLaunchID int, item rp
 		if suite.Status != "open" {
 			continue
 		}
-		pipelines, _ := st.ListPipelinesBySuite(suite.ID)
-		for _, p := range pipelines {
-			launches, _ := st.ListLaunchesByPipeline(p.ID)
+		circuits, _ := st.ListCircuitsBySuite(suite.ID)
+		for _, p := range circuits {
+			launches, _ := st.ListLaunchesByCircuit(p.ID)
 			for _, l := range launches {
 				jobs, _ := st.ListJobsByLaunch(l.ID)
 				for _, j := range jobs {
@@ -272,7 +272,7 @@ func ensureCaseInStore(st store.Store, env *rp.Envelope, rpLaunchID int, item rp
 		}
 	}
 
-	pID, _ := st.CreatePipeline(&store.Pipeline{
+	pID, _ := st.CreateCircuit(&store.Circuit{
 		SuiteID:    suiteID,
 		VersionID:  vID,
 		Name:       env.Name,
@@ -280,7 +280,7 @@ func ensureCaseInStore(st store.Store, env *rp.Envelope, rpLaunchID int, item rp
 	})
 
 	lID, _ := st.CreateLaunch(&store.Launch{
-		PipelineID: pID,
+		CircuitID: pID,
 		RPLaunchID: rpLaunchID,
 		Name:       env.Name,
 	})

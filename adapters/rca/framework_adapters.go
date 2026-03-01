@@ -6,11 +6,11 @@ import (
 	framework "github.com/dpopsuev/origami"
 )
 
-// DoneNodeName is the terminal pseudo-node name used in pipeline definitions.
+// DoneNodeName is the terminal pseudo-node name used in circuit definitions.
 const DoneNodeName = "DONE"
 
-// StepToNodeName converts a PipelineStep enum to a YAML node name.
-func StepToNodeName(step PipelineStep) string {
+// StepToNodeName converts a CircuitStep enum to a YAML node name.
+func StepToNodeName(step CircuitStep) string {
 	switch step {
 	case StepF0Recall:
 		return "recall"
@@ -33,8 +33,8 @@ func StepToNodeName(step PipelineStep) string {
 	}
 }
 
-// NodeNameToStep converts a YAML node name back to a PipelineStep enum.
-func NodeNameToStep(name string) PipelineStep {
+// NodeNameToStep converts a YAML node name back to a CircuitStep enum.
+func NodeNameToStep(name string) CircuitStep {
 	switch name {
 	case "recall":
 		return StepF0Recall
@@ -56,7 +56,7 @@ func NodeNameToStep(name string) PipelineStep {
 }
 
 // WrapArtifact wraps a typed orchestrate artifact as a framework.Artifact.
-func WrapArtifact(step PipelineStep, artifact any) framework.Artifact {
+func WrapArtifact(step CircuitStep, artifact any) framework.Artifact {
 	if artifact == nil {
 		return nil
 	}

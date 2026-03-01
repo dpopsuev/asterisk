@@ -122,7 +122,7 @@ Feature: SQLite DSL Schema
     And existing data is preserved
 
   Scenario: Query transformer
-    Given a pipeline node using sqlite.query transformer
+    Given a circuit node using sqlite.query transformer
     And params: {status: "active"}
     When the node executes
     Then it returns rows matching the parameterized query

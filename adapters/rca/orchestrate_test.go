@@ -71,7 +71,7 @@ func TestWritePrompt(t *testing.T) {
 
 func TestArtifactFilename(t *testing.T) {
 	tests := []struct {
-		step PipelineStep
+		step CircuitStep
 		want string
 	}{
 		{StepF0Recall, "recall-result.json"},

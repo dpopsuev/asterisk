@@ -42,7 +42,7 @@ flowchart TD
         origamiBridge["internal/origami"]
     end
     subgraph origamiNow [Origami - current]
-        dsl["Pipeline DSL"]
+        dsl["Circuit DSL"]
         graph["Graph Walk"]
         ext["Extractors"]
         mcpFw["mcp/ signal + server"]
@@ -62,7 +62,7 @@ flowchart TD
 ```mermaid
 flowchart TD
     subgraph origamiTarget [Origami - target]
-        dsl["Pipeline DSL"]
+        dsl["Circuit DSL"]
         graph["Graph Walk"]
         ext["Extractors"]
         mcpFw["mcp/"]
@@ -78,7 +78,7 @@ flowchart TD
     end
     subgraph asteriskTarget [Asterisk - thin domain]
         hooks["Go hooks: heuristics + side effects"]
-        yaml["3 YAML pipelines"]
+        yaml["3 YAML circuits"]
         domain["calibrate + rp + investigate + display"]
         domainMcp["mcp/ domain server"]
         origamiBridge["internal/origami bridge"]

@@ -1,6 +1,6 @@
 scorecard: asterisk-rca
 description: >-
-  Principled calibration scorecard for Asterisk RCA pipeline.
+  Principled calibration scorecard for Asterisk RCA circuit.
   Thresholds derived from ROI analysis, not arbitrary PoC tuning.
 version: 2
 
@@ -248,7 +248,7 @@ metrics:
 
   # --- Tier 4: Efficiency ---
   - id: M16
-    name: pipeline_path_accuracy
+    name: circuit_path_accuracy
     tier: efficiency
     direction: higher_is_better
     threshold: 0.50

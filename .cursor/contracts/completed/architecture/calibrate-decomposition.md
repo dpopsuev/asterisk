@@ -15,7 +15,7 @@ The `calibrate` package mixes 8 distinct concerns in one flat namespace:
 | Concern | Files | LOC |
 |---------|-------|-----|
 | Data types | `types.go` | ~230 |
-| Pipeline runner | `runner.go`, `analysis.go` | ~820 |
+| Circuit runner | `runner.go`, `analysis.go` | ~820 |
 | Parallel execution | `parallel.go` | ~530 |
 | Metrics scoring | `metrics.go` | ~710 |
 | Formatting | `report.go`, `briefing.go`, `tokimeter.go` | ~450 |
@@ -29,7 +29,7 @@ The `calibrate` package mixes 8 distinct concerns in one flat namespace:
 internal/calibrate/
 ├── calibrate.go          # Public API: RunCalibration, RunAnalysis (orchestration only)
 ├── types.go              # Shared types: Scenario, GroundTruth*, CaseResult, CalibrationReport
-├── runner.go             # Core pipeline sequencing
+├── runner.go             # Core circuit sequencing
 ├── parallel.go           # Parallel execution (errgroup-based after concurrency contract)
 ├── lifecycle.go          # Pre/post-run lifecycle hooks
 ├── cluster.go            # Symptom clustering
@@ -46,7 +46,7 @@ internal/calibrate/
 │   ├── workspace.go      # M6–M8: repo selection, file relevance, commit relevance
 │   ├── evidence.go       # M9–M11: evidence quality, chain completeness, cited lines
 │   ├── semantic.go       # M12–M14: keyword, message quality, confidence calibration
-│   ├── pipeline.go       # M15–M17: completion, path accuracy, step count
+│   ├── circuit.go       # M15–M17: completion, path accuracy, step count
 │   └── aggregate.go      # M18–M20: token efficiency, overall accuracy, consistency
 ├── adapt/
 │   ├── adapt.go          # ModelAdapter interface
@@ -70,7 +70,7 @@ internal/calibrate/
 ### Phase 2: Extract metrics → `calibrate/metrics/`
 1. Create `internal/calibrate/metrics/` package
 2. Define `Metric` interface: `Score(scenario, results) float64`
-3. Split 20 scorers into 6 thematic files (structural, workspace, evidence, semantic, pipeline, aggregate)
+3. Split 20 scorers into 6 thematic files (structural, workspace, evidence, semantic, circuit, aggregate)
 4. Create scorer registry for iteration
 5. Update `runner.go` and `report.go` to use `metrics.ScoreAll()`
 6. Run tests — all green

@@ -3,7 +3,7 @@
 **Status:** closed (absorbed)  
 **Goal:** Grow the ground truth dataset from 18 verified cases to 50+ via agentic curation, stored as reviewable JSON files. CLI-first with `asterisk gt` subcommands. Export as git-tracked JSON and open GitHub PR for team review.  
 **Serves:** Dataset growth (SHOULD for Phase 5a mitigation Item 4)  
-**Closure:** Phases 1-2 (CLI, JSON export) implemented. Remaining scope absorbed by `data-ingestion-pipeline.md` (automatic dataset growth via DSL pipeline) and `consumer-cli-scaffold.md` (Origami — `dataset` command replaces `gt`).
+**Closure:** Phases 1-2 (CLI, JSON export) implemented. Remaining scope absorbed by `data-ingestion-circuit.md` (automatic dataset growth via DSL circuit) and `consumer-cli-scaffold.md` (Origami — `dataset` command replaces `gt`).
 
 ## Contract rules
 
@@ -84,7 +84,7 @@ flowchart LR
 - Phase 3: Evidence source adapters (Jira, GitHub PR, File) — `EvidenceSource` interface
 - Phase 4: AI extractor subagents via `curate.Walker`
 - Phase 5: Promote + calibration integration (wire `DatasetStore.Load()` as alternative scenario source)
-- Phase 6: MCP tools via PipelineServer domain hooks (not hand-wired)
+- Phase 6: MCP tools via CircuitServer domain hooks (not hand-wired)
 
 ## Rename note
 
@@ -147,7 +147,7 @@ No trust boundaries affected. Local file operations only. Dataset JSON does not 
 
 ## Notes
 
-- 2026-02-25 — Contract rewritten. Renamed from `origami-ground-truth-ingestor` to `ground-truth-dataset`. Key changes: (1) removed "origami" from name — this is Asterisk domain work, (2) acknowledged Phases 1-2 are already implemented via `internal/origami/` + `cmd_gt.go`, (3) updated references to use `curate/` package (Origami framework) instead of `MuxDispatcher`, (4) deferred Phases 3-6 with note that MCP bridge should use PipelineServer domain hooks not hand-wired tools, (5) added rename note for `internal/origami/` -> `internal/groundtruth/`.
+- 2026-02-25 — Contract rewritten. Renamed from `origami-ground-truth-ingestor` to `ground-truth-dataset`. Key changes: (1) removed "origami" from name — this is Asterisk domain work, (2) acknowledged Phases 1-2 are already implemented via `internal/origami/` + `cmd_gt.go`, (3) updated references to use `curate/` package (Origami framework) instead of `MuxDispatcher`, (4) deferred Phases 3-6 with note that MCP bridge should use CircuitServer domain hooks not hand-wired tools, (5) added rename note for `internal/origami/` -> `internal/groundtruth/`.
 - 2026-02-19 06:00 — PoC scope trimming: only Phases 1-2 + Phase 7 in scope. Phases 3-6 deferred.
 - 2026-02-19 04:00 — Phase 5a mitigation: dataset target raised to 50+, robustness requirements added.
 - 2026-02-18 — Storage: JSON files not SQLite (reviewability-first). CLI-first, thin MCP, generic with PTP as first driver.

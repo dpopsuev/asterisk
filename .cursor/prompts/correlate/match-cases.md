@@ -8,7 +8,7 @@
 
 ## Task
 
-Determine whether this case's root cause matches another case in the same launch, pipeline, or suite. Detect "serial killers" (same root cause spanning multiple cases or versions).
+Determine whether this case's root cause matches another case in the same launch, circuit, or suite. Detect "serial killers" (same root cause spanning multiple cases or versions).
 
 {{if .Prior}}{{if .Prior.InvestigateResult}}## Investigation result (from F3)
 

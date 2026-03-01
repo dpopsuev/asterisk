@@ -40,14 +40,14 @@ All parameters the CLI (or cursor-handoff) can inject. Use **Go text/template** 
 
 Parameters are organized by **data source**. Not every family uses every field — templates pull what they need; the orchestrator populates everything available and templates ignore what they don't reference.
 
-### Identity (case and pipeline)
+### Identity (case and circuit)
 
 | Parameter | Type | Description | Example |
 |-----------|------|-------------|---------|
 | `LaunchID` | string | Launch/run ID from RP. | `33195` |
 | `CaseID` | int | Investigation case / test item ID. | `1697136` |
 | `JobID` | string | Job / test execution identifier (e.g. clock type). | `T-TSC` |
-| `PipelineID` | string | Pipeline identifier (name + version). | `telco-ft-ran-ptp-4.21` |
+| `CircuitID` | string | Circuit identifier (name + version). | `telco-ft-ran-ptp-4.21` |
 | `ArtifactPath` | string | Path where output artifact should be written. | `.asterisk/cases/33195/1697136/artifact.json` |
 
 ### Envelope context (from RP launch)
@@ -118,7 +118,7 @@ Injected as a struct `Failure` — the specific test item under investigation.
 
 ### Timestamps and clock skew awareness
 
-Timestamps in CI pipelines originate from **multiple independent clocks** that are frequently misaligned — sometimes by hours. Every prompt that reasons about time must account for this.
+Timestamps in CI circuits originate from **multiple independent clocks** that are frequently misaligned — sometimes by hours. Every prompt that reasons about time must account for this.
 
 #### Clock planes
 
@@ -208,7 +208,7 @@ Injected as `URLs` — pre-built links so the model can reference them in eviden
 
 **Construction:** The CLI builds URLs from config (RP base URL, Polarion base URL, repo URLs from workspace) + envelope/item IDs. Templates reference them as `{{.URLs.RPLaunch}}`, `{{.URLs.RPItem}}`, etc. If a URL cannot be constructed (missing config), the field is empty and the template guards with `{{if ...}}`.
 
-### Pipeline stage context (from previous families)
+### Circuit stage context (from previous families)
 
 Injected when a prompt family runs after a prior stage. The orchestrator reads the previous artifact and injects relevant fields.
 

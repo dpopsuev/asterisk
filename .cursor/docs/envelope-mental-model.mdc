@@ -4,7 +4,7 @@ description: Envelope mental model — generic hierarchy and artifact concept; c
 
 # Envelope Mental Model
 
-A simple hierarchy for "where am I" in a CI run. Maps to the data model in `cli-data-model.mdc` (pipeline ⊃ job ⊃ failure) with a **timeframe** on top.
+A simple hierarchy for "where am I" in a CI run. Maps to the data model in `cli-data-model.mdc` (circuit ⊃ job ⊃ failure) with a **timeframe** on top.
 
 **Important:** The **pure model** (hierarchy + artifact concept) is generic and should fit any CI/operator. Artifact layout, file names, and meta labels are **scenario-specific** and will differ per operator and CI; document them as use-case sections, not as part of the generic model. See rule: `rules/abstraction-boundaries.mdc`.
 
@@ -12,17 +12,17 @@ A simple hierarchy for "where am I" in a CI run. Maps to the data model in `cli-
 
 ## Pure model (generic)
 
-Applicable to any CI run: timeframe → pipeline → job → failure. Artifacts exist at job level and optionally at failure level; their **structure and naming depend on the CI/operator** and are not fixed by this model.
+Applicable to any CI run: timeframe → circuit → job → failure. Artifacts exist at job level and optionally at failure level; their **structure and naming depend on the CI/operator** and are not fixed by this model.
 
 ### Hierarchy template
 
 ```
 Timeframe {{ Date }}
-|- Pipeline {{ Pipeline / Version identifier }}
-|- Pipeline {{ ... }}
+|- Circuit {{ Circuit / Version identifier }}
+|- Circuit {{ ... }}
 ...
 
-Pipeline {{ ... }}
+Circuit {{ ... }}
 |- {{ Job / Test Execution }}
 |- {{ Job / Test Execution }}
 ...
@@ -38,7 +38,7 @@ Pipeline {{ ... }}
 | Level | Meaning | Notes |
 |-------|---------|--------|
 | **Timeframe** | When (date of run or dump) | E.g. date dir or label. |
-| **Pipeline** | One pipeline run (e.g. tied to product/version) | Contains jobs. |
+| **Circuit** | One circuit run (e.g. tied to product/version) | Contains jobs. |
 | **Job** | One test execution run | One console log or artifact set per job; contains failures. |
 | **Failed test case** | One failed test (ID + short name) | One investigation case; failures come from **Execution DB** (RP launch/test items), not from local dumps. |
 
@@ -51,7 +51,7 @@ Do **not** assume a layout based on Jenkins dump (`#NNNN.txt`, `failed_ptp_suite
 
 ### Alignment with CLI data model
 
-- **Pipeline** → `docs/cli-data-model.mdc`: pipeline (per version); contains jobs.
+- **Circuit** → `docs/cli-data-model.mdc`: circuit (per version); contains jobs.
 - **Job** → one test execution run; contains failures.
 - **Failed test case** → **failure** → **investigation case** (one case per failure, keyed by investigation envelope).
 
@@ -72,5 +72,5 @@ The model supports **arbitrary nesting**: at the bottom are **executions/steps**
 
 Execution and failure list come from **RP** (launch by ID, test items). No Jenkins dump or local job log as source of execution data.
 
-- **Timeframe / Pipeline / Job / Failed test case:** Identifiers and hierarchy are derived from **RP launch and test items** (e.g. launch ID, item hierarchy, failed test names). Optional: local artifact dirs for logs/dumps used only as **RCA context** (e.g. when RP links to external logs); they are not the source of envelope or failure list.
+- **Timeframe / Circuit / Job / Failed test case:** Identifiers and hierarchy are derived from **RP launch and test items** (e.g. launch ID, item hierarchy, failed test names). Optional: local artifact dirs for logs/dumps used only as **RCA context** (e.g. when RP links to external logs); they are not the source of envelope or failure list.
 - When adding another operator or CI, document how that scenario maps to RP (or another Execution DB); do not assume a Jenkins-dump layout.

@@ -295,7 +295,7 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 		fields = append(fields,
 			map[string]any{"Field": "Component", "Value": comp},
 			map[string]any{"Field": "Confidence", "Value": fmt.Sprintf("%.0f%%", math.Round(cr.Convergence*100))},
-			map[string]any{"Field": "Pipeline", "Value": vocabStagePath(cr.Path)},
+			map[string]any{"Field": "Circuit", "Value": vocabStagePath(cr.Path)},
 		)
 		if cr.RPIssueType != "" {
 			fields = append(fields, map[string]any{"Field": "RP Classification", "Value": vocabRPIssueTag(cr.RPIssueType, cr.RPAutoAnalyzed)})

@@ -26,7 +26,7 @@ type WalkResult struct {
 	StepArtifacts map[string]framework.Artifact
 }
 
-// WalkCase runs a single case through the RCA pipeline using a real graph walk
+// WalkCase runs a single case through the RCA circuit using a real graph walk
 // with processing nodes instead of the procedural runner loop.
 func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 	nodes := NodeRegistry()
@@ -63,9 +63,9 @@ func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 		dg.SetObserver(observer)
 	}
 
-	def, err := AsteriskPipelineDef(th)
+	def, err := AsteriskCircuitDef(th)
 	if err != nil {
-		return nil, fmt.Errorf("load pipeline def: %w", err)
+		return nil, fmt.Errorf("load circuit def: %w", err)
 	}
 
 	walkErr := runner.Walk(ctx, walker, def.Start)

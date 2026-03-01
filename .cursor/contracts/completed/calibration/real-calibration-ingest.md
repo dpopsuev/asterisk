@@ -19,7 +19,7 @@
 - **434 UNSTABLE, 350 FAILURE, 245 SUCCESS, 12 other**
 - **318 emails (30.5%) have a Report Portal link** (`Sent to Report Portal: https://...`).
   - **250 UNSTABLE, 68 SUCCESS, 0 FAILURE** have RP links.
-  - All 350 FAILURE emails have blank RP link — the pipeline hard-fails before the RP reporting stage.
+  - All 350 FAILURE emails have blank RP link — the circuit hard-fails before the RP reporting stage.
   - RP-linked emails span all versions (4.14–4.22) and all major job types.
 - RP link breakdown by job: BC_OC (167), GM (150), GNR-D (1).
 - RP link breakdown by version: 4.20 (60), 4.16 (52), 4.17 (48), 4.18 (47), 4.14 (43), 4.19 (41), 4.21 (24), 4.22 (3).
@@ -63,7 +63,7 @@
 
 ### Key insight
 
-**318 RP-linked emails (30.5%)** can cross-reference directly into Report Portal. These are exclusively UNSTABLE (250) and SUCCESS (68) runs — the pipeline hard-fails before RP reporting on FAILURE runs. For calibration, UNSTABLE is the sweet spot: the suite ran, some tests failed, and the results are in RP with per-test-item status. The 350 FAILURE emails still provide Jenkins URLs and S3 artifact links for runs where the infrastructure/deployment failed before tests ran.
+**318 RP-linked emails (30.5%)** can cross-reference directly into Report Portal. These are exclusively UNSTABLE (250) and SUCCESS (68) runs — the circuit hard-fails before RP reporting on FAILURE runs. For calibration, UNSTABLE is the sweet spot: the suite ran, some tests failed, and the results are in RP with per-test-item status. The 350 FAILURE emails still provide Jenkins URLs and S3 artifact links for runs where the infrastructure/deployment failed before tests ran.
 
 ## Execution strategy
 
@@ -134,6 +134,6 @@ Cases without clear ground truth (no bug link, ambiguous failure) get a `"needs_
 
 ## Notes
 
-2026-02-17 01:30 — Phases 1-3 and P5.1/P5.2 complete. Data pipeline executed: `.dev/scripts/ingest_ci_results.py` → `.dev/scripts/select_cases.py` → `.dev/scripts/generate_scenario.py`. 30 diverse PTP cases ingested into `ptp_real_ingest.go`. Stub calibration validates structure. Wet calibration Round 4 achieved M19=0.58 (7/20 passing). Remaining: P4.1/P4.2 manual ground truth review, blue tuning. Follow-up calibration improvement tracked in `calibration-bugfix-r5.md` → `responder-classification-v2.md` → `calibration-victory.md`.
+2026-02-17 01:30 — Phases 1-3 and P5.1/P5.2 complete. Data circuit executed: `.dev/scripts/ingest_ci_results.py` → `.dev/scripts/select_cases.py` → `.dev/scripts/generate_scenario.py`. 30 diverse PTP cases ingested into `ptp_real_ingest.go`. Stub calibration validates structure. Wet calibration Round 4 achieved M19=0.58 (7/20 passing). Remaining: P4.1/P4.2 manual ground truth review, blue tuning. Follow-up calibration improvement tracked in `calibration-bugfix-r5.md` → `responder-classification-v2.md` → `calibration-victory.md`.
 2026-02-16 22:10 — Corrected RP link count: 318 emails (30.5%), not 8. Initial grep was truncated by multi-workspace pagination. UNSTABLE runs (250) are the primary calibration source — they completed the test suite and reported to RP. FAILURE runs (350) hard-fail before RP reporting. The mail dump alone is a strong calibration source; the CI spreadsheet enriches with bug links and defect categories.
 2026-02-16 21:45 — Initial data assessment. 1041 emails. CI spreadsheet not yet exported. Archive sample shows Ginkgo test output with per-test failure artifacts (pod logs, specs, CRs). Phase 1 (mail parsing) can proceed immediately; Phase 2 blocks on spreadsheet export.

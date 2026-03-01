@@ -10,7 +10,7 @@ Single overview of the current **manual** flow from notification to archived RCA
 
 ## Pre-investigation
 
-1. **Receive mail** — Notification from CI (e.g. `ci-notify@example.com`): pipeline name, test type, version, result (UNSTABLE/FAILURE), and links (Jenkins, Report Portal, Polarion, Collect Job S3).
+1. **Receive mail** — Notification from CI (e.g. `ci-notify@example.com`): circuit name, test type, version, result (UNSTABLE/FAILURE), and links (Jenkins, Report Portal, Polarion, Collect Job S3).
 2. **Get launch ID** — From email: Report Portal launch URL (e.g. `.../launches/all/33195`) → launch ID **33195**.
 3. **Fetch from RP (Execution DB)** — Use RP API + `.rp-api-key` to fetch launch and test items. Envelope and failure list come from RP; no Jenkins dump required.
 4. **Create workspace (one time)** — Multi-root workspace (e.g. `cnf-gotests.code-workspace`) with test repo, SUT repos, CI/config. Optional: local artifact dir (e.g. `archive/ci/`) only for RCA context. See `ci-analysis-flow.mdc` (Workspace).

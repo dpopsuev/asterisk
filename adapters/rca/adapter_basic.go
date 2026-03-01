@@ -49,7 +49,7 @@ func getHeuristics() *heuristicsData {
 	return &h
 }
 
-// BasicAdapter provides automated heuristic-based responses for each pipeline step.
+// BasicAdapter provides automated heuristic-based responses for each circuit step.
 // Keyword rules are loaded from heuristics.yaml (embedded at build time).
 type BasicAdapter struct {
 	st    store.Store
@@ -95,7 +95,7 @@ func (a *BasicAdapter) SendPrompt(caseID string, step string, _ string) (json.Ra
 	}
 
 	var artifact any
-	switch PipelineStep(step) {
+	switch CircuitStep(step) {
 	case StepF0Recall:
 		artifact = a.buildRecall(ci)
 	case StepF1Triage:

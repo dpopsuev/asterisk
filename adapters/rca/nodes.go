@@ -19,7 +19,7 @@ const (
 // rcaNode is a real processing node that delegates to a ModelAdapter.
 type rcaNode struct {
 	nodeName string
-	step     PipelineStep
+	step     CircuitStep
 	element  framework.Element
 }
 
@@ -59,7 +59,7 @@ func (a *rcaArtifact) Type() string        { return a.typeName }
 func (a *rcaArtifact) Confidence() float64 { return 0 }
 func (a *rcaArtifact) Raw() any            { return a.raw }
 
-func parseStepResponse(step PipelineStep, data []byte) (any, error) {
+func parseStepResponse(step CircuitStep, data []byte) (any, error) {
 	switch step {
 	case StepF0Recall:
 		return unmarshalStep[RecallResult](data)
@@ -89,7 +89,7 @@ func unmarshalStep[T any](data []byte) (*T, error) {
 }
 
 // NodeRegistry returns a framework.NodeRegistry with real processing nodes
-// for each RCA pipeline step. These nodes delegate to the ModelAdapter
+// for each RCA circuit step. These nodes delegate to the ModelAdapter
 // stored in the walker's context.
 func NodeRegistry() framework.NodeRegistry {
 	return framework.NodeRegistry{
@@ -103,7 +103,7 @@ func NodeRegistry() framework.NodeRegistry {
 	}
 }
 
-func newRCANodeFactory(name string, step PipelineStep) func(framework.NodeDef) framework.Node {
+func newRCANodeFactory(name string, step CircuitStep) func(framework.NodeDef) framework.Node {
 	return func(def framework.NodeDef) framework.Node {
 		return &rcaNode{
 			nodeName: def.Name,

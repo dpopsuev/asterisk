@@ -224,7 +224,7 @@ For every user story (from `.cursor/guide/dev-flow.mdc` step 5), implement tests
 | Unit | Pure logic — isolated, no I/O. | Parsers, mappers, scorers, classifiers. |
 | Integration | External service boundaries. | APIs, providers, CI systems. |
 | Contract | Interface agreements. | API schemas, auth scopes, rate limits. |
-| E2E | Full pipeline, trigger to output. | End-to-end workflow validation. |
+| E2E | Full circuit, trigger to output. | End-to-end workflow validation. |
 | Security | Trust boundaries and compliance. | Secret redaction, RBAC scope, audit logging. |
 
 ## TDD cycle

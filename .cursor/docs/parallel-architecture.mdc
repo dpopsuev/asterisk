@@ -1,22 +1,22 @@
 ---
-description: Parallel investigation pipeline architecture
+description: Parallel investigation circuit architecture
 ---
 
 # Parallel Investigation Architecture
 
 ## Overview
 
-Asterisk's calibration pipeline supports parallel case processing via the
-`--parallel=N` flag. When N > 1, the pipeline splits into three stages:
+Asterisk's calibration circuit supports parallel case processing via the
+`--parallel=N` flag. When N > 1, the circuit splits into three stages:
 
 1. **Triage worker pool** (F0 + F1)
 2. **Symptom clustering** (barrier)
 3. **Investigation worker pool** (F2–F6)
 
-When N == 1, the pipeline degrades to sequential processing (same behavior
+When N == 1, the circuit degrades to sequential processing (same behavior
 as before parallel support was added).
 
-## Three-stage pipeline
+## Three-stage circuit
 
 ```
                         ┌─────────────────┐
@@ -108,7 +108,7 @@ asterisk calibrate --parallel=4 --token-budget=2
 
 ## Batch dispatch (multi-subagent mode)
 
-When `--dispatch=batch-file` is used, the parallel pipeline adds a new
+When `--dispatch=batch-file` is used, the parallel circuit adds a new
 dimension: instead of Go-level worker pools, the CLI coordinates with
 the Cursor skill to spawn multiple Cursor Task subagents.
 

@@ -7,7 +7,7 @@ import (
 )
 
 // TestSqlStoreV2_FullHierarchy tests the complete v2 entity tree:
-// Suite → Pipeline (+ Version) → Launch → Job → Case → Triage
+// Suite → Circuit (+ Version) → Launch → Job → Case → Triage
 // Plus global knowledge: Symptom, RCA, SymptomRCA.
 func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 	dir := t.TempDir()
@@ -46,26 +46,26 @@ func TestSqlStoreV2_FullHierarchy(t *testing.T) {
 		t.Fatalf("GetVersionByLabel: got %+v err %v", verByLabel, err)
 	}
 
-	// --- Pipeline ---
-	pipID, err := s.CreatePipeline(&Pipeline{
+	// --- Circuit ---
+	pipID, err := s.CreateCircuit(&Circuit{
 		SuiteID: suiteID, VersionID: verID,
 		Name: "telco-ft-ran-ptp-4.21", RPLaunchID: 33195, Status: "FAILED",
 	})
 	if err != nil {
-		t.Fatalf("CreatePipeline: %v", err)
+		t.Fatalf("CreateCircuit: %v", err)
 	}
-	pip, err := s.GetPipeline(pipID)
+	pip, err := s.GetCircuit(pipID)
 	if err != nil || pip == nil || pip.Name != "telco-ft-ran-ptp-4.21" {
-		t.Fatalf("GetPipeline: got %+v err %v", pip, err)
+		t.Fatalf("GetCircuit: got %+v err %v", pip, err)
 	}
-	pips, err := s.ListPipelinesBySuite(suiteID)
+	pips, err := s.ListCircuitsBySuite(suiteID)
 	if err != nil || len(pips) != 1 {
-		t.Fatalf("ListPipelinesBySuite: got %d err %v", len(pips), err)
+		t.Fatalf("ListCircuitsBySuite: got %d err %v", len(pips), err)
 	}
 
 	// --- Launch ---
 	launchID, err := s.CreateLaunch(&Launch{
-		PipelineID: pipID, RPLaunchID: 33195, Name: "test-launch", Status: "FAILED",
+		CircuitID: pipID, RPLaunchID: 33195, Name: "test-launch", Status: "FAILED",
 	})
 	if err != nil {
 		t.Fatalf("CreateLaunch: %v", err)

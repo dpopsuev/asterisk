@@ -14,7 +14,7 @@ import (
 	framework "github.com/dpopsuev/origami"
 )
 
-// IngestConfig provides configuration for the ingestion pipeline,
+// IngestConfig provides configuration for the ingestion circuit,
 // injected via walker context at key "config".
 type IngestConfig struct {
 	RPProject    string
@@ -24,7 +24,7 @@ type IngestConfig struct {
 	CandidateDir string
 }
 
-// LaunchInfo summarizes an RP launch for the pipeline.
+// LaunchInfo summarizes an RP launch for the circuit.
 type LaunchInfo struct {
 	ID          int       `json:"id"`
 	UUID        string    `json:"uuid"`
@@ -363,7 +363,7 @@ func (n *NotifyReviewNode) Process(_ context.Context, nc framework.NodeContext) 
 	return &ingestArtifact{typ: "ingest_summary", data: summary, conf: 1.0}, nil
 }
 
-// IngestNodeRegistry returns a NodeRegistry with all ingestion pipeline nodes.
+// IngestNodeRegistry returns a NodeRegistry with all ingestion circuit nodes.
 func IngestNodeRegistry(fetcher LaunchFetcher, symptoms []rca.GroundTruthSymptom, project string, dedupIdx *DedupIndex, candidateDir string) framework.NodeRegistry {
 	return framework.NodeRegistry{
 		"ingest.fetch":     func(_ framework.NodeDef) framework.Node { return &FetchLaunchesNode{Fetcher: fetcher} },

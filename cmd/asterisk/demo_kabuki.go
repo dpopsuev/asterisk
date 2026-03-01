@@ -21,12 +21,12 @@ func (PoliceStationKabuki) Hero() *kami.HeroSection {
 func (PoliceStationKabuki) Problem() *kami.ProblemSection {
 	return &kami.ProblemSection{
 		Title:     "Crimes Against CI / Automated Root-Cause Analysis for CI Failures",
-		Narrative: "Every failed CI pipeline is a crime scene. Manual triage burns hours, root causes hide in logs nobody reads, and the same failures haunt teams for weeks. The culprits? Flaky tests, silent infrastructure regressions, and code changes that break things three repos away.",
+		Narrative: "Every failed CI circuit is a crime scene. Manual triage burns hours, root causes hide in logs nobody reads, and the same failures haunt teams for weeks. The culprits? Flaky tests, silent infrastructure regressions, and code changes that break things three repos away.",
 		BulletPoints: []string{
 			"Manual RCA takes 30-90 minutes per failure",
 			"70% of CI failures share root causes with previous incidents",
 			"Cross-repo correlations are invisible to single-repo investigators",
-			"Evidence degrades as logs rotate and pipelines are re-triggered",
+			"Evidence degrades as logs rotate and circuits are re-triggered",
 		},
 		Stat:      "83%",
 		StatLabel: "accuracy on blind evaluation (M19, 18 verified cases)",
@@ -58,7 +58,7 @@ func (PoliceStationKabuki) Competitive() []kami.Competitor {
 		{
 			Name: "Asterisk + Origami",
 			Fields: map[string]string{
-				"Architecture":  "Graph-based agentic pipeline",
+				"Architecture":  "Graph-based agentic circuit",
 				"Orchestration": "Declarative YAML DSL",
 				"Agents":        "Persona + Element identity system",
 				"Introspection": "Adversarial Dialectic (D0-D4)",
@@ -94,12 +94,12 @@ func (PoliceStationKabuki) Competitive() []kami.Competitor {
 
 func (PoliceStationKabuki) Architecture() *kami.ArchitectureSection {
 	return &kami.ArchitectureSection{
-		Title: "Precinct Architecture / RCA Pipeline",
+		Title: "Precinct Architecture / RCA Circuit",
 		Components: []kami.ArchComponent{
 			{Name: "Recall", Description: "Witness Interview / Historical Failure Lookup", Color: "#06c"},
 			{Name: "Triage", Description: "Case Classification / Defect Type Classification", Color: "#06c"},
 			{Name: "Resolve", Description: "Jurisdiction Check / Repository Selection", Color: "#f0ab00"},
-			{Name: "Investigate", Description: "Crime Scene Analysis / Log, Commit & Pipeline Evidence Gathering", Color: "#ee0000"},
+			{Name: "Investigate", Description: "Crime Scene Analysis / Log, Commit & Circuit Evidence Gathering", Color: "#ee0000"},
 			{Name: "Correlate", Description: "Cross-Reference / Failure Pattern Correlation", Color: "#f0ab00"},
 			{Name: "Review", Description: "Evidence Review / Confidence Scoring & Adversarial Verification", Color: "#3e8635"},
 			{Name: "Report", Description: "Case Report / Final RCA Verdict with Evidence Chain", Color: "#3e8635"},
@@ -111,11 +111,11 @@ func (PoliceStationKabuki) Architecture() *kami.ArchitectureSection {
 func (PoliceStationKabuki) Roadmap() []kami.Milestone {
 	return []kami.Milestone{
 		{ID: "S1", Label: "Foundation — consumer ergonomics, walker experience", Status: "done"},
-		{ID: "S2", Label: "Ouroboros — seed pipelines, meta-calibration", Status: "done"},
+		{ID: "S2", Label: "Ouroboros — seed circuits, meta-calibration", Status: "done"},
 		{ID: "S3", Label: "Kami — live agentic debugger (MCP + SSE + WS)", Status: "done"},
 		{ID: "S4", Label: "Kabuki — presentation engine", Status: "done"},
 		{ID: "S5", Label: "Demo — Police Station showcase (you are here)", Status: "current"},
-		{ID: "S6", Label: "LSP — Language Server for pipeline YAML", Status: "future"},
+		{ID: "S6", Label: "LSP — Language Server for circuit YAML", Status: "future"},
 	}
 }
 
@@ -124,7 +124,7 @@ func (PoliceStationKabuki) Closing() *kami.ClosingSection {
 		Headline: "Case Closed.",
 		Tagline:  "Asterisk: because CI failures deserve a real investigation.",
 		Lines: []string{
-			"Graph-based agentic pipeline for root-cause analysis",
+			"Graph-based agentic circuit for root-cause analysis",
 			"Powered by Origami — the engine under the hood",
 			"83% accuracy on blind evaluation, 19/21 metrics passing",
 		},
@@ -139,13 +139,13 @@ func (PoliceStationKabuki) CodeShowcases() []kami.CodeShowcase {
 	return []kami.CodeShowcase{
 		{
 			ID:    "act2-dsl",
-			Title: "Pipeline DSL / Declarative Graph Definition",
+			Title: "Circuit DSL / Declarative Graph Definition",
 			Blocks: []kami.CodeBlock{
 				{
 					Language:   "yaml",
 					Annotation: "7 nodes, 17 edges with expression-driven routing",
-					Code: `pipeline: asterisk-rca
-description: "Root-cause analysis pipeline (F0 Recall through F6 Report)"
+					Code: `circuit: asterisk-rca
+description: "Root-cause analysis circuit (F0 Recall through F6 Report)"
 vars:
   recall_hit: 0.80
   recall_uncertain: 0.40
@@ -233,7 +233,7 @@ for {
 					Language:   "yaml",
 					Annotation: "asterisk-calibrate: supervisor + 4 parallel workers",
 					Code: `# SKILL.md drives the agent:
-# 1. Parent reads SKILL.md, starts pipeline session
+# 1. Parent reads SKILL.md, starts circuit session
 # 2. Parent launches N worker subagents via Task tool
 # 3. Each worker owns its get_next_step / submit_step loop
 # 4. Workers self-terminate when done=true
@@ -246,7 +246,7 @@ for {
 # 1. Agent reads SKILL.md
 # 2. Launches asterisk binary (CLI dispatcher)
 # 3. Produces F0-F6 artifacts via signal.json
-# 4. Each artifact = one pipeline step result
+# 4. Each artifact = one circuit step result
 # 5. Agent reasoning replaces LLM inference`,
 				},
 			},
@@ -298,17 +298,17 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 				{Name: "Earth", Icon: "\U0001F30D", Description: "Infrastructure specialist. Pragmatic, categorical, risk of oversimplification.", Color: "#5e40be"},
 				{Name: "Air", Icon: "\U0001F4A8", Description: "Cross-repo correlator. Creative, lateral thinker, sometimes tangential.", Color: "#f0ab00"},
 				{Name: "Diamond", Icon: "\U0001F48E", Description: "Adversarial reviewer. Skeptical, evidence-demanding, the quality gate.", Color: "#0066cc"},
-				{Name: "Lightning", Icon: "\u26A1", Description: "Pipeline orchestrator. Dispatches work, monitors progress, manages queues.", Color: "#ee0000"},
+				{Name: "Lightning", Icon: "\u26A1", Description: "Circuit orchestrator. Dispatches work, monitors progress, manages queues.", Color: "#ee0000"},
 			},
 		},
 		{
 			ID:       "act2-architecture",
-			Title:    "Origami Architecture / Graph-Based Pipeline",
+			Title:    "Origami Architecture / Graph-Based Circuit",
 			Subtitle: "Declarative YAML defines the graph; typed Go interfaces execute it",
 			Cards: []kami.ConceptCard{
 				{Name: "Node", Description: "Processing unit. Each node has a family, optional after-hooks, and produces typed output."},
 				{Name: "Edge", Description: "Conditional transition. CEL expressions evaluate node output to choose the next path."},
-				{Name: "Graph", Description: "Complete pipeline topology. Nodes + edges + vars + start/done markers."},
+				{Name: "Graph", Description: "Complete circuit topology. Nodes + edges + vars + start/done markers."},
 				{Name: "Walker", Description: "Traversal engine. Enters nodes, evaluates edges, manages state and loop counters."},
 				{Name: "Zone", Description: "Logical grouping of nodes. Maps to worker affinity and zone stickiness."},
 				{Name: "Extractor", Description: "AI-powered data transformer. Converts unstructured data to typed artifacts."},
@@ -320,7 +320,7 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 			Subtitle: "One EventBridge, three transports — MCP, HTTP/SSE, WebSocket",
 			Cards: []kami.ConceptCard{
 				{Name: "MCP (stdio)", Description: "Agent tools: pause, resume, breakpoints, highlight, inspect. The Cursor agent drives the debugger through MCP."},
-				{Name: "HTTP/SSE", Description: "Event stream: real-time pipeline events flow to the browser. Node enters, exits, transitions, signals — all streamed live."},
+				{Name: "HTTP/SSE", Description: "Event stream: real-time circuit events flow to the browser. Node enters, exits, transitions, signals — all streamed live."},
 				{Name: "WebSocket", Description: "Command channel: browser sends pause/resume, the server relays to the walker. Bidirectional control."},
 				{Name: "EventBridge", Description: "The hub. All three transports share one bridge. Events from any source are broadcast to all listeners."},
 			},
@@ -330,8 +330,8 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 			Title:    "Three MCP Servers / Tool Registry",
 			Subtitle: "Each server exposes a focused tool set for its domain",
 			Cards: []kami.ConceptCard{
-				{Name: "pipeline-marshaller", Description: "8 tools: start_pipeline, get_next_step, submit_step, get_report, emit_signal, get_signals, get_worker_health, submit_artifact"},
-				{Name: "kami-debugger", Description: "14 tools: pause, resume, advance_node, set/clear breakpoint, highlight_nodes/zone, zoom_to_zone, place_marker, clear_all, set_speed, get_pipeline_state, get_snapshot, get_assertions, get_selection"},
+				{Name: "circuit-marshaller", Description: "8 tools: start_circuit, get_next_step, submit_step, get_report, emit_signal, get_signals, get_worker_health, submit_artifact"},
+				{Name: "kami-debugger", Description: "14 tools: pause, resume, advance_node, set/clear breakpoint, highlight_nodes/zone, zoom_to_zone, place_marker, clear_all, set_speed, get_circuit_state, get_snapshot, get_assertions, get_selection"},
 				{Name: "ouroboros-metacalibration", Description: "9 tools: all 8 marshaller tools + assemble_profiles for ModelProfile aggregation from discovery runs"},
 			},
 		},
@@ -354,7 +354,7 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 			Cards: []kami.ConceptCard{
 				{Name: "Concept", Description: "A Mask wraps an agent's behavior. Think HTTP middleware for AI agents. Intercept input, transform output, add constraints."},
 				{Name: "Composable", Description: "Stack multiple masks: Verbose + Conservative + Audit. Each layer adds behavior without modifying the agent's core identity."},
-				{Name: "Reversible", Description: "Remove a mask, behavior reverts. No permanent state change. Useful for temporary adjustments during specific pipeline phases."},
+				{Name: "Reversible", Description: "Remove a mask, behavior reverts. No permanent state change. Useful for temporary adjustments during specific circuit phases."},
 				{Name: "Use Cases", Description: "Increase verbosity for debugging. Add conservatism for high-stakes decisions. Enforce audit logging for compliance."},
 			},
 		},
@@ -372,11 +372,11 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 		{
 			ID:       "act2-adapters",
 			Title:    "Adapters & Marbles / Coming Next",
-			Subtitle: "Reusable building blocks for pipeline composition",
+			Subtitle: "Reusable building blocks for circuit composition",
 			Cards: []kami.ConceptCard{
 				{Name: "Adapters", Description: "Helper bundles: transformers, extractors, hooks. Package common patterns (JSON parsing, YAML validation, log filtering) as reusable units."},
 				{Name: "Marbles", Description: "Reusable graph nodes: atomic (single node) or composite (subgraphs). Snap together like marbles on a track."},
-				{Name: "FQCN Resolution", Description: "Fully qualified component names. Adapters and marbles use FQCN for unambiguous resolution across pipelines."},
+				{Name: "FQCN Resolution", Description: "Fully qualified component names. Adapters and marbles use FQCN for unambiguous resolution across circuits."},
 				{Name: "Status", Description: "Conceptual design complete. DSL surface and runtime support shipping in the next milestone."},
 			},
 		},
@@ -385,10 +385,10 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 			Title:    "Ouroboros / Meta-Calibration",
 			Subtitle: "The snake that eats its own tail: calibrate the calibrator",
 			Cards: []kami.ConceptCard{
-				{Name: "Seed Pipeline", Description: "3-node graph: Generator (creates test cases), Subject (the system under test), Judge (evaluates results)."},
+				{Name: "Seed Circuit", Description: "3-node graph: Generator (creates test cases), Subject (the system under test), Judge (evaluates results)."},
 				{Name: "PersonaSheet", Description: "Quantified persona profiles: behavioral dimensions, affinity scores, element mapping. Generated from discovery runs."},
-				{Name: "Auto-Routing", Description: "Given a pipeline and PersonaSheet, Ouroboros automatically assigns personas to nodes based on dimension affinity."},
-				{Name: "Discovery → Tuning", Description: "Two phases: Discovery probes model behavior across dimensions. Tuning optimizes persona-node assignments for the target pipeline."},
+				{Name: "Auto-Routing", Description: "Given a circuit and PersonaSheet, Ouroboros automatically assigns personas to nodes based on dimension affinity."},
+				{Name: "Discovery → Tuning", Description: "Two phases: Discovery probes model behavior across dimensions. Tuning optimizes persona-node assignments for the target circuit."},
 			},
 		},
 		{
@@ -401,7 +401,7 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 				{Name: "Sentinel (Earth)", Icon: "\U0001F30D", Description: "Pragmatic, categorical, infrastructure-focused. Files and moves on. Antithesis: oversimplifies, misses nuance.", Color: "#5e40be"},
 				{Name: "Weaver (Air)", Icon: "\U0001F4A8", Description: "Creative, lateral thinker, cross-domain. Finds unexpected connections. Antithesis: tangential, unfocused.", Color: "#f0ab00"},
 				{Name: "Arbiter (Diamond)", Icon: "\U0001F48E", Description: "Skeptical, evidence-demanding, the final quality gate. Antithesis: paralyzing perfectionism.", Color: "#0066cc"},
-				{Name: "Catalyst (Lightning)", Icon: "\u26A1", Description: "Dispatcher, orchestrator, progress-focused. Keeps the pipeline moving. Antithesis: sacrifices quality for speed."},
+				{Name: "Catalyst (Lightning)", Icon: "\u26A1", Description: "Dispatcher, orchestrator, progress-focused. Keeps the circuit moving. Antithesis: sacrifices quality for speed."},
 				{Name: "Antithesis Personas", Description: "Each primary persona has an antithesis — the adversarial version used in the Dialectic system to challenge conclusions."},
 				{Name: "Element Affinity", Description: "Personas are matched to elements (Fire, Water, Earth, Air, Diamond, Lightning) which determine visual identity and behavioral tendencies."},
 			},
@@ -414,7 +414,7 @@ func (PoliceStationKabuki) Concepts() []kami.ConceptGroup {
 				{Name: "1. Ingest", Description: "RP launch detected. Failure data pulled via ReportPortal API. Items deduplicated, cases created."},
 				{Name: "2. Knowledge Injection", Description: "ReadPolicy: Always sources auto-injected into prompts. Architecture notes, disambiguations, component mapping — no dedicated graph node."},
 				{Name: "3. Recall → Triage", Description: "Historical lookup (seen this before?). If miss: classify defect type, identify candidate repos."},
-				{Name: "4. Resolve → Investigate", Description: "Repository selection, then deep evidence gathering: logs, commits, pipeline data."},
+				{Name: "4. Resolve → Investigate", Description: "Repository selection, then deep evidence gathering: logs, commits, circuit data."},
 				{Name: "5. Correlate → Review", Description: "Pattern matching against known failures. Adversarial review: prosecution vs defense."},
 				{Name: "6. Report", Description: "Final RCA verdict with evidence chain, confidence score, suspected components, and recommended actions."},
 				{Name: "Coordination", Description: "Parallel agents via Papercup, debugged by Kami, tools exposed via three MCP servers, quality-checked by Adversarial Dialectic."},

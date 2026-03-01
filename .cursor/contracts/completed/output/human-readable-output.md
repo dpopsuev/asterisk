@@ -15,7 +15,7 @@ Opaque machine codes (`pb001`, `F0_RECALL`, `R21`, `M9`, `H3`) appear in every h
 | Family | Codes | Human names | Violations |
 |--------|-------|-------------|------------|
 | Defect types | `pb001`, `au001`, `en001`, `fw001`, `ti001`, `ib003` | Product Bug, Automation Bug, Environment Issue, Firmware Issue, To Investigate, Infrastructure Bug | ~9 |
-| Pipeline stages | `F0_RECALL` ... `F6_REPORT` | Recall, Triage, Resolve, Investigate, Correlate, Review, Report | ~12 |
+| Circuit stages | `F0_RECALL` ... `F6_REPORT` | Recall, Triage, Resolve, Investigate, Correlate, Review, Report | ~12 |
 | Case/RCA/Symptom IDs | `C01`-`C30`, `R1`-`R30`, `S1`-`S30` | Jira ID + test name | ~8 |
 | Metric IDs | `M1`-`M20` | `m.Name` field exists (e.g. `defect_type_accuracy`) | ~3 |
 | Heuristic IDs | `H1`-`H18` | `.Name` field exists (e.g. `recall-hit`) | ~4 |

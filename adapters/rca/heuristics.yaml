@@ -1,5 +1,5 @@
 # PTP-domain heuristic rules for the basic (zero-LLM) adapter.
-# Each section maps pipeline steps to keyword-based classification rules.
+# Each section maps circuit steps to keyword-based classification rules.
 # Rules are evaluated in order; first match wins.
 
 defect_classification:

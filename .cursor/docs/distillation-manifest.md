@@ -75,7 +75,7 @@ flowchart TD
             cal --> dispatch
         end
 
-        subgraph pipeline [Pipeline Subsystem]
+        subgraph circuit [Circuit Subsystem]
             orch["orchestrate<br/>1965 LOC"]
         end
 
@@ -166,7 +166,7 @@ Packages currently in `internal/` that could be promoted to `pkg/` or `github.co
 
 | Package | LOC | Barrier | Effort | Recommendation |
 |---------|-----|---------|--------|----------------|
-| `internal/curate/` | 599 | None — zero Asterisk imports, uses `github.com/dpopsuev/origami` types only | Low | **Promote to `origami/curate/`** — generic curation pipeline is a framework primitive |
+| `internal/curate/` | 599 | None — zero Asterisk imports, uses `github.com/dpopsuev/origami` types only | Low | **Promote to `origami/curate/`** — generic curation circuit is a framework primitive |
 | `internal/format/` | 165 | None — zero imports from asterisk | Trivial | **Promote to `pkg/format/`** — pure utility, useful for any Origami tool |
 | `internal/logging/` | 33 | None — zero imports from asterisk | Trivial | **Promote to `pkg/logging/`** — though tiny, every tool needs structured logging setup |
 | `internal/display/` | 221 | Content is RP-specific (defect types, F0-F6 stages) | N/A | **Keep in domain** — display names are Asterisk vocabulary |
@@ -203,7 +203,7 @@ Both tools use the same Origami primitives:
 
 | Primitive | Asterisk | Achilles |
 |-----------|----------|----------|
-| PipelineDef / LoadPipeline | rca-investigation.yaml | achilles.yaml |
+| CircuitDef / LoadCircuit | rca-investigation.yaml | achilles.yaml |
 | NodeDef / NodeRegistry | F0-F6 nodes | scan, classify, assess, report |
 | EdgeDef / EdgeFactory | Heuristic edges (H1-H12) | Vuln edges (V1-V6) |
 | Graph / Walk | Case walk with loop detection | Linear + shortcut walk |
@@ -211,7 +211,7 @@ Both tools use the same Origami primitives:
 | Artifact / Confidence | RCA artifacts (0.0-1.0) | Scan/Classify/Assess/Report artifacts |
 | Element affinity | Fire, Water, Earth, Diamond | Earth, Fire, Diamond, Air |
 | Extractor interface | StepExtractor, IdentityExtractor | GovulncheckExtractor, ClassifyExtractor |
-| Render (Mermaid) | Pipeline diagram | Pipeline diagram |
+| Render (Mermaid) | Circuit diagram | Circuit diagram |
 | WalkObserver | Narration observer | Live event trace |
 
 ### What Achilles did NOT need

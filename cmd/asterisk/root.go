@@ -16,7 +16,7 @@ var version = "dev"
 func main() {
 	c, err := origamicli.NewCLI("asterisk", "Evidence-based RCA for ReportPortal test failures").
 		WithVersion(version).
-		WithPipeline("pipelines/asterisk-ingest.yaml").
+		WithCircuit("circuits/asterisk-ingest.yaml").
 		WithExtraCommand(analyzeCmd).
 		WithExtraCommand(calibrateCmd).
 		WithExtraCommand(consumeCmd).

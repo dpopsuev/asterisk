@@ -1,6 +1,6 @@
 # Artifact Schemas
 
-JSON schemas for each pipeline step artifact, derived from `internal/orchestrate/types.go`. Write these exact field names and types.
+JSON schemas for each circuit step artifact, derived from `internal/orchestrate/types.go`. Write these exact field names and types.
 
 ## F0 Recall -- `recall-result.json`
 

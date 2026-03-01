@@ -23,7 +23,7 @@
 - **Orange phase mandatory**: add problem/error logging at `classifyFailure` and `identifyComponent` decision points before writing fixes; Yellow = success/info logging after fixes.
 - All classification logic changes must be covered by table-driven tests (one row per case).
 - Each phase gate requires a calibration run with results saved to `.dev/calibration-runs/`.
-- Token budget matters: M18 target is <= 60000. Use `--cost-report` to validate real token usage. Avoid adding pipeline steps; prefer smarter classification.
+- Token budget matters: M18 target is <= 60000. Use `--cost-report` to validate real token usage. Avoid adding circuit steps; prefer smarter classification.
 
 ## Context
 

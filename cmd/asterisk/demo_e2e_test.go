@@ -188,10 +188,10 @@ func TestDemoE2E_FullDemoFlow(t *testing.T) {
 					}
 				}
 			},
-			"/api/pipeline": func(body map[string]any) {
+			"/api/circuit": func(body map[string]any) {
 				nodes, ok := body["nodes"].(map[string]any)
 				if !ok || len(nodes) == 0 {
-					t.Error("pipeline nodes empty")
+					t.Error("circuit nodes empty")
 				}
 			},
 		}

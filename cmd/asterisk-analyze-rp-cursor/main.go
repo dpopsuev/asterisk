@@ -97,7 +97,7 @@ Usage:
   asterisk-analyze-rp-cursor <LAUNCH_ID> [extra flags...]
 
 Baked-in defaults:
-  --adapter=cursor     Cursor agent as the reasoning engine (F0-F6 pipeline)
+  --adapter=cursor     Cursor agent as the reasoning engine (F0-F6 circuit)
   --dispatch=file      Signal-based communication via signal.json
   --report             Human-readable Markdown report alongside JSON artifact
   --rp-base-url        From $ASTERISK_RP_URL

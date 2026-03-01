@@ -14,7 +14,7 @@ For every story, assess coverage across:
 - **Unit** — parsing, mapping, scoring, classifiers, edge cases
 - **Integration** — RP API, Git/GitHub, CI adapters, store, dispatcher
 - **Contract** — API schemas, auth scopes, rate limits
-- **E2E** — full F0-F6 pipeline, stub + real calibration
+- **E2E** — full F0-F6 circuit, stub + real calibration
 - **Concurrency** — race detector, deadlock-free channels, semaphore bounds
 - **Security** — OWASP Top 10 lens (`rules/security-analysis.mdc`)
 

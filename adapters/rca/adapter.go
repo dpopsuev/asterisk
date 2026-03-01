@@ -1,4 +1,4 @@
-// Package rca provides an Origami adapter that bundles the RCA pipeline's
+// Package rca provides an Origami adapter that bundles the RCA circuit's
 // hooks, transformers, and extractors under the "rca" namespace.
 package rca
 
@@ -20,7 +20,7 @@ type AdapterConfig struct {
 	CaseDir   string
 }
 
-// Adapter returns an Origami Adapter bundling all RCA pipeline plumbing
+// Adapter returns an Origami Adapter bundling all RCA circuit plumbing
 // (store hooks, context-builder transformer, prompt-filler transformer,
 // and per-step extractors) under the "rca" namespace.
 func Adapter(cfg AdapterConfig) *framework.Adapter {
@@ -28,7 +28,7 @@ func Adapter(cfg AdapterConfig) *framework.Adapter {
 		Namespace:    "rca",
 		Name:         "asterisk-rca",
 		Version:      "1.0.0",
-		Description:  "RCA pipeline plumbing for CI root-cause analysis",
+		Description:  "RCA circuit plumbing for CI root-cause analysis",
 		Transformers: buildTransformers(cfg),
 		Extractors:   buildExtractors(),
 		Hooks:        buildHooks(cfg),

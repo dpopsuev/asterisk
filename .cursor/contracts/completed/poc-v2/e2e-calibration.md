@@ -1,7 +1,7 @@
 # Contract — E2E Calibration Test
 
 **Status:** complete (2026-02-17) — Mock A + Mock B + Real: all stub-passing 20/20  
-**Goal:** Build two calibration modes — **mock** (synthetic closed-world) and **real** (actual Jira bugs + RP launches + local repos) — run the full investigation pipeline blindfolded (`--agent --dev-calibrate`), and measure how closely the agent's conclusions match the known answers — with instrumented metrics that produce numeric pass/fail signals from natural language outputs.
+**Goal:** Build two calibration modes — **mock** (synthetic closed-world) and **real** (actual Jira bugs + RP launches + local repos) — run the full investigation circuit blindfolded (`--agent --dev-calibrate`), and measure how closely the agent's conclusions match the known answers — with instrumented metrics that produce numeric pass/fail signals from natural language outputs.
 
 ## Contract rules
 
@@ -14,11 +14,11 @@
 
 ## Context
 
-- **Existing mocks:** `StubFetcher` (fixed envelope), `MemStore`, `MemPushStore`, `DefaultPusher`, `httptest.Server` mocks for rpfetch/rppush. These test individual components but not the full pipeline.
+- **Existing mocks:** `StubFetcher` (fixed envelope), `MemStore`, `MemPushStore`, `DefaultPusher`, `httptest.Server` mocks for rpfetch/rppush. These test individual components but not the full circuit.
 - **Existing fixture:** `examples/pre-investigation-33195-4.21/` — real PTP launch envelope with 12 failures. Good structure to model synthetic data after.
-- **Pipeline:** F0 Recall → F1 Triage → F2 Resolve → F3 Investigate → F4 Correlate → F5 Review → F6 Report. See `contracts/prompt-families.md`.
-- **Store v2:** `contracts/storage-adapter-v2.md` — all entities the pipeline reads/writes.
-- **Orchestrator:** `contracts/prompt-orchestrator.md` — drives the pipeline, evaluates heuristics, persists state.
+- **Circuit:** F0 Recall → F1 Triage → F2 Resolve → F3 Investigate → F4 Correlate → F5 Review → F6 Report. See `contracts/prompt-families.md`.
+- **Store v2:** `contracts/storage-adapter-v2.md` — all entities the circuit reads/writes.
+- **Orchestrator:** `contracts/prompt-orchestrator.md` — drives the circuit, evaluates heuristics, persists state.
 
 ---
 
@@ -26,7 +26,7 @@
 
 ### 1.1  The scenario: "PTP Calibration World"
 
-A pre-authored investigation with **3 versions**, **3 pipelines**, **15 failures**, **4 symptoms**, and **3 RCAs**. Designed to exercise every pipeline path.
+A pre-authored investigation with **3 versions**, **3 circuits**, **15 failures**, **4 symptoms**, and **3 RCAs**. Designed to exercise every circuit path.
 
 #### RCAs (the criminals — known answers)
 
@@ -49,7 +49,7 @@ S1 and S4 are different stories pointing to the same criminal (R1). R1 is the "s
 
 #### Test failures (the witnesses)
 
-| Case | Version | Job | Test name | Symptom | RCA | Pipeline path expected |
+| Case | Version | Job | Test name | Symptom | RCA | Circuit path expected |
 |------|---------|-----|-----------|---------|-----|----------------------|
 | C1 | 4.20 | [T-TSC] | OCP-83297 PTP sync stability | S1 | R1 | F0 miss → F1 → F2 → F3 → F4 → F5 → F6 |
 | C2 | 4.20 | [T-BC] | OCP-83297 PTP sync stability | S1 | R1 | F0 miss (first run) or hit (if C1 done) → F4 link → F5 |
@@ -313,7 +313,7 @@ asterisk calibrate --scenario=ptp-real [--runs=N] [--adapter=cursor] [--setup]
 2. **For each run (1..N):**
    a. Clear Store (fresh start per run, or cumulative — configurable).
    b. For each case in scenario order:
-      - Run orchestrator pipeline (F0→...→F5) programmatically.
+      - Run orchestrator circuit (F0→...→F5) programmatically.
       - In `--dev-calibrate` mode, the orchestrator auto-fills prompts and collects model responses (instead of manual Cursor handoff). Uses a model adapter (Cursor via API, or a test stub that returns canned responses for deterministic runs).
       - After F5, capture the investigation result (structured artifact).
    c. After all cases: run F6 Report.
@@ -324,7 +324,7 @@ asterisk calibrate --scenario=ptp-real [--runs=N] [--adapter=cursor] [--setup]
 
 | Mode | Behavior | Use case |
 |------|----------|----------|
-| **stub** | Returns pre-written "ideal" responses for each prompt. Deterministic. | Test the pipeline/heuristic/metric machinery without LLM variance. |
+| **stub** | Returns pre-written "ideal" responses for each prompt. Deterministic. | Test the circuit/heuristic/metric machinery without LLM variance. |
 | **cursor** | Sends prompts to Cursor (via file handoff or future API). Non-deterministic. | Calibrate prompt quality against ground truth. |
 | **llm-api** | Sends prompts to an LLM API (OpenAI, Anthropic, local). Non-deterministic. | Future: automated calibration without Cursor. |
 
@@ -347,7 +347,7 @@ These compare structured JSON fields from artifacts against ground truth. No NLP
 | **M3: recall_hit_rate** | For cases where F0 should recall a prior RCA, did it? | `true_positive_recalls / expected_recalls` | ≥ 0.70 |
 | **M4: recall_false_positive_rate** | For cases where F0 should NOT recall, did it incorrectly recall? | `false_positive_recalls / expected_misses` | ≤ 0.10 |
 | **M5: serial_killer_detection** | Did F4 correctly link cases to the same RCA when they share the same ground-truth RCA? | `correctly_linked_cases / expected_links` | ≥ 0.70 |
-| **M6: skip_accuracy** | For infra/flake cases, did the pipeline correctly skip deep investigation? | `correct_skips / expected_skips` | ≥ 0.80 |
+| **M6: skip_accuracy** | For infra/flake cases, did the circuit correctly skip deep investigation? | `correct_skips / expected_skips` | ≥ 0.80 |
 | **M7: cascade_detection** | Did F1 detect cascade cases (C12)? | `detected_cascades / expected_cascades` | ≥ 0.50 |
 | **M8: convergence_calibration** | Does the convergence score correlate with actual correctness? | Pearson correlation(convergence_score, is_correct) | ≥ 0.40 |
 
@@ -381,11 +381,11 @@ Compare natural language RCA messages against ground truth descriptions. These r
 | **M14: rca_message_relevance** | Does the RCA message describe the actual root cause? | Judge prompt: "Given ground truth RCA X and agent RCA Y, score semantic overlap 0–1." Average across cases. | ≥ 0.60 |
 | **M15: component_identification** | Did the agent correctly identify the affected component? | Exact match on component field OR keyword presence in RCA message. | ≥ 0.70 |
 
-### 3.4  Pipeline behavior metrics (structural)
+### 3.4  Circuit behavior metrics (structural)
 
 | Metric | What it measures | Computation | Threshold |
 |--------|-----------------|-------------|-----------|
-| **M16: pipeline_path_accuracy** | Did the case follow the expected pipeline path (F0→F1→...→FN)? | `correct_paths / total_cases` | ≥ 0.60 |
+| **M16: circuit_path_accuracy** | Did the case follow the expected circuit path (F0→F1→...→FN)? | `correct_paths / total_cases` | ≥ 0.60 |
 | **M17: loop_efficiency** | How many investigation loops (F3→F2→F3) were needed vs. expected? | `mean(actual_loops) / mean(expected_loops)` (closer to 1.0 = better) | 0.5–2.0 range |
 | **M18: total_prompt_tokens** | Total tokens sent across all prompts for the scenario. | Sum of prompt lengths. | ≤ budget (configurable) |
 
@@ -479,8 +479,8 @@ M13 evidence_precision:        0.57 (4/7)     ✓ (≥0.50)
 M14 rca_message_relevance:     0.73           ✓ (≥0.60)
 M15 component_identification:  0.83 (10/12)   ✓ (≥0.70)
 
---- Pipeline Metrics ---
-M16 pipeline_path_accuracy:    0.67 (8/12)    ✓ (≥0.60)
+--- Circuit Metrics ---
+M16 circuit_path_accuracy:    0.67 (8/12)    ✓ (≥0.60)
 M17 loop_efficiency:           1.2            ✓ (0.5–2.0)
 M18 total_prompt_tokens:       45000          ✓ (≤60000)
 
@@ -506,8 +506,8 @@ Report saved to `.asterisk/calibration/{scenario}/{timestamp}/report.txt` and `m
 1. Author synthetic ground truth (scenario definition, planted evidence).
 2. Build fake RP API server (serve synthetic launches, items, logs).
 3. Build synthetic git repos (planted commits and files).
-4. Build metric computation engine (structured + evidence + semantic + pipeline metrics).
-5. Build calibration runner (setup → run pipeline → score → report).
+4. Build metric computation engine (structured + evidence + semantic + circuit metrics).
+5. Build calibration runner (setup → run circuit → score → report).
 6. Build model adapter (stub first, then cursor).
 7. Build judge prompt for semantic comparison.
 8. Run calibration with stub adapter (validates harness).
@@ -518,7 +518,7 @@ Report saved to `.asterisk/calibration/{scenario}/{timestamp}/report.txt` and `m
 
 ### Phase 1A — Mock scenario ground truth
 
-- [ ] **Mock scenario definition** — `internal/calibrate/scenarios/ptp-mock/scenario.json`: all RCAs, symptoms, cases, expected pipeline paths, required evidence, keyword sets, expected repo selections. Machine-readable so the scorer can load it.
+- [ ] **Mock scenario definition** — `internal/calibrate/scenarios/ptp-mock/scenario.json`: all RCAs, symptoms, cases, expected circuit paths, required evidence, keyword sets, expected repo selections. Machine-readable so the scorer can load it.
 - [ ] **Synthetic RP responses** — JSON files: 3 launches, test items per launch with realistic error messages, log snippets (matching symptom patterns + noise), environment attributes.
 - [ ] **Synthetic context workspace** — `internal/calibrate/scenarios/ptp-mock/workspace.json`: 5 repos (3 relevant, 1 red herring, 1 tangential) with purpose metadata and branch overrides.
 - [ ] **Synthetic git repos** — Programmatic setup (`git init` + planted commits in temp dirs). Each with noise commits alongside planted evidence.
@@ -526,7 +526,7 @@ Report saved to `.asterisk/calibration/{scenario}/{timestamp}/report.txt` and `m
 
 ### Phase 1B — Real scenario ground truth
 
-- [ ] **Real scenario definition** — `internal/calibrate/scenarios/ptp-real/scenario.json`: ground truth from Jira (OCPBUGS-74895, OCPBUGS-74904), 8 failures, 3 symptoms, 2 RCAs (linked as duplicates), expected pipeline paths, keyword sets for RCA matching.
+- [ ] **Real scenario definition** — `internal/calibrate/scenarios/ptp-real/scenario.json`: ground truth from Jira (OCPBUGS-74895, OCPBUGS-74904), 8 failures, 3 symptoms, 2 RCAs (linked as duplicates), expected circuit paths, keyword sets for RCA matching.
 - [ ] **Investigation context directory** — `internal/calibrate/context/setup.go`: SetupContext(workspace, targetDir) → for each repo in workspace, `git clone` (or `cp -r` from local path) into `targetDir/repos/`, rewrite workspace paths, optionally checkout specific branch/commit. Returns rewritten workspace.
 - [ ] **Real context workspace** — `internal/calibrate/scenarios/ptp-real/workspace.json`: 5 repos (cnf-gotests, ptp-operator, linuxptp-daemon, cloud-event-proxy, eco-gotests) with source paths pointing to `~/Workspace/*` and purpose metadata.
 - [ ] **RP data cache** — `internal/calibrate/rpcache/cache.go`: FetchAndCache(rpClient, launchIDs, cacheDir) → fetch launch + items from RP API once, save as JSON in cache dir. LoadFromCache(cacheDir, launchID) → serve cached data. Calibration runs use cache, not live RP.
@@ -545,12 +545,12 @@ Report saved to `.asterisk/calibration/{scenario}/{timestamp}/report.txt` and `m
 - [ ] **Workspace scorer** — Compare F2 Resolve's `selected_repos[]` against ground truth repo relevance. Compute precision, recall, red herring rejection rate.
 - [ ] **Evidence scorer** — Compare `evidence_refs[]` against planted evidence. Normalize paths, exact + fuzzy match.
 - [ ] **Semantic scorer** — Judge prompt for rca_message comparison. Keyword fallback for stub mode.
-- [ ] **Pipeline scorer** — Compare actual pipeline path (from case state) against expected path.
+- [ ] **Circuit scorer** — Compare actual circuit path (from case state) against expected path.
 - [ ] **Aggregate scorer** — Weighted average, variance across runs.
 
 ### Phase 4 — Calibration runner
 
-- [ ] **Runner** — `internal/calibrate/runner.go`: `RunCalibration(scenario, adapter, runs) → CalibrationReport`. Orchestrates: setup → per-case pipeline → score → aggregate.
+- [ ] **Runner** — `internal/calibrate/runner.go`: `RunCalibration(scenario, adapter, runs) → CalibrationReport`. Orchestrates: setup → per-case circuit → score → aggregate.
 - [ ] **Per-case execution** — Drives the orchestrator programmatically: init state → for each step: fill template → adapter.SendPrompt → parse response → write artifact → evaluate heuristic → advance.
 - [ ] **Report generator** — Produces human-readable report + machine-readable `metrics.json`.
 

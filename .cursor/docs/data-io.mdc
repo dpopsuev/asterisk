@@ -6,7 +6,7 @@ description: Core inputs and outputs for Asterisk
 
 ## Inputs
 - Report Portal: launches, test items, logs, attachments
-- CI pipeline: Jenkins stages, artifacts, env vars (future: Prow)
+- CI circuit: Jenkins stages, artifacts, env vars (future: Prow)
 - Repositories: commit history, diffs, file paths, ownership metadata
 - Cluster context (optional): events, node health, operator status
 

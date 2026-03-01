@@ -13,8 +13,8 @@ it lacked store access, relied on fragile text parsing, and had divergent heuris
 This establishes the heuristic floor that any AI-driven adapter must exceed.
 
 **Path forward:** Wet calibration with the real Cursor agent is deferred to the MCP path
-(`mcp-server-foundation.md` -> `mcp-pipeline-tools.md` -> `mcp-calibration-mode.md`), which
-gives Cursor direct tool access to the store and pipeline — solving the root causes that
+(`mcp-server-foundation.md` -> `mcp-circuit-tools.md` -> `mcp-calibration-mode.md`), which
+gives Cursor direct tool access to the store and circuit — solving the root causes that
 made the mock-agent approach unviable. The mock-calibration-agent binary has been retired.
 
 ## Contract rules
@@ -29,10 +29,10 @@ made the mock-agent approach unviable. The mock-calibration-agent binary has bee
 
 | Term | Adapter | Behavior | Purpose |
 |------|---------|----------|---------|
-| **Dry calibration** | `--adapter=stub` (StubAdapter) | Deterministic, pre-authored ideal responses | Validates pipeline machinery, heuristics, metric engine. **Already passing 20/20 on all 3 scenarios.** |
+| **Dry calibration** | `--adapter=stub` (StubAdapter) | Deterministic, pre-authored ideal responses | Validates circuit machinery, heuristics, metric engine. **Already passing 20/20 on all 3 scenarios.** |
 | **Wet calibration** | `--adapter=cursor` (CursorAdapter + Dispatcher) | Real AI reasoning via Cursor agent skill | Validates prompt quality, skill instructions, agent investigation ability. Non-deterministic. **This is what needs to pass.** |
 
-**Dry** = pipeline proof. **Wet** = prompt proof.
+**Dry** = circuit proof. **Wet** = prompt proof.
 
 CLI commands:
 

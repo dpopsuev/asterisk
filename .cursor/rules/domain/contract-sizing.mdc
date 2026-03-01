@@ -35,7 +35,7 @@ When splitting, classify each sub-contract:
 
 | Tier | Definition | PoC relevance |
 |------|-----------|---------------|
-| **MUST** | Blocks the current PoC gate or pitch demo. Without this, the PoC cannot be demonstrated. | Score-blocking metrics (M2=0.00, M12/M13=0.00), missing data pipelines |
+| **MUST** | Blocks the current PoC gate or pitch demo. Without this, the PoC cannot be demonstrated. | Score-blocking metrics (M2=0.00, M12/M13=0.00), missing data circuits |
 | **SHOULD** | Significantly improves PoC quality or pitch polish. The PoC works without it but is weaker. | Testing infrastructure, dataset growth, identity/branding |
 | **NICE** | Architecture evolution, post-PoC vision. Valuable but not blocking anything near-term. | Full artifact catalogs, learned routing, adversarial review |
 

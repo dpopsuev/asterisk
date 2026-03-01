@@ -1,7 +1,7 @@
 # Contract — PoC Tuning Loop
 
 **Status:** abandoned  
-**Goal:** Improve BasicAdapter accuracy on RP-sourced blind cases through targeted prompt and pipeline improvements, measured by M19 delta on `ptp-real-ingest` scenario.  
+**Goal:** Improve BasicAdapter accuracy on RP-sourced blind cases through targeted prompt and circuit improvements, measured by M19 delta on `ptp-real-ingest` scenario.  
 **Serves:** PoC completion
 
 ## Contract rules

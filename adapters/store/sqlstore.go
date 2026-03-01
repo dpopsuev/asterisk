@@ -354,18 +354,18 @@ func (s *SqlStore) SaveEnvelope(launchID int, env *rp.Envelope) error {
 	}
 
 	res, err := s.db.Exec(
-		"INSERT INTO pipelines(suite_id, version_id, name, rp_launch_id, status) VALUES(?, ?, ?, ?, 'UNKNOWN')",
-		suiteID, versionID, fmt.Sprintf("auto-pipeline-%d", launchID), launchID,
+		"INSERT INTO circuits(suite_id, version_id, name, rp_launch_id, status) VALUES(?, ?, ?, ?, 'UNKNOWN')",
+		suiteID, versionID, fmt.Sprintf("auto-circuit-%d", launchID), launchID,
 	)
 	if err != nil {
-		return fmt.Errorf("create pipeline: %w", err)
+		return fmt.Errorf("create circuit: %w", err)
 	}
-	pipelineID, _ := res.LastInsertId()
+	circuitID, _ := res.LastInsertId()
 
 	res, err = s.db.Exec(
-		`INSERT INTO launches(pipeline_id, rp_launch_id, name, envelope_payload)
+		`INSERT INTO launches(circuit_id, rp_launch_id, name, envelope_payload)
 		 VALUES(?, ?, ?, ?)`,
-		pipelineID, launchID, env.Name, payload,
+		circuitID, launchID, env.Name, payload,
 	)
 	if err != nil {
 		return fmt.Errorf("create launch: %w", err)

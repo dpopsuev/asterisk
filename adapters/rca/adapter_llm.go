@@ -17,9 +17,9 @@ import (
 
 const calibrationPreamble = `> **CALIBRATION MODE — BLIND EVALUATION**
 >
-> You are participating in a calibration run. Your responses at each pipeline
+> You are participating in a calibration run. Your responses at each circuit
 > step will be **scored against known ground truth** using 20 metrics including
-> defect type accuracy, component identification, evidence quality, pipeline
+> defect type accuracy, component identification, evidence quality, circuit
 > path efficiency, and semantic relevance.
 >
 > **Rules:**
@@ -158,7 +158,7 @@ func (a *LLMAdapter) RegisterCase(gtCaseID string, storeCase *store.Case) {
 }
 
 func (a *LLMAdapter) SendPrompt(caseID string, step string, _ string) (json.RawMessage, error) {
-	ps := PipelineStep(step)
+	ps := CircuitStep(step)
 	ctx := a.cases[caseID]
 	if ctx == nil {
 		return nil, fmt.Errorf("llm: unknown case %q", caseID)

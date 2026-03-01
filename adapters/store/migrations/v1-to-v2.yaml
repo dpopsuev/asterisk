@@ -50,7 +50,7 @@ operations:
           type: text
 
   - create_table:
-      name: pipelines
+      name: circuits
       columns:
         - name: id
           type: integer
@@ -84,10 +84,10 @@ operations:
           type: integer
           primary_key: true
           autoincrement: true
-        - name: pipeline_id
+        - name: circuit_id
           type: integer
           not_null: true
-          references: "pipelines(id)"
+          references: "circuits(id)"
         - name: rp_launch_id
           type: integer
           not_null: true
@@ -110,7 +110,7 @@ operations:
         - name: envelope_payload
           type: blob
       unique:
-        - [pipeline_id, rp_launch_id]
+        - [circuit_id, rp_launch_id]
 
   - create_table:
       name: jobs
@@ -355,16 +355,16 @@ operations:
   - raw_sql: >-
       INSERT INTO versions(label) VALUES('unknown')
 
-  # Step 4: Migrate envelopes → pipelines + launches
+  # Step 4: Migrate envelopes → circuits + launches
   - raw_sql: >-
-      INSERT INTO pipelines(suite_id, version_id, name, rp_launch_id, status)
-      SELECT 1, 1, 'migrated-pipeline-' || e.launch_id, e.launch_id, 'UNKNOWN'
+      INSERT INTO circuits(suite_id, version_id, name, rp_launch_id, status)
+      SELECT 1, 1, 'migrated-circuit-' || e.launch_id, e.launch_id, 'UNKNOWN'
       FROM _v1_envelopes e
   - raw_sql: >-
-      INSERT INTO launches(pipeline_id, rp_launch_id, envelope_payload)
+      INSERT INTO launches(circuit_id, rp_launch_id, envelope_payload)
       SELECT p.id, p.rp_launch_id, e.payload
       FROM _v1_envelopes e
-      JOIN pipelines p ON p.rp_launch_id = e.launch_id
+      JOIN circuits p ON p.rp_launch_id = e.launch_id
 
   # Step 5: Create placeholder jobs
   - raw_sql: >-
@@ -405,13 +405,13 @@ operations:
       table: cases
       columns: [job_id]
   - create_index:
-      name: idx_pipelines_suite
-      table: pipelines
+      name: idx_circuits_suite
+      table: circuits
       columns: [suite_id]
   - create_index:
-      name: idx_launches_pipeline
+      name: idx_launches_circuit
       table: launches
-      columns: [pipeline_id]
+      columns: [circuit_id]
   - create_index:
       name: idx_jobs_launch
       table: jobs

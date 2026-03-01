@@ -1,5 +1,5 @@
 // Package calibrate implements the E2E calibration framework for Asterisk.
-// It drives the F0–F6 pipeline against known ground truth (synthetic or real)
+// It drives the F0–F6 circuit against known ground truth (synthetic or real)
 // and measures how closely the agent's conclusions match the known answers.
 package rca
 
@@ -64,7 +64,7 @@ type GroundTruthCase struct {
 	LogSnippet   string   `json:"log_snippet" yaml:"log_snippet"`   // planted log snippet
 	SymptomID    string   `json:"symptom_id" yaml:"symptom_id"`    // expected GroundTruthSymptom.ID
 	RCAID        string   `json:"rca_id" yaml:"rca_id"`        // expected GroundTruthRCA.ID
-	ExpectedPath []string `json:"expected_path" yaml:"expected_path"` // expected pipeline steps, e.g. ["F0","F1","F2","F3","F4","F5","F6"]
+	ExpectedPath []string `json:"expected_path" yaml:"expected_path"` // expected circuit steps, e.g. ["F0","F1","F2","F3","F4","F5","F6"]
 
 	// Expected per-step outcomes (for stub adapter responses)
 	ExpectedRecall    *ExpectedRecall    `json:"expected_recall,omitempty" yaml:"expected_recall,omitempty"`
@@ -200,7 +200,7 @@ type CaseResult struct {
 	ActualCategory    string   `json:"actual_category" yaml:"actual_category"`
 	ActualRCAMessage  string   `json:"actual_rca_message" yaml:"actual_rca_message"`
 	ActualComponent   string   `json:"actual_component" yaml:"actual_component"`
-	ActualPath        []string `json:"actual_path" yaml:"actual_path"`         // actual pipeline steps taken
+	ActualPath        []string `json:"actual_path" yaml:"actual_path"`         // actual circuit steps taken
 	ActualRecallHit   bool     `json:"actual_recall_hit" yaml:"actual_recall_hit"`
 	ActualSkip        bool     `json:"actual_skip" yaml:"actual_skip"`
 	ActualCascade     bool     `json:"actual_cascade" yaml:"actual_cascade"`
@@ -231,6 +231,6 @@ type CaseResult struct {
 	VerdictConfidence string        `json:"verdict_confidence,omitempty" yaml:"verdict_confidence,omitempty"`
 	EvidenceGaps      []EvidenceGap `json:"evidence_gaps,omitempty" yaml:"evidence_gaps,omitempty"`
 
-	// Pipeline error (non-empty when the case failed during execution)
-	PipelineError string `json:"pipeline_error,omitempty" yaml:"pipeline_error,omitempty"`
+	// Circuit error (non-empty when the case failed during execution)
+	CircuitError string `json:"circuit_error,omitempty" yaml:"circuit_error,omitempty"`
 }

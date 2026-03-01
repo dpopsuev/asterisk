@@ -1,6 +1,6 @@
 # Contract — scorer-pattern
 
-**Status:** draft  
+**Status:** complete  
 **Goal:** All 21 Asterisk RCA metrics are expressed as YAML scorer declarations in the scorecard — zero Go scorer implementations remain in Asterisk.  
 **Serves:** 100% DSL — Zero Go
 

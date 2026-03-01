@@ -1,7 +1,7 @@
 package rca
 
 // EvidenceGap describes a specific piece of missing evidence that would
-// improve the pipeline's confidence in its conclusion.
+// improve the circuit's confidence in its conclusion.
 type EvidenceGap struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
@@ -10,7 +10,7 @@ type EvidenceGap struct {
 	Blocked     string `json:"blocked,omitempty"`
 }
 
-// GapBrief is a structured summary of what evidence the pipeline lacked
+// GapBrief is a structured summary of what evidence the circuit lacked
 // when producing its conclusion. Attached to the F3 artifact and surfaced
 // in calibration reports.
 type GapBrief struct {

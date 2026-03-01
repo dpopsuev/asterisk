@@ -55,15 +55,11 @@ func newCalibrationWalker(cfg calibrationWalkerConfig) *calibrationWalker {
 	}
 }
 
-func (w *calibrationWalker) Identity() framework.AgentIdentity {
-	return w.identity
-}
+func (w *calibrationWalker) Identity() framework.AgentIdentity      { return w.identity }
+func (w *calibrationWalker) SetIdentity(id framework.AgentIdentity)  { w.identity = id }
+func (w *calibrationWalker) State() *framework.WalkerState           { return w.state }
 
-func (w *calibrationWalker) State() *framework.WalkerState {
-	return w.state
-}
-
-// Handle processes a single pipeline node: sends the prompt via the adapter,
+// Handle processes a single circuit node: sends the prompt via the adapter,
 // parses the response, writes the artifact, extracts metrics, and applies
 // store side effects. The framework graph walk handles edge evaluation and
 // state advancement.
@@ -95,8 +91,8 @@ func (w *calibrationWalker) Handle(ctx context.Context, node framework.Node, nc 
 }
 
 // parseTypedArtifact parses a JSON response into the appropriate typed artifact
-// based on the pipeline step.
-func parseTypedArtifact(step PipelineStep, data json.RawMessage) (any, error) {
+// based on the circuit step.
+func parseTypedArtifact(step CircuitStep, data json.RawMessage) (any, error) {
 	switch step {
 	case StepF0Recall:
 		return parseJSON[RecallResult](data)

@@ -25,18 +25,18 @@ func TestMemStoreV2_FullHierarchy(t *testing.T) {
 		t.Fatalf("GetVersionByLabel: %+v", ver)
 	}
 
-	// Pipeline
-	pipID, err := s.CreatePipeline(&Pipeline{SuiteID: suiteID, VersionID: verID, Name: "pip1", Status: "FAILED"})
+	// Circuit
+	pipID, err := s.CreateCircuit(&Circuit{SuiteID: suiteID, VersionID: verID, Name: "pip1", Status: "FAILED"})
 	if err != nil {
-		t.Fatalf("CreatePipeline: %v", err)
+		t.Fatalf("CreateCircuit: %v", err)
 	}
-	pips, _ := s.ListPipelinesBySuite(suiteID)
+	pips, _ := s.ListCircuitsBySuite(suiteID)
 	if len(pips) != 1 {
-		t.Fatalf("ListPipelinesBySuite: %d", len(pips))
+		t.Fatalf("ListCircuitsBySuite: %d", len(pips))
 	}
 
 	// Launch
-	launchID, err := s.CreateLaunch(&Launch{PipelineID: pipID, RPLaunchID: 33195, Name: "test"})
+	launchID, err := s.CreateLaunch(&Launch{CircuitID: pipID, RPLaunchID: 33195, Name: "test"})
 	if err != nil {
 		t.Fatalf("CreateLaunch: %v", err)
 	}

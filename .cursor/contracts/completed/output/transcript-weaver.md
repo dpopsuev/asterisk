@@ -5,7 +5,7 @@
 
 ## Contract rules
 
-- Weaver is a pure reader of on-disk artifacts + in-memory `CalibrationReport`; zero changes to the pipeline loop or adapter interface.
+- Weaver is a pure reader of on-disk artifacts + in-memory `CalibrationReport`; zero changes to the circuit loop or adapter interface.
 - Gate: `--transcript` CLI flag (opt-in). When off, no weaving occurs. No filesystem detection heuristics.
 - Works with stubs (decoupled from AI agent); testable in integration tests.
 - Prompt content is optional enrichment: included when `prompt-{family}.md` exists on disk (CursorAdapter), omitted otherwise. Transcript still has step + response + heuristic decision without prompt.
@@ -14,7 +14,7 @@
 
 ## Context
 
-- Pipeline artifacts: `state.json`, `prompt-{family}.md`, `{artifact}.json` per case in `{basePath}/{suiteID}/{caseID}/`.
+- Circuit artifacts: `state.json`, `prompt-{family}.md`, `{artifact}.json` per case in `{basePath}/{suiteID}/{caseID}/`.
 - `orchestrate.ArtifactFilename(step)` and `orchestrate.PromptFilename(step, 0)` provide filename conventions.
 - `CaseResult.ActualRCAID` provides RCA grouping.
 - `display` package provides human-readable names for steps and defect types.

@@ -133,9 +133,9 @@ func callToolE(ctx context.Context, session *sdkmcp.ClientSession, name string, 
 	return nil, fmt.Errorf("no text content in %s result", name)
 }
 
-// startPipeline is a helper that wraps start_pipeline with Asterisk-specific
+// startCircuit is a helper that wraps start_circuit with Asterisk-specific
 // extra params (scenario, adapter) to reduce boilerplate in domain tests.
-func startPipeline(t *testing.T, ctx context.Context, session *sdkmcp.ClientSession, scenario, adapter string, parallel int) map[string]any {
+func startCircuit(t *testing.T, ctx context.Context, session *sdkmcp.ClientSession, scenario, adapter string, parallel int) map[string]any {
 	t.Helper()
 	args := map[string]any{
 		"extra": map[string]any{
@@ -146,7 +146,7 @@ func startPipeline(t *testing.T, ctx context.Context, session *sdkmcp.ClientSess
 	if parallel > 0 {
 		args["parallel"] = parallel
 	}
-	return callTool(t, ctx, session, "start_pipeline", args)
+	return callTool(t, ctx, session, "start_circuit", args)
 }
 
 // --- Artifact helpers ---
@@ -221,7 +221,7 @@ func TestServer_ToolDiscovery(t *testing.T) {
 	}
 
 	want := map[string]bool{
-		"start_pipeline": false,
+		"start_circuit": false,
 		"get_next_step":  false,
 		"submit_step":    false,
 		"get_report":     false,
@@ -248,7 +248,7 @@ func TestServer_StubCalibration_FullLoop(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "stub", 0)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "stub", 0)
 
 	sessionID, ok := startResult["session_id"].(string)
 	if !ok || sessionID == "" {
@@ -311,7 +311,7 @@ func TestServer_SubmitStep_UnknownStep(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID, _ := startResult["session_id"].(string)
 
 	stepResult := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -347,10 +347,10 @@ func TestServer_DoubleStart_WhileRunning(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startPipeline(t, ctx, session, "ptp-mock", "llm", 0)
+	startCircuit(t, ctx, session, "ptp-mock", "llm", 0)
 
 	res, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
-		Name: "start_pipeline",
+		Name: "start_circuit",
 		Arguments: map[string]any{
 			"extra": map[string]any{"scenario": "ptp-mock", "adapter": "llm"},
 		},
@@ -371,10 +371,10 @@ func TestServer_StartAfterDone(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startPipeline(t, ctx, session, "ptp-mock", "stub", 0)
+	startCircuit(t, ctx, session, "ptp-mock", "stub", 0)
 	time.Sleep(500 * time.Millisecond)
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "stub", 0)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "stub", 0)
 	if _, ok := startResult["session_id"].(string); !ok {
 		t.Fatalf("second start failed: %v", startResult)
 	}
@@ -387,7 +387,7 @@ func TestServer_SignalBus_EmitAndGet(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "stub", 0)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "stub", 0)
 	sessionID := startResult["session_id"].(string)
 	time.Sleep(500 * time.Millisecond)
 
@@ -419,7 +419,7 @@ func TestServer_Parallel_GetNextStep_TwoConcurrent(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 2)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 2)
 	sessionID := startResult["session_id"].(string)
 
 	type stepResult struct {
@@ -464,7 +464,7 @@ func TestServer_FourSubagents_FullDrain(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 4)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 	t.Logf("started session %s", sessionID)
 
@@ -548,7 +548,7 @@ func TestServer_FourSubagents_FullDrain(t *testing.T) {
 		}
 	}
 	if totalSteps == 0 {
-		t.Fatal("pipeline produced zero steps")
+		t.Fatal("circuit produced zero steps")
 	}
 	t.Logf("total steps processed: %d across 4 subagents", totalSteps)
 
@@ -568,7 +568,7 @@ func TestServer_FourSubagents_ViaResolve(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 4)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 
 	var mu sync.Mutex
@@ -662,7 +662,7 @@ func TestServer_FourSubagents_NoDuplicateDispatch(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "daemon-mock", "llm", 4)
+	startResult := startCircuit(t, ctx, session, "daemon-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 
 	var mu sync.Mutex
@@ -736,7 +736,7 @@ func TestServer_FourSubagents_NoDuplicateDispatch(t *testing.T) {
 	}
 
 	if len(allRecords) == 0 {
-		t.Fatal("pipeline produced zero steps")
+		t.Fatal("circuit produced zero steps")
 	}
 	t.Logf("daemon-mock: %d unique (case, step) pairs processed, 0 duplicates", len(seen))
 
@@ -755,7 +755,7 @@ func TestServer_FourSubagents_ConcurrencyTiming(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 4)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 4)
 	sessionID := startResult["session_id"].(string)
 
 	const perStepDelay = 20 * time.Millisecond
@@ -843,7 +843,7 @@ func TestGetNextStep_InlinePrompt(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID := startResult["session_id"].(string)
 
 	step := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -882,7 +882,7 @@ func TestGetNextStep_Timeout(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID := startResult["session_id"].(string)
 
 	step1 := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -918,7 +918,7 @@ func TestSession_TTL_Abort(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 1)
 	sessionID := startResult["session_id"].(string)
 
 	step := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -963,7 +963,7 @@ func TestServer_StaleSession_StartReplacesStuck(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	start1 := startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
+	start1 := startCircuit(t, ctx, session, "ptp-mock", "llm", 1)
 	sid1 := start1["session_id"].(string)
 
 	step := callTool(t, ctx, session, "get_next_step", map[string]any{
@@ -974,7 +974,7 @@ func TestServer_StaleSession_StartReplacesStuck(t *testing.T) {
 		t.Fatal("expected first step to be available")
 	}
 
-	_, err := callToolE(ctx, session, "start_pipeline", map[string]any{
+	_, err := callToolE(ctx, session, "start_circuit", map[string]any{
 		"extra": map[string]any{"scenario": "ptp-mock", "adapter": "stub"},
 	})
 	if err == nil {
@@ -982,7 +982,7 @@ func TestServer_StaleSession_StartReplacesStuck(t *testing.T) {
 	}
 	t.Logf("without force: %v (expected)", err)
 
-	start3 := callTool(t, ctx, session, "start_pipeline", map[string]any{
+	start3 := callTool(t, ctx, session, "start_circuit", map[string]any{
 		"extra": map[string]any{"scenario": "ptp-mock", "adapter": "stub"},
 		"force": true,
 	})
@@ -1010,7 +1010,7 @@ func TestServer_StaleSession_TTLAutoAbort(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startPipeline(t, ctx, session, "ptp-mock", "llm", 1)
+	startCircuit(t, ctx, session, "ptp-mock", "llm", 1)
 	sid := srv.SessionID()
 
 	srv.SetSessionTTL(200 * time.Millisecond)
@@ -1022,7 +1022,7 @@ func TestServer_StaleSession_TTLAutoAbort(t *testing.T) {
 
 	time.Sleep(500 * time.Millisecond)
 
-	start2 := startPipeline(t, ctx, session, "ptp-mock", "stub", 0)
+	start2 := startCircuit(t, ctx, session, "ptp-mock", "stub", 0)
 	sid2 := start2["session_id"].(string)
 	if sid2 == "" || sid2 == sid {
 		t.Fatalf("expected new session after TTL abort, got %q", sid2)
@@ -1037,7 +1037,7 @@ func TestGetNextStep_OverPull_Draining(t *testing.T) {
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-mock", "llm", 2)
+	startResult := startCircuit(t, ctx, session, "ptp-mock", "llm", 2)
 	sessionID := startResult["session_id"].(string)
 
 	type pullResult struct {

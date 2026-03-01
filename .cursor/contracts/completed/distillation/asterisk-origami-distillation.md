@@ -16,7 +16,7 @@ Global rules only, plus:
 - `docs/distillation-manifest.md` — Package classification, dependency graph, boundary validation results.
 - `docs/framework-guide.md` — Developer guide with reference implementations.
 - `contracts/active/origami-agentic-network-framework.md` — Origami identity and Extractor primitive (prerequisite).
-- `pipelines/achilles.yaml` — Second Origami pipeline definition (in Achilles repo).
+- `circuits/achilles.yaml` — Second Origami circuit definition (in Achilles repo).
 
 ### Current architecture
 
@@ -27,14 +27,14 @@ Single domain tool (Asterisk) built on Origami. No empirical proof that the fram
 ```mermaid
 flowchart TD
     subgraph origami [Origami Framework - github.com/dpopsuev/origami]
-        DSL[Pipeline DSL]
+        DSL[Circuit DSL]
         Graph[Graph Walk]
         Ext[Extractors]
         Elem[Elements]
         Persona[Personas]
     end
     subgraph asterisk [Asterisk - internal/ + cmd/asterisk/]
-        RCA["F0-F6 RCA Pipeline"]
+        RCA["F0-F6 RCA Circuit"]
     end
     subgraph achilles [Achilles - github.com/dpopsuev/achilles]
         Scan["Vulnerability Scanner"]
@@ -53,17 +53,17 @@ flowchart TD
 
 ## Execution strategy
 
-Phase 1: Classify every package (framework/domain/promote-candidate) and produce the distillation manifest with Mermaid dependency graph. Phase 2: Build Achilles pipeline (YAML, types, extractors, nodes, edges). Phase 3: Wire CLI and end-to-end execution (govulncheck integration). Phase 4: Validate boundary with `go list -deps` comparison. Phase 5: Contract, indexes, framework guide updates.
+Phase 1: Classify every package (framework/domain/promote-candidate) and produce the distillation manifest with Mermaid dependency graph. Phase 2: Build Achilles circuit (YAML, types, extractors, nodes, edges). Phase 3: Wire CLI and end-to-end execution (govulncheck integration). Phase 4: Validate boundary with `go list -deps` comparison. Phase 5: Contract, indexes, framework guide updates.
 
 ## Coverage matrix
 
 | Layer | Applies | Rationale |
 |-------|---------|-----------|
-| **Unit** | no | Achilles is a demo/reference tool; integration test is the pipeline walk itself |
-| **Integration** | yes | End-to-end pipeline walk: scan -> classify -> assess -> report |
+| **Unit** | no | Achilles is a demo/reference tool; integration test is the circuit walk itself |
+| **Integration** | yes | End-to-end circuit walk: scan -> classify -> assess -> report |
 | **Contract** | yes | Zero `internal/` imports in `github.com/dpopsuev/achilles` verified by `go list -deps` |
 | **E2E** | yes | `achilles scan .` and `achilles scan /tmp/vuln-test2` both succeed |
-| **Concurrency** | no | Single walker, sequential pipeline |
+| **Concurrency** | no | Single walker, sequential circuit |
 | **Security** | yes | Achilles shells out to govulncheck — command injection risk assessed |
 
 ## Tasks
@@ -75,9 +75,9 @@ Phase 1: Classify every package (framework/domain/promote-candidate) and produce
 - [x] Identify boundary violations (none found) and promotion candidates
 - [x] Create `.cursor/docs/distillation-manifest.md`
 
-### Phase 2 — Achilles Pipeline
+### Phase 2 — Achilles Circuit
 
-- [x] Create `pipelines/achilles.yaml` — 4-node pipeline definition (in Achilles repo)
+- [x] Create `circuits/achilles.yaml` — 4-node circuit definition (in Achilles repo)
 - [x] Create domain types (Finding, Severity, Assessment) in `github.com/dpopsuev/achilles`
 - [x] Create GovulncheckExtractor, ClassifyExtractor in `github.com/dpopsuev/achilles`
 - [x] Create scan, classify, assess, report nodes in `github.com/dpopsuev/achilles`
@@ -130,4 +130,4 @@ Phase 1: Classify every package (framework/domain/promote-candidate) and produce
 
 2026-02-22 23:30 — Repos split: Origami extracted to github.com/dpopsuev/origami, VulnScan renamed to Achilles at github.com/dpopsuev/achilles. Asterisk imports origami as external dependency.
 
-2026-02-22 23:00 — All 5 phases complete. Achilles is a working Go vulnerability scanner built entirely on Origami. Boundary validated: zero `internal/` imports. 16 shared framework primitives. Both shortcut (clean) and full (vulnerable) pipeline paths tested. Distillation manifest created with package classification, dependency graph, and promotion candidates.
+2026-02-22 23:00 — All 5 phases complete. Achilles is a working Go vulnerability scanner built entirely on Origami. Boundary validated: zero `internal/` imports. 16 shared framework primitives. Both shortcut (clean) and full (vulnerable) circuit paths tested. Distillation manifest created with package classification, dependency graph, and promotion candidates.

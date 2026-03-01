@@ -10,7 +10,7 @@
 - No internal Red Hat URLs in committed files (README, code). Use placeholder URLs or env vars.
 - Token (`.rp-api-key`) must never appear in logs, error messages, or skill output.
 - Output artifacts written with `0600` permissions (SEC-004 mitigation).
-- This contract is packaging, not new functionality. The pipeline, adapters, and calibration are unchanged.
+- This contract is packaging, not new functionality. The circuit, adapters, and calibration are unchanged.
 
 ## Context
 
@@ -33,7 +33,7 @@
 - Default output path: `.asterisk/output/rca-{launch_id}.json` (auto-create dir); `-o` becomes optional
 - Token permission check: warn if `.rp-api-key` is world-readable (`perm & 0044 != 0`)
 - Input validation: reject non-numeric, non-filepath launch IDs before building output path (SEC-001 mitigation)
-- Lightweight token validation: `GET /health` call before running pipeline (fail fast on bad token)
+- Lightweight token validation: `GET /health` call before running circuit (fail fast on bad token)
 
 ### Phase 2 — `/asterisk-analyze` Cursor skill
 
@@ -105,7 +105,7 @@ Implement these mitigations when executing this contract.
 | A02 | `.rp-api-key` plaintext file permissions not checked (SEC-002). | Medium | Check `os.Stat().Mode().Perm()`. Warn if world-readable (`& 0044 != 0`). |
 | A04 | README.md could leak internal RP instance URL, project name, or CI infrastructure details. | Medium | README uses placeholder URLs only: `https://your-rp-instance.example.com`. Real URLs in env vars or gitignored config. |
 | A05 | Output artifacts at `0600` (already fixed in Phase 1 hardening). | Resolved | `os.WriteFile(..., 0600)` applied to all production writes. |
-| A07 | No RP token validation before pipeline run. Bad token causes cryptic 401 mid-pipeline. | Low | Lightweight health check after reading token. Fail fast with "Token invalid or expired." |
+| A07 | No RP token validation before circuit run. Bad token causes cryptic 401 mid-circuit. | Low | Lightweight health check after reading token. Fail fast with "Token invalid or expired." |
 | A09 | Token must never appear in error messages, logs, or Cursor skill output. | Low | Audit all `fmt.Fprintf` paths. Never interpolate token value. |
 | A10 | `ASTERISK_RP_URL` env var could point to an internal service on shared systems (SSRF). | Low | Acceptable risk for PoC (CLI runs locally). For MVP: add URL allowlist. |
 

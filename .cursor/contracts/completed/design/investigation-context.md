@@ -8,7 +8,7 @@
 - Global rules only.
 - All entities are accessed through the storage adapter interface; no raw SQL in domain or CLI code. See `docs/cli-data-model.mdc`.
 - Schema changes must be backward-compatible via migrations (v1 → v2). Existing data preserved.
-- Global knowledge entities (Symptom, RCA) must never carry pipeline-specific or suite-specific foreign keys — they exist independently and are linked via junction tables or nullable FKs on the investigation-scoped side.
+- Global knowledge entities (Symptom, RCA) must never carry circuit-specific or suite-specific foreign keys — they exist independently and are linked via junction tables or nullable FKs on the investigation-scoped side.
 - Temporal transitions (active → dormant, open → resolved) must be explainable: log the trigger and timestamp.
 
 ## Context
@@ -79,29 +79,29 @@ Product/OCP version. Shared across suites — a global reference table. Multiple
 | `label` | TEXT NOT NULL UNIQUE | Version label, e.g. `4.21`. |
 | `ocp_build` | TEXT | Specific build, e.g. `4.21.2`. |
 
-#### Pipeline
+#### Circuit
 
-One CI pipeline run for one version. Bound to a suite + version.
+One CI circuit run for one version. Bound to a suite + version.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | INTEGER PK | Auto-increment. |
 | `suite_id` | INTEGER NOT NULL | FK → `investigation_suites.id`. |
 | `version_id` | INTEGER NOT NULL | FK → `versions.id`. |
-| `name` | TEXT NOT NULL | Pipeline name, e.g. `telco-ft-ran-ptp-4.21`. |
+| `name` | TEXT NOT NULL | Circuit name, e.g. `telco-ft-ran-ptp-4.21`. |
 | `rp_launch_id` | INTEGER | RP launch ID (for quick reference; denormalized from Launch). |
-| `status` | TEXT NOT NULL | Pipeline status, e.g. `FAILED`, `PASSED`. |
+| `status` | TEXT NOT NULL | Circuit status, e.g. `FAILED`, `PASSED`. |
 | `started_at` | TEXT | ISO 8601. |
 | `ended_at` | TEXT | ISO 8601. |
 
 #### Launch
 
-One RP launch. Evolves from the current `envelopes` blob table into a proper entity. 1:1 with Pipeline for now; schema allows N launches per pipeline for future multi-launch pipelines.
+One RP launch. Evolves from the current `envelopes` blob table into a proper entity. 1:1 with Circuit for now; schema allows N launches per circuit for future multi-launch circuits.
 
 | Column | Type | Description |
 |--------|------|-------------|
 | `id` | INTEGER PK | Auto-increment. |
-| `pipeline_id` | INTEGER NOT NULL | FK → `pipelines.id`. |
+| `circuit_id` | INTEGER NOT NULL | FK → `circuits.id`. |
 | `rp_launch_id` | INTEGER NOT NULL | RP launch ID (e.g. 33195). |
 | `rp_launch_uuid` | TEXT | RP launch UUID. |
 | `name` | TEXT | Launch name from RP. |
@@ -112,7 +112,7 @@ One RP launch. Evolves from the current `envelopes` blob table into a proper ent
 | `git_branch` | TEXT | Branch from envelope git metadata (may be null). |
 | `git_commit` | TEXT | Commit SHA from envelope git metadata (may be null). |
 | `envelope_payload` | BLOB | Full envelope JSON for backward compatibility and raw access. |
-| UNIQUE | | `(pipeline_id, rp_launch_id)` |
+| UNIQUE | | `(circuit_id, rp_launch_id)` |
 
 #### Job
 
@@ -207,7 +207,7 @@ A recognized failure pattern — the observable "story" that test cases report. 
 
 #### RCA — the criminal
 
-Root cause analysis — the actual bug, misconfiguration, or infra issue that caused the symptoms. Cross-version, cross-suite. Independent of any pipeline or envelope. One criminal can cause many stories; one story can (in different contexts) be caused by different criminals.
+Root cause analysis — the actual bug, misconfiguration, or infra issue that caused the symptoms. Cross-version, cross-suite. Independent of any circuit or envelope. One criminal can cause many stories; one story can (in different contexts) be caused by different criminals.
 
 | Column | Type | Description |
 |--------|------|-------------|
@@ -266,8 +266,8 @@ Case ──reports──▶ Symptom ──caused by──▶ RCA
 ### Entity relationship diagram
 
 ```
-InvestigationSuite  1──*  Pipeline  *──1  Version
-Pipeline            1──*  Launch
+InvestigationSuite  1──*  Circuit  *──1  Version
+Circuit            1──*  Launch
 Launch              1──*  Job
 Job                 1──*  Case (witness)
 Case                1──0..1  Triage
@@ -286,13 +286,13 @@ Symptom             *──caused by──*  RCA                  [via SymptomRC
 
 | Query | Path | Used by |
 |-------|------|---------|
-| All failures in a pipeline | Pipeline → Launch → Job → Case | CLI list, F6 Report |
-| All failures for a version | Version → Pipeline → Launch → Job → Case | Cross-version report |
+| All failures in a circuit | Circuit → Launch → Job → Case | CLI list, F6 Report |
+| All failures for a version | Version → Circuit → Launch → Job → Case | Cross-version report |
 | All cases with the same symptom | Symptom → Case (reverse FK) | F4 Correlate |
 | Prior RCAs for a symptom | Symptom → SymptomRCA → RCA | F0 Recall |
-| All versions affected by an RCA | RCA.affected_versions JSON + Case → Launch → Pipeline → Version | F6 Report |
+| All versions affected by an RCA | RCA.affected_versions JSON + Case → Launch → Circuit → Version | F6 Report |
 | Sibling cases in same job | Case WHERE job_id = X | F1 Triage (cascade detection) |
-| Open cases in suite | Suite → Pipeline → Launch → Job → Case WHERE status != 'closed' | Suite dashboard |
+| Open cases in suite | Suite → Circuit → Launch → Job → Case WHERE status != 'closed' | Suite dashboard |
 
 ---
 
@@ -394,11 +394,11 @@ SELECT occurrence_count, first_seen_at, last_seen_at, status
   FROM symptoms WHERE id = ?;
 
 -- F4 Correlate: other open cases with same symptom across suites
-SELECT c.*, j.name AS job_name, l.rp_launch_id, p.name AS pipeline_name
+SELECT c.*, j.name AS job_name, l.rp_launch_id, p.name AS circuit_name
   FROM cases c
   JOIN jobs j ON c.job_id = j.id
   JOIN launches l ON c.launch_id = l.id
-  JOIN pipelines p ON l.pipeline_id = p.id
+  JOIN circuits p ON l.circuit_id = p.id
   WHERE c.symptom_id = ? AND c.id != ? AND c.status != 'closed';
 
 -- F6 Report: all product bugs in a suite, grouped by RCA
@@ -407,7 +407,7 @@ SELECT r.id, r.title, r.defect_type, r.jira_ticket_id, r.jira_link,
   FROM rcas r
   JOIN cases c ON c.rca_id = r.id
   JOIN launches l ON c.launch_id = l.id
-  JOIN pipelines p ON l.pipeline_id = p.id
+  JOIN circuits p ON l.circuit_id = p.id
   WHERE p.suite_id = ? AND r.defect_type = 'pb001'
   GROUP BY r.id ORDER BY case_count DESC;
 
@@ -439,7 +439,7 @@ CREATE TABLE IF NOT EXISTS versions (
     ocp_build TEXT
 );
 
-CREATE TABLE IF NOT EXISTS pipelines (
+CREATE TABLE IF NOT EXISTS circuits (
     id            INTEGER PRIMARY KEY AUTOINCREMENT,
     suite_id      INTEGER NOT NULL REFERENCES investigation_suites(id),
     version_id    INTEGER NOT NULL REFERENCES versions(id),
@@ -452,7 +452,7 @@ CREATE TABLE IF NOT EXISTS pipelines (
 
 CREATE TABLE IF NOT EXISTS launches (
     id                INTEGER PRIMARY KEY AUTOINCREMENT,
-    pipeline_id       INTEGER NOT NULL REFERENCES pipelines(id),
+    circuit_id       INTEGER NOT NULL REFERENCES circuits(id),
     rp_launch_id      INTEGER NOT NULL,
     rp_launch_uuid    TEXT,
     name              TEXT,
@@ -463,7 +463,7 @@ CREATE TABLE IF NOT EXISTS launches (
     git_branch        TEXT,
     git_commit        TEXT,
     envelope_payload  BLOB,
-    UNIQUE(pipeline_id, rp_launch_id)
+    UNIQUE(circuit_id, rp_launch_id)
 );
 
 CREATE TABLE IF NOT EXISTS jobs (
@@ -567,8 +567,8 @@ CREATE INDEX IF NOT EXISTS idx_cases_symptom ON cases(symptom_id);
 CREATE INDEX IF NOT EXISTS idx_cases_rca ON cases(rca_id);
 CREATE INDEX IF NOT EXISTS idx_cases_launch ON cases(launch_id);
 CREATE INDEX IF NOT EXISTS idx_cases_job ON cases(job_id);
-CREATE INDEX IF NOT EXISTS idx_pipelines_suite ON pipelines(suite_id);
-CREATE INDEX IF NOT EXISTS idx_launches_pipeline ON launches(pipeline_id);
+CREATE INDEX IF NOT EXISTS idx_circuits_suite ON circuits(suite_id);
+CREATE INDEX IF NOT EXISTS idx_launches_circuit ON launches(circuit_id);
 CREATE INDEX IF NOT EXISTS idx_jobs_launch ON jobs(launch_id);
 CREATE INDEX IF NOT EXISTS idx_symptoms_fingerprint ON symptoms(fingerprint);
 CREATE INDEX IF NOT EXISTS idx_symptom_rca_symptom ON symptom_rca(symptom_id);
@@ -585,7 +585,7 @@ Migration strategy:
 
 1. Create all new tables (Tier 1 + Tier 2).
 2. Migrate `rcas` → new `rcas` (add new columns with defaults; preserve existing rows; set `status = 'open'`, `created_at = datetime('now')`).
-3. Migrate `envelopes` → new `launches` (extract fields from payload blob where possible; create a default suite and pipeline per launch for continuity).
+3. Migrate `envelopes` → new `launches` (extract fields from payload blob where possible; create a default suite and circuit per launch for continuity).
 4. Migrate `cases` → new `cases` (add new columns; create placeholder `jobs` from envelope data; set `status = 'open'`, `created_at = datetime('now')`).
 5. Drop old tables after migration (or keep as `_v1_*` backups).
 6. Update `schema_version` to 2.
@@ -613,7 +613,7 @@ Migration strategy:
 ## Acceptance criteria
 
 - **Given** a multi-version investigation (e.g. PTP across 4.20, 4.21, 4.22),
-- **When** the data model is populated with suites, pipelines, launches, jobs, cases, symptoms, and RCAs,
+- **When** the data model is populated with suites, circuits, launches, jobs, cases, symptoms, and RCAs,
 - **Then** the following queries are expressible:
   - All failures for a specific version.
   - All cases linked to the same symptom across versions.
@@ -629,4 +629,4 @@ Migration strategy:
 (Running log, newest first. YYYY-MM-DD HH:MM — decision or finding.)
 
 - 2026-02-17 02:00 — Clarified the three-pillar relational model with witness/story/criminal analogy. Case (witness) reports Symptom (story), Symptom is caused by RCA (criminal). Canonical path is always through the Symptom: Case → Symptom → SymptomRCA → RCA. Case.rca_id is documented as a denormalized verdict shortcut, not a primary relationship. Updated entity headers, relationship section, and diagrams.
-- 2026-02-17 01:00 — Initial contract. Two-tier model designed: 7 investigation-scoped entities (suite, version, pipeline, launch, job, case, triage) + 3 global knowledge entities (symptom, rca, symptom_rca). Schema DDL for SQLite v2 included. Migration strategy from v1. Temporal rules for symptom staleness (90-day dormancy) and RCA lifecycle (open → resolved → verified → archived). Prompt injection mapping for History.SymptomInfo and expanded History.PriorRCAs.
+- 2026-02-17 01:00 — Initial contract. Two-tier model designed: 7 investigation-scoped entities (suite, version, circuit, launch, job, case, triage) + 3 global knowledge entities (symptom, rca, symptom_rca). Schema DDL for SQLite v2 included. Migration strategy from v1. Temporal rules for symptom staleness (90-day dormancy) and RCA lifecycle (open → resolved → verified → archived). Prompt injection mapping for History.SymptomInfo and expanded History.PriorRCAs.

@@ -25,7 +25,7 @@
 
 ### Root cause
 
-The pipeline asks an AI worker to choose repos at the Resolve step. This decision should be deterministic for the common case: triage already outputs `defect_type_hypothesis`, and the workspace repos have a `Purpose` field. The mapping is a lookup, not a judgment call.
+The circuit asks an AI worker to choose repos at the Resolve step. This decision should be deterministic for the common case: triage already outputs `defect_type_hypothesis`, and the workspace repos have a `Purpose` field. The mapping is a lookup, not a judgment call.
 
 ### Desired architecture
 
@@ -45,7 +45,7 @@ Code only — no FSC artifacts.
 
 1. **Implement `selectRepoByHypothesis`** — helper that maps hypothesis prefix (`pb`, `au`, `en`) to workspace repos by Purpose keywords.
 2. **Wire into parallel runner** — after triage, auto-select repos and skip Resolve dispatch when match found. Safety valve: fall through to Resolve if no match.
-3. **Add H7b edge** — pipeline graph edge for hypothesis-based repo routing (triage → investigate shortcut).
+3. **Add H7b edge** — circuit graph edge for hypothesis-based repo routing (triage → investigate shortcut).
 4. **Unit tests** — classifier function + heuristic evaluation.
 5. **Dry calibration** — verify M9 >= 0.70, M10 >= 0.80, M18 decreases.
 
@@ -64,7 +64,7 @@ Code only — no FSC artifacts.
 
 - [ ] Implement `selectRepoByHypothesis` helper (hypothesis prefix → workspace repos by Purpose keywords)
 - [ ] Wire into `parallel.go`: after triage, auto-select repos and skip Resolve dispatch when match found
-- [ ] Add H7b edge to `pipeline_def.go` and `heuristics.go` for hypothesis-based repo routing
+- [ ] Add H7b edge to `circuit_def.go` and `heuristics.go` for hypothesis-based repo routing
 - [ ] Unit tests for classifier and H7b heuristic
 - [ ] Stub calibration: 19/19 pass
 - [ ] Dry calibration: M9 >= 0.70, M10 >= 0.80, M18 decreases

@@ -30,7 +30,7 @@ var consumeCmd = &cobra.Command{
 
 var consumeRunCmd = &cobra.Command{
 	Use:   "run",
-	Short: "Walk the ingestion pipeline to discover new failures",
+	Short: "Walk the ingestion circuit to discover new failures",
 	RunE: func(cmd *cobra.Command, args []string) error {
 		ctx := context.Background()
 
@@ -72,14 +72,14 @@ var consumeRunCmd = &cobra.Command{
 			fetcher, symptoms, consumeProject, dedupIdx, consumeCandidateDir,
 		)
 
-		pipelineData, err := os.ReadFile("pipelines/asterisk-ingest.yaml")
+		circuitData, err := os.ReadFile("circuits/asterisk-ingest.yaml")
 		if err != nil {
-			return fmt.Errorf("read pipeline: %w", err)
+			return fmt.Errorf("read circuit: %w", err)
 		}
 
-		def, err := framework.LoadPipeline(pipelineData)
+		def, err := framework.LoadCircuit(circuitData)
 		if err != nil {
-			return fmt.Errorf("parse pipeline: %w", err)
+			return fmt.Errorf("parse circuit: %w", err)
 		}
 
 		edgeIDs := make([]string, len(def.Edges))
@@ -112,7 +112,7 @@ var consumeRunCmd = &cobra.Command{
 		}
 
 		if err := graph.Walk(ctx, walker, def.Start); err != nil {
-			return fmt.Errorf("walk pipeline: %w", err)
+			return fmt.Errorf("walk circuit: %w", err)
 		}
 
 		if summary, ok := walker.State().Context["summary"]; ok {

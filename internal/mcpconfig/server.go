@@ -22,23 +22,23 @@ var (
 	DefaultSessionTTL         = 5 * time.Minute
 )
 
-// Server wraps the generic PipelineServer with Asterisk-specific domain hooks.
+// Server wraps the generic CircuitServer with Asterisk-specific domain hooks.
 type Server struct {
-	*fwmcp.PipelineServer
+	*fwmcp.CircuitServer
 	ProjectRoot string
 }
 
 // NewServer creates an Asterisk MCP server by configuring the generic
-// PipelineServer with Asterisk domain hooks (scenarios, adapters, RP wiring).
+// CircuitServer with Asterisk domain hooks (scenarios, adapters, RP wiring).
 func NewServer() *Server {
 	cwd, _ := os.Getwd()
 	s := &Server{ProjectRoot: cwd}
-	s.PipelineServer = fwmcp.NewPipelineServer(s.buildConfig())
+	s.CircuitServer = fwmcp.NewCircuitServer(s.buildConfig())
 	return s
 }
 
-func (s *Server) buildConfig() fwmcp.PipelineConfig {
-	return fwmcp.PipelineConfig{
+func (s *Server) buildConfig() fwmcp.CircuitConfig {
+	return fwmcp.CircuitConfig{
 		Name:        "asterisk",
 		Version:     "dev",
 		StepSchemas: asteriskStepSchemas(),

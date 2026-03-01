@@ -94,10 +94,10 @@ func TestDemoServer_KabukiAPI(t *testing.T) {
 		}
 	})
 
-	t.Run("pipeline", func(t *testing.T) {
-		resp, err := http.Get(base + "/api/pipeline")
+	t.Run("circuit", func(t *testing.T) {
+		resp, err := http.Get(base + "/api/circuit")
 		if err != nil {
-			t.Fatalf("GET /api/pipeline: %v", err)
+			t.Fatalf("GET /api/circuit: %v", err)
 		}
 		defer resp.Body.Close()
 		if resp.StatusCode != 200 {
@@ -110,7 +110,7 @@ func TestDemoServer_KabukiAPI(t *testing.T) {
 		}
 		nodes, ok := payload["nodes"].(map[string]any)
 		if !ok || len(nodes) == 0 {
-			t.Error("pipeline nodes is empty or not a map")
+			t.Error("circuit nodes is empty or not a map")
 		}
 	})
 

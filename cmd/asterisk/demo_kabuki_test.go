@@ -85,7 +85,7 @@ func TestPoliceStationKabuki_Architecture(t *testing.T) {
 		t.Fatal("Architecture() returned nil")
 	}
 	if len(a.Components) != 7 {
-		t.Errorf("got %d components, want 7 (one per pipeline node)", len(a.Components))
+		t.Errorf("got %d components, want 7 (one per circuit node)", len(a.Components))
 	}
 }
 

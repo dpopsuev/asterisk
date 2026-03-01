@@ -37,7 +37,7 @@ Use the appropriate mermaid diagram type for the architectural concern:
 | Diagram type | Use for | Example |
 |---|---|---|
 | `flowchart` / `graph` | Component relationships, data flow, dependency graphs | Package dependencies, adapter routing |
-| `sequenceDiagram` | Multi-step protocols, request/response flows | Pipeline step execution, MCP dispatch loop |
+| `sequenceDiagram` | Multi-step protocols, request/response flows | Circuit step execution, MCP dispatch loop |
 | `classDiagram` | Interface hierarchies, type relationships | ModelAdapter implementations, Scheduler strategies |
 
 ## Canonical architecture document

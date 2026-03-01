@@ -1,6 +1,6 @@
 # Worked Examples
 
-Prompt-to-artifact examples for each pipeline step. These show the reasoning process and expected output format.
+Prompt-to-artifact examples for each circuit step. These show the reasoning process and expected output format.
 
 ---
 
@@ -367,7 +367,7 @@ All 3 Tasks complete. The parent checks:
 - `.asterisk/calibrate/1001/102/recall-result.json` -- exists, valid JSON
 - `.asterisk/calibrate/1001/103/recall-result.json` -- exists, valid JSON
 
-All artifacts present. The Go CLI detects them and moves to the next pipeline step.
+All artifacts present. The Go CLI detects them and moves to the next circuit step.
 
 ### 5. Subagent response example
 

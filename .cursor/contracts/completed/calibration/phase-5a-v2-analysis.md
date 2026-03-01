@@ -34,7 +34,7 @@
 | M13 Evidence Precision | 0.00 | FAIL | >=0.50 |
 | M14b Smoking Gun | 0.30 (3/10) | PASS | >=0.00 |
 | M15 Component ID | 0.56 (10/18) | FAIL | >=0.70 |
-| M16 Pipeline Path | 0.00 (0/18) | FAIL | >=0.60 |
+| M16 Circuit Path | 0.00 (0/18) | FAIL | >=0.60 |
 | M18 Total Tokens | 94K | FAIL | <=60K |
 | M19 Overall | 0.58 | FAIL | >=0.65 |
 
@@ -44,7 +44,7 @@
 
 **M9=0.30, M10=0.13 — Repo selection broken on ptp-real-ingest.** `selectRepoByHypothesis` in `runner.go` uses hardcoded Purpose keyword matching tuned for ptp-mock repo names. Key gap: `cloud-event-proxy` (expected by 10/18 cases) has no "operator"/"daemon"/"product" keywords in its Purpose, so it never matches `pb*` hypotheses. The function returns `[linuxptp-daemon, ptp-operator]` for all pb* cases, missing cloud-event-proxy entirely. **Architecture decision:** keyword matching on Purpose strings is fundamentally brittle. The long-term fix is a `KnowledgeSourceRouter` (Origami framework type) configured with component-tag routing rules instead. Tactical fix: use `RepoConfig.RelevantToRCAs` metadata that already exists in the scenario definition. See Origami draft contract `knowledge-source-catalog.md`.
 
-**M16=0.00 — Pipeline path accuracy.** All 15 investigate-path cases expect `F0->F1->F3->F4->F5->F6` (H7 skips F2 when single candidate). But triage produces 2+ candidates, H7 doesn't fire, path goes through F2. Also some cases end at F4 (Correlate) without reaching F5->F6.
+**M16=0.00 — Circuit path accuracy.** All 15 investigate-path cases expect `F0->F1->F3->F4->F5->F6` (H7 skips F2 when single candidate). But triage produces 2+ candidates, H7 doesn't fire, path goes through F2. Also some cases end at F4 (Correlate) without reaching F5->F6.
 
 **M4=0.33 — Recall false positive rate.** 6/18 workers reported `match=true` when no prior RCA database exists. Worker prompt issue.
 
@@ -71,7 +71,7 @@ Code only — no FSC artifacts.
 Fix in priority order by expected M19 impact:
 
 1. **M9/M10** (est. +0.08-0.12) — tactical: use `RepoConfig.RelevantToRCAs` for component-aware routing instead of Purpose keywords. Long-term: replace with Origami `KnowledgeSourceRouter` (depends on `knowledge-source-catalog` contract)
-2. **M16** (est. +0.05) — fix pipeline path: ensure cases reach Review->Report; investigate H7 firing conditions
+2. **M16** (est. +0.05) — fix circuit path: ensure cases reach Review->Report; investigate H7 firing conditions
 3. **M4** (indirect) — fix worker prompt to default `match=false` when no prior RCA data
 4. **M1/M15** (est. +0.05-0.08) — prompt tuning: en001 vs pb001 disambiguation, component priors for ptp-real-ingest
 5. **M12/M13** (est. +0.05) — relax evidence matching or accept as dry-capped
@@ -91,7 +91,7 @@ Fix in priority order by expected M19 impact:
 ## Tasks
 
 - [ ] **Fix M9/M10** — tactical: replace Purpose keyword matching with component-tag routing using `RepoConfig.RelevantToRCAs` metadata; update `runner_test.go`. Long-term: migrate to Origami `KnowledgeSourceRouter` when `knowledge-source-catalog` contract ships.
-- [ ] **Fix M16** — diagnose why cases terminate at F4 without reaching F5->F6; fix pipeline path completion
+- [ ] **Fix M16** — diagnose why cases terminate at F4 without reaching F5->F6; fix circuit path completion
 - [ ] **Fix M4** — ensure recall step defaults to `match=false` when no prior RCA data is provided (worker prompt or runner-level fix)
 - [ ] **Fix M1/M15 prompts** — add en001 vs pb001 disambiguation rules to `classify-symptoms.md`; update component priors in `deep-rca.md` to reflect ptp-real-ingest distribution (cloud-event-proxy ~56%, linuxptp-daemon ~22%, cnf-features-deploy ~11%)
 - [ ] **Fix M12/M13** — teach workers to discover actual PRs by searching repo commit history and Jira references (wet capability; Phase 5b scope)
@@ -106,7 +106,7 @@ Fix in priority order by expected M19 impact:
 - **When** Phase 5a runs via MCP with 4 parallel workers,
 - **Then** M9 >= 0.70 and M10 >= 0.80.
 
-- **Given** pipeline paths are fixed,
+- **Given** circuit paths are fixed,
 - **When** Phase 5a runs,
 - **Then** M16 >= 0.60 (at least 11/18 cases take the expected path).
 
@@ -153,6 +153,6 @@ No trust boundaries affected.
 
 ## Notes
 
-- 2026-02-25 — **Contract closed (PoC proved).** CursorAdapter baseline established at M19=0.58 with documented root causes for all 11 failing metrics. The PoC proved the pipeline works end-to-end (BasicAdapter M19=0.83, CursorAdapter mechanically sound with 4 parallel workers via MCP). Remaining delta (0.58→0.85) is iterative tuning work for a future goal. Fix tasks left unchecked — root cause analysis is complete and actionable for any future tuning contract.
+- 2026-02-25 — **Contract closed (PoC proved).** CursorAdapter baseline established at M19=0.58 with documented root causes for all 11 failing metrics. The PoC proved the circuit works end-to-end (BasicAdapter M19=0.83, CursorAdapter mechanically sound with 4 parallel workers via MCP). Remaining delta (0.58→0.85) is iterative tuning work for a future goal. Fix tasks left unchecked — root cause analysis is complete and actionable for any future tuning contract.
 - 2026-02-24 21:30 — **Architecture decision: KnowledgeSourceCatalog + KnowledgeSourceRouter.** Keyword matching on Purpose strings (`selectRepoByHypothesis`) is fundamentally brittle across scenarios. Long-term fix: Origami framework provides `KnowledgeSourceCatalog` (replaces `Workspace` — a Cursor IDE term that leaked into the framework) and `KnowledgeSourceRouter` (batteries-included routing struct configured by domain owners). `Repo` becomes `Source` with `Kind` field (repo, spec, doc) and `Tags` for component-aware routing. Tactical fix for Phase 5a: use existing `RepoConfig.RelevantToRCAs` metadata for component-tag routing. Origami draft contract: `knowledge-source-catalog.md`. M12/M13 decision: Option B — teach workers to discover actual PRs (wet capability, Phase 5b scope). M18 deprioritized — accuracy over cost.
 - 2026-02-24 20:00 — R11 complete. CursorAdapter ptp-real-ingest M19=0.58 (up from 0.50 baseline). 4 parallel workers, $0.38, 10m 9s. M2 taxonomy fix validated (0.00->0.78). M9/M10 regression from ptp-mock (1.00->0.30/0.13) due to repo name mismatch. M16=0.00 due to path divergence. Contract created to address all 11 failing metrics.

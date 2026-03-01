@@ -4,7 +4,7 @@ Asterisk project rules — committed, shared; specific to this repository and do
 
 ## Files
 - `project-standards.mdc` — Product definition, methodology (ROGYB, Gherkin), calibration ordering, data handling, output.
-- `agent-operations.mdc` — Local pipeline stages, timeout SLAs, abort protocol, observability.
+- `agent-operations.mdc` — Local circuit stages, timeout SLAs, abort protocol, observability.
 - `knowledge-store.mdc` — .cursor/ structure, index integrity, persistence protocol, work contracts.
 - `contract-iteration.mdc` — Monitor contracts for insights from discussions and calibration runs.
 - `architecture-snapshots.mdc` — Architecture diagrams as first-class artifacts; current/desired state snapshots.

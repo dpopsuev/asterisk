@@ -1,20 +1,20 @@
 ---
-description: Agent execution model — local CI/CD pipeline, timeout SLAs, observability, and abort protocol
+description: Agent execution model — local CI/CD circuit, timeout SLAs, observability, and abort protocol
 alwaysApply: true
 ---
 
 # Agent Operations
 
-The AI agent is the build-and-verify operator. Every code change passes through a local pipeline before being declared complete.
+The AI agent is the build-and-verify operator. Every code change passes through a local circuit before being declared complete.
 
-## Local pipeline
+## Local circuit
 
 Run stages in order after every substantive change. Each stage is a quality gate.
 
 | Stage | Command | SLA | On failure |
 |-------|---------|-----|------------|
 | **Build** | `go build ./...` | 30 s | Fix compilation errors immediately |
-| **Pipeline lint** | `origami lint --profile strict` on changed YAMLs | 5 s | Fix findings; auto-fix with `--fix` where available |
+| **Circuit lint** | `origami lint --profile strict` on changed YAMLs | 5 s | Fix findings; auto-fix with `--fix` where available |
 | **Lint** | `ReadLints` on changed files | 10 s | Fix introduced lints; ignore pre-existing |
 | **Unit test** | `go test ./...` | 60 s | Stop; fix before proceeding |
 | **Integration** | `just calibrate-stub` or scenario-specific | 2 min | Triage metric regressions |
@@ -73,4 +73,4 @@ When writing or modifying code with blocking or long-running operations:
 - Piping output through `tail` or `head` and losing error context.
 - Sleeping in a poll loop without progress logging.
 - Retrying a failed command without diagnosing the failure.
-- Declaring "done" without running the pipeline.
+- Declaring "done" without running the circuit.

@@ -7,7 +7,7 @@
 
 - Token counting must be accurate for real (wet) runs; estimates are acceptable for stub runs.
 - No external dependencies for counting (use byte-length heuristics or tiktoken-compatible Go library; avoid API calls just to count tokens).
-- Tracking must not degrade pipeline performance (< 1ms overhead per step).
+- Tracking must not degrade circuit performance (< 1ms overhead per step).
 - Cost data is never committed to the repo; lives in `.dev/` or `.asterisk/` (both git-ignored).
 - All token data flows through a single `TokenTracker` interface so adapters (stub, cursor, future LLM-API) can report real or estimated counts uniformly.
 
@@ -22,7 +22,7 @@
 
 ## Execution strategy
 
-Four phases. Phase 1 defines the tracking types and interface. Phase 2 instruments the pipeline. Phase 3 builds the cost report. Phase 4 validates and integrates with M18.
+Four phases. Phase 1 defines the tracking types and interface. Phase 2 instruments the circuit. Phase 3 builds the cost report. Phase 4 validates and integrates with M18.
 
 ### Phase 1 — Token tracking types
 
@@ -62,14 +62,14 @@ Four phases. Phase 1 defines the tracking types and interface. Phase 2 instrumen
 - [ ] **P1.4** Implement `InMemoryTokenTracker` (thread-safe, accumulates records in a slice).
 - [ ] **P1.5** Write unit tests for `InMemoryTokenTracker`: record 10 entries, verify summary totals, per-case, and per-step breakdowns.
 
-### Phase 2 — Pipeline instrumentation
+### Phase 2 — Circuit instrumentation
 
 - [ ] **P2.1** Extend `Dispatcher` interface or add a wrapper: after each `Dispatch()` call, measure prompt file size (from `PromptPath`) and artifact response size (from returned `[]byte`), and record a `TokenRecord`.
   - Option A: `TokenTrackingDispatcher` decorator that wraps any `Dispatcher`.
   - Option B: Recording in `CursorAdapter.SendPrompt()` after dispatch returns.
-- [ ] **P2.2** Thread `TokenTracker` through the pipeline:
+- [ ] **P2.2** Thread `TokenTracker` through the circuit:
   - `RunConfig` gets a `TokenTracker` field.
-  - `runCasePipeline` passes it to the adapter or records after each `SendPrompt`.
+  - `runCaseCircuit` passes it to the adapter or records after each `SendPrompt`.
   - For stub adapter: estimate tokens from ground-truth response size.
 - [ ] **P2.3** Extend `CaseResult` with per-case token fields:
   ```

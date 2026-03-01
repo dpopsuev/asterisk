@@ -22,7 +22,7 @@ var saveFlags struct {
 
 var saveCmd = &cobra.Command{
 	Use:   "save",
-	Short: "Save an artifact to the store and advance pipeline state",
+	Short: "Save an artifact to the store and advance circuit state",
 	RunE:  runSave,
 }
 
@@ -144,7 +144,7 @@ func runSaveOrchestrated(cmd *cobra.Command) error {
 	out := cmd.OutOrStdout()
 	fmt.Fprintf(out, "Saved artifact for %s\n", vocabNameWithCode(string(state.CurrentStep)))
 	if result.IsDone {
-		fmt.Fprintf(out, "Pipeline complete! %s\n", result.Explanation)
+		fmt.Fprintf(out, "Circuit complete! %s\n", result.Explanation)
 	} else {
 		fmt.Fprintf(out, "Next step: %s (%s)\n", vocabNameWithCode(string(result.NextStep)), result.Explanation)
 		fmt.Fprintf(out, "Run 'asterisk cursor' to generate the next prompt.\n")

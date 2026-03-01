@@ -8,16 +8,16 @@ alwaysApply: true
 ## Product definition
 
 - Asterisk is a **standalone Go CLI** (potential sidecar service) that interacts with ReportPortal via the RP API as an external client.
-- Purpose: automated root-cause analysis on RP test failures by correlating with source repositories, CI pipelines, and infrastructure telemetry.
+- Purpose: automated root-cause analysis on RP test failures by correlating with source repositories, CI circuits, and infrastructure telemetry.
 - Design principle: explainable, evidence-first RCA with confidence scores.
 
 ## Development methodology
 
 - Start every story with Gherkin acceptance criteria (Given / When / Then).
 - Follow the **Red-Orange-Green-Yellow-Blue** cycle (see `rules/testing-methodology.mdc`).
-- Run the local pipeline after every change (see `rules/agent-operations.mdc`).
+- Run the local circuit after every change (see `rules/agent-operations.mdc`).
 - Prefer deterministic outputs for identical inputs; seed ordering where needed.
-- Every AI inference must cite evidence (logs, commits, pipeline data).
+- Every AI inference must cite evidence (logs, commits, circuit data).
 
 ## Safety > Speed
 
@@ -44,7 +44,7 @@ End-users will not use tools whose accuracy is low. Speed (still faster than a h
 
 Three modes form a progression (see `glossary/glossary.mdc` for definitions):
 
-1. **Stub** — deterministic, no LLM. Validates pipeline machinery. Runs after every code change.
+1. **Stub** — deterministic, no LLM. Validates circuit machinery. Runs after every code change.
 2. **Dry** (real LLM + synthetic data) — validates prompts and model behavior. Runs continuously during tuning. Evidence metrics (M12/M13) are structurally capped because workers cannot access real repos.
 3. **Wet** (real LLM + production data) — the **final step**, attempted only when:
    - All implementation contracts are complete.
@@ -61,7 +61,7 @@ Three modes form a progression (see `glossary/glossary.mdc` for definitions):
 
 ## Persistence
 
-- Use the **storage adapter** interface for cases, RCAs, and pipeline hierarchy. No raw SQLite in domain or CLI code.
+- Use the **storage adapter** interface for cases, RCAs, and circuit hierarchy. No raw SQLite in domain or CLI code.
 
 ## Output requirements
 

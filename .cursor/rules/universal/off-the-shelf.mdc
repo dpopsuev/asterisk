@@ -40,7 +40,7 @@ alwaysApply: false
 
 | Component | Candidate evaluated | Why bespoke wins |
 |-----------|---------------------|------------------|
-| Pipeline heuristics (H1–H18) | `rulego/rulego`, `luno/workflow` | Deeply coupled to domain artifact shapes; generic rules engine adds abstraction without value |
+| Circuit heuristics (H1–H18) | `rulego/rulego`, `luno/workflow` | Deeply coupled to domain artifact shapes; generic rules engine adds abstraction without value |
 | Metrics scoring (M1–M20) | None | Entirely domain-specific; no library exists |
 | RP client | None | Proprietary API; no community client |
 | Store (SQLite) | GORM, ent | Already using `modernc.org/sqlite`; 2,992 LOC is right-sized for raw SQL at this scale |

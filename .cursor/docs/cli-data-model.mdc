@@ -34,7 +34,7 @@ The key invariant: **global entities never carry investigation-scoped foreign ke
 
 ```
 InvestigationSuite
-├── Pipeline (for Version)
+├── Circuit (for Version)
 │   └── Launch (from RP)
 │       └── Job (RP TEST-level)
 │           └── Case (RP STEP-level, one per failure)
@@ -53,17 +53,17 @@ Product/OCP version. Global reference table shared across suites. First-class en
 
 - `id`, `label` (e.g. `4.21`, unique), `ocp_build` (e.g. `4.21.2`)
 
-### Pipeline
+### Circuit
 
-One CI pipeline run for one version. Bound to a suite + version.
+One CI circuit run for one version. Bound to a suite + version.
 
 - `id`, `suite_id` (FK), `version_id` (FK), `name`, `rp_launch_id`, `status`, `started_at`, `ended_at`
 
 ### Launch
 
-One RP launch. Evolves from the former `envelopes` blob into a proper entity. 1:1 with Pipeline for now; schema allows N:1 for future multi-launch pipelines. Stores structured fields extracted from the envelope plus the full payload for raw access.
+One RP launch. Evolves from the former `envelopes` blob into a proper entity. 1:1 with Circuit for now; schema allows N:1 for future multi-launch circuits. Stores structured fields extracted from the envelope plus the full payload for raw access.
 
-- `id`, `pipeline_id` (FK), `rp_launch_id`, `rp_launch_uuid`, `name`, `status`, `started_at`, `ended_at`, `env_attributes` (JSON), `git_branch`, `git_commit`, `envelope_payload` (BLOB)
+- `id`, `circuit_id` (FK), `rp_launch_id`, `rp_launch_uuid`, `name`, `status`, `started_at`, `ended_at`, `env_attributes` (JSON), `git_branch`, `git_commit`, `envelope_payload` (BLOB)
 
 ### Job
 
@@ -109,7 +109,7 @@ A recognized failure pattern — the observable "story" that test cases report. 
 
 ### RCA (the criminal)
 
-Root cause analysis — the actual bug, misconfiguration, or infra issue. **Independent of pipeline and envelope** — does not carry suite_id or pipeline_id. One criminal can cause many stories (RCA explains multiple symptoms); the "serial killer" pattern spans versions.
+Root cause analysis — the actual bug, misconfiguration, or infra issue. **Independent of circuit and envelope** — does not carry suite_id or circuit_id. One criminal can cause many stories (RCA explains multiple symptoms); the "serial killer" pattern spans versions.
 
 - `id`, `title`, `description`, `defect_type`, `category`, `component`
 - `affected_versions` (JSON array), `evidence_refs` (JSON array), `convergence_score`
@@ -146,8 +146,8 @@ Case ──reports──▶ Symptom ──caused by──▶ RCA
 `Case.rca_id` is a denormalized verdict shortcut; the source of truth is `Case → Symptom → SymptomRCA → RCA`.
 
 ```
-InvestigationSuite  1──*  Pipeline  *──1  Version
-Pipeline            1──*  Launch
+InvestigationSuite  1──*  Circuit  *──1  Version
+Circuit            1──*  Launch
 Launch              1──*  Job
 Job                 1──*  Case (witness)
 Case                1──0..1  Triage

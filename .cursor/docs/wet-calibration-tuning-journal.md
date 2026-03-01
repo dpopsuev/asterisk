@@ -6,7 +6,7 @@ How we lifted Overall Accuracy from 0.49 to 0.66 across four rounds of targeted 
 
 ## Baseline — Overall Accuracy: 0.49
 
-The first wet calibration run established the starting point. Four fast-model subagents drove 12 cases through the full pipeline (Recall → Triage → Resolve → Investigate → Correlate → Review → Report) in 5m24s for $0.20.
+The first wet calibration run established the starting point. Four fast-model subagents drove 12 cases through the full circuit (Recall → Triage → Resolve → Investigate → Correlate → Review → Report) in 5m24s for $0.20.
 
 The scorecard revealed a system that could detect cascade failures and reject red herrings, but struggled with almost everything else:
 
@@ -20,9 +20,9 @@ The scorecard revealed a system that could detect cascade failures and reject re
 | Evidence Recall | 0.00 | no | Evidence refs in wrong format |
 | RCA Message Relevance | 1.00 | yes | Keywords matched well |
 | Component Identification | 0.55 | no | Cluster members missing component data |
-| Pipeline Path Accuracy | 0.33 | no | Investigation paths not propagated to cluster members |
+| Circuit Path Accuracy | 0.33 | no | Investigation paths not propagated to cluster members |
 
-**Root cause analysis of the baseline:** The parallel pipeline architecture (triage all → cluster → investigate representatives → assemble) had several data propagation gaps. Cluster members received defect types and RCA messages from their representative, but not investigation paths, evidence references, or component data. The Recall step had no prior RCA summaries to match against, so it almost always returned "no match." Evidence references were produced in free-text format instead of the structured `repo:path:identifier` format the scorer expected.
+**Root cause analysis of the baseline:** The parallel circuit architecture (triage all → cluster → investigate representatives → assemble) had several data propagation gaps. Cluster members received defect types and RCA messages from their representative, but not investigation paths, evidence references, or component data. The Recall step had no prior RCA summaries to match against, so it almost always returned "no match." Evidence references were produced in free-text format instead of the structured `repo:path:identifier` format the scorer expected.
 
 ---
 
@@ -32,7 +32,7 @@ The scorecard revealed a system that could detect cascade failures and reject re
 
 ### Fixes applied
 
-**1. Path propagation (Pipeline Path Accuracy)** — In `parallel.go` Phase 4, cluster members were not inheriting their representative's investigation path. A member whose representative went through Recall → Triage → Resolve → Investigate → Correlate → Review → Report would show only Recall → Triage. Added explicit path inheritance for non-recall-hit members.
+**1. Path propagation (Circuit Path Accuracy)** — In `parallel.go` Phase 4, cluster members were not inheriting their representative's investigation path. A member whose representative went through Recall → Triage → Resolve → Investigate → Correlate → Review → Report would show only Recall → Triage. Added explicit path inheritance for non-recall-hit members.
 
 **2. Evidence format spec (Evidence Recall / Evidence Precision)** — The `deep-rca.md` investigation prompt was asking for "evidence references" but not specifying the expected format. Workers produced free-text like "the config file was changed" instead of `linuxptp-daemon-operator:pkg/daemon/config.go:abc1234`. Added explicit format specification with examples.
 
@@ -40,7 +40,7 @@ The scorecard revealed a system that could detect cascade failures and reject re
 
 **4. Defect type disambiguation (Defect Type Accuracy)** — The `classify-symptoms.md` triage prompt's decision guide was ambiguous about when a failure is a product bug vs. automation bug. Added explicit disambiguation rules: "if the error traces to product source code → product; if the error is in test assertions/setup → automation."
 
-**5. Recall digest (Recall Hit Rate / Serial Killer Detection)** — Added `buildRecallDigest()` helper that serializes all completed RCA summaries into the Recall prompt context. Previously the Recall step had an empty store at triage time (since no investigations had completed yet in the parallel pipeline). Now it receives a digest of all prior RCAs from previous calibration runs.
+**5. Recall digest (Recall Hit Rate / Serial Killer Detection)** — Added `buildRecallDigest()` helper that serializes all completed RCA summaries into the Recall prompt context. Previously the Recall step had an empty store at triage time (since no investigations had completed yet in the parallel circuit). Now it receives a digest of all prior RCAs from previous calibration runs.
 
 ### Results
 
@@ -48,7 +48,7 @@ The scorecard revealed a system that could detect cascade failures and reject re
 |--------|----------|---------|-------|
 | Defect Type Accuracy | 0.73 | **1.00** | +0.27 |
 | Component Identification | 0.55 | **1.00** | +0.45 |
-| Pipeline Path Accuracy | 0.33 | **0.67** | +0.34 |
+| Circuit Path Accuracy | 0.33 | **0.67** | +0.34 |
 | Serial Killer Detection | 0.00 | **0.50** | +0.50 |
 | Evidence Recall | 0.00 | **0.50** | +0.50 |
 | RCA Message Relevance | 1.00 | **0.25** | -0.75 |
@@ -81,7 +81,7 @@ The scorecard revealed a system that could detect cascade failures and reject re
 | Evidence Recall | 0.50 | **0.00** | -0.50 |
 | **Overall Accuracy** | **0.60** | **0.61** | **+0.01** |
 
-**Lesson learned:** Defect Type Accuracy and Component Identification regressed badly. Investigation revealed two code bugs: (1) `extractStepMetrics` in `runner.go` only captured the triage `DefectTypeHypothesis` when `SkipInvestigation` was explicitly true — cases that skipped investigation via heuristics (like infra/flake routing) but didn't set the flag lost their classification. (2) Recall-hit cases that formed singleton clusters in the parallel pipeline had no representative to inherit from, leaving their defect type and component empty. The prompt tuning was effective (RCA Message Relevance recovered), but it masked propagation bugs in the assembly logic.
+**Lesson learned:** Defect Type Accuracy and Component Identification regressed badly. Investigation revealed two code bugs: (1) `extractStepMetrics` in `runner.go` only captured the triage `DefectTypeHypothesis` when `SkipInvestigation` was explicitly true — cases that skipped investigation via heuristics (like infra/flake routing) but didn't set the flag lost their classification. (2) Recall-hit cases that formed singleton clusters in the parallel circuit had no representative to inherit from, leaving their defect type and component empty. The prompt tuning was effective (RCA Message Relevance recovered), but it masked propagation bugs in the assembly logic.
 
 ---
 
@@ -131,7 +131,7 @@ Added a Fourth pass that unifies RCA IDs across clusters:
 
 This chain ensures that all cases pointing to the same root cause — whether they were investigated, recalled, clustered together, or in separate clusters — share a single RCA ID. Serial Killer Detection went from 0/8 to 7/8.
 
-**3. Repo selection reset (Repo Selection Precision)** — Changed `extractStepMetrics` to reset `ActualSelectedRepos` before each Resolve step instead of appending: `result.ActualSelectedRepos = result.ActualSelectedRepos[:0]`. When the pipeline loops (Resolve → Investigate → low convergence → Resolve again), only the final Resolve step's repos count. A case that tried cluster-infra-config first, then found linuxptp-daemon-operator on retry, now shows `[linuxptp-daemon-operator]` instead of `[cluster-infra-config, linuxptp-daemon-operator]`.
+**3. Repo selection reset (Repo Selection Precision)** — Changed `extractStepMetrics` to reset `ActualSelectedRepos` before each Resolve step instead of appending: `result.ActualSelectedRepos = result.ActualSelectedRepos[:0]`. When the circuit loops (Resolve → Investigate → low convergence → Resolve again), only the final Resolve step's repos count. A case that tried cluster-infra-config first, then found linuxptp-daemon-operator on retry, now shows `[linuxptp-daemon-operator]` instead of `[cluster-infra-config, linuxptp-daemon-operator]`.
 
 ### Results
 
@@ -149,7 +149,7 @@ This chain ensures that all cases pointing to the same root cause — whether th
 
 | Round | Overall Accuracy | Key Fix | Key Insight |
 |-------|-----------------|---------|-------------|
-| Baseline | 0.49 | — | Parallel pipeline has data propagation gaps |
+| Baseline | 0.49 | — | Parallel circuit has data propagation gaps |
 | Round 1 | 0.60 | Path + evidence + recall | Format guidance and content quality compete |
 | Round 2 | 0.61 | Category alignment + RCA keywords | Prompt fixes can mask code bugs |
 | Round 3 | 0.54 | Defect type propagation | `refreshCaseResults` was undoing Phase 4 work |
@@ -174,4 +174,4 @@ This chain ensures that all cases pointing to the same root cause — whether th
 | Repo Selection Precision | 0.50 | ≥ 0.70 | Fast model picks wrong repos ~50% of the time |
 | Evidence Recall | 0.00 | ≥ 0.60 | Workers produce evidence in approximate format, scorer needs exact match |
 | Skip Accuracy | 0.00 | ≥ 0.80 | Infra/flake cases not setting `skip_investigation: true` in artifact |
-| Pipeline Path Accuracy | 0.42 | ≥ 0.60 | Loop retries add unexpected Resolve → Investigate cycles |
+| Circuit Path Accuracy | 0.42 | ≥ 0.60 | Loop retries add unexpected Resolve → Investigate cycles |

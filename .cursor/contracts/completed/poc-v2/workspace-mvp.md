@@ -1,7 +1,7 @@
 # Contract — Workspace MVP
 
 **Status:** complete  
-**Goal:** Wire RP launch attributes (`Attributes`), Jira links (`ExternalSystemIssues`), and repo `Path` fields into prompt templates — giving the pipeline real content instead of empty metadata tables. Surface resolution status per artifact so prompts communicate what is available and what is missing.  
+**Goal:** Wire RP launch attributes (`Attributes`), Jira links (`ExternalSystemIssues`), and repo `Path` fields into prompt templates — giving the circuit real content instead of empty metadata tables. Surface resolution status per artifact so prompts communicate what is available and what is missing.  
 **Serves:** PoC completion (Phase 5a mitigation Item 3, MUST)
 
 ## Contract rules

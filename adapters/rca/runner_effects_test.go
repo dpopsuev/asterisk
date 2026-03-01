@@ -303,12 +303,12 @@ func createTestCase(t *testing.T, st store.Store) *store.Case {
 	if err != nil {
 		t.Fatalf("create version: %v", err)
 	}
-	pipe := &store.Pipeline{SuiteID: suiteID, VersionID: vid, Name: "CI", Status: "complete"}
-	pipeID, err := st.CreatePipeline(pipe)
+	pipe := &store.Circuit{SuiteID: suiteID, VersionID: vid, Name: "CI", Status: "complete"}
+	pipeID, err := st.CreateCircuit(pipe)
 	if err != nil {
-		t.Fatalf("create pipeline: %v", err)
+		t.Fatalf("create circuit: %v", err)
 	}
-	launch := &store.Launch{PipelineID: pipeID, Name: "Launch", Status: "complete"}
+	launch := &store.Launch{CircuitID: pipeID, Name: "Launch", Status: "complete"}
 	launchID, err := st.CreateLaunch(launch)
 	if err != nil {
 		t.Fatalf("create launch: %v", err)

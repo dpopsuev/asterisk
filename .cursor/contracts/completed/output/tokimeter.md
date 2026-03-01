@@ -28,7 +28,7 @@
 - `FormatTokiMeter(bill *TokiMeterBill) string` — renders markdown bill with 3 sections:
   1. **Summary** — total cases, steps, tokens, cost, wall clock, per-case average.
   2. **Per-case costs** — table sorted by case ID.
-  3. **Per-step costs** — table in pipeline order (F0-F6) with TOTAL footer row.
+  3. **Per-step costs** — table in circuit order (F0-F6) with TOTAL footer row.
 
 ### CLI wiring (`cmd/asterisk/main.go`)
 

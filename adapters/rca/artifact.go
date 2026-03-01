@@ -44,7 +44,7 @@ func ListCaseDirs(basePath string, suiteID int64) ([]string, error) {
 }
 
 // ArtifactFilename returns the standard filename for each family's artifact.
-func ArtifactFilename(step PipelineStep) string {
+func ArtifactFilename(step CircuitStep) string {
 	switch step {
 	case StepF0Recall:
 		return "recall-result.json"
@@ -66,7 +66,7 @@ func ArtifactFilename(step PipelineStep) string {
 }
 
 // PromptFilename returns the prompt output filename for a step and loop iteration.
-func PromptFilename(step PipelineStep, loopIter int) string {
+func PromptFilename(step CircuitStep, loopIter int) string {
 	family := step.Family()
 	if family == "" {
 		return ""
@@ -109,7 +109,7 @@ func WriteArtifact(caseDir, filename string, data any) error {
 
 // WritePrompt writes a filled prompt to the per-case directory.
 // Returns the full path for the user to open.
-func WritePrompt(caseDir string, step PipelineStep, loopIter int, content string) (string, error) {
+func WritePrompt(caseDir string, step CircuitStep, loopIter int, content string) (string, error) {
 	filename := PromptFilename(step, loopIter)
 	if filename == "" {
 		return "", fmt.Errorf("no prompt filename for step %s", step)

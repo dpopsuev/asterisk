@@ -1,7 +1,7 @@
 # Contract — parallel-investigation
 
 **Status:** complete (2026-02-17)  
-**Goal:** Enable parallel case processing via a job-queue pipeline with bounded worker pools for >= 3x wall-clock speedup on 30+ case scenarios without regressing M19.
+**Goal:** Enable parallel case processing via a job-queue circuit with bounded worker pools for >= 3x wall-clock speedup on 30+ case scenarios without regressing M19.
 
 ## Contract rules
 
@@ -16,9 +16,9 @@
 - Dispatcher: `internal/calibrate/dispatcher.go` — `FileDispatcher` is 1:1 (one signal.json per dispatch). Needs multiplexing for parallel workers.
 - Store concurrency: `MemStore` has a single `sync.Mutex`. `SqlStore` serializes via SQLite. Both need concurrent-safe access patterns.
 
-### Concurrency model: three-stage pipeline
+### Concurrency model: three-stage circuit
 
-The architecture is a **fan-out / barrier / fan-out pipeline** using standard Go concurrency primitives — not a distributed message bus. All execution happens in a single process.
+The architecture is a **fan-out / barrier / fan-out circuit** using standard Go concurrency primitives — not a distributed message bus. All execution happens in a single process.
 
 | Stage | Pattern | Go primitives | What runs |
 |-------|---------|---------------|-----------|
@@ -65,18 +65,18 @@ Four phases. Phase 1 enables parallel triage. Phase 2 adds symptom clustering to
 - [ ] **P2.2** Elect one representative case per cluster for F2-F6 investigation. Other cluster members skip F2-F3 and link to the representative's RCA via F4 (automatic dedup).
 - [ ] **P2.3** Write tests:
   - `TestSymptomClustering_Groups`: given 10 cases with 3 distinct symptom patterns, clustering produces 3 groups.
-  - `TestClusterDedup_ReducesSteps`: clustered execution uses fewer total pipeline steps than serial.
-- [ ] **P2.4** Validate: with clustering, total pipeline steps drop from ~180 (30 x 6) to ~90 (fewer F2-F6 runs).
+  - `TestClusterDedup_ReducesSteps`: clustered execution uses fewer total circuit steps than serial.
+- [ ] **P2.4** Validate: with clustering, total circuit steps drop from ~180 (30 x 6) to ~90 (fewer F2-F6 runs).
 
 ### Phase 3 — Investigation worker pool (F2-F6 fan-out)
 
-- [ ] **P3.1** Investigation job queue: after clustering, send each `SymptomCluster` into a `chan ClusterJob`. M goroutine workers (M <= N) consume clusters. Each worker runs the full F2-F3-F4-F5-F6 pipeline for its cluster's representative case. The same token semaphore from Phase 1 gates LLM calls.
+- [ ] **P3.1** Investigation job queue: after clustering, send each `SymptomCluster` into a `chan ClusterJob`. M goroutine workers (M <= N) consume clusters. Each worker runs the full F2-F3-F4-F5-F6 circuit for its cluster's representative case. The same token semaphore from Phase 1 gates LLM calls.
 - [ ] **P3.2** After all investigation workers complete (`wg.Wait()`), link cluster members to the representative's RCA in the store (batch F4 dedup).
 - [ ] **P3.3** Multiplexed dispatcher: extend `FileDispatcher` to support per-worker signal directories (e.g., `.asterisk/calibrate/worker-0/signal.json`, `.asterisk/calibrate/worker-1/signal.json`). Each worker gets its own `FileDispatcher` instance pointed at its directory. Alternative: `MCPDispatcher` with JSON-RPC multiplexing.
 - [ ] **P3.4** Write tests:
   - `TestInvestigationPool_AllClustersComplete`: 5 clusters, 3 workers, all clusters investigated.
   - `TestInvestigationPool_TokenSemaphore`: with semaphore capacity=2, never more than 2 concurrent LLM dispatches.
-- [ ] **P3.5** Validate: full pipeline with `--parallel=4` completes in < 5 minutes for 30 cases.
+- [ ] **P3.5** Validate: full circuit with `--parallel=4` completes in < 5 minutes for 30 cases.
 
 ### Phase 4 — Validate and benchmark
 
@@ -147,5 +147,5 @@ Four phases. Phase 1 enables parallel triage. Phase 2 adds symptom clustering to
 
 (Running log, newest first.)
 
-- 2026-02-17 02:00 — Rewrote contract with precise Go concurrency terminology. Replaced "message bus" with job queue + bounded worker pool, "map-reduce" with fan-out/barrier/fan-out pipeline, "work-stealing" with channel-based job dispatch. Added terminology table and Go primitives mapping. Added `token-perf-tracking.md` as dependency.
+- 2026-02-17 02:00 — Rewrote contract with precise Go concurrency terminology. Replaced "message bus" with job queue + bounded worker pool, "map-reduce" with fan-out/barrier/fan-out circuit, "work-stealing" with channel-based job dispatch. Added terminology table and Go primitives mapping. Added `token-perf-tracking.md` as dependency.
 - 2026-02-17 01:30 — Contract created. Future phase; requires calibration-victory (M19 >= 0.95) as prerequisite.

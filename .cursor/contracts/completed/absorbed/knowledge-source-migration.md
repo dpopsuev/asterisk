@@ -56,8 +56,8 @@ flowchart TD
     sources --> Resolver
     Resolver --> Registry
     Resolver --> ArtifactCatalog
-    ArtifactCatalog -->|"resolved artifacts"| Pipeline[F0-F6 Pipeline]
-    Router -->|"route by tags"| Pipeline
+    ArtifactCatalog -->|"resolved artifacts"| Circuit[F0-F6 Circuit]
+    Router -->|"route by tags"| Circuit
 ```
 
 ## FSC artifacts
@@ -69,7 +69,7 @@ flowchart TD
 
 ## Execution strategy
 
-**Phase 0 — MCP rename** (mechanical, 1 session): Rename MCP server entries from generic names to the `origami-{purpose}` convention (`origami-pipeline-marshaller`, `origami-kami-debugger`). Update `.cursor/mcp.json`, `PipelineConfig.Name`, and skill references.
+**Phase 0 — MCP rename** (mechanical, 1 session): Rename MCP server entries from generic names to the `origami-{purpose}` convention (`origami-circuit-marshaller`, `origami-kami-debugger`). Update `.cursor/mcp.json`, `CircuitConfig.Name`, and skill references.
 
 **Phase 1 — Consumer migration** (mechanical, 1-2 sessions):
 
@@ -83,7 +83,7 @@ flowchart TD
 
 1. Design catalog entry schema extending `Source` with resolution metadata
 2. Build format registry, readers, fetch-through resolver
-3. Wire into pipeline, add CLI pre-population command
+3. Wire into circuit, add CLI pre-population command
 
 ## Coverage matrix
 
@@ -92,7 +92,7 @@ flowchart TD
 | **Unit** | yes | Phase 1: migration correctness. Phase 2: readers, resolver, registry CRUD |
 | **Integration** | yes | Phase 2: fetch-through against RP API stub |
 | **Contract** | yes | Phase 1: public API change (Workspace -> KnowledgeSourceCatalog) |
-| **E2E** | no | Stub calibration validates pipeline with new types |
+| **E2E** | no | Stub calibration validates circuit with new types |
 | **Concurrency** | no | No shared state |
 | **Security** | yes | Phase 2: ZIP readers, URL fetch, disk persistence |
 
@@ -100,10 +100,10 @@ flowchart TD
 
 ### Phase 0 — Rename MCP servers
 
-- [ ] **R1** Rename `.cursor/mcp.json` key `"marshaller"` to `"origami-pipeline-marshaller"`
-- [ ] **R2** Update `PipelineConfig.Name` in `internal/mcpconfig/server.go` from `"asterisk"` to `"origami-pipeline-marshaller"`
+- [ ] **R1** Rename `.cursor/mcp.json` key `"marshaller"` to `"origami-circuit-marshaller"`
+- [ ] **R2** Update `CircuitConfig.Name` in `internal/mcpconfig/server.go` from `"asterisk"` to `"origami-circuit-marshaller"`
 - [ ] **R3** Add `"origami-kami-debugger"` entry to `.cursor/mcp.json` (placeholder, wired when Kami is built in Origami)
-- [ ] **R4** Update Asterisk calibration skill (`asterisk-calibrate/SKILL.md`) to reference new MCP server name `origami-pipeline-marshaller`
+- [ ] **R4** Update Asterisk calibration skill (`asterisk-calibrate/SKILL.md`) to reference new MCP server name `origami-circuit-marshaller`
 - [ ] **R5** Update Asterisk analyze skill (`asterisk-analyze/SKILL.md`) if it references the MCP server name
 - [ ] **R6** Validate — `go build ./...`, `go test ./...`, skill references consistent
 
@@ -130,7 +130,7 @@ flowchart TD
 - [ ] **C6** Implement `jenkins_console_log` reader (ANSI strip, error-line extraction)
 - [ ] **C7** Implement `ginkgo_test_bundle` reader (ZIP extraction, Ginkgo JSON parse)
 - [ ] **C8** Implement `plain_text` and `json` readers as baseline
-- [ ] **C9** Wire catalog into pipeline: prompt templates can reference catalog artifacts
+- [ ] **C9** Wire catalog into circuit: prompt templates can reference catalog artifacts
 - [ ] **C10** Add `asterisk fetch --launch <ID>` pre-population command
 - [ ] **C11** Validate (green) — catalog fetch-through works for RP data and local CI logs in stub scenario
 - [ ] **C12** Tune (blue) — TTL defaults, reader heuristics, token budget impact of injected artifacts

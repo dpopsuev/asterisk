@@ -33,7 +33,7 @@ func SaveState(caseDir string, state *CaseState) error {
 }
 
 // AdvanceStep moves the state to the next step and records the transition.
-func AdvanceStep(state *CaseState, nextStep PipelineStep, heuristicID, outcome string) {
+func AdvanceStep(state *CaseState, nextStep CircuitStep, heuristicID, outcome string) {
 	record := StepRecord{
 		Step:        state.CurrentStep,
 		Outcome:     outcome,

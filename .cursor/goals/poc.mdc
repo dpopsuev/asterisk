@@ -21,7 +21,7 @@ Asterisk PoC is a **Go CLI + MCP server** that proves real-world RCA capability:
 
 - **CLI commands:** `analyze`, `calibrate`, `push`, **`serve`**. Cobra-based.
 - **`serve`** — Starts an MCP server over stdio. Cursor calls tools directly. Replaces file-based signal protocol for cursor adapter.
-- **`calibrate`** — Unchanged. Runs pipeline against scenario, computes M1-M20+M14b. Works with `--adapter=basic` (CLI) and `--adapter=cursor` (via MCP).
+- **`calibrate`** — Unchanged. Runs circuit against scenario, computes M1-M20+M14b. Works with `--adapter=basic` (CLI) and `--adapter=cursor` (via MCP).
 - **`analyze`** — Single-launch RCA. Output: artifact on FS.
 - **`push`** — Push artifact to RP. Explicit; no auto-push.
 - **Adapters:** `StubAdapter`, `BasicAdapter`, `CursorAdapter`.
@@ -56,7 +56,7 @@ Asterisk PoC is a **Go CLI + MCP server** that proves real-world RCA capability:
 | BasicAdapter E2E (all 30) | Done | M19=0.88, 18/21 pass |
 | BasicAdapter E2E (grade-A 18) | Done | M19=0.83, 19/21 pass, M14b=0.13 |
 | Ground truth tightening | Done | 18 grade-A cases with FixPRs, SmokingGun, EvidenceGrade |
-| Signal protocol mechanical test | Done | 1 case through all 6 pipeline steps via FileDispatcher |
+| Signal protocol mechanical test | Done | 1 case through all 6 circuit steps via FileDispatcher |
 | Evidence gap brief | Done | BasicAdapter limitations documented |
 
 ## What is blocked

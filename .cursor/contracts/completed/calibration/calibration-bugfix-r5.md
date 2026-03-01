@@ -34,7 +34,7 @@ Post-refactor changes that affect this contract:
 - Session notes: `.dev/calibration-runs/session-notes.md`
 - Mock-calibration-agent: `cmd/mock-calibration-agent/main.go`
 - Heuristics: `internal/orchestrate/heuristics.go` (H15 correlate-dup at line 236)
-- Pipeline runner: `internal/calibrate/runner.go`
+- Circuit runner: `internal/calibrate/runner.go`
 - Scenario definition: `internal/calibrate/scenarios/ptp_real_ingest.go`
 - Token tracking: `internal/calibrate/tokens.go`, `token_dispatcher.go` (M18 now uses real data)
 

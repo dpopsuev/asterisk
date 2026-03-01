@@ -34,7 +34,7 @@ Papercup v1 — Parent is the exclusive switchboard for `get_next_step` and `sub
 
 ```mermaid
 sequenceDiagram
-    participant Go as GoPipeline
+    participant Go as GoCircuit
     participant MCP as MCPServer
     participant Parent as ParentAgent
     participant S1 as Subagent1
@@ -61,7 +61,7 @@ Papercup v2 — Workers own the full loop. Parent is supervisor. Prompt content 
 
 ```mermaid
 sequenceDiagram
-    participant Go as GoPipeline
+    participant Go as GoCircuit
     participant MCP as MCPServer
     participant Sup as Supervisor
     participant W1 as Worker1

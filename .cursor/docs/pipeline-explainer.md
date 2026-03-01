@@ -1,4 +1,4 @@
-# Asterisk Investigation Pipeline — Visual Explainer
+# Asterisk Investigation Circuit — Visual Explainer
 
 A non-technical overview of how Asterisk investigates CI test failures, and why Origami exists as the orchestration framework beneath it.
 
@@ -8,7 +8,7 @@ Classical programming is deterministic and domain-scoped but too rigid to handle
 
 **Answer:** Make the *structure* deterministic and the *reasoning* non-deterministic. The graph is the contract. The AI is the worker. Origami is the enforcement layer between them.
 
-## Pipeline Diagram
+## Circuit Diagram
 
 ```mermaid
 flowchart TD
@@ -74,7 +74,7 @@ flowchart TD
 
 ## How Origami + Asterisk Map to Agentic AI Governance
 
-**Origami** is the framework — the railway system. It defines the tracks, the switches, the stations, and the rules for which train goes where. Everything about the *structure* of the pipeline is deterministic: the graph of steps, the branching conditions, the data contracts, the checkpoints. It's declared in plain YAML that a human can read and audit. No agent decides the shape of the pipeline — code does.
+**Origami** is the framework — the railway system. It defines the tracks, the switches, the stations, and the rules for which train goes where. Everything about the *structure* of the circuit is deterministic: the graph of steps, the branching conditions, the data contracts, the checkpoints. It's declared in plain YAML that a human can read and audit. No agent decides the shape of the circuit — code does.
 
 **Asterisk** is one train that runs on those tracks. It's a root-cause analysis tool for CI test failures.
 
@@ -85,9 +85,9 @@ The graph is the governance layer. The AI agents at each step can reason freely,
 - Every step has a **schema** (data contract — the agent must produce exactly these fields)
 - Every transition has a **rule** (the agent doesn't choose the path — the evidence does)
 - Every execution produces a **trace** (OpenTelemetry spans, Prometheus metrics — full observability)
-- The pipeline can **pause and resume** (human-in-the-loop checkpoints)
+- The circuit can **pause and resume** (human-in-the-loop checkpoints)
 - The whole thing is defined in **auditable YAML** — not buried in code
 
 ### Relevance to NHI / Agentic AI Security
 
-This is the same problem NHI security platforms tackle: agents need freedom to act, but they need guardrails that are observable, auditable, and enforceable. Origami provides exactly that for AI agent workflows — structured pipelines where the structure is deterministic and the reasoning is non-deterministic.
+This is the same problem NHI security platforms tackle: agents need freedom to act, but they need guardrails that are observable, auditable, and enforceable. Origami provides exactly that for AI agent workflows — structured circuits where the structure is deterministic and the reasoning is non-deterministic.

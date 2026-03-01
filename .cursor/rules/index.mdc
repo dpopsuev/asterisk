@@ -33,7 +33,7 @@ Rules specific to this repository and its domain.
 | Rule | Routing | Description |
 |------|---------|-------------|
 | `project-standards.mdc` | **alwaysApply** | Product definition, methodology (ROGYB, Gherkin acceptance criteria), calibration ordering, data handling, output. |
-| `agent-operations.mdc` | **alwaysApply** | Local pipeline stages, timeout SLAs, abort protocol, observability. |
+| `agent-operations.mdc` | **alwaysApply** | Local circuit stages, timeout SLAs, abort protocol, observability. |
 | `knowledge-store.mdc` | **alwaysApply** | `.cursor/` structure, index integrity, persistence protocol, work contracts. |
 | `contract-iteration.mdc` | `globs: .cursor/contracts/**` | Monitor contracts for insights from discussions and calibration runs. |
 | `architecture-snapshots.mdc` | `globs: .cursor/**/*.md` | Architecture diagrams as first-class artifacts; current/desired state snapshots. |

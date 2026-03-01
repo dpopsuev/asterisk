@@ -228,7 +228,7 @@ func scenarioName(s *rca.Scenario) string {
 
 // DatasetStore is the Asterisk-specific interface for ground truth persistence.
 // It operates on rca.Scenario, which is the domain type that Asterisk's
-// calibration pipeline consumes.
+// calibration circuit consumes.
 type DatasetStore interface {
 	List(ctx context.Context) ([]string, error)
 	Load(ctx context.Context, name string) (*rca.Scenario, error)

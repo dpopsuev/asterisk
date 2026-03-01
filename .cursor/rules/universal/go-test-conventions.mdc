@@ -12,7 +12,7 @@ Asterisk uses a hybrid approach: **Ginkgo + Gomega** for BDD and integration spe
 
 | Situation | Framework |
 |-----------|-----------|
-| BDD/integration scenario (multi-step flow, full pipeline) | Ginkgo (`Describe`/`It` + Gomega) |
+| BDD/integration scenario (multi-step flow, full circuit) | Ginkgo (`Describe`/`It` + Gomega) |
 | Simple unit test, table-driven, small helper | Stdlib `testing` |
 | Deep equality with readable diffs | `go-cmp` (optional) |
 | HTTP handler/client tests | Stdlib `httptest` |

@@ -6,7 +6,7 @@ description: Long-term RCA quality and behavior invariants — technical quality
 
 ## Quality invariants
 
-- Ground every conclusion in evidence (logs, commits, pipeline data).
+- Ground every conclusion in evidence (logs, commits, circuit data).
 - Provide confidence scores with rationale.
 - Prefer explainable heuristics before opaque model output.
 - Track feedback on RCA correctness for continuous improvement.
@@ -19,7 +19,7 @@ description: Long-term RCA quality and behavior invariants — technical quality
 These invariants encode Red Hat's identity and operating model into Asterisk's design. See `strategy/red-hat-telco-soul.mdc` for the full context.
 
 - **Upstream-first**: prefer open standards and open source tools over proprietary solutions. When Asterisk improves a pattern that benefits ReportPortal or other upstream projects, contribute it back.
-- **Multi-operator**: design for N operators, not just PTP. Data models, prompts, and pipeline steps must work across any OpenShift operator (RAN, Core, edge, platform). Operator-specific logic belongs in adapters or configuration, not in the core.
-- **Multi-CI**: design for N CI systems, not just Jenkins. CI-specific artifact paths, job structures, and notification formats belong in per-CI adapters. The core pipeline consumes abstract execution envelopes.
+- **Multi-operator**: design for N operators, not just PTP. Data models, prompts, and circuit steps must work across any OpenShift operator (RAN, Core, edge, platform). Operator-specific logic belongs in adapters or configuration, not in the core.
+- **Multi-CI**: design for N CI systems, not just Jenkins. CI-specific artifact paths, job structures, and notification formats belong in per-CI adapters. The core circuit consumes abstract execution envelopes.
 - **Community-ready**: outputs must be shareable, reproducible, and understandable by anyone in the telco QE community. Avoid jargon that assumes one team's context. An RCA should make sense to an engineer on a different operator team.
-- **Evidence transparency**: align with Red Hat's open development model. No black-box conclusions. Every assertion must be traceable to a specific log line, commit, Jira ticket, or pipeline artifact. When traceability is impossible, state it explicitly.
+- **Evidence transparency**: align with Red Hat's open development model. No black-box conclusions. Every assertion must be traceable to a specific log line, commit, Jira ticket, or circuit artifact. When traceability is impossible, state it explicitly.

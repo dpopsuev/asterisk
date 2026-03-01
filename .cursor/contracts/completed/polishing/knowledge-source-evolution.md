@@ -1,7 +1,7 @@
 # Contract — Knowledge Source Evolution
 
 **Status:** complete  
-**Goal:** Layered knowledge source composition via `Source.Tags`, artifact dependency graph with topological resolution, token-budget-aware summarization pipeline, documentation caching, and must-gather ingestion.  
+**Goal:** Layered knowledge source composition via `Source.Tags`, artifact dependency graph with topological resolution, token-budget-aware summarization circuit, documentation caching, and must-gather ingestion.  
 **Serves:** Polishing & Presentation (vision)
 
 ## Contract rules
@@ -60,7 +60,7 @@ flowchart TD
     layers --> DepGraph
     DepGraph --> Summarizer
     VersionMatrix --> Version
-    Summarizer -->|"budget-aware artifacts"| Pipeline[F0-F6 Pipeline]
+    Summarizer -->|"budget-aware artifacts"| Circuit[F0-F6 Circuit]
 ```
 
 Effective catalog = `Router.Route(Tags{layer: base})` + `Router.Route(Tags{layer: version, version: case.Version})` + `Router.Route(Tags{layer: investigation, launch: launch_id})`.
@@ -126,7 +126,7 @@ When a source is unavailable: state what was expected, list what conclusions can
 ## Execution strategy
 
 1. **Phase 3 (future):** Version matrix format, Git repo checkout with version-parametric branch selection, documentation caching (OCP docs, operator release notes), Jira integration.
-2. **Phase 4 (distant):** Tag-based layered composition, artifact dependency graph with topological resolution, token-budget-aware summarization pipeline, must-gather dump ingestion.
+2. **Phase 4 (distant):** Tag-based layered composition, artifact dependency graph with topological resolution, token-budget-aware summarization circuit, must-gather dump ingestion.
 
 ## Coverage matrix
 
@@ -135,7 +135,7 @@ When a source is unavailable: state what was expected, list what conclusions can
 | **Unit** | yes | Version matrix resolution, tag-based layer filtering, dependency graph, summarizer |
 | **Integration** | yes | Cross-source dependency resolution |
 | **Contract** | no | No new public API; extends existing KnowledgeSourceCatalog |
-| **E2E** | yes | Full pipeline with layered sources produces correct per-case context |
+| **E2E** | yes | Full circuit with layered sources produces correct per-case context |
 | **Concurrency** | no | No shared state |
 | **Security** | yes | Inherits catalog security concerns (A10, A01, A02, A06) |
 
@@ -153,7 +153,7 @@ When a source is unavailable: state what was expected, list what conclusions can
 - [ ] **E5** Define tag-based layer semantics: `Tags["layer"]` = `base` | `version` | `investigation`
 - [ ] **E6** Implement `KnowledgeSourceRouter` layer queries to produce effective catalog per context
 - [ ] **E7** Implement artifact dependency graph with topological resolution
-- [ ] **E8** Implement token-budget-aware summarization pipeline (strategies: `full`, `summary`, `on_demand`, `index_only`)
+- [ ] **E8** Implement token-budget-aware summarization circuit (strategies: `full`, `summary`, `on_demand`, `index_only`)
 - [ ] **E9** Wire must-gather dump ingestion as a source kind
 - [ ] **E10** Validate (green) — composition layers produce correct effective catalog per case
 - [ ] **E11** Tune (blue) — confidence impact values via calibration experiments

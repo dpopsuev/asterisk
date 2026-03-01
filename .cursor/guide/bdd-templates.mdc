@@ -25,7 +25,7 @@ When Asterik aggregates failures across runs
 Then flake rate and recurrence are calculated
 
 ## Classification + actions
-Given evidence from logs, commits, and pipeline context  
+Given evidence from logs, commits, and circuit context  
 When Asterik classifies the failure  
 Then a category and confidence are shown with recommended actions
 

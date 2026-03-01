@@ -68,7 +68,7 @@ Parse `--parallel=N` if present. Default: `4`.
 Call the MCP tool:
 
 ```
-start_pipeline(
+start_circuit(
   parallel: 4,
   force: true,
   extra: {
@@ -91,7 +91,7 @@ Store `session_id`, `worker_prompt`, and `worker_count`.
 ## Part 2 — Launch workers (supervisor pattern)
 
 You are the **supervisor**, not the executor. You MUST NOT call `get_next_step`
-or `submit_step` yourself. Workers handle the entire pipeline loop.
+or `submit_step` yourself. Workers handle the entire circuit loop.
 
 ### Launch worker subagents
 
@@ -124,10 +124,10 @@ get_signals(session_id, since: last_index)
 
 Look for:
 - `worker_started` — all workers registered
-- `step_ready` / `artifact_submitted` — pipeline progress
+- `step_ready` / `artifact_submitted` — circuit progress
 - `session_error` — fatal error, report to user immediately
 - `worker_stopped` — worker exited loop
-- `session_done` / `pipeline_done` — all work complete
+- `session_done` / `circuit_done` — all work complete
 
 Report progress to the user after each poll. Never let the user see silence
 for more than 30 seconds.
@@ -137,7 +137,7 @@ for more than 30 seconds.
 If a worker Task fails or is aborted:
 1. Log the failure via `emit_signal(event="error", agent="main")`
 2. Launch a replacement Task with the same `worker_prompt`
-3. The replacement picks up from wherever the pipeline is — no state to recover
+3. The replacement picks up from wherever the circuit is — no state to recover
 
 ---
 
@@ -145,7 +145,7 @@ If a worker Task fails or is aborted:
 
 ### Get the calibration report
 
-Once all workers exit (all `worker_stopped` signals received), or the pipeline
+Once all workers exit (all `worker_stopped` signals received), or the circuit
 signals `session_done`, call:
 
 ```
@@ -176,7 +176,7 @@ Display the `report` field verbatim to the user. Then summarize:
 
 ---
 
-## Pipeline steps (reference)
+## Circuit steps (reference)
 
 | Step | Question | Key output |
 |------|----------|------------|
@@ -200,7 +200,7 @@ If a worker Task fails or is aborted:
 
 1. Emit error signal: `emit_signal(session_id, "error", "main", meta={"error": "description"})`
 2. Launch a replacement worker with the same `worker_prompt`
-3. Continue monitoring — the pipeline is resilient to individual worker loss
+3. Continue monitoring — the circuit is resilient to individual worker loss
 
 ### Session timeout
 
@@ -237,10 +237,10 @@ When triggered with no args, "help", or unrecognized input:
 >
 > **What it does:**
 >
-> Runs the F0-F6 evidence pipeline against ground-truth cases. Worker
+> Runs the F0-F6 evidence circuit against ground-truth cases. Worker
 > subagents are launched with server-generated prompts. Each worker calls
 > `get_next_step` and `submit_step` directly (Papercup v2 choreography).
-> Produces an M1-M21 metrics scorecard measuring pipeline accuracy.
+> Produces an M1-M21 metrics scorecard measuring circuit accuracy.
 >
 > **Available scenarios:** `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest`
 

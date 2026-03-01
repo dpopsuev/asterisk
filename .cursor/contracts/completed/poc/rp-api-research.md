@@ -15,7 +15,7 @@
 - **Workspace structure:** `notes/cursor-workspace-structure.mdc` — Cursor workspace folders; **service-api** and **report-portal-cli** are primary sources for API research.
 - **Workspace references:** `notes/workspace-references.mdc` — report-portal-cli client (GetByID, GetByUUID, List); gap: defect-type update not implemented.
 - **Canonical RP instance (saved in FSC):** **Base URL:** https://your-reportportal.example.com — See `notes/rp-instance-and-version.mdc`.
-- **Example test execution (pipeline launch):**  
+- **Example test execution (circuit launch):**  
   **URL:** https://your-reportportal.example.com/ui/#ecosystem-qe/launches/all/33195  
   **Launch ID:** 33195 (project: `ecosystem-qe`). Use this launch to learn launch structure, test items, failed items, and logs; verify API behavior and map to Execution Envelope.
 

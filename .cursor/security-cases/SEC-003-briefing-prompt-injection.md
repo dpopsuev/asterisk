@@ -6,7 +6,7 @@
 
 ## Summary
 
-`GenerateBriefing()` injects store data (symptom categories, RCA summaries, component names) into a markdown briefing file via `fmt.Sprintf` without escaping. If an earlier pipeline step produces artifacts containing malicious content (e.g., crafted error messages, adversarial RCA summaries), this content flows into the briefing and is consumed by subagents as trusted context. This is a prompt injection vector.
+`GenerateBriefing()` injects store data (symptom categories, RCA summaries, component names) into a markdown briefing file via `fmt.Sprintf` without escaping. If an earlier circuit step produces artifacts containing malicious content (e.g., crafted error messages, adversarial RCA summaries), this content flows into the briefing and is consumed by subagents as trusted context. This is a prompt injection vector.
 
 ## Root cause analysis
 

@@ -7,7 +7,7 @@ import "github.com/dpopsuev/origami/adapters/rp"
 const DefaultDBPath = ".asterisk/asterisk.db"
 
 // Store is the persistence facade for the two-tier data model.
-// Tier 1: investigation-scoped entities (suite, pipeline, launch, job, case, triage).
+// Tier 1: investigation-scoped entities (suite, circuit, launch, job, case, triage).
 // Tier 2: global knowledge entities (symptom, rca, symptom_rca).
 // Domain and CLI code use only this interface; implementation is SQLite or in-memory.
 type Store interface {
@@ -50,16 +50,16 @@ type Store interface {
 	GetVersionByLabel(label string) (*Version, error)
 	ListVersions() ([]*Version, error)
 
-	// Pipeline operations
-	CreatePipeline(p *Pipeline) (int64, error)
-	GetPipeline(id int64) (*Pipeline, error)
-	ListPipelinesBySuite(suiteID int64) ([]*Pipeline, error)
+	// Circuit operations
+	CreateCircuit(p *Circuit) (int64, error)
+	GetCircuit(id int64) (*Circuit, error)
+	ListCircuitsBySuite(suiteID int64) ([]*Circuit, error)
 
 	// Launch operations
 	CreateLaunch(l *Launch) (int64, error)
 	GetLaunch(id int64) (*Launch, error)
-	GetLaunchByRPID(pipelineID int64, rpLaunchID int) (*Launch, error)
-	ListLaunchesByPipeline(pipelineID int64) ([]*Launch, error)
+	GetLaunchByRPID(circuitID int64, rpLaunchID int) (*Launch, error)
+	ListLaunchesByCircuit(circuitID int64) ([]*Launch, error)
 
 	// Job operations
 	CreateJob(j *Job) (int64, error)

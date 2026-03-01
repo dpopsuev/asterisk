@@ -20,7 +20,7 @@ Asterisk went through a major distillation (`distillation-endgame`) that moved f
 flowchart TB
     subgraph asterisk [Asterisk internal/]
         calibrate["calibrate/\nrunner, parallel, metrics,\nscore, dialectic, adapt/"]
-        orchestrate["orchestrate/\nheuristics, templates,\npipeline_def, params"]
+        orchestrate["orchestrate/\nheuristics, templates,\ncircuit_def, params"]
         investigate["investigate/\nRP-specific RCA"]
         preinvest["preinvest/\nenvelope types, RP fetch"]
         postinvest["postinvest/\nRP push, Jira"]
@@ -28,14 +28,14 @@ flowchart TB
         mcpconfig_pkg["mcpconfig/\nMarshaller MCP config"]
         origami_bridge["origami/\nDatasetStore, mapper,\ncompleteness"]
         display["display/\nmetric names, formatting"]
-        store["store/\ncases, pipelines, adapters"]
+        store["store/\ncases, circuits, adapters"]
         scenarios["calibrate/scenarios/\nptp_mock, ptp_real, daemon_mock"]
     end
 
     subgraph origami [Origami]
         fw["framework\nNode, Edge, Walker, Runner"]
         dispatch["dispatch/\nMuxDispatcher, SignalBus"]
-        mcp_fw["mcp/\nPipelineServer"]
+        mcp_fw["mcp/\nCircuitServer"]
         workspace["workspace/\nWorkspace, Repo"]
         format["format/\nTableBuilder"]
         logging["logging/"]
@@ -59,13 +59,13 @@ flowchart TB
 flowchart TB
     subgraph asterisk [Asterisk internal/]
         calibrate_domain["calibrate/\nadapt/ (LLMAdapter), scenarios/,\ndomain-specific scoring"]
-        orchestrate["orchestrate/\nheuristics, templates, params\npipeline loaded from YAML DSL"]
+        orchestrate["orchestrate/\nheuristics, templates, params\ncircuit loaded from YAML DSL"]
         investigate["investigate/\nRP-specific RCA"]
         preinvest["preinvest/\nenvelope types, RP fetch"]
         postinvest["postinvest/\nRP push, Jira"]
         rp["rp/\nReportPortal client"]
         mcpconfig["mcpconfig/\nMarshaller MCP configuration"]
-        store["store/\ncases, pipelines, adapters"]
+        store["store/\ncases, circuits, adapters"]
     end
 
     subgraph origami [Origami]
@@ -117,12 +117,12 @@ flowchart TB
 
 - [x] Remove dialectic subsystem from `internal/calibrate/` (6 files: runner, hearing, metrics + tests) + dead struct fields (`DialecticConfig`, 5 `CaseResult` fields)
 - [x] Fix stale `internal/format` reference in `internal/calibrate/tokimeter_test.go` (lines 146-147)
-- [x] Fix stale `internal/curate` references in `CONTRIBUTING.md` and `pipelines/curation.yaml`
-- [x] Move `examples/framework/` + `pipelines/*.yaml` to Origami repo — deleted stale copies from Asterisk; `defect-court.yaml` copied to Origami `testdata/`
-- [x] Delete `internal/wiring/` + `cmd/run-mock-flow/` — mock flow superseded by calibration pipeline; update Makefile/justfile
-- [x] Remove dead framework adapters: `BuildEdgeFactory`, `buildHeuristicMap`, `heuristicEdge`, `transitionToAction` from `internal/orchestrate/framework_adapters.go` — superseded by expression edges in `AsteriskPipelineDef`
+- [x] Fix stale `internal/curate` references in `CONTRIBUTING.md` and `circuits/curation.yaml`
+- [x] Move `examples/framework/` + `circuits/*.yaml` to Origami repo — deleted stale copies from Asterisk; `defect-court.yaml` copied to Origami `testdata/`
+- [x] Delete `internal/wiring/` + `cmd/run-mock-flow/` — mock flow superseded by calibration circuit; update Makefile/justfile
+- [x] Remove dead framework adapters: `BuildEdgeFactory`, `buildHeuristicMap`, `heuristicEdge`, `transitionToAction` from `internal/orchestrate/framework_adapters.go` — superseded by expression edges in `AsteriskCircuitDef`
 - [x] Remove `README.md.post` — stale draft README
-- [x] Remove `pipelines/rca-investigation.yaml` — stale duplicate of `asterisk-rca.yaml`
+- [x] Remove `circuits/rca-investigation.yaml` — stale duplicate of `asterisk-rca.yaml`
 
 ### Renames
 
@@ -131,7 +131,7 @@ flowchart TB
 
 ### DSL extraction
 
-- [x] Extract `AsteriskPipelineDef` from Go struct to `pipelines/asterisk-rca.yaml`; load via `framework.LoadPipeline()`, override vars from `Thresholds`
+- [x] Extract `AsteriskCircuitDef` from Go struct to `circuits/asterisk-rca.yaml`; load via `framework.LoadCircuit()`, override vars from `Thresholds`
 
 ### Architectural overview
 
@@ -160,15 +160,15 @@ No trust boundaries affected.
 
 ## Notes
 
-2026-02-25 — **Contract complete.** Final task done: deleted `examples/framework/` (3 files) and 3 stale pipeline YAMLs (`curation.yaml`, `defect-dialectic.yaml`, `defect-court.yaml`) from Asterisk. Copied `defect-court.yaml` to Origami `testdata/` (the others already existed in Origami). Updated `README.md` and `CONTRIBUTING.md`. Only `pipelines/asterisk-rca.yaml` (domain-specific) remains.
+2026-02-25 — **Contract complete.** Final task done: deleted `examples/framework/` (3 files) and 3 stale circuit YAMLs (`curation.yaml`, `defect-dialectic.yaml`, `defect-court.yaml`) from Asterisk. Copied `defect-court.yaml` to Origami `testdata/` (the others already existed in Origami). Updated `README.md` and `CONTRIBUTING.md`. Only `circuits/asterisk-rca.yaml` (domain-specific) remains.
 
 2026-02-25 — Cleanup round 3 executed. Dialectic subsystem removed (6 files + dead struct fields), stale references fixed, stale files deleted. Boundary map and dedup catalog produced.
 
 2026-02-25 — Cleanup round 2 executed. Deep codebase re-scan findings:
-- **Additional dead code:** `BuildEdgeFactory` + `heuristicEdge` (superseded by expression edges), `internal/wiring/` + `cmd/run-mock-flow/` (superseded by calibration pipeline), `README.md.post` (stale draft).
+- **Additional dead code:** `BuildEdgeFactory` + `heuristicEdge` (superseded by expression edges), `internal/wiring/` + `cmd/run-mock-flow/` (superseded by calibration circuit), `README.md.post` (stale draft).
 - **Renames:** `internal/mcp/` → `internal/mcpconfig/` (clarity: it's Marshaller config, not a server). `CursorAdapter` → `LLMAdapter` (dispatches to any LLM via Dispatcher, not Cursor-specific).
-- **DSL extraction:** `AsteriskPipelineDef` Go struct → `pipelines/asterisk-rca.yaml` loaded via `framework.LoadPipeline()`. Eliminates 70+ lines of Go struct construction.
-- **Interactive runner observation:** `RunStep`/`SaveArtifactAndAdvance` in `orchestrate/runner.go` is the original file-based interactive flow (`asterisk cursor` + `asterisk save`). The calibration pipeline (`parallel.go` → adapter → dispatcher → MCP) is the actual architecture. The interactive runner reimplements what `framework.Runner.Walk()` does. Candidate for future removal.
+- **DSL extraction:** `AsteriskCircuitDef` Go struct → `circuits/asterisk-rca.yaml` loaded via `framework.LoadCircuit()`. Eliminates 70+ lines of Go struct construction.
+- **Interactive runner observation:** `RunStep`/`SaveArtifactAndAdvance` in `orchestrate/runner.go` is the original file-based interactive flow (`asterisk cursor` + `asterisk save`). The calibration circuit (`parallel.go` → adapter → dispatcher → MCP) is the actual architecture. The interactive runner reimplements what `framework.Runner.Walk()` does. Candidate for future removal.
 
 2026-02-24 — Contract created from codebase audit. Findings:
 - **Dead code:** Dialectic subsystem (4 files), stale format/curate refs, misplaced framework example.

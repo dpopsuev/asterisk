@@ -41,12 +41,12 @@ These principles come from Red Hat's culture and must be reflected in Asterisk's
 
 ## Quality engineering mission
 
-Asterisk exists because telco QE at Red Hat's scale cannot be manual. Thousands of test runs, hundreds of operators, dozens of CI pipelines, multiple OpenShift versions — the failure space is vast.
+Asterisk exists because telco QE at Red Hat's scale cannot be manual. Thousands of test runs, hundreds of operators, dozens of CI circuits, multiple OpenShift versions — the failure space is vast.
 
 The mission is:
 
-1. **Automated root-cause analysis** — correlate test failures with source repositories, CI pipelines, and infrastructure telemetry to identify probable causes.
-2. **Evidence-first conclusions** — every RCA must link to logs, commits, Jira tickets, or pipeline data. No guessing.
+1. **Automated root-cause analysis** — correlate test failures with source repositories, CI circuits, and infrastructure telemetry to identify probable causes.
+2. **Evidence-first conclusions** — every RCA must link to logs, commits, Jira tickets, or circuit data. No guessing.
 3. **Confidence-scored output** — readers must know how much to trust each conclusion. Confidence comes from convergence of multiple evidence sources.
 4. **Actionable results** — RCA output must tell the engineer what to do next: which component to investigate, which commit to review, which team to engage.
 

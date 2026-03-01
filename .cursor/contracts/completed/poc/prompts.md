@@ -10,7 +10,7 @@
 
 ## Context
 
-- **Pre-dev:** Template params at least: launch_id (or run_id), case_id (or failure id), workspace_path, failed_test_name, artifact_path, job_id, pipeline_id (optional). Prompt loading: CLI loads from prompt dir (e.g. `./.asterisk/prompts/` or `~/.config/asterisk/prompts/` or flag); dev uses `.cursor/prompts/`. `notes/pre-dev-decisions.mdc`.
+- **Pre-dev:** Template params at least: launch_id (or run_id), case_id (or failure id), workspace_path, failed_test_name, artifact_path, job_id, circuit_id (optional). Prompt loading: CLI loads from prompt dir (e.g. `./.asterisk/prompts/` or `~/.config/asterisk/prompts/` or flag); dev uses `.cursor/prompts/`. `notes/pre-dev-decisions.mdc`.
 - **PoC:** Analyze uses one external context source; prompt instructs model to emit RCA and convergence score in structured form (artifact). `goals/poc.mdc`.
 - **Current:** No prompt templates in repo; no docs/prompts.mdc listing params.
 
@@ -25,7 +25,7 @@
 
 ## Tasks
 
-- [x] **Create docs/prompts.mdc** — List all template parameters: launch_id, run_id, case_id, failure_id, workspace_path, failed_test_name, artifact_path, job_id, pipeline_id; description and example each. Note: convergence score and RCA output format (so model knows what to emit).
+- [x] **Create docs/prompts.mdc** — List all template parameters: launch_id, run_id, case_id, failure_id, workspace_path, failed_test_name, artifact_path, job_id, circuit_id; description and example each. Note: convergence score and RCA output format (so model knows what to emit).
 - [x] **Add .cursor/prompts/** — At least one template file (e.g. `rca.md` or `assessment.md`) with placeholders for the params above. Instruct model to produce RCA summary and convergence score (and defect type) for artifact.
 - [x] **Placeholder format** — Choose and document: e.g. Go text/template `{{.LaunchID}}` or `{{ launch_id }}`. Document in prompts.mdc.
 - [x] **Loader contract** — Document how CLI (or handoff) loads template: path resolution (prompts dir), file name, substitution. No Cursor API in PoC; output is text or file for user to paste/open.
@@ -44,4 +44,4 @@
 
 (Running log, newest first. YYYY-MM-DD HH:MM — decision or finding.)
 
-- 2026-02-17 — Completed. Expanded docs/prompts.mdc with template parameters table (LaunchID, RunID, CaseID, FailureID, WorkspacePath, FailedTestName, ArtifactPath, JobID, PipelineID), placeholder format (Go text/template {{.FieldName}}), output format (artifact), and loader contract. Added .cursor/prompts/rca.md with placeholders and instructions for RCA message, convergence score, defect type, evidence refs, and artifact output.
+- 2026-02-17 — Completed. Expanded docs/prompts.mdc with template parameters table (LaunchID, RunID, CaseID, FailureID, WorkspacePath, FailedTestName, ArtifactPath, JobID, CircuitID), placeholder format (Go text/template {{.FieldName}}), output format (artifact), and loader contract. Added .cursor/prompts/rca.md with placeholders and instructions for RCA message, convergence score, defect type, evidence refs, and artifact output.

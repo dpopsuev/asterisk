@@ -20,8 +20,8 @@ type Version struct {
 	OCPBuild string // e.g. "4.21.2"
 }
 
-// Pipeline represents one CI pipeline run for one version, bound to a suite.
-type Pipeline struct {
+// Circuit represents one CI circuit run for one version, bound to a suite.
+type Circuit struct {
 	ID         int64
 	SuiteID    int64
 	VersionID  int64
@@ -33,10 +33,10 @@ type Pipeline struct {
 }
 
 // Launch represents one RP launch. Evolves from the flat envelopes blob.
-// 1:1 with Pipeline for now; schema allows N launches per pipeline for future.
+// 1:1 with Circuit for now; schema allows N launches per circuit for future.
 type Launch struct {
 	ID              int64
-	PipelineID      int64
+	CircuitID      int64
 	RPLaunchID      int    // RP launch ID (e.g. 33195)
 	RPLaunchUUID    string
 	Name            string

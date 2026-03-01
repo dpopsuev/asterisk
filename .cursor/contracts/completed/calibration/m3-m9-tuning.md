@@ -25,7 +25,7 @@ Expected recall hits: C2, C3, C5, C6, C7, C9 (6 cases). Actual: C6, C9 only (2/6
 Root cause: C2, C3, C5, C7 are processed *before* their representative case's RCA is stored. In parallel mode, the recall digest may be stale or empty when these cases reach F0. The workers then see no prior RCA to match against and return match=false.
 
 Levers:
-1. **Recall digest timing** — ensure F0 prompts include up-to-date RCA summaries (currently built at pipeline start, not refreshed mid-run).
+1. **Recall digest timing** — ensure F0 prompts include up-to-date RCA summaries (currently built at circuit start, not refreshed mid-run).
 2. **F0 prompt quality** — strengthen the matching guidance so workers recognize symptom overlap even with partial digests.
 3. **Processing order** — ensure representative cases (which discover new RCAs) complete F3→F4 before cluster members run F0.
 
@@ -99,6 +99,6 @@ No trust boundaries affected.
 ## Notes
 
 - 2026-02-24 19:00 — **M9 superseded by `m9-m10-four-pain-points.md`.** Prompt-based M9 fix was insufficient (M9 declined 0.60→0.40→0.20 across R6-R8). The new contract replaces AI repo selection with deterministic hypothesis-based routing via `selectRepoByHypothesis`. M3 fix (Phase 3.5 recall inference) remains in this contract and is complete (0.83, passing).
-- 2026-02-24 16:00 — **Domain assessment: Asterisk-only.** No Origami changes needed. Origami provides correct walk loop, edge evaluation, and loop-count infrastructure. All fixes are Asterisk pipeline orchestration (M3 recall digest timing), prompt content (M9 F2 Resolve), and scenario data (M10 ground truth). See plan: `domain_assessment_m3-m18`.
+- 2026-02-24 16:00 — **Domain assessment: Asterisk-only.** No Origami changes needed. Origami provides correct walk loop, edge evaluation, and loop-count infrastructure. All fixes are Asterisk circuit orchestration (M3 recall digest timing), prompt content (M9 F2 Resolve), and scenario data (M10 ground truth). See plan: `domain_assessment_m3-m18`.
 - 2026-02-24 16:00 — M10 already expanded: ExpectedResolve added to C4, C10, C12 in prior commit `8f52b38`. Task removed from this contract.
 - 2026-02-24 15:00 — Contract created. Split from `wet-calibration-tuning.md` Round 5 remaining gaps. M3 and M9 are related (both depend on worker using context correctly) and can be tuned together.

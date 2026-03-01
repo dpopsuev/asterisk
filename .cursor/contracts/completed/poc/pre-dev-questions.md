@@ -35,7 +35,7 @@ Global rules only. Follow `rules/abstraction-boundaries.mdc`: mark answers as ge
 
 ### Storage adapter and DB
 
-4. **Storage adapter interface shape** — Per-entity repositories (CaseRepo, RCARepo, PipelineRepo) vs single Store facade? Minimal method set for PoC (e.g. CreateCase, GetCase, ListCasesByJob, SaveRCA, LinkCaseToRCA)?
+4. **Storage adapter interface shape** — Per-entity repositories (CaseRepo, RCARepo, CircuitRepo) vs single Store facade? Minimal method set for PoC (e.g. CreateCase, GetCase, ListCasesByJob, SaveRCA, LinkCaseToRCA)?
 5. **DB placement** — Where does the SQLite file live? Per-workspace (e.g. `./asterisk.db` or `./.asterisk/db`) vs global (e.g. `~/.config/asterisk/`)? Affects "one DB per investigation" vs "one DB per user."
 
 ### Cursor integration (`asterisk --cursor`)

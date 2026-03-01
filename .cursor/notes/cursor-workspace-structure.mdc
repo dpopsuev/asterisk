@@ -36,7 +36,7 @@ See `rules/workspace-context.mdc` (version alignment).
 | 8 | `../../Repositories/report-portal/plugin-bts-gitlab` | **BTS GitLab plugin** — Bug tracking integration; reference if needed. |
 | 9 | `../../Repositories/report-portal/plugin-bts-jira` | **BTS Jira plugin** — Bug tracking integration; reference for Jira flow later. |
 | 10 | `../../Repositories/report-portal-cli` | **RP CLI + client** — **Use for PoC:** same API 5.11/24.1; `pkg/client` for GetByID, GetByUUID, List; extend for defect-type write. See `notes/workspace-references.mdc`. |
-| 11 | `../../Repositories/testo-resumado-agento` | **Agent + tools** — Reference for analyze pipeline (AI + context → RCA). See `notes/workspace-references.mdc`. |
+| 11 | `../../Repositories/testo-resumado-agento` | **Agent + tools** — Reference for analyze circuit (AI + context → RCA). See `notes/workspace-references.mdc`. |
 | 12 | `../archive/ci/4.21/16_feb_26` | **CI archive (example)** — Optional local artifact dir for RCA context (e.g. job logs); execution data comes from RP, not from here. |
 
 ## RP instance (canonical)
@@ -46,7 +46,7 @@ See `rules/workspace-context.mdc` (version alignment).
 ## API research
 
 - **Deep API research contract:** `contracts/rp-api-research.md` — Learn to interact with RP API 5.11 (locked version); document endpoints and usage for FSC; add rules if needed.
-- **Example test execution (pipeline launch):** [Launch 33195](https://your-reportportal.example.com/ui/#ecosystem-qe/launches/all/33195) — Use as reference for launch structure, test items, and failure list when researching API and mapping to Execution Envelope.
+- **Example test execution (circuit launch):** [Launch 33195](https://your-reportportal.example.com/ui/#ecosystem-qe/launches/all/33195) — Use as reference for launch structure, test items, and failure list when researching API and mapping to Execution Envelope.
 
 ## Cross-references
 

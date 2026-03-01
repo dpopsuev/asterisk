@@ -4,5 +4,5 @@
 (No directories)
 
 ## Files
-- `ground-truth-dataset.md` — Grow dataset from 18 to 50+ cases. Phases 1-2 (CLI, JSON export) implemented. Remainder absorbed by `data-ingestion-pipeline.md` + `consumer-cli-scaffold.md`.
+- `ground-truth-dataset.md` — Grow dataset from 18 to 50+ cases. Phases 1-2 (CLI, JSON export) implemented. Remainder absorbed by `data-ingestion-circuit.md` + `consumer-cli-scaffold.md`.
 - `knowledge-source-migration.md` — Migrate from `workspace` to `knowledge`. Phase 1 (11 files) complete. Remainder absorbed by `refine-rtfm-routing-policy.md` + `knowledge-source-evolution.md`.

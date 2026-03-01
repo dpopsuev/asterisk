@@ -18,10 +18,10 @@ Five packages remain in `internal/` that should be merged into `adapters/`:
 
 | Package | Files | Key exports | Current consumers |
 |---------|-------|-------------|-------------------|
-| `internal/orchestrate` | 14 | `BuildParams`, `RunStep`, `PipelineDef`, heuristics, templates | `adapters/rca`, `internal/calibrate` |
+| `internal/orchestrate` | 14 | `BuildParams`, `RunStep`, `CircuitDef`, heuristics, templates | `adapters/rca`, `internal/calibrate` |
 | `internal/calibrate` | ~35 | `RunCalibration`, `Scenario`, metrics, transcripts, `adapt/` (Basic/Stub/LLM) | `adapters/calibration`, `internal/mcpconfig`, `internal/ingest` |
 | `internal/investigate` | 5 | `Analyze`, `EnvelopeSource`, `Artifact` | `cmd/asterisk`, `adapters/rp` (inlined) |
-| `internal/ingest` | 4 | Ingest pipeline nodes, `DedupIndex` | `cmd/asterisk` |
+| `internal/ingest` | 4 | Ingest circuit nodes, `DedupIndex` | `cmd/asterisk` |
 | `internal/mcpconfig` | 4 | MCP server wiring | `cmd/asterisk` |
 
 Packages that stay: `internal/dataset` (domain data), `internal/demo` (Kabuki theme).
@@ -101,7 +101,7 @@ Strangler fig, phase by phase. Each phase moves one package, updates all imports
 | **Unit** | yes | All existing tests move with their code; must remain green after each phase |
 | **Integration** | yes | `just calibrate-stub` after phases 1-3; full build + test after each phase |
 | **Contract** | no | No API schema changes — this is a mechanical restructuring |
-| **E2E** | yes | `just calibrate-stub` validates end-to-end pipeline after merge |
+| **E2E** | yes | `just calibrate-stub` validates end-to-end circuit after merge |
 | **Concurrency** | no | No new shared state or parallel paths introduced |
 | **Security** | no | No trust boundaries affected — pure code movement |
 

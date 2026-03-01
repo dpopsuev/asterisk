@@ -1,14 +1,14 @@
 # Contract — Evidence Gap Brief
 
 **Status:** complete  
-**Goal:** When the pipeline cannot reach high confidence, it produces a structured Evidence Gap Brief that articulates exactly what evidence is missing, where to find it, and how it would change the outcome -- replacing silent "unknown" results with actionable next steps.  
+**Goal:** When the circuit cannot reach high confidence, it produces a structured Evidence Gap Brief that articulates exactly what evidence is missing, where to find it, and how it would change the outcome -- replacing silent "unknown" results with actionable next steps.  
 **Serves:** Polishing & Presentation (nice)
 
 ## Contract rules
 
 - Global rules only.
 - The system must never silently produce a low-confidence or "unknown" result without an accompanying gap brief.
-- The `EvidenceGap` type is the shared contract between the F0-F6 pipeline and the future Defect Dialectic. Dialectic-specific metadata extends it but does not replace it.
+- The `EvidenceGap` type is the shared contract between the F0-F6 circuit and the future Defect Dialectic. Dialectic-specific metadata extends it but does not replace it.
 - Gap items must be actionable: each one points to a specific type of evidence, where to get it, and why it matters.
 
 ## Context
@@ -49,14 +49,14 @@ type GapBrief struct {
 |----------|----------------|---------|
 | `log_depth` | Only error message available, no full logs | "Full pod logs from the failure window would show the actual error chain" |
 | `source_code` | Repo in workspace but no local path or no code access | "Actual code inspection of linuxptp-daemon would confirm the suspected regression" |
-| `ci_context` | No CI pipeline env vars, stage timing, or artifacts | "Jenkins stage timing would disambiguate infra timeout vs. test failure" |
+| `ci_context` | No CI circuit env vars, stage timing, or artifacts | "Jenkins stage timing would disambiguate infra timeout vs. test failure" |
 | `cluster_state` | No must-gather, cluster events, or node health data | "Node health data would confirm whether this is an environment issue" |
 | `version_info` | Operator/OCP version not surfaced in prompts | "Matching against known bugs in ptp-operator 4.21.0-202602070620 would narrow candidates" |
 | `historical` | No cross-run data available | "Failure recurrence pattern across last 5 runs would distinguish flaky from persistent" |
 | `jira_context` | Jira links present but not resolved | "Linked OCPBUGS-70233 description would confirm or deny the hypothesis" |
 | `human_input` | Multiple equally plausible root causes | "Human domain expertise needed to disambiguate PTP hardware vs. software timing issue" |
 
-### Pipeline integration
+### Circuit integration
 
 #### CaseResult extension
 
@@ -142,11 +142,11 @@ The gap brief is embedded in the RCA artifact written to FS. The `push` command 
 
 ## Acceptance criteria
 
-- **Given** the pipeline produces an RCA with `ActualConvergence < 0.80`,
+- **Given** the circuit produces an RCA with `ActualConvergence < 0.80`,
 - **When** the calibration report is generated,
 - **Then** the corresponding `CaseResult` contains a non-empty `EvidenceGaps` list with at least one actionable gap item.
 
-- **Given** the pipeline produces a defect type of "unknown",
+- **Given** the circuit produces a defect type of "unknown",
 - **When** the artifact is written to FS,
 - **Then** the artifact contains a `GapBrief` with `verdict: inconclusive` and at least one gap item explaining why classification failed.
 
@@ -172,7 +172,7 @@ Implement these mitigations when executing this contract.
 
 | OWASP | Finding | Mitigation |
 |-------|---------|------------|
-| A05 | Gap items expose infrastructure details: cluster names, operator versions, CI pipeline identifiers, Jira ticket IDs. If gap briefs are pushed to RP or included in shared reports, they leak internal info. | Gap brief output should respect the same redaction rules as RCA artifacts. Add a `Redact` flag to `GapBrief` that strips infrastructure identifiers before external export. |
+| A05 | Gap items expose infrastructure details: cluster names, operator versions, CI circuit identifiers, Jira ticket IDs. If gap briefs are pushed to RP or included in shared reports, they leak internal info. | Gap brief output should respect the same redaction rules as RCA artifacts. Add a `Redact` flag to `GapBrief` that strips infrastructure identifiers before external export. |
 | A03 | `BasicAdapter` constructs gap items from `TemplateParams` data. If `TemplateParams` contains user-controlled data (e.g., test names with special characters), gap descriptions could carry injection payloads into downstream consumers (Jira, RP comments). | Sanitize gap `Description` and `Source` fields: strip control characters, limit length, escape Markdown/HTML if rendering in web contexts. |
 
 ## Notes

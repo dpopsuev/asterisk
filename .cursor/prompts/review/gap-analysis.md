@@ -18,7 +18,7 @@ Use these categories to classify what evidence is missing:
 |----------|-------------|
 | `log_depth` | Only error message available, no full logs or stack trace |
 | `source_code` | Repo in workspace but no local path or no code access |
-| `ci_context` | No CI pipeline env vars, stage timing, or artifacts |
+| `ci_context` | No CI circuit env vars, stage timing, or artifacts |
 | `cluster_state` | No must-gather, cluster events, or node health data |
 | `version_info` | Operator/OCP version not surfaced in prompts |
 | `historical` | No cross-run data available for recurrence patterns |

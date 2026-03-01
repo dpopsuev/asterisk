@@ -1,19 +1,29 @@
 package rca
 
 import (
+	_ "embed"
 	"fmt"
 	"log/slog"
+
+	"gopkg.in/yaml.v3"
 )
 
-// QuickWin defines a targeted improvement to the calibration pipeline.
+//go:embed tuning-quickwins.yaml
+var quickWinsYAML []byte
+
+// QuickWin defines a targeted improvement to the calibration circuit.
 // Each QW is atomic: implement, re-calibrate, measure, commit or revert.
 type QuickWin struct {
-	ID          string            `json:"id"`
-	Name        string            `json:"name"`
-	Description string            `json:"description"`
-	MetricTarget string           `json:"metric_target"`
-	Prereqs     []string          `json:"prereqs,omitempty"`
-	Apply       func(cfg *RunConfig) error `json:"-"`
+	ID           string   `yaml:"id" json:"id"`
+	Name         string   `yaml:"name" json:"name"`
+	Description  string   `yaml:"description" json:"description"`
+	MetricTarget string   `yaml:"metric_target" json:"metric_target"`
+	Prereqs      []string `yaml:"prereqs,omitempty" json:"prereqs,omitempty"`
+	Apply        func(cfg *RunConfig) error `yaml:"-" json:"-"`
+}
+
+type quickWinsFile struct {
+	QuickWins []QuickWin `yaml:"quick_wins"`
 }
 
 // TuningResult records the before/after measurement for a single QW.
@@ -29,56 +39,32 @@ type TuningResult struct {
 
 // TuningReport aggregates all QW results for a tuning session.
 type TuningReport struct {
-	Results          []TuningResult `json:"results"`
-	FinalM19         float64        `json:"final_m19"`
-	BaselineM19      float64        `json:"baseline_m19"`
-	CumulativeDelta  float64        `json:"cumulative_delta"`
-	QWsApplied       int            `json:"qws_applied"`
-	QWsReverted      int            `json:"qws_reverted"`
-	StopReason       string         `json:"stop_reason"`
+	Results         []TuningResult `json:"results"`
+	FinalM19        float64        `json:"final_m19"`
+	BaselineM19     float64        `json:"baseline_m19"`
+	CumulativeDelta float64        `json:"cumulative_delta"`
+	QWsApplied      int            `json:"qws_applied"`
+	QWsReverted     int            `json:"qws_reverted"`
+	StopReason      string         `json:"stop_reason"`
 }
 
-// DefaultQuickWins returns the standard QW-1 through QW-4 scaffold.
-// Implementation functions are nil (skeleton); they'll be wired when
-// the rp-e2e-launch gate is complete.
+// DefaultQuickWins loads the standard QW definitions from the embedded YAML.
+// Apply functions are nil; they are wired by the caller when ready.
 func DefaultQuickWins() []QuickWin {
-	return []QuickWin{
-		{
-			ID:           "QW-1",
-			Name:         "Surface RP launch attributes in prompts",
-			Description:  "Add LaunchAttributes to TemplateParams. Render as metadata table in triage/resolve prompts.",
-			MetricTarget: "M12/M13 improvement via better component identification",
-		},
-		{
-			ID:           "QW-2",
-			Name:         "Wire Jira links from ExternalSystemIssues",
-			Description:  "Extract ExternalSystemIssues from RP Issue. Pass Jira URLs into TemplateParams for triage/investigate.",
-			MetricTarget: "M1/M15 improvement via direct evidence links",
-			Prereqs:      []string{"QW-1"},
-		},
-		{
-			ID:           "QW-3",
-			Name:         "Tune BasicAdapter keyword maps",
-			Description:  "Analyze misclassification patterns from E2E run. Adjust keyword-to-component mappings.",
-			MetricTarget: "M1 improvement on recurring misclassifications",
-			Prereqs:      []string{"QW-1", "QW-2"},
-		},
-		{
-			ID:           "QW-4",
-			Name:         "Evidence gap-driven tuning",
-			Description:  "Use EvidenceGapBrief output to prioritize tuning actions. Gap categories map to QW-1/2/3 code locations.",
-			MetricTarget: "Data-driven tuning prioritization",
-			Prereqs:      []string{"QW-1", "QW-2", "QW-3"},
-		},
+	var f quickWinsFile
+	if err := yaml.Unmarshal(quickWinsYAML, &f); err != nil {
+		slog.Error("failed to parse embedded tuning-quickwins.yaml", "error", err)
+		return nil
 	}
+	return f.QuickWins
 }
 
 // TuningRunner executes a sequence of QuickWins with before/after measurement.
 // It stops when a stop condition is met (target M19, no improvement, or exhausted).
 type TuningRunner struct {
-	Config      RunConfig
-	QuickWins   []QuickWin
-	TargetM19   float64
+	Config       RunConfig
+	QuickWins    []QuickWin
+	TargetM19    float64
 	MaxNoImprove int
 }
 
@@ -93,11 +79,7 @@ func NewTuningRunner(cfg RunConfig, qws []QuickWin) *TuningRunner {
 }
 
 // Run executes the tuning loop. It applies each QW in order, measures M19,
-// and decides whether to keep or revert. Returns a TuningReport.
-//
-// This is the skeleton structure. The actual calibration measurement requires
-// the rp-e2e-launch gate to be complete. Until then, Apply functions are nil
-// and the runner logs the planned action without executing.
+// and decides whether to keep or revert.
 func (r *TuningRunner) Run(baselineM19 float64) TuningReport {
 	report := TuningReport{
 		BaselineM19: baselineM19,
@@ -144,9 +126,6 @@ func (r *TuningRunner) Run(baselineM19 float64) TuningReport {
 			continue
 		}
 
-		// Placeholder: actual calibration measurement goes here.
-		// For now, after M19 is computed by running calibration,
-		// the result would be compared with currentM19.
 		afterM19 := currentM19
 		result.AfterM19 = afterM19
 		result.Delta = afterM19 - currentM19

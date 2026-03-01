@@ -1,5 +1,5 @@
-pipeline: asterisk-rca
-description: "Root-cause analysis pipeline (F0 Recall through F6 Report)"
+circuit: asterisk-rca
+description: "Root-cause analysis circuit (F0 Recall through F6 Report)"
 imports:
   - rca
 vars:

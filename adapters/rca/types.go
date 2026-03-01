@@ -1,9 +1,9 @@
-// Package orchestrate implements the F0–F6 prompt pipeline engine.
+// Package orchestrate implements the F0–F6 prompt circuit engine.
 // It evaluates heuristics, fills templates, persists intermediate artifacts,
 // controls loops, and manages per-case state.
 package rca
 
-// Thresholds holds configurable threshold values for pipeline edge evaluation.
+// Thresholds holds configurable threshold values for circuit edge evaluation.
 type Thresholds struct {
 	RecallHit             float64 // when to short-circuit on prior RCA (default 0.80)
 	RecallUncertain       float64 // below this = definite miss (default 0.40)
@@ -23,30 +23,30 @@ func DefaultThresholds() Thresholds {
 	}
 }
 
-// PipelineStep represents a step in the F0-F6 (Thesis) or D0-D4 (Antithesis) pipeline.
-type PipelineStep string
+// CircuitStep represents a step in the F0-F6 (Thesis) or D0-D4 (Antithesis) circuit.
+type CircuitStep string
 
 const (
-	StepInit       PipelineStep = "INIT"
-	StepF0Recall   PipelineStep = "F0_RECALL"
-	StepF1Triage   PipelineStep = "F1_TRIAGE"
-	StepF2Resolve  PipelineStep = "F2_RESOLVE"
-	StepF3Invest   PipelineStep = "F3_INVESTIGATE"
-	StepF4Correlate PipelineStep = "F4_CORRELATE"
-	StepF5Review   PipelineStep = "F5_REVIEW"
-	StepF6Report   PipelineStep = "F6_REPORT"
-	StepDone       PipelineStep = "DONE"
+	StepInit       CircuitStep = "INIT"
+	StepF0Recall   CircuitStep = "F0_RECALL"
+	StepF1Triage   CircuitStep = "F1_TRIAGE"
+	StepF2Resolve  CircuitStep = "F2_RESOLVE"
+	StepF3Invest   CircuitStep = "F3_INVESTIGATE"
+	StepF4Correlate CircuitStep = "F4_CORRELATE"
+	StepF5Review   CircuitStep = "F5_REVIEW"
+	StepF6Report   CircuitStep = "F6_REPORT"
+	StepDone       CircuitStep = "DONE"
 
-	StepD0Indict  PipelineStep = "D0_INDICT"
-	StepD1Discover PipelineStep = "D1_DISCOVER"
-	StepD2Defend  PipelineStep = "D2_DEFEND"
-	StepD3Hearing PipelineStep = "D3_HEARING"
-	StepD4Verdict PipelineStep = "D4_VERDICT"
-	StepDialecticDone PipelineStep = "DIALECTIC_DONE"
+	StepD0Indict  CircuitStep = "D0_INDICT"
+	StepD1Discover CircuitStep = "D1_DISCOVER"
+	StepD2Defend  CircuitStep = "D2_DEFEND"
+	StepD3Hearing CircuitStep = "D3_HEARING"
+	StepD4Verdict CircuitStep = "D4_VERDICT"
+	StepDialecticDone CircuitStep = "DIALECTIC_DONE"
 )
 
 // Family returns the prompt family name (for directory/file naming).
-func (s PipelineStep) Family() string {
+func (s CircuitStep) Family() string {
 	switch s {
 	case StepF0Recall:
 		return "recall"
@@ -77,8 +77,8 @@ func (s PipelineStep) Family() string {
 	}
 }
 
-// IsDialecticStep returns true if the step belongs to the D0-D4 Antithesis pipeline.
-func (s PipelineStep) IsDialecticStep() bool {
+// IsDialecticStep returns true if the step belongs to the D0-D4 Antithesis circuit.
+func (s CircuitStep) IsDialecticStep() bool {
 	switch s {
 	case StepD0Indict, StepD1Discover, StepD2Defend, StepD3Hearing, StepD4Verdict:
 		return true
@@ -87,12 +87,12 @@ func (s PipelineStep) IsDialecticStep() bool {
 	}
 }
 
-// CaseState tracks per-case progress through the pipeline.
+// CaseState tracks per-case progress through the circuit.
 // Persisted to disk (JSON) so the orchestrator can resume across CLI invocations.
 type CaseState struct {
 	CaseID      int64            `json:"case_id"`
 	SuiteID     int64            `json:"suite_id"`
-	CurrentStep PipelineStep     `json:"current_step"`
+	CurrentStep CircuitStep     `json:"current_step"`
 	LoopCounts  map[string]int   `json:"loop_counts"`  // e.g. "investigate": 2
 	Status      string           `json:"status"`        // running, paused, done, error
 	History     []StepRecord     `json:"history"`       // log of completed steps
@@ -100,7 +100,7 @@ type CaseState struct {
 
 // StepRecord logs a completed step with its outcome.
 type StepRecord struct {
-	Step        PipelineStep `json:"step"`
+	Step        CircuitStep `json:"step"`
 	Outcome     string       `json:"outcome"`      // e.g. "recall-hit", "triage-investigate"
 	HeuristicID string       `json:"heuristic_id"` // which heuristic rule matched
 	Timestamp   string       `json:"timestamp"`    // ISO 8601
@@ -109,7 +109,7 @@ type StepRecord struct {
 // HeuristicAction is the result of evaluating a heuristic: what step to go to next
 // and any context to carry forward.
 type HeuristicAction struct {
-	NextStep         PipelineStep       `json:"next_step"`
+	NextStep         CircuitStep       `json:"next_step"`
 	ContextAdditions map[string]any     `json:"context_additions,omitempty"`
 	Explanation      string             `json:"explanation"`
 }
@@ -179,7 +179,7 @@ type CorrelateResult struct {
 type ReviewDecision struct {
 	Decision      string        `json:"decision"` // approve, reassess, overturn
 	HumanOverride *HumanOverride `json:"human_override,omitempty"`
-	LoopTarget    PipelineStep  `json:"loop_target,omitempty"` // for reassess
+	LoopTarget    CircuitStep  `json:"loop_target,omitempty"` // for reassess
 }
 
 // HumanOverride is the human's correction in an overturn decision.

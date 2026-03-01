@@ -39,7 +39,7 @@ Close the 3 critical and 5 high/medium severity test coverage gaps identified in
    - Minimal in-memory store
    - Stub adapter (returns fixed classification)
    - Single-case scenario
-3. Verify: correct pipeline step sequence, state transitions, artifact generation
+3. Verify: correct circuit step sequence, state transitions, artifact generation
 4. **Green:** Runner produces expected `CaseResult` for stub scenario
 5. **Blue:** Extract any untestable logic into helper functions
 

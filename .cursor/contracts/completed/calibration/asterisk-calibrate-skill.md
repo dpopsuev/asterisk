@@ -7,7 +7,7 @@
 ## Contract rules
 
 - The skill MUST use MCP tool calls (`start_calibration`, `get_next_step`, `submit_artifact`, `get_report`). FileDispatcher is banned — it was a dead end (see `goals/poc.mdc` CRISIS section).
-- Every pipeline step MUST be delegated to a Task subagent per the agent bus protocol (`origami/.cursor/rules/domain/agent-bus.mdc`).
+- Every circuit step MUST be delegated to a Task subagent per the agent bus protocol (`origami/.cursor/rules/domain/agent-bus.mdc`).
 - The skill MUST reference the existing `asterisk-analyze` artifact schemas — no duplication.
 
 ## Context
@@ -34,7 +34,7 @@ Single-phase: write the SKILL.md, update the skills index, verify MCP server sta
 | Layer | Applies | Rationale |
 |-------|---------|-----------|
 | **Unit** | yes | MCP server tests (`internal/mcp/`) verify tool handlers, session lifecycle, capacity gate. |
-| **Integration** | yes | `just calibrate-stub` confirms the pipeline still passes with stub adapter. |
+| **Integration** | yes | `just calibrate-stub` confirms the circuit still passes with stub adapter. |
 | **Contract** | N/A | No new API schemas; skill references existing MCP tool signatures. |
 | **E2E** | yes | Manual: invoke `/asterisk-calibrate ptp-mock` in Cursor and verify M1-M21 scorecard. |
 | **Concurrency** | yes | Parallel mode (4 subagents) exercises MuxDispatcher routing. |
@@ -64,7 +64,7 @@ Then the Cursor agent calls start_calibration(scenario="ptp-mock", adapter="curs
 
 ## Security assessment
 
-No trust boundaries affected. MCP server already validated in prior contracts (`mcp-server-foundation`, `mcp-pipeline-tools`).
+No trust boundaries affected. MCP server already validated in prior contracts (`mcp-server-foundation`, `mcp-circuit-tools`).
 
 ## Notes
 

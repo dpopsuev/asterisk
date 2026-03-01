@@ -152,37 +152,37 @@ func (s *SqlStore) ListVersions() ([]*Version, error) {
 	return out, rows.Err()
 }
 
-// --- Pipeline ---
+// --- Circuit ---
 
-func (s *SqlStore) CreatePipeline(p *Pipeline) (int64, error) {
+func (s *SqlStore) CreateCircuit(p *Circuit) (int64, error) {
 	if p == nil {
-		return 0, errors.New("pipeline is nil")
+		return 0, errors.New("circuit is nil")
 	}
 	res, err := s.db.Exec(
-		`INSERT INTO pipelines(suite_id, version_id, name, rp_launch_id, status, started_at, ended_at)
+		`INSERT INTO circuits(suite_id, version_id, name, rp_launch_id, status, started_at, ended_at)
 		 VALUES(?, ?, ?, ?, ?, ?, ?)`,
 		p.SuiteID, p.VersionID, p.Name, nilIfZero(p.RPLaunchID), p.Status,
 		nilIfEmpty(p.StartedAt), nilIfEmpty(p.EndedAt),
 	)
 	if err != nil {
-		return 0, fmt.Errorf("insert pipeline: %w", err)
+		return 0, fmt.Errorf("insert circuit: %w", err)
 	}
 	return res.LastInsertId()
 }
 
-func (s *SqlStore) GetPipeline(id int64) (*Pipeline, error) {
-	var p Pipeline
+func (s *SqlStore) GetCircuit(id int64) (*Circuit, error) {
+	var p Circuit
 	var rpLaunch sql.NullInt64
 	var startedAt, endedAt sql.NullString
 	err := s.db.QueryRow(
 		`SELECT id, suite_id, version_id, name, rp_launch_id, status, started_at, ended_at
-		 FROM pipelines WHERE id = ?`, id,
+		 FROM circuits WHERE id = ?`, id,
 	).Scan(&p.ID, &p.SuiteID, &p.VersionID, &p.Name, &rpLaunch, &p.Status, &startedAt, &endedAt)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 	if err != nil {
-		return nil, fmt.Errorf("get pipeline: %w", err)
+		return nil, fmt.Errorf("get circuit: %w", err)
 	}
 	if rpLaunch.Valid {
 		p.RPLaunchID = int(rpLaunch.Int64)
@@ -192,22 +192,22 @@ func (s *SqlStore) GetPipeline(id int64) (*Pipeline, error) {
 	return &p, nil
 }
 
-func (s *SqlStore) ListPipelinesBySuite(suiteID int64) ([]*Pipeline, error) {
+func (s *SqlStore) ListCircuitsBySuite(suiteID int64) ([]*Circuit, error) {
 	rows, err := s.db.Query(
 		`SELECT id, suite_id, version_id, name, rp_launch_id, status, started_at, ended_at
-		 FROM pipelines WHERE suite_id = ? ORDER BY id`, suiteID,
+		 FROM circuits WHERE suite_id = ? ORDER BY id`, suiteID,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("list pipelines: %w", err)
+		return nil, fmt.Errorf("list circuits: %w", err)
 	}
 	defer rows.Close()
-	var out []*Pipeline
+	var out []*Circuit
 	for rows.Next() {
-		var p Pipeline
+		var p Circuit
 		var rpLaunch sql.NullInt64
 		var startedAt, endedAt sql.NullString
 		if err := rows.Scan(&p.ID, &p.SuiteID, &p.VersionID, &p.Name, &rpLaunch, &p.Status, &startedAt, &endedAt); err != nil {
-			return nil, fmt.Errorf("scan pipeline: %w", err)
+			return nil, fmt.Errorf("scan circuit: %w", err)
 		}
 		if rpLaunch.Valid {
 			p.RPLaunchID = int(rpLaunch.Int64)
@@ -226,10 +226,10 @@ func (s *SqlStore) CreateLaunch(l *Launch) (int64, error) {
 		return 0, errors.New("launch is nil")
 	}
 	res, err := s.db.Exec(
-		`INSERT INTO launches(pipeline_id, rp_launch_id, rp_launch_uuid, name, status,
+		`INSERT INTO launches(circuit_id, rp_launch_id, rp_launch_uuid, name, status,
 		        started_at, ended_at, env_attributes, git_branch, git_commit, envelope_payload)
 		 VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-		l.PipelineID, l.RPLaunchID, nilIfEmpty(l.RPLaunchUUID),
+		l.CircuitID, l.RPLaunchID, nilIfEmpty(l.RPLaunchUUID),
 		nilIfEmpty(l.Name), nilIfEmpty(l.Status),
 		nilIfEmpty(l.StartedAt), nilIfEmpty(l.EndedAt),
 		nilIfEmpty(l.EnvAttributes), nilIfEmpty(l.GitBranch), nilIfEmpty(l.GitCommit),
@@ -246,10 +246,10 @@ func (s *SqlStore) GetLaunch(id int64) (*Launch, error) {
 	var uuid, name, status, startedAt, endedAt sql.NullString
 	var envAttr, gitBranch, gitCommit sql.NullString
 	err := s.db.QueryRow(
-		`SELECT id, pipeline_id, rp_launch_id, rp_launch_uuid, name, status,
+		`SELECT id, circuit_id, rp_launch_id, rp_launch_uuid, name, status,
 		        started_at, ended_at, env_attributes, git_branch, git_commit, envelope_payload
 		 FROM launches WHERE id = ?`, id,
-	).Scan(&l.ID, &l.PipelineID, &l.RPLaunchID, &uuid, &name, &status,
+	).Scan(&l.ID, &l.CircuitID, &l.RPLaunchID, &uuid, &name, &status,
 		&startedAt, &endedAt, &envAttr, &gitBranch, &gitCommit, &l.EnvelopePayload)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -268,15 +268,15 @@ func (s *SqlStore) GetLaunch(id int64) (*Launch, error) {
 	return &l, nil
 }
 
-func (s *SqlStore) GetLaunchByRPID(pipelineID int64, rpLaunchID int) (*Launch, error) {
+func (s *SqlStore) GetLaunchByRPID(circuitID int64, rpLaunchID int) (*Launch, error) {
 	var l Launch
 	var uuid, name, status, startedAt, endedAt sql.NullString
 	var envAttr, gitBranch, gitCommit sql.NullString
 	err := s.db.QueryRow(
-		`SELECT id, pipeline_id, rp_launch_id, rp_launch_uuid, name, status,
+		`SELECT id, circuit_id, rp_launch_id, rp_launch_uuid, name, status,
 		        started_at, ended_at, env_attributes, git_branch, git_commit, envelope_payload
-		 FROM launches WHERE pipeline_id = ? AND rp_launch_id = ?`, pipelineID, rpLaunchID,
-	).Scan(&l.ID, &l.PipelineID, &l.RPLaunchID, &uuid, &name, &status,
+		 FROM launches WHERE circuit_id = ? AND rp_launch_id = ?`, circuitID, rpLaunchID,
+	).Scan(&l.ID, &l.CircuitID, &l.RPLaunchID, &uuid, &name, &status,
 		&startedAt, &endedAt, &envAttr, &gitBranch, &gitCommit, &l.EnvelopePayload)
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
@@ -295,11 +295,11 @@ func (s *SqlStore) GetLaunchByRPID(pipelineID int64, rpLaunchID int) (*Launch, e
 	return &l, nil
 }
 
-func (s *SqlStore) ListLaunchesByPipeline(pipelineID int64) ([]*Launch, error) {
+func (s *SqlStore) ListLaunchesByCircuit(circuitID int64) ([]*Launch, error) {
 	rows, err := s.db.Query(
-		`SELECT id, pipeline_id, rp_launch_id, rp_launch_uuid, name, status,
+		`SELECT id, circuit_id, rp_launch_id, rp_launch_uuid, name, status,
 		        started_at, ended_at, env_attributes, git_branch, git_commit, envelope_payload
-		 FROM launches WHERE pipeline_id = ? ORDER BY id`, pipelineID,
+		 FROM launches WHERE circuit_id = ? ORDER BY id`, circuitID,
 	)
 	if err != nil {
 		return nil, fmt.Errorf("list launches: %w", err)
@@ -310,7 +310,7 @@ func (s *SqlStore) ListLaunchesByPipeline(pipelineID int64) ([]*Launch, error) {
 		var l Launch
 		var uuid, name, status, startedAt, endedAt sql.NullString
 		var envAttr, gitBranch, gitCommit sql.NullString
-		if err := rows.Scan(&l.ID, &l.PipelineID, &l.RPLaunchID, &uuid, &name, &status,
+		if err := rows.Scan(&l.ID, &l.CircuitID, &l.RPLaunchID, &uuid, &name, &status,
 			&startedAt, &endedAt, &envAttr, &gitBranch, &gitCommit, &l.EnvelopePayload); err != nil {
 			return nil, fmt.Errorf("scan launch: %w", err)
 		}

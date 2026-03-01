@@ -53,9 +53,9 @@ func FillTemplateString(name, tmplStr string, params *TemplateParams) (string, e
 	return buf.String(), nil
 }
 
-// TemplatePathForStep returns the default template file path for a pipeline step.
+// TemplatePathForStep returns the default template file path for a circuit step.
 // Templates live under the promptDir (e.g. ".cursor/prompts/").
-func TemplatePathForStep(promptDir string, step PipelineStep) string {
+func TemplatePathForStep(promptDir string, step CircuitStep) string {
 	switch step {
 	case StepF0Recall:
 		return promptDir + "/recall/judge-similarity.md"

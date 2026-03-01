@@ -48,9 +48,9 @@ type AnalysisCaseResult struct {
 	RPAutoAnalyzed bool     `json:"rp_auto_analyzed,omitempty"`
 }
 
-// RunAnalysis drives the F0–F6 pipeline for a set of cases using the provided adapter.
+// RunAnalysis drives the F0–F6 circuit for a set of cases using the provided adapter.
 // Unlike RunCalibration, there is no ground truth scoring — just investigation results.
-// Each case is walked through the pipeline graph using WalkCase with store-effect hooks.
+// Each case is walked through the circuit graph using WalkCase with store-effect hooks.
 func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg AnalysisConfig) (*AnalysisReport, error) {
 	report := &AnalysisReport{
 		Adapter:    cfg.Adapter.Name(),
@@ -66,7 +66,7 @@ func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg Analysi
 
 		result, err := walkAnalysisCase(st, caseData, caseLabel, cfg)
 		if err != nil {
-			logger.Error("case pipeline failed", "label", caseLabel, "error", err)
+			logger.Error("case circuit failed", "label", caseLabel, "error", err)
 			result = &AnalysisCaseResult{
 				CaseLabel:   caseLabel,
 				TestName:    caseData.Name,
@@ -79,8 +79,8 @@ func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg Analysi
 	return report, nil
 }
 
-// walkAnalysisCase runs a single case through the RCA pipeline via a framework
-// graph walk. Store effects fire automatically via hooks declared in the pipeline YAML.
+// walkAnalysisCase runs a single case through the RCA circuit via a framework
+// graph walk. Store effects fire automatically via hooks declared in the circuit YAML.
 func walkAnalysisCase(
 	st store.Store,
 	caseData *store.Case,
@@ -134,7 +134,7 @@ func walkAnalysisCase(
 }
 
 // extractAnalysisStepData captures per-step results without ground truth comparison.
-func extractAnalysisStepData(result *AnalysisCaseResult, step PipelineStep, artifact any) {
+func extractAnalysisStepData(result *AnalysisCaseResult, step CircuitStep, artifact any) {
 	switch step {
 	case StepF0Recall:
 		if r, ok := artifact.(*RecallResult); ok && r != nil {

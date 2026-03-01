@@ -7,10 +7,10 @@ Per-file classification of `adapters/rca/` (62 files, ~14,600 LOC) mapping every
 | File | LOC | Category | Destination | Marble/Gap |
 |------|-----|----------|-------------|------------|
 | `adapter.go` | 66 | Framework adapters | Delete — wiring absorbed by YAML `adapter.yaml` + `origami fold` | G8 |
-| `analysis.go` | 318 | Orchestration | Delete — replaced by pipeline walk with marble-configured nodes | G7, G11 |
+| `analysis.go` | 318 | Orchestration | Delete — replaced by circuit walk with marble-configured nodes | G7, G11 |
 | `artifact.go` | 122 | Persistence | `persist` marble — file I/O becomes YAML-declared hook actions | G4 |
 | `briefing.go` | 129 | Report/Output | `report` marble — briefing becomes a report template | G6 |
-| `cal_runner.go` | 684 | Calibration | Framework `calibrate/` — calibration runner becomes meta-pipeline | G11 |
+| `cal_runner.go` | 684 | Calibration | Framework `calibrate/` — calibration runner becomes meta-circuit | G11 |
 | `cal_types.go` | 236 | Types | Framework types — `Scenario`, `GroundTruthCase`, `CaseResult` move to `calibrate/` | — |
 | `catalog_convert.go` | 57 | Transformers | `context-builder` marble — workspace-to-catalog conversion | G2 |
 | `cluster.go` | 165 | Domain logic | `score` marble — clustering for M5 serial killer detection scorer | G5 |
@@ -23,7 +23,7 @@ Per-file classification of `adapters/rca/` (62 files, ~14,600 LOC) mapping every
 | `nodes.go` | 129 | Orchestration | Delete — passthrough nodes absorbed by marble-configured graph walk | G7 |
 | `parallel.go` | 752 | Orchestration | Framework `calibrate/` — parallel fan-out becomes framework feature | G11 |
 | `params.go` | 512 | Transformers | `context-builder` marble — `BuildParams` becomes YAML-configured source chain | G2 |
-| `pipeline_def.go` | 108 | Pipeline DSL | Keep (thin) — loads `pipeline_rca.yaml`, already DSL | — |
+| `circuit_def.go` | 108 | Circuit DSL | Keep (thin) — loads `circuit_rca.yaml`, already DSL | — |
 | `report.go` | 126 | Report/Output | `report` marble — calibration report becomes a template | G6 |
 | `rca_report.go` | 257 | Report/Output | `report` marble — RCA report becomes a template | G6 |
 | `rp_source.go` | 92 | Domain logic | RP adapter — `ResolveRPCases` moves to `adapters/rp/` | — |
@@ -34,9 +34,9 @@ Per-file classification of `adapters/rca/` (62 files, ~14,600 LOC) mapping every
 | `transcript.go` | 266 | Report/Output | `report` marble — transcript becomes a report template | G6 |
 | `transformers.go` | 96 | Transformers | `context-builder` marble — `ContextBuilder`/`PromptFiller` become YAML-configured | G2 |
 | `tuning.go` | 184 | Calibration | Framework `calibrate/` — tuning becomes declarative quick-win config | G11 |
-| `types.go` | 189 | Types | Partially framework — `PipelineStep` enum → framework, domain types → YAML schema | — |
+| `types.go` | 189 | Types | Partially framework — `CircuitStep` enum → framework, domain types → YAML schema | — |
 | `vocab.go` | 29 | Report/Output | Delete — vocabulary already in `vocabulary.yaml` | — |
-| `walk.go` | 77 | Orchestration | Keep (thin) — `WalkCase` becomes a thin YAML pipeline invoker | — |
+| `walk.go` | 77 | Orchestration | Keep (thin) — `WalkCase` becomes a thin YAML circuit invoker | — |
 | `walker.go` | 118 | Orchestration | Delete — `calibrationWalker` absorbed by framework walker + marble hooks | G4, G7 |
 
 **Subtotals:**
@@ -105,6 +105,6 @@ Based on gap dependencies (must resolve blockers first):
 7. **G9** (generic transformers) — eliminates `adapters/ingest/` (634 LOC).
 8. **G10** (step schema DSL) — partial `mcpconfig/` migration.
 9. **G8** (`origami fold`) — eliminates `cmd/asterisk/` (2,032 LOC) + `internal/mcpconfig/` (1,249 LOC).
-10. **G11** (calibration-as-pipeline) — eliminates `cal_runner.go` (684 LOC) + `parallel.go` (752 LOC).
+10. **G11** (calibration-as-circuit) — eliminates `cal_runner.go` (684 LOC) + `parallel.go` (752 LOC).
 
 Total Go eliminated when all gaps resolved: ~14,600 LOC in `adapters/rca/` + ~6,000 LOC in gap areas = **~20,600 LOC → zero**.

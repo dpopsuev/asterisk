@@ -12,7 +12,7 @@ Product roadmap (distinct from the operational three phases in `three-phases-man
 
 ## Phase 1 — Evidence Gathering
 - Pull commit history and diffs around the failure window.
-- Pull CI pipeline context (stages, artifacts, env vars).
+- Pull CI circuit context (stages, artifacts, env vars).
 
 ## Phase 2 — Correlation & Attribution
 - Correlate failures across runs (multi-run history).

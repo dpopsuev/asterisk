@@ -42,8 +42,8 @@ var calibrateFlags struct {
 
 var calibrateCmd = &cobra.Command{
 	Use:   "calibrate",
-	Short: "Run calibration against a scenario to measure pipeline accuracy",
-	Long: `Calibrate runs the full F0-F6 pipeline against a predefined scenario
+	Short: "Run calibration against a scenario to measure circuit accuracy",
+	Long: `Calibrate runs the full F0-F6 circuit against a predefined scenario
 with ground-truth expectations, computing accuracy metrics (M1-M20).`,
 	RunE: runCalibrate,
 }

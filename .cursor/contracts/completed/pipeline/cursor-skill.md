@@ -1,12 +1,12 @@
 # Contract — Cursor Skill (asterisk-investigate)
 
 **Status:** complete (2026-02-17) — skill files created (SKILL.md, signal-protocol, artifact-schemas, examples)  
-**Goal:** Create a Cursor agent skill (`.cursor/skills/asterisk-investigate/SKILL.md`) that teaches the Cursor agent how to participate in the Asterisk investigation and calibration pipelines — reading prompts from the FileDispatcher, producing structured JSON artifacts per pipeline step, and writing them back to disk — so `asterisk calibrate --adapter=cursor --dispatch=file` runs without human intervention.
+**Goal:** Create a Cursor agent skill (`.cursor/skills/asterisk-investigate/SKILL.md`) that teaches the Cursor agent how to participate in the Asterisk investigation and calibration circuits — reading prompts from the FileDispatcher, producing structured JSON artifacts per circuit step, and writing them back to disk — so `asterisk calibrate --adapter=cursor --dispatch=file` runs without human intervention.
 
 ## Contract rules
 
 - Global rules only.
-- The skill is the **agent-side counterpart** of the `FileDispatcher` (contract `fs-dispatcher.md`). The Go process owns the pipeline; the skill only responds to prompts and produces artifacts. It never drives the pipeline, creates store entries, or evaluates heuristics.
+- The skill is the **agent-side counterpart** of the `FileDispatcher` (contract `fs-dispatcher.md`). The Go process owns the circuit; the skill only responds to prompts and produces artifacts. It never drives the circuit, creates store entries, or evaluates heuristics.
 - The skill must work in both **calibration mode** (scored against ground truth) and **investigation mode** (real analysis). The difference is only in the preamble the prompt carries; the skill's behavior is the same: read prompt, reason, write artifact.
 - The skill must **not** read ground truth, scenario definitions, calibration test code, expected results, or any file under `internal/calibrate/scenarios/`, `*_test.go`, or `.cursor/contracts/` when operating in calibration mode. This is enforced by the calibration preamble in the prompt, and the skill must reiterate this constraint.
 - The skill lives at `.cursor/skills/asterisk-investigate/` (project-scoped, shared with repo).
@@ -17,8 +17,8 @@
 - **FileDispatcher protocol** (from `fs-dispatcher.md`):
   1. Go process writes `signal.json` with `status: waiting`, `prompt_path`, `artifact_path`.
   2. External agent (this skill) watches for signal, reads prompt, produces artifact, writes artifact JSON.
-  3. Go process detects artifact file, reads it, continues pipeline.
-- **Pipeline steps** (from `internal/orchestrate/types.go`): F0 Recall, F1 Triage, F2 Resolve, F3 Investigate, F4 Correlate, F5 Review, F6 Report. Each step has a typed JSON artifact schema.
+  3. Go process detects artifact file, reads it, continues circuit.
+- **Circuit steps** (from `internal/orchestrate/types.go`): F0 Recall, F1 Triage, F2 Resolve, F3 Investigate, F4 Correlate, F5 Review, F6 Report. Each step has a typed JSON artifact schema.
 - **Prompt templates** (from `.cursor/prompts/`): `recall/judge-similarity.md`, `triage/classify-symptoms.md`, `resolve/select-repo.md`, `investigate/deep-rca.md`, `correlate/match-cases.md`, `review/present-findings.md`, `report/regression-table.md`.
 - **Calibration preamble**: Prepended to every prompt during calibration (see `cursor_adapter.go`). Informs the agent about scoring and integrity rules.
 - **Existing skills for reference**: `skills/index-integrity/` (project), `~/.cursor/skills/ship-commits/` (personal).
@@ -41,7 +41,7 @@
 ```markdown
 ---
 name: asterisk-investigate
-description: Investigate CI test failures using the Asterisk F0–F6 pipeline.
+description: Investigate CI test failures using the Asterisk F0–F6 circuit.
   Reads prompts from signal files, analyzes failure data, and produces structured
   JSON artifacts. Use when signal.json appears with status "waiting", or when the
   user asks to run Asterisk investigation or calibration.
@@ -55,7 +55,7 @@ description: Investigate CI test failures using the Asterisk F0–F6 pipeline.
 ## Signal protocol
 [How the FileDispatcher communicates]
 
-## Pipeline steps
+## Circuit steps
 [What each F0–F6 step expects and produces]
 
 ## Artifact format
@@ -79,7 +79,7 @@ The skill teaches the agent to:
    a. Read the `prompt_path` from signal.
    b. Open and read the prompt file (markdown with all context).
    c. Analyze the failure data provided in the prompt.
-   d. Produce the appropriate JSON artifact for the pipeline step.
+   d. Produce the appropriate JSON artifact for the circuit step.
    e. Write the JSON to the `artifact_path` from signal.
 3. **Repeat** until the Go process signals completion (signal.json disappears or shows `status: "complete"`).
 
@@ -110,7 +110,7 @@ When no calibration preamble is present, the agent operates freely: it can read 
 
 ## Execution strategy
 
-1. Create the skill directory and `SKILL.md` with signal protocol, pipeline steps, and calibration rules.
+1. Create the skill directory and `SKILL.md` with signal protocol, circuit steps, and calibration rules.
 2. Create `signal-protocol.md` documenting `signal.json` schema, polling, and artifact writing.
 3. Create `artifact-schemas.md` with the JSON schema for each F0–F6 artifact (from `orchestrate/types.go`).
 4. Create `examples.md` with one worked prompt→artifact example per step.
@@ -119,10 +119,10 @@ When no calibration preamble is present, the agent operates freely: it can read 
 
 ## Tasks
 
-- [ ] **SKILL.md** — Main skill file with frontmatter, quick start, signal protocol summary, pipeline step overview, artifact format summary, calibration integrity rules. Under 500 lines. Progressive disclosure to supporting files.
+- [ ] **SKILL.md** — Main skill file with frontmatter, quick start, signal protocol summary, circuit step overview, artifact format summary, calibration integrity rules. Under 500 lines. Progressive disclosure to supporting files.
 - [ ] **signal-protocol.md** — Detailed `signal.json` schema (`status`, `case_id`, `step`, `prompt_path`, `artifact_path`, `timestamp`). Watcher instructions: how to find the signal file, how to poll, what to do when `status: waiting`. How to handle errors (invalid prompt, timeout). How to know when calibration is complete.
 - [ ] **artifact-schemas.md** — JSON schemas for all 7 artifact types (F0–F6) derived from `internal/orchestrate/types.go`. Each schema: type name, all fields with types and descriptions, required vs optional, example JSON. Cross-reference with prompt templates in `.cursor/prompts/`.
-- [ ] **examples.md** — One worked example per pipeline step: abbreviated prompt (what the agent sees) → reasoning (how to think about it) → artifact JSON (what to write). Use mock scenario data so examples are self-contained. Cover: recall miss, recall hit, triage-to-investigate, triage-skip, cascade detection, repo selection, investigation with evidence, duplicate correlation, review approve.
+- [ ] **examples.md** — One worked example per circuit step: abbreviated prompt (what the agent sees) → reasoning (how to think about it) → artifact JSON (what to write). Use mock scenario data so examples are self-contained. Cover: recall miss, recall hit, triage-to-investigate, triage-skip, cascade detection, repo selection, investigation with evidence, duplicate correlation, review approve.
 - [ ] **Validate with stub** — Before live testing, verify the skill is internally consistent: artifact schemas match `orchestrate/types.go`, signal protocol matches `fs-dispatcher.md` design, examples produce valid JSON that would parse correctly.
 - [ ] **Validate with calibration** — Run `asterisk calibrate --scenario=ptp-mock --adapter=cursor --dispatch=file` (requires fs-dispatcher to be implemented first). Confirm the Cursor agent, guided by the skill, can complete all 12 cases. Record calibration metrics as the first cursor-mode baseline.
 - [ ] **Iterate on skill** — If metrics are below threshold, identify which steps/cases fail and improve the skill's instructions for those steps. Re-calibrate until metrics meet thresholds.
@@ -134,7 +134,7 @@ When no calibration preamble is present, the agent operates freely: it can read 
 
 - **Given** the `asterisk-investigate` skill installed at `.cursor/skills/asterisk-investigate/SKILL.md`,
 - **When** `asterisk calibrate --scenario=ptp-mock --adapter=cursor --dispatch=file` is run and Cursor is active in the workspace,
-- **Then** the Cursor agent discovers the `signal.json`, reads each prompt, produces a valid JSON artifact for the correct pipeline step, writes it to the artifact path, and the calibration runner scores all 12 cases — with the skill providing guidance on artifact format and investigation reasoning.
+- **Then** the Cursor agent discovers the `signal.json`, reads each prompt, produces a valid JSON artifact for the correct circuit step, writes it to the artifact path, and the calibration runner scores all 12 cases — with the skill providing guidance on artifact format and investigation reasoning.
 
 - **Given** a prompt with the calibration preamble,
 - **When** the agent processes the prompt,
@@ -158,7 +158,7 @@ When no calibration preamble is present, the agent operates freely: it can read 
 |----------|-----------|--------|
 | `fs-dispatcher.md` | Defines the signal.json protocol the skill responds to | active |
 | `e2e-calibration.md` | Calibration framework that scores the skill's output | complete (stub) |
-| `prompt-orchestrator.md` | Pipeline engine and prompt templates | complete |
+| `prompt-orchestrator.md` | Circuit engine and prompt templates | complete |
 
 The skill can be **authored** before `fs-dispatcher.md` is implemented (schemas and examples don't require running code), but **live validation** requires the FileDispatcher to be functional.
 

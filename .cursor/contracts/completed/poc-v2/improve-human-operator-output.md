@@ -71,7 +71,7 @@ Every narration line the agent emits to the human must contain **at least three*
 
 ### Output templates
 
-**Step transition** (emit once per pipeline step, one line):
+**Step transition** (emit once per circuit step, one line):
 
 ```
 Case 5 of 18 — Classifying symptoms for "GNSS sync state mapping" test
@@ -79,7 +79,7 @@ Case 5 of 18 — Investigating — hypothesis: product bug in cloud-event-proxy
 Case 5 of 18 — Investigation converged at 0.80 — moving to duplicate check
 ```
 
-**Convergence retry** (emit when the pipeline loops back):
+**Convergence retry** (emit when the circuit loops back):
 
 ```
 Case 5 of 18 — Convergence too low (0.45), retrying investigation with broader repo scope
@@ -118,12 +118,12 @@ Each agent is tagged with its position and court zone (see `notes/subagent-posit
 [SG/Paint]      Case 1 of 18 — Final review approved — writing up the finding
 ```
 
-**Pipeline health dashboard** (emit every 5 cases or alongside milestone summary):
+**Circuit health dashboard** (emit every 5 cases or alongside milestone summary):
 
 Shows per-zone throughput and queue depth. Highlights the bottleneck zone.
 
 ```
-━━━ Pipeline Health ━━━
+━━━ Circuit Health ━━━
   Backcourt:  18/18 complete (PG idle — shifted to Frontcourt)
   Frontcourt: 8 investigated, 4 active (PF: case 9@investigating, C: case 7@investigating loop 2)
   Paint:      6 complete, 2 in progress (SG: case 5@final review)
@@ -165,12 +165,12 @@ Round ETA to nearest minute for display. Show "less than a minute" when ETA < 60
 
 - [x] **Update agent-bus.mdc** — add narration section with vocabulary table, output templates, and ETA requirements
 - [x] Validate — narration section integrated into agent-bus.mdc; templates will be validated on next calibration run
-- [x] Tune — templates refined with position-tagged parallel output, pipeline health dashboard, milestone summaries
+- [x] Tune — templates refined with position-tagged parallel output, circuit health dashboard, milestone summaries
 
 ## Acceptance criteria
 
 - **Given** the agent is processing a calibration run via MCP,
-- **When** the agent transitions between pipeline steps,
+- **When** the agent transitions between circuit steps,
 - **Then** every narration line contains at least 3 of the 5 required elements (progress, activity, trajectory, diagnosis, time).
 
 - **Given** the agent completes a case,
@@ -188,4 +188,4 @@ Round ETA to nearest minute for display. Show "less than a minute" when ETA < 60
 ## Notes
 
 - 2026-02-18 19:00 — Contract created. Triggered by Phase 5a calibration run where the agent produced 25 minutes of terse machine-code output with no ETAs, no progress context, and no trajectory information. The `human-readable-output.mdc` rule was violated throughout.
-- 2026-02-20 — Position system diffusion: replaced generic `[Worker N]` templates with position-tagged output (`[PG/Backcourt]`, `[C/Frontcourt]`, etc.). Added pipeline health dashboard, bottleneck warning, and zone shift narration templates. Added Position as a 6th narration element (mandatory in parallel mode). Design source: subagent position system brainstorm.
+- 2026-02-20 — Position system diffusion: replaced generic `[Worker N]` templates with position-tagged output (`[PG/Backcourt]`, `[C/Frontcourt]`, etc.). Added circuit health dashboard, bottleneck warning, and zone shift narration templates. Added Position as a 6th narration element (mandatory in parallel mode). Design source: subagent position system brainstorm.

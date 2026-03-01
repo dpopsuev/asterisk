@@ -22,7 +22,7 @@ Asterisk defines its own `Metric`, `MetricSet`, `CaseResult`, `CalibrationReport
 
 ### Desired architecture
 
-Asterisk imports `origami/calibrate.Metric`, `origami/calibrate.MetricSet`, etc. Domain-specific types (`Scenario`, `GroundTruthCase`, M1-M20 score functions) remain local. `ModelAdapter.SendPrompt` uses `string` step type instead of `PipelineStep` to satisfy the generic interface.
+Asterisk imports `origami/calibrate.Metric`, `origami/calibrate.MetricSet`, etc. Domain-specific types (`Scenario`, `GroundTruthCase`, M1-M20 score functions) remain local. `ModelAdapter.SendPrompt` uses `string` step type instead of `CircuitStep` to satisfy the generic interface.
 
 ## FSC artifacts
 
@@ -31,7 +31,7 @@ Code only — no FSC artifacts.
 ## Execution strategy
 
 1. Import `origami/calibrate` types, alias or embed where needed.
-2. Update `ModelAdapter` interface signature (`PipelineStep` → `string`).
+2. Update `ModelAdapter` interface signature (`CircuitStep` → `string`).
 3. Replace local aggregation with `calibrate.AggregateRunMetrics`.
 4. Replace or wrap local `FormatReport` with `calibrate.FormatReport`.
 5. Validate all tests still pass.
@@ -51,7 +51,7 @@ Code only — no FSC artifacts.
 
 - [x] Import `origami/calibrate.Metric` and `origami/calibrate.MetricSet`, replace local types (type aliases)
 - [x] Import `origami/calibrate.CalibrationReport`, embed for domain extensions (SuiteID, BasePath, CaseResults, Dataset)
-- [x] Update `ModelAdapter.SendPrompt` signature: `step PipelineStep` → `step string`; updated 4 adapters + 5 callers + tests
+- [x] Update `ModelAdapter.SendPrompt` signature: `step CircuitStep` → `step string`; updated 4 adapters + 5 callers + tests
 - [x] Replace local `aggregateRunMetrics` with `cal.AggregateRunMetrics` + domain M19/M20 post-processing
 - [x] Replace local math helpers (mean, stddev, safeDiv, safeDiv2) with `cal.*` aliases
 - [x] Wrap `FormatReport` with `cal.FormatReport` + domain sections (dataset health, per-case breakdown)

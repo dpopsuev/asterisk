@@ -43,7 +43,7 @@ tables:
       - name: ocp_build
         type: text
 
-  - name: pipelines
+  - name: circuits
     columns:
       - name: id
         type: integer
@@ -76,10 +76,10 @@ tables:
         type: integer
         primary_key: true
         autoincrement: true
-      - name: pipeline_id
+      - name: circuit_id
         type: integer
         not_null: true
-        references: "pipelines(id)"
+        references: "circuits(id)"
       - name: rp_launch_id
         type: integer
         not_null: true
@@ -102,7 +102,7 @@ tables:
       - name: envelope_payload
         type: blob
     unique:
-      - [pipeline_id, rp_launch_id]
+      - [circuit_id, rp_launch_id]
 
   - name: jobs
     columns:
@@ -348,12 +348,12 @@ indexes:
   - name: idx_cases_job
     table: cases
     columns: [job_id]
-  - name: idx_pipelines_suite
-    table: pipelines
+  - name: idx_circuits_suite
+    table: circuits
     columns: [suite_id]
-  - name: idx_launches_pipeline
+  - name: idx_launches_circuit
     table: launches
-    columns: [pipeline_id]
+    columns: [circuit_id]
   - name: idx_jobs_launch
     table: jobs
     columns: [launch_id]

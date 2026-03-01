@@ -25,12 +25,12 @@ When the user's message matches a trigger phrase, read the referenced rule befor
 | "calibration", "MCP", "signal bus", "subagent", "dispatch", "emit_signal" | Agent Bus (Origami) | See `github.com/dpopsuev/origami/.cursor/rules/domain/agent-bus.mdc` |
 | "workspace", "local repo", "service-api", "RP version", "read from disk" | Workspace Context | `domain/workspace-context.mdc` |
 | "display name", "human readable", "codes for machines", "output format" | Human-Readable Output | `domain/human-readable-output.mdc` |
-| "DSL", "pipeline format", "YAML pipeline", "pipeline definition", "declarative pipeline" | DSL Design Principles (Origami) | See `github.com/dpopsuev/origami/.cursor/rules/domain/dsl-design-principles.mdc` |
+| "DSL", "circuit format", "YAML circuit", "circuit definition", "declarative circuit" | DSL Design Principles (Origami) | See `github.com/dpopsuev/origami/.cursor/rules/domain/dsl-design-principles.mdc` |
 
 ## Auto-loaded (no trigger needed)
 
 These three rules are `alwaysApply: true` and load in every conversation:
 
 - `domain/project-standards.mdc` — product definition, methodology, calibration ordering
-- `domain/agent-operations.mdc` — local pipeline, timeouts, abort protocol, observability
+- `domain/agent-operations.mdc` — local circuit, timeouts, abort protocol, observability
 - `domain/knowledge-store.mdc` — .cursor/ structure, index integrity, persistence protocol

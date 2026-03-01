@@ -138,7 +138,7 @@ func TestWeaveTranscripts_GroupsByRCA(t *testing.T) {
 }
 
 // TestRenderRCATranscript_ReverseOrder verifies that the rendered Markdown
-// places later pipeline steps before earlier ones.
+// places later circuit steps before earlier ones.
 func TestRenderRCATranscript_ReverseOrder(t *testing.T) {
 	tr := &rca.RCATranscript{
 		RCAID:      1,

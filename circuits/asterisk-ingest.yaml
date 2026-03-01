@@ -1,4 +1,4 @@
-# Data Ingestion Pipeline
+# Data Ingestion Circuit
 #
 # Automatically discovers new CI failures from ReportPortal, matches
 # them against known symptom patterns, deduplicates against the existing
@@ -6,7 +6,7 @@
 #
 # Triggered by: asterisk consume run
 # Human supervision: asterisk dataset review / promote
-pipeline: asterisk-ingest
+circuit: asterisk-ingest
 description: "Fetch new CI failures from RP, create candidate cases, grow the dataset"
 
 nodes:

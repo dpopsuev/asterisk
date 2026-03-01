@@ -25,7 +25,7 @@ var demoCmd = &cobra.Command{
 	Short: "Launch the interactive RCA demo presentation",
 	Long: `Starts a local web server presenting the Asterisk PoC demo as an
 interactive, section-based SPA. Use --replay to play back a recorded
-calibration session, or --live to connect to a running pipeline.`,
+calibration session, or --live to connect to a running circuit.`,
 	RunE: runDemo,
 }
 
@@ -34,7 +34,7 @@ func init() {
 	demoCmd.Flags().StringVar(&demoBind, "bind", "127.0.0.1", "bind address")
 	demoCmd.Flags().StringVar(&demoReplay, "replay", "", "path to JSONL recording for replay mode")
 	demoCmd.Flags().Float64Var(&demoSpeed, "speed", 1.0, "replay speed multiplier (e.g. 2.0 = 2x)")
-	demoCmd.Flags().BoolVar(&demoLive, "live", false, "connect to a running pipeline via SSE")
+	demoCmd.Flags().BoolVar(&demoLive, "live", false, "connect to a running circuit via SSE")
 }
 
 func runDemo(cmd *cobra.Command, _ []string) error {

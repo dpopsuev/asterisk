@@ -43,7 +43,7 @@ Declare which test layers apply (per `rules/universal/testing-methodology.mdc`).
 | **Unit** | (yes/no) | (what functions/branches are tested, or why N/A) |
 | **Integration** | (yes/no) | (what cross-boundary interactions, or why N/A) |
 | **Contract** | (yes/no) | (what API schemas/interfaces, or why N/A) |
-| **E2E** | (yes/no) | (what pipeline validation, or why N/A) |
+| **E2E** | (yes/no) | (what circuit validation, or why N/A) |
 | **Concurrency** | (yes/no) | (what shared state/parallel paths, or why N/A) |
 | **Security** | (yes/no) | (see Security assessment section below, or why N/A) |
 

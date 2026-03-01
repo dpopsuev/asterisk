@@ -1,5 +1,5 @@
-pipeline: asterisk-calibration
-description: "Calibration pipeline — setup cases, run RCA, score, aggregate metrics, report"
+circuit: asterisk-calibration
+description: "Calibration circuit — setup cases, run RCA, score, aggregate metrics, report"
 imports:
   - rca
 
@@ -12,11 +12,11 @@ vars:
 nodes:
   - name: setup
     family: calibration-setup
-    description: "Create store scaffolding: suite, versions, pipelines, launches, jobs, cases"
+    description: "Create store scaffolding: suite, versions, circuits, launches, jobs, cases"
 
   - name: run-cases
     family: calibration-run-cases
-    description: "Execute the RCA pipeline for each case (serial or parallel via WalkTeam)"
+    description: "Execute the RCA circuit for each case (serial or parallel via WalkTeam)"
 
   - name: score
     family: calibration-score

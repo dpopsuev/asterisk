@@ -1,7 +1,7 @@
-# Contract — Prompt orchestrator (F0–F6 pipeline engine)
+# Contract — Prompt orchestrator (F0–F6 circuit engine)
 
 **Status:** complete  
-**Goal:** Implement the prompt orchestrator in Go — the engine that runs the F0–F6 prompt pipeline per case: evaluates heuristics, fills templates, persists intermediate artifacts, controls loops, and manages per-case state — replacing the current single-prompt `cursor` subcommand with a multi-step, evidence-first investigation flow.
+**Goal:** Implement the prompt orchestrator in Go — the engine that runs the F0–F6 prompt circuit per case: evaluates heuristics, fills templates, persists intermediate artifacts, controls loops, and manages per-case state — replacing the current single-prompt `cursor` subcommand with a multi-step, evidence-first investigation flow.
 
 ## Contract rules
 
@@ -14,9 +14,9 @@
 
 ## Context
 
-- **Design contract:** `contracts/prompt-families.md` — F0–F6 taxonomy, 5 pipelines, 3 loop types, 17 heuristics, 34 guards, configurable thresholds.
-- **Current state:** `asterisk cursor` subcommand generates one prompt from `rca.md` template. No multi-step pipeline, no heuristics, no intermediate artifacts, no per-case directory.
-- **Store v2:** `contracts/storage-adapter-v2.md` — provides InvestigationSuite, Pipeline, Launch, Job, Case, Triage, Symptom, RCA, SymptomRCA. The orchestrator reads/writes these entities at each pipeline step.
+- **Design contract:** `contracts/prompt-families.md` — F0–F6 taxonomy, 5 circuits, 3 loop types, 17 heuristics, 34 guards, configurable thresholds.
+- **Current state:** `asterisk cursor` subcommand generates one prompt from `rca.md` template. No multi-step circuit, no heuristics, no intermediate artifacts, no per-case directory.
+- **Store v2:** `contracts/storage-adapter-v2.md` — provides InvestigationSuite, Circuit, Launch, Job, Case, Triage, Symptom, RCA, SymptomRCA. The orchestrator reads/writes these entities at each circuit step.
 - **Template params:** `docs/prompts.mdc` — 9 parameter groups (Timestamps, Env, Git, Failure, Siblings, Workspace, URLs, Prior/History, Taxonomy). The orchestrator populates these from Store + envelope + workspace data.
 - **Cursor handoff:** `contracts/cursor-handoff.md` — PoC flow is manual: orchestrator outputs prompt file → user pastes in Cursor → user runs `asterisk save` → orchestrator reads artifact and advances state. The orchestrator drives this loop.
 
@@ -29,7 +29,7 @@
 │ Orchestrator (internal/orchestrate/)                   │
 │                                                        │
 │  ┌──────────┐   ┌──────────────┐   ┌──────────────┐  │
-│  │ Pipeline  │──▶│  Heuristic   │──▶│  Template    │  │
+│  │ Circuit  │──▶│  Heuristic   │──▶│  Template    │  │
 │  │ Runner    │   │  Engine      │   │  Filler      │  │
 │  └──────────┘   └──────────────┘   └──────────────┘  │
 │       │                │                   │           │
@@ -41,7 +41,7 @@
 └──────────────────────────────────────────────────────┘
 ```
 
-1. **Pipeline Runner** — Executes the prompt pipeline per case. Knows the pipeline topology (§2 of prompt-families). Manages the step sequence and loop re-entry.
+1. **Circuit Runner** — Executes the prompt circuit per case. Knows the circuit topology (§2 of prompt-families). Manages the step sequence and loop re-entry.
 2. **Heuristic Engine** — Table-driven decision engine. Evaluates heuristics (H1–H17) against the current artifact to determine the next step. Returns `(next_family, context_additions)`.
 3. **Template Filler** — Loads a prompt template file, populates parameter groups from Store/envelope/workspace/prior artifacts, writes the filled prompt to the per-case directory.
 4. **Artifact I/O** — Reads and writes typed JSON artifacts per family per case. Handles the per-case directory structure.
@@ -90,12 +90,12 @@ INIT ──▶ F0 ──hit──▶ F5 ──approve──▶ F6 ──▶ DONE
 
 ## Execution strategy
 
-1. Define the orchestrator package and core types (state, heuristic rule, pipeline step).
+1. Define the orchestrator package and core types (state, heuristic rule, circuit step).
 2. Implement Artifact I/O (read/write typed JSON to per-case directory).
 3. Implement Case State Manager (init, advance, persist, resume).
 4. Implement Heuristic Engine (table-driven, evaluate in order, log decisions).
 5. Implement Template Filler (load template, populate params from Store/envelope/workspace, write prompt).
-6. Implement Pipeline Runner (drive the loop: fill template → output → wait for user → read artifact → evaluate heuristic → advance).
+6. Implement Circuit Runner (drive the loop: fill template → output → wait for user → read artifact → evaluate heuristic → advance).
 7. Write prompt templates for each family (F0–F6).
 8. Integrate with CLI: replace current `asterisk cursor` single-shot with orchestrated flow.
 9. End-to-end dry-run with PTP scenario.
@@ -104,7 +104,7 @@ INIT ──▶ F0 ──hit──▶ F5 ──approve──▶ F6 ──▶ DONE
 
 ### Phase 1 — Core types and artifact I/O ✅
 
-- [x] **Define core types** — `internal/orchestrate/types.go`: PipelineStep (enum: F0–F6), CaseState (current_step, loop_counts, status, case_id, suite_id), HeuristicRule (id, name, signal_field, condition, action, explanation).
+- [x] **Define core types** — `internal/orchestrate/types.go`: CircuitStep (enum: F0–F6), CaseState (current_step, loop_counts, status, case_id, suite_id), HeuristicRule (id, name, signal_field, condition, action, explanation).
 - [x] **Artifact I/O** — `internal/orchestrate/artifact.go`: ReadArtifact[T](caseDir, filename) → T; WriteArtifact(caseDir, filename, data) → error. Typed structs for each artifact: RecallResult, TriageResult, ResolveResult, InvestigateArtifact, CorrelateResult, ReviewDecision.
 - [x] **Per-case directory** — CreateCaseDir(suiteID, caseID) → path; EnsureCaseDir; ListCaseDirs.
 
@@ -116,7 +116,7 @@ INIT ──▶ F0 ──hit──▶ F5 ──approve──▶ F6 ──▶ DONE
 ### Phase 3 — Heuristic engine ✅
 
 - [x] **Heuristic table** — `internal/orchestrate/heuristics.go`: DefaultHeuristics() → []HeuristicRule. 17 rules from prompt-families §4.1.
-- [x] **Evaluation** — EvaluateHeuristics(state, currentArtifact, heuristics) → (nextStep PipelineStep, contextAdditions map[string]any, matchedRule string). Evaluates in order per §4.2. Logs the matched rule and signal values.
+- [x] **Evaluation** — EvaluateHeuristics(state, currentArtifact, heuristics) → (nextStep CircuitStep, contextAdditions map[string]any, matchedRule string). Evaluates in order per §4.2. Logs the matched rule and signal values.
 - [x] **Configurable thresholds** — Load from workspace config or CLI flags. Defaults per §4.3.
 
 ### Phase 4 — Template filler ✅
@@ -125,7 +125,7 @@ INIT ──▶ F0 ──hit──▶ F5 ──approve──▶ F6 ──▶ DONE
 - [x] **Template execution** — FillTemplate(templatePath, params) → string. Uses Go `text/template`. Guards (G1–G34) are embedded in templates via conditional blocks.
 - [x] **Prompt output** — WritePrompt(caseDir, familyName, content) → promptPath. Writes the filled prompt to per-case directory. Returns path for user to open in Cursor.
 
-### Phase 5 — Pipeline runner ✅
+### Phase 5 — Circuit runner ✅
 
 - [x] **Runner** — `internal/orchestrate/runner.go`: RunStep(store, state, caseDir) → (promptPath, error). The main loop driver.
 - [ ] **F0 programmatic step** — F0 Recall is mostly programmatic (fingerprint match + DB query). RunF0(store, caseID, failure) → RecallResult. Only fires the judge-similarity prompt if candidates are found. *(Deferred: currently F0 always produces a prompt; programmatic pre-check can be added later.)*
@@ -146,12 +146,12 @@ INIT ──▶ F0 ──hit──▶ F5 ──approve──▶ F6 ──▶ DONE
 - [x] **Replace cursor subcommand** — `asterisk cursor` now drives the orchestrator: loads state, runs next step, outputs prompt path.
 - [x] **Update save subcommand** — `asterisk save -f --case-id --suite-id` reads artifact, updates Store (via orchestrator's store side effects), advances state. Legacy save (without case-id/suite-id) preserved.
 - [x] **New: status subcommand** — `asterisk status` shows current case state, which step is next, loop counts.
-- [ ] **New: batch mode** — `asterisk cursor --batch` iterates all open cases in a suite (pipeline 2.5 from prompt-families). *(Deferred to post-calibration.)*
+- [ ] **New: batch mode** — `asterisk cursor --batch` iterates all open cases in a suite (circuit 2.5 from prompt-families). *(Deferred to post-calibration.)*
 
 ### Phase 8 — Validate ✅
 
 - [x] **Unit tests** — Heuristic engine (each rule: 19 tests), state management (advance, loop, resume), artifact I/O (read/write/typed), template filler (string + file + guards + siblings + prior), fingerprint.
-- [x] **Integration test** — Full pipeline dry-run (TestRunnerFullPipeline): mock artifacts at each step, verify heuristic routing F0→F1→F2→F3→F4→F5→F6→DONE, verify state transitions, verify store side effects.
+- [x] **Integration test** — Full circuit dry-run (TestRunnerFullCircuit): mock artifacts at each step, verify heuristic routing F0→F1→F2→F3→F4→F5→F6→DONE, verify state transitions, verify store side effects.
 - [x] **Short-circuit test** — TestRunnerRecallHitShortCircuit: F0→F5 via H1 recall-hit.
 - [x] **Loop test** — TestRunnerInvestigateLoop: F3→F2 low-confidence loop with counter verification.
 - [x] **Validate (green)** — All 30+ orchestrate tests pass. Full suite (11 packages) green.
@@ -162,7 +162,7 @@ INIT ──▶ F0 ──hit──▶ F5 ──approve──▶ F6 ──▶ DONE
 
 - **Given** a case in an investigation suite,
 - **When** the user runs `asterisk cursor` repeatedly (with `asterisk save` between steps),
-- **Then** the orchestrator advances through the F0–F6 pipeline based on heuristic evaluation of intermediate artifacts,
+- **Then** the orchestrator advances through the F0–F6 circuit based on heuristic evaluation of intermediate artifacts,
 - **And** each step produces a typed artifact persisted to the per-case directory,
 - **And** the orchestrator can resume from any step across CLI invocations (state persisted),
 - **And** loops are bounded by configurable max iterations,
@@ -174,5 +174,5 @@ INIT ──▶ F0 ──hit──▶ F5 ──approve──▶ F6 ──▶ DONE
 
 (Running log, newest first. YYYY-MM-DD HH:MM — decision or finding.)
 
-- 2026-02-16 16:10 — Contract complete. All 8 phases implemented: core types, artifact I/O, state management, heuristic engine (17 rules), template filler (9 parameter groups), pipeline runner (with store side effects for F0-F5), F0-F6 prompt templates (with 34 guards), CLI integration (cursor/save/status subcommands). 30+ unit and integration tests passing. Deferred: F0 programmatic pre-check, batch mode, real-data e2e (delegated to e2e-calibration contract).
+- 2026-02-16 16:10 — Contract complete. All 8 phases implemented: core types, artifact I/O, state management, heuristic engine (17 rules), template filler (9 parameter groups), circuit runner (with store side effects for F0-F5), F0-F6 prompt templates (with 34 guards), CLI integration (cursor/save/status subcommands). 30+ unit and integration tests passing. Deferred: F0 programmatic pre-check, batch mode, real-data e2e (delegated to e2e-calibration contract).
 - 2026-02-17 02:30 — Contract created. Depends on storage-adapter-v2 (v2 Store interface) and prompt-families (design). Current baseline: single-shot `asterisk cursor` subcommand. Target: multi-step orchestrator with 7 families, 17 heuristics, 3 loop types, per-case state, and Store side effects.

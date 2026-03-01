@@ -9,7 +9,7 @@ import (
 )
 
 // StubAdapter returns pre-authored "ideal" responses for each case+step.
-// Deterministic: validates pipeline/heuristic/metric machinery without LLM variance.
+// Deterministic: validates circuit/heuristic/metric machinery without LLM variance.
 // Thread-safe: maps are protected by a mutex for parallel mode.
 type StubAdapter struct {
 	scenario     *Scenario
@@ -63,7 +63,7 @@ func (a *StubAdapter) SendPrompt(caseID string, step string, _ string) (json.Raw
 	}
 
 	var artifact any
-	switch PipelineStep(step) {
+	switch CircuitStep(step) {
 	case StepF0Recall:
 		artifact = a.buildRecall(gtCase)
 	case StepF1Triage:

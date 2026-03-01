@@ -11,9 +11,9 @@ description: Active goal manifest — single-read orientation for agents to know
 
 | Tier | Contract | Status | Notes |
 |------|----------|--------|-------|
-| ~~gate~~ | ~~`distillation-endgame`~~ | **complete** | All 3 phases done. Pipeline uses Runner.Walk(), dispatch via origami/dispatch. |
+| ~~gate~~ | ~~`distillation-endgame`~~ | **complete** | All 3 phases done. Circuit uses Runner.Walk(), dispatch via origami/dispatch. |
 | ~~gate~~ | ~~`asterisk-origami-distillation`~~ | **complete** | Boundary validated. Achilles built. Moved to `completed/distillation/`. |
-| **next-milestone** | Origami DSL (5 contracts) | active (C1) | Evolves Origami into declarative pipeline DSL. Asterisk shrinks from ~18k to ~3k lines Go. See `origami/.cursor/contracts/current-goal.mdc`. |
+| **next-milestone** | Origami DSL (5 contracts) | active (C1) | Evolves Origami into declarative circuit DSL. Asterisk shrinks from ~18k to ~3k lines Go. See `origami/.cursor/contracts/current-goal.mdc`. |
 
 Framework contracts (playground, developer guide, OSS polish, Tomes I-IV, MCP, multi-subagent) moved to `github.com/dpopsuev/origami/.cursor/contracts/`.
 
@@ -61,7 +61,7 @@ Execution order assessed 2026-02-19. Ordered by: dependencies resolved, metric i
 | ~~7th~~ | ~~`subagent-testing-framework`~~ | **complete** | — | Moved to Origami repo. |
 | ~~6th~~ | ~~`agent-adapter-overloading`~~ | **abandoned** | — | Moved to Origami repo. |
 | 6th | `knowledge-source-migration` | draft | **Defer** | Phase 1: migrate 11 files to `origami/knowledge`. Phase 2: artifact catalog. Not PoC-blocking. |
-| ~~—~~ | ~~`investigate-pipeline-artifact-store`~~ | **complete** | v1 alive (5 callers), no extraction, no split. Investigation-only. Moved to `completed/architecture/`. |
+| ~~—~~ | ~~`investigate-circuit-artifact-store`~~ | **complete** | v1 alive (5 callers), no extraction, no split. Investigation-only. Moved to `completed/architecture/`. |
 | ~~—~~ | ~~`rename-origami-to-dataset`~~ | **complete** | Renamed `internal/origami/` → `internal/dataset/`. Moved to `completed/architecture/`. |
 | ~~—~~ | ~~`deadcode-dedup-architecture`~~ | **complete** | Dead code removed, boundary map produced, stale framework files deleted. Moved to `completed/architecture/`. |
 | ~~—~~ | ~~`marshaller-step-schema-factory`~~ | **complete** | Enriched step schemas with FieldDef; calibrate skill updated for submit_step. Moved to `completed/calibration/`. |

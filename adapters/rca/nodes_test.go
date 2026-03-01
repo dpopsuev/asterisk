@@ -134,8 +134,8 @@ func TestMarbleRegistry_Atomic(t *testing.T) {
 		if marble.IsComposite() {
 			t.Errorf("marble %q should be atomic", name)
 		}
-		if marble.PipelineDef() != nil {
-			t.Errorf("marble %q should have nil PipelineDef", name)
+		if marble.CircuitDef() != nil {
+			t.Errorf("marble %q should have nil CircuitDef", name)
 		}
 	}
 }

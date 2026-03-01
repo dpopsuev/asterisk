@@ -6,7 +6,7 @@
 
 ## Contract rules
 
-- This is a **flow and glue-code** contract. No changes to how Asterisk's pipeline or Origami's framework behave. All changes are in Kabuki frontend (Origami) and Asterisk's KabukiConfig/Theme content.
+- This is a **flow and glue-code** contract. No changes to how Asterisk's circuit or Origami's framework behave. All changes are in Kabuki frontend (Origami) and Asterisk's KabukiConfig/Theme content.
 - Changes span **two repos**: Origami (Kabuki frontend React components, KabukiConfig interface extensions) and Asterisk (PoliceStationKabuki content, PoliceStationTheme grounding, CLI adjustments).
 - Every section page must display its own title matching the Agenda label.
 - The police allegory is excellent — keep it, but pair every metaphor with its real domain term on the same line.
@@ -19,7 +19,7 @@
 - **Completed `kabuki-presentation-engine`** (Origami): KabukiConfig interface, 12 section components, 3 API endpoints, scroll-snap + keyboard nav.
 - **Completed `kami-live-debugger`** (Origami): EventBridge, KamiServer, SSE events (`node_enter`, `node_exit`, `transition`, `walker_switch`), 14 MCP tools, Recorder/Replayer.
 - **Current LiveDemoSection** (`origami/kami/frontend/src/sections/LiveDemoSection.tsx`): Passive layout — graph + event log + evidence panel. No agent tabs, no TX/RX popups, no play/pause controls, no case tabs.
-- **Current PipelineGraph** (`origami/kami/frontend/src/components/PipelineGraph.tsx`): Flat horizontal layout (`x: 200*i, y: 100`). No auto-layout (dagre/elkjs). No edge arrows. No hover tooltips. No element-colored agent dots.
+- **Current CircuitGraph** (`origami/kami/frontend/src/components/CircuitGraph.tsx`): Flat horizontal layout (`x: 200*i, y: 100`). No auto-layout (dagre/elkjs). No edge arrows. No hover tooltips. No element-colored agent dots.
 - **Current SolutionSection** (`origami/kami/frontend/src/sections/SolutionSection.tsx`): Node cards with unicode arrow (`→`). No interactive graph, no hover depth.
 - **Current section ordering** (hardcoded in `App.tsx`): Hero → Agenda → Problem → Solution → Agents → Transition → Live Demo → Results → Competitive → Architecture → Roadmap → Closing. Fixed — not configurable by the consumer.
 - **Completed `papercup-protocol-maturity`** (Origami): Papercup v2 choreography, zone stickiness, work stealing, adaptive lifecycle, transport decoupling. The orchestration layer showcased in Act 3.
@@ -27,10 +27,10 @@
 - **Completed `cursor-skill`** (Asterisk): `asterisk-investigate` Cursor skill; signal-based F0-F6 artifact production. Precursor to `asterisk-analyze`.
 - **Completed `origami-cursor-first-architecture`** (Origami): CLIDispatcher, skill scaffold, provider routing. Cursor as first-class citizen.
 - **Completed `knowledge-source-catalog`** (Origami): KnowledgeSourceCatalog + Source types, KnowledgeSourceRouter for tag-based routing.
-- **RTFM node** (`internal/rtfm/`, `internal/orchestrate/`): Deterministic doc lookup via `DocRegistry`, version extraction, `ContextResult` artifact. The `context` node in the pipeline. Showcased in Act 3.
+- **RTFM node** (`internal/rtfm/`, `internal/orchestrate/`): Deterministic doc lookup via `DocRegistry`, version extraction, `ContextResult` artifact. The `context` node in the circuit. Showcased in Act 3.
 - **Adversarial Dialectic** (Origami, `agentic-framework-III.3-shadow`): D0-D4 escalation levels, antithesis personas, prosecution vs defense. Showcased in Act 2.
 - **Masks** (Origami, `agentic-framework-III.2-masks`): Detachable middleware masks. Showcased in Act 2.
-- **Three MCP servers**: `origami-pipeline-marshaller` (pipeline operations), `origami-kami-debugger` (14 debug tools), `origami-ouroboros-metacalibration` (discovery + marshaller). All complete and running. Showcased in Act 2.
+- **Three MCP servers**: `origami-circuit-marshaller` (circuit operations), `origami-kami-debugger` (14 debug tools), `origami-ouroboros-metacalibration` (discovery + marshaller). All complete and running. Showcased in Act 2.
 - **Soft dependencies**: `origami-adapters` (Origami, draft/vision) and `origami-marbles` (Origami, draft/vision) for Act 2 DSL purity story. Not blockers — demo proceeds with conceptual placeholders.
 
 ### Current architecture
@@ -46,7 +46,7 @@ flowchart LR
     subgraph origami [Origami Kabuki Frontend]
         App["App.tsx\nhardcoded section order"]
         Sections["12 section components\nfixed layout"]
-        Graph["PipelineGraph\nflat horizontal\nno arrows"]
+        Graph["CircuitGraph\nflat horizontal\nno arrows"]
         LiveDemo["LiveDemoSection\npassive graph + log"]
     end
 
@@ -71,7 +71,7 @@ flowchart TB
         App2["App.tsx\nconfigurable section order\nsection title headers"]
         OldSections["Improved existing sections\nresponsive, titled"]
         NewSections["New section types\nCodeShowcase, Concept"]
-        Graph2["PipelineGraph\ndagre layout, arrows\nhover, agent dots, blink"]
+        Graph2["CircuitGraph\ndagre layout, arrows\nhover, agent dots, blink"]
         WarRoom["War Room\nagent tabs, TX/RX\npause/start, RCA tabs"]
     end
 
@@ -176,7 +176,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 
 ### Phase 3 — Graph Overhaul
 
-- [ ] **G1** Replace `PipelineGraph` horizontal layout with dagre or elkjs auto-layout — nodes positioned by topology, not index (Origami frontend)
+- [ ] **G1** Replace `CircuitGraph` horizontal layout with dagre or elkjs auto-layout — nodes positioned by topology, not index (Origami frontend)
 - [ ] **G2** Add edge arrows via ReactFlow `markerEnd` — all edges show directional arrows (Origami frontend)
 - [ ] **G3** Add node hover tooltips — show node description from Theme's `NodeDescriptions()` on hover (Origami frontend)
 - [ ] **G4** Element-colored agent position dots — when `node_enter` events arrive, the active node shows the agent's element color (Fire=Crimson, Water=Cerulean, etc.) instead of flat red (Origami frontend)
@@ -190,7 +190,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 - [ ] **W2** Agent tabs (top bar) — one tab per active agent, colored by element. Click to follow that agent's perspective. Derived from `KamiEvent.agent` field (Origami frontend)
 - [ ] **W3** TX popup (left panel) — shows the selected agent's outgoing prompt. Auto-updates from `signal` events carrying prompt content (Origami frontend)
 - [ ] **W4** RX popup (right panel) — shows the selected agent's incoming response. Auto-updates from `node_exit` events carrying response data (Origami frontend)
-- [ ] **W5** Pipeline graph (center) — enhanced `PipelineGraph` from Phase 3 with per-agent coloring and blink (Origami frontend)
+- [ ] **W5** Circuit graph (center) — enhanced `CircuitGraph` from Phase 3 with per-agent coloring and blink (Origami frontend)
 - [ ] **W6** Pause/Start controls — toggle replay playback or live mode. For replay: pause/resume `Replayer` via WebSocket command. For live: pause/resume walk via MCP `kami_pause`/`kami_resume` (Origami frontend)
 - [ ] **W7** RCA case tabs (bottom bar) — one tab per case (C01, C02, ...). Click to see that case's current RCA state (summary, confidence, defect type). Derived from `node_exit` events at `report` node (Origami frontend)
 - [ ] **W8** Integration test: War Room renders in replay mode with agent tabs, TX/RX panels, and RCA tabs populated from events
@@ -211,7 +211,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 - [ ] **A2-3** Origami Architecture section — graph-based walker model: Node/Edge/Graph interfaces, Walker traversal, Zone grouping. Concept cards or architecture diagram (Asterisk `kabuki.go`)
 - [ ] **A2-4** Kami: The Demiurge Pattern section — triple-homed server architecture: MCP stdio + HTTP/SSE + WebSocket. One EventBridge, three transports. Explain how the War Room is possible: SSE for events, WS for commands, MCP for agent tools. Architecture diagram concept card (Asterisk `kabuki.go`)
 - [ ] **A2-5** Three MCP Servers section — three concept cards, one per server:
-  - `origami-pipeline-marshaller`: `start_pipeline`, `get_next_step`, `submit_step`, `get_report`, `emit_signal`, `get_signals`, `get_worker_health`
+  - `origami-circuit-marshaller`: `start_circuit`, `get_next_step`, `submit_step`, `get_report`, `emit_signal`, `get_signals`, `get_worker_health`
   - `origami-kami-debugger`: `kami_pause`, `kami_resume`, `kami_highlight_nodes`, `kami_set_breakpoint`, etc. (14 tools)
   - `origami-ouroboros-metacalibration`: marshaller tools + `assemble_model_profiles`
   (Asterisk `kabuki.go`)
@@ -224,7 +224,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 
 ### Phase 7 — Act 3 Content: Deep Science
 
-- [ ] **A3-1** Ouroboros section — meta-calibration process: 3-node seed pipeline (Generator, Subject, Judge), PersonaSheet, auto-routing, discovery-tuning. Concept cards (Asterisk `kabuki.go`)
+- [ ] **A3-1** Ouroboros section — meta-calibration process: 3-node seed circuit (Generator, Subject, Judge), PersonaSheet, auto-routing, discovery-tuning. Concept cards (Asterisk `kabuki.go`)
 - [ ] **A3-2** Persona Deep Dive section — the 8 personas (Herald, Seeker, Sentinel, Weaver + Antithesis counterparts), their elements, behavioral traits, quantified affinity scores. Concept cards with element colors (Asterisk `kabuki.go`)
 - [ ] **A3-3** Papercup Protocol section — v2 choreography: server generates worker prompts, workers independently loop `get_next_step`/`submit_step`. Zone stickiness routes steps to the right worker. Work stealing handles stragglers. Adaptive lifecycle: workers self-terminate when done. Code showcase showing the choreography sequence or concept cards (Asterisk `kabuki.go`)
 - [ ] **A3-4** Cursor Skills section — two showcases:
@@ -232,8 +232,8 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
   - `asterisk-analyze`: the agent IS the reasoning engine. Reads SKILL.md, produces F0-F6 artifacts via signal.json.
   - CLIDispatcher pattern: Cursor agent drives the binary.
   Code showcase showing SKILL.md structure and signal.json protocol (Asterisk `kabuki.go`)
-- [ ] **A3-5** RTFM section — the applied enforcement mechanism: mandatory doc lookup before repo selection (the `context` node in the pipeline). `DocRegistry`, version extraction from RP launch attributes, `ContextResult` artifact with architecture notes, disambiguations, and component mapping. Shows how `Read: Always` sources (from Act 2's Knowledge Sources) are consumed by the RTFM node to prevent domain confusion (e.g., `linuxptp-daemon` pod vs repo). Concept cards + code showcase showing the `context` node YAML, `DocEntry` with `ReadPolicy`, and `ContextResult` JSON (Asterisk `kabuki.go`)
-- [ ] **A3-6** The Process section (grand finale) — ties ALL the pieces together: how a single CI failure flows through the entire system. RP launch → RTFM context → 7 pipeline nodes, with parallel agents coordinated by Papercup, debugged by Kami, tools exposed via three MCP servers, quality-checked by Adversarial Dialectic, calibrated by Ouroboros. Evidence chain from raw data to RCA verdict. Code showcase or concept cards (Asterisk `kabuki.go`)
+- [ ] **A3-5** RTFM section — the applied enforcement mechanism: mandatory doc lookup before repo selection (the `context` node in the circuit). `DocRegistry`, version extraction from RP launch attributes, `ContextResult` artifact with architecture notes, disambiguations, and component mapping. Shows how `Read: Always` sources (from Act 2's Knowledge Sources) are consumed by the RTFM node to prevent domain confusion (e.g., `linuxptp-daemon` pod vs repo). Concept cards + code showcase showing the `context` node YAML, `DocEntry` with `ReadPolicy`, and `ContextResult` JSON (Asterisk `kabuki.go`)
+- [ ] **A3-6** The Process section (grand finale) — ties ALL the pieces together: how a single CI failure flows through the entire system. RP launch → RTFM context → 7 circuit nodes, with parallel agents coordinated by Papercup, debugged by Kami, tools exposed via three MCP servers, quality-checked by Adversarial Dialectic, calibrated by Ouroboros. Evidence chain from raw data to RCA verdict. Code showcase or concept cards (Asterisk `kabuki.go`)
 
 ### Phase 8 — Canonical Recording
 
@@ -255,7 +255,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 **Then** the presentation follows the three-act narrative with 26 sections: Act 1 (Asterisk product: Problem through Results, 8 sections), Act 2 (Origami engine: DSL through Adapters & Marbles including Kami Demiurge, Three MCPs, Adversarial Dialectic, Masks, Knowledge Sources with Read Labels, 9 sections), Act 3 (Deep Science: Ouroboros through The Process including Papercup, Cursor Skills, RTFM, 6 sections), followed by Competitive, Roadmap, Closing.
 
 **Given** the War Room section during replay,  
-**When** multiple agents are active in the pipeline,  
+**When** multiple agents are active in the circuit,  
 **Then** agent tabs appear at the top (one per agent, colored by element), clicking a tab shows that agent's TX (left popup) and RX (right popup), the graph highlights the selected agent's current node with element color and blink animation, and unvisited nodes are dark grey.
 
 **Given** the War Room section,  
@@ -275,12 +275,12 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 **Then** all sections scale responsively without horizontal scroll or content clipping.
 
 **Given** the Solution section,  
-**When** the pipeline graph is displayed,  
+**When** the circuit graph is displayed,  
 **Then** nodes are connected by directional arrows (not unicode `→`), and hovering a node shows its description from the Theme.
 
 **Given** the Three MCP Servers section,  
 **When** displayed,  
-**Then** three concept cards appear, one per server (`origami-pipeline-marshaller`, `origami-kami-debugger`, `origami-ouroboros-metacalibration`), each listing its tools.
+**Then** three concept cards appear, one per server (`origami-circuit-marshaller`, `origami-kami-debugger`, `origami-ouroboros-metacalibration`), each listing its tools.
 
 **Given** the Kami Demiurge Pattern section,  
 **When** displayed,  
@@ -304,11 +304,11 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 
 **Given** the RTFM section (Act 3),  
 **When** displayed,  
-**Then** it shows the `context` node in the pipeline YAML, `DocRegistry` with `ReadPolicy`-aware lookup, version extraction, and the `ContextResult` artifact with disambiguations and component mapping. It references Act 2's Knowledge Sources as the policy source.
+**Then** it shows the `context` node in the circuit YAML, `DocRegistry` with `ReadPolicy`-aware lookup, version extraction, and the `ContextResult` artifact with disambiguations and component mapping. It references Act 2's Knowledge Sources as the policy source.
 
 **Given** The Process section (grand finale),  
 **When** displayed,  
-**Then** it traces a single CI failure through the complete system: RP launch, RTFM context, 7 pipeline nodes, Papercup-coordinated agents, Kami debugging, MCP tool exposure, Dialectic quality checks, Ouroboros calibration.
+**Then** it traces a single CI failure through the complete system: RP launch, RTFM context, 7 circuit nodes, Papercup-coordinated agents, Kami debugging, MCP tool exposure, Dialectic quality checks, Ouroboros calibration.
 
 ## Security assessment
 
@@ -322,6 +322,6 @@ No trust boundaries affected. The demo runs on localhost, serves static content,
 
 2026-02-26 — Split "Knowledge Sources + RTFM" (A3-5) into two sections: "Knowledge Sources with Read Labels" moved to Act 2 (A2-8, framework building block showing the `ReadPolicy` system) and "RTFM" stays in Act 3 (A3-5, applied enforcement mechanism). Total sections: 25 → 26. Motivated by the `refine-rtfm-routing-policy` contract formalizing the distinction: Knowledge Sources are the inventory with read labels (Origami framework), RTFM is the enforcement discipline that consumes those labels (Asterisk domain).
 
-2026-02-26 — Laws of UX + Color Harmony + Dark Mode. Pre-R4 enhancement applied to Kabuki frontend. (1) Created Laws of UX case study (`origami/.cursor/docs/laws-of-ux-kabuki.md`) mapping 10 UX laws to Kabuki design decisions — Aesthetic-Usability Effect, Peak-End Rule, Von Restorff, Doherty Threshold, Hick's Law, Miller's Law, Common Region, Uniform Connectedness, Fitts's Law, Serial Position Effect. (2) Expanded color palette from 17 to 50+ tokens covering the full Red Hat brand palette (all gray steps including gray-95 "UX black", secondary teal/purple/orange/yellow, information palette). (3) Added semantic design token layer (surface-canvas, surface-accent, text-primary, brand-accent, etc.) that resolves at runtime via CSS custom properties. (4) Fixed WCAG AA violations: `text-rh-red-50` on dark backgrounds replaced with `text-brand` which resolves to red-40 (#f56e6e) in dark mode (passes AA contrast on gray-95). (5) Added dark/light mode: `useTheme` hook with 3-state toggle (system/light/dark), `ThemeToggle` component, `prefers-color-scheme` media query, `.dark` class override. Toggle visible in both Kabuki (floating) and debugger (header) modes. (6) Migrated all 12 section components + PipelineGraph + KamiOverlay + App.tsx from hardcoded palette classes to semantic token classes. Dark mode creates gray-80 (canvas) vs gray-95 (accent) contrast for section rhythm. (7) Per-act color harmony: Act 1 = red + teal, Act 2 = red + purple, Act 3 = red + teal + purple, per Red Hat brand guideline of 1-2 secondary colors per composition.
+2026-02-26 — Laws of UX + Color Harmony + Dark Mode. Pre-R4 enhancement applied to Kabuki frontend. (1) Created Laws of UX case study (`origami/.cursor/docs/laws-of-ux-kabuki.md`) mapping 10 UX laws to Kabuki design decisions — Aesthetic-Usability Effect, Peak-End Rule, Von Restorff, Doherty Threshold, Hick's Law, Miller's Law, Common Region, Uniform Connectedness, Fitts's Law, Serial Position Effect. (2) Expanded color palette from 17 to 50+ tokens covering the full Red Hat brand palette (all gray steps including gray-95 "UX black", secondary teal/purple/orange/yellow, information palette). (3) Added semantic design token layer (surface-canvas, surface-accent, text-primary, brand-accent, etc.) that resolves at runtime via CSS custom properties. (4) Fixed WCAG AA violations: `text-rh-red-50` on dark backgrounds replaced with `text-brand` which resolves to red-40 (#f56e6e) in dark mode (passes AA contrast on gray-95). (5) Added dark/light mode: `useTheme` hook with 3-state toggle (system/light/dark), `ThemeToggle` component, `prefers-color-scheme` media query, `.dark` class override. Toggle visible in both Kabuki (floating) and debugger (header) modes. (6) Migrated all 12 section components + CircuitGraph + KamiOverlay + App.tsx from hardcoded palette classes to semantic token classes. Dark mode creates gray-80 (canvas) vs gray-95 (accent) contrast for section rhythm. (7) Per-act color harmony: Act 1 = red + teal, Act 2 = red + purple, Act 3 = red + teal + purple, per Red Hat brand guideline of 1-2 secondary colors per composition.
 
 2026-02-27 — Contract closed. Phases 1-7 (implementation) confirmed complete. Integration test hardened to verify three-act content (27 sections, 4 code showcases, 11 concept groups). FSC artifact `notes/demo-postmortem.md` written. Phase 8 (canonical recording) deferred — requires wet calibration session with Kami recording enabled; current sample.jsonl is synthetic. Phase 9 validation green (build, test, demo replay).

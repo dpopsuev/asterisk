@@ -120,7 +120,7 @@ Test: {{.Failure.TestName}}`
 
 func TestTemplatePathForStep(t *testing.T) {
 	tests := []struct {
-		step PipelineStep
+		step CircuitStep
 		want string
 	}{
 		{StepF0Recall, "prompts/recall/judge-similarity.md"},

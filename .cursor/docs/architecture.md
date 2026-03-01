@@ -6,7 +6,7 @@ Asterisk is a standalone CLI tool (Go) that performs evidence-based Root Cause A
 
 ## Layers
 
-0. **Origami Framework** (`github.com/dpopsuev/origami`) — Zero domain imports. Provides: Nodes, Edges, Walkers, Graph, Pipeline DSL, Elements, Personas, Masks, Court types, Extractors (Tome V), Meta-calibration (Ouroboros), Observers, Schedulers, MCP base. Asterisk imports Origami as an external dependency.
+0. **Origami Framework** (`github.com/dpopsuev/origami`) — Zero domain imports. Provides: Nodes, Edges, Walkers, Graph, Circuit DSL, Elements, Personas, Masks, Court types, Extractors (Tome V), Meta-calibration (Ouroboros), Observers, Schedulers, MCP base. Asterisk imports Origami as an external dependency.
 1. **Entry Points** (`cmd/`) — CLI commands: `analyze`, `push`, `cursor`, `save`, `status`, `calibrate`
 2. **Upper Packages** — High-level orchestration: `calibrate` (7,307 LOC), `rp` (762 LOC), `postinvest` (82 LOC), `wiring` (96 LOC)
 3. **Core Packages** — Domain logic: `store` (2,992 LOC), `orchestrate` (1,585 LOC), `investigate` (94 LOC)
@@ -77,9 +77,9 @@ graph TD
     wiring_pkg --> postinvest_pkg
 ```
 
-## Pipeline Flow (F0-F6)
+## Circuit Flow (F0-F6)
 
-The investigation pipeline processes each case through up to 7 steps. Heuristic rules evaluate artifacts at each step and determine the next transition. Convergence loops (F5 reassess) and recall hits (F0 direct to F5) are the primary branch points.
+The investigation circuit processes each case through up to 7 steps. Heuristic rules evaluate artifacts at each step and determine the next transition. Convergence loops (F5 reassess) and recall hits (F0 direct to F5) are the primary branch points.
 
 ```mermaid
 flowchart LR
@@ -129,7 +129,7 @@ sequenceDiagram
 
     Agent->>MCP: start_calibration(scenario, adapter)
     MCP->>Runner: Launch goroutine
-    loop For each pipeline step
+    loop For each circuit step
         Runner->>Disp: Dispatch(caseID, step, promptPath)
         Disp-->>MCP: Step ready (channel)
         Agent->>MCP: get_next_step(session_id)
@@ -156,11 +156,11 @@ sequenceDiagram
 | `display` | Machine codes | Lookup table | Human-readable strings | 206 | 1 |
 | `format` | Table data | go-pretty adapter | ASCII/Markdown tables | 165 | 1 |
 | `store` | Entity structs | SQLite CRUD | Persisted entities | 2,992 | 4 |
-| `orchestrate` | Store + case + envelope + workspace | F0–F6 pipeline: templates, heuristics, state | Prompts, artifacts, state transitions | 1,585 | 4 |
+| `orchestrate` | Store + case + envelope + workspace | F0–F6 circuit: templates, heuristics, state | Prompts, artifacts, state transitions | 1,585 | 4 |
 | `investigate` | Envelope + workspace | Mock analysis | JSON artifact | 94 | 1 |
 | `postinvest` | Artifact path + PushStore | Parse artifact, record push | `PushedRecord` | 82 | 1 |
 | `rp` | RP base URL + API key + project | HTTP client for RP API | Envelope fetch, defect push | 762 | 1 |
-| `calibrate` | Scenarios + adapters + store | Run pipeline, score results, report | `CalibrationReport`, `AnalysisReport` | 7,307 | 10 |
+| `calibrate` | Scenarios + adapters + store | Run circuit, score results, report | `CalibrationReport`, `AnalysisReport` | 7,307 | 10 |
 | `wiring` | Fetcher + stores + paths | Chain fetch → analyze → push | End-to-end mock flow | 96 | 2 |
 | `cmd/asterisk` | CLI args | Flag parsing, wiring, dispatch | Subcommand execution | 880 | — |
 | `cmd/mock-calibration-agent` | Signal-file responder | Signal-file responder for calibration runs | — | 1,284 | — |
@@ -200,10 +200,10 @@ Scenario definition → calibrate.RunCalibration(scenario, adapter, store)
 ```
 CLI args → preinvest.Fetch → Envelope
          → workspace.Load → *Workspace
-         → orchestrate.Run → per-case F0–F6 pipeline
+         → orchestrate.Run → per-case F0–F6 circuit
          → FileDispatcher → signal file
          → (external Cursor agent reads signal, writes artifact)
-         → artifact ingestion → next pipeline step
+         → artifact ingestion → next circuit step
 ```
 
 ## External Dependencies (third-party)
@@ -219,7 +219,7 @@ CLI args → preinvest.Fetch → Envelope
 
 ### 1. `calibrate` — God package (7,307 LOC, 18+ files, 6 internal deps)
 
-Mixes 8 concerns: data types, pipeline runner, parallel execution, metrics scoring, formatting, dispatchers, adapters, lifecycle/clustering.
+Mixes 8 concerns: data types, circuit runner, parallel execution, metrics scoring, formatting, dispatchers, adapters, lifecycle/clustering.
 
 ### 2. `cmd/asterisk/main.go` — Fat controller (880 LOC)
 

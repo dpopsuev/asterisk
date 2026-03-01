@@ -26,7 +26,7 @@ The Asterisk CLI communicates with external agents via a `signal.json` file. The
 | `status` | string | `waiting`, `processing`, `done`, or `error` |
 | `dispatch_id` | int64 | Monotonic ID — **you must echo this in the artifact wrapper** |
 | `case_id` | string | Case identifier (e.g. "C1", "C2") |
-| `step` | string | Pipeline step: `F0_RECALL`, `F1_TRIAGE`, `F2_RESOLVE`, `F3_INVESTIGATE`, `F4_CORRELATE`, `F5_REVIEW`, `F6_REPORT` |
+| `step` | string | Circuit step: `F0_RECALL`, `F1_TRIAGE`, `F2_RESOLVE`, `F3_INVESTIGATE`, `F4_CORRELATE`, `F5_REVIEW`, `F6_REPORT` |
 | `prompt_path` | string | Absolute path to the filled prompt markdown file |
 | `artifact_path` | string | Absolute path where you must write the JSON artifact |
 | `timestamp` | string | ISO 8601 timestamp of signal creation |
@@ -57,7 +57,7 @@ waiting --> error (timeout, invalid artifact, or responder error)
 | Field | Type | Description |
 |-------|------|-------------|
 | `dispatch_id` | int64 | **Must match** the `dispatch_id` from the current `signal.json` |
-| `data` | object | The actual step artifact (schema depends on the pipeline step) |
+| `data` | object | The actual step artifact (schema depends on the circuit step) |
 
 If you omit `dispatch_id` or write the wrong value, the Go process will treat your artifact as stale and ignore it. This is a deterministic fail-fast mechanism — no timing assumptions.
 
@@ -84,7 +84,7 @@ If you omit `dispatch_id` or write the wrong value, the Go process will treat yo
 
 6. **Write to `artifact_path`.** The Go process polls this path. As soon as the file appears with valid JSON and a matching `dispatch_id`, the process reads it and continues.
 
-7. **Wait for the next signal.** The Go process will update `signal.json` to `"processing"`, then `"done"`, then either create a new `"waiting"` signal (with a new `dispatch_id`) for the next step, or the pipeline will be complete.
+7. **Wait for the next signal.** The Go process will update `signal.json` to `"processing"`, then `"done"`, then either create a new `"waiting"` signal (with a new `dispatch_id`) for the next step, or the circuit will be complete.
 
 ## Error reporting (fail-fast)
 
@@ -121,7 +121,7 @@ In a typical calibration run, you can watch for signal.json at:
 
 ## Error handling
 
-- **Timeout**: If you don't write the artifact within the timeout (default 10 minutes), the Go process writes `status: "error"` with a timeout message and the pipeline fails for that case.
+- **Timeout**: If you don't write the artifact within the timeout (default 10 minutes), the Go process writes `status: "error"` with a timeout message and the circuit fails for that case.
 - **Invalid JSON**: If the artifact file exists but contains invalid JSON, the Go process retries once after a short delay, then fails with `status: "error"`.
 - **Missing `dispatch_id`**: Artifact is treated as `dispatch_id: 0` which won't match any valid signal. The dispatcher keeps polling until timeout.
 - **Wrong `dispatch_id`**: Stale artifact from a previous step — silently ignored, dispatcher keeps polling.
@@ -191,7 +191,7 @@ When operating as a **parent agent** in batch mode:
 3. For each pending signal (up to 4 at a time), spawn a Task subagent with:
    - The briefing file path
    - The signal file path
-   - Analysis instructions for the pipeline step
+   - Analysis instructions for the circuit step
 4. Wait for all subagents to complete.
 5. For each completed subagent: verify the artifact was written.
 6. For any failed subagent: write `status: "error"` to that case's signal.json.

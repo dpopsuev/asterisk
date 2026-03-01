@@ -10,7 +10,7 @@ Before encoding any logic, documentation, or data structure, determine whether i
 
 ## Generic
 
-Applies to any CI system, any operator, any envelope source. Uses only abstract concepts (timeframe, pipeline, job, failure, artifact). No hardcoded layouts, file names, or artifact paths.
+Applies to any CI system, any operator, any envelope source. Uses only abstract concepts (timeframe, circuit, job, failure, artifact). No hardcoded layouts, file names, or artifact paths.
 
 - Document in the **core model** or generic sections.
 - In code: prefer interfaces and abstract data shapes. Bind specifics via configuration or adapters.

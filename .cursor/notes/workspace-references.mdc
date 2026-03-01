@@ -20,7 +20,7 @@ Workspace projects that support Asterik PoC and MVP. Paths and relevance.
 
 **Path:** `Repositories/testo-resumado-agento` (or `/home/dpopsuev/Repositories/testo-resumado-agento`).
 
-- **Agent + tools** — OpenAI-compatible client, tool-calling loop (list_dir, read_file, grep, find_files, save_document). Reference for **analyze** pipeline: AI + context → RCA + evidence.
+- **Agent + tools** — OpenAI-compatible client, tool-calling loop (list_dir, read_file, grep, find_files, save_document). Reference for **analyze** circuit: AI + context → RCA + evidence.
 - **Go + CLI** — Cobra, Viper, working directory, model/timeout/base-url. Useful for `asterisk analyze` (e.g. `--workspace`, `--launch`, `-o`).
 - **No RP** — Use for analysis/agent side only; not for RP fetch/push.
 

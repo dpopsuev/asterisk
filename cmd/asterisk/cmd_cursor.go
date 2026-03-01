@@ -21,7 +21,7 @@ var cursorFlags struct {
 var cursorCmd = &cobra.Command{
 	Use:   "cursor",
 	Short: "Run interactive Cursor-based RCA for a single failure",
-	Long: `Generate a prompt for the next pipeline step and print it.
+	Long: `Generate a prompt for the next circuit step and print it.
 Paste the prompt into Cursor, save the artifact, then run again to advance.`,
 	RunE: runCursor,
 }
@@ -85,7 +85,7 @@ func runCursor(cmd *cobra.Command, _ []string) error {
 
 	out := cmd.OutOrStdout()
 	if result.IsDone {
-		fmt.Fprintf(out, "Pipeline complete for case #%d. %s\n", caseData.ID, result.Explanation)
+		fmt.Fprintf(out, "Circuit complete for case #%d. %s\n", caseData.ID, result.Explanation)
 		return nil
 	}
 

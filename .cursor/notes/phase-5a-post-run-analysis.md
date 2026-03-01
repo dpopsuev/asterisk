@@ -21,7 +21,7 @@
 | M14 RCA Message Relevance | **0.76** | >= 0.60 | **Yes** | ~0.70 | **+0.06** |
 | M14b Smoking Gun Hit Rate | **0.22 (4/18)** | >= 0.00 | **Yes** | 0.13 | **+0.09** |
 | M15 Component Identification | 0.44 (8/18) | >= 0.70 | No | ~0.78 | -0.34 |
-| M16 Pipeline Path Accuracy | 0.00 | >= 0.60 | No | 1.00 | -1.00 |
+| M16 Circuit Path Accuracy | 0.00 | >= 0.60 | No | 1.00 | -1.00 |
 | M17 Loop Efficiency | 6 | 0.5-2.0 | No | 0 | -6 |
 | M18 Total Prompt Tokens | 149,150 | <= 60,000 | No | ~20,000 | -129K |
 | M19 Overall Accuracy | **0.50** | >= 0.65 | No | **0.83** | **-0.33** |
@@ -40,7 +40,7 @@
 
 ### 2. No subagent delegation (agent-bus rule violated)
 
-**Root cause:** The agent-bus rule states: "Every calibration pipeline step MUST be delegated to a subagent." In practice, I launched subagents for 4 steps of the first case, then processed the remaining 126 steps inline. The subagent round-trip added latency (~10s per step) and I prioritized speed over correctness.
+**Root cause:** The agent-bus rule states: "Every calibration circuit step MUST be delegated to a subagent." In practice, I launched subagents for 4 steps of the first case, then processed the remaining 126 steps inline. The subagent round-trip added latency (~10s per step) and I prioritized speed over correctness.
 
 **Impact:** Without subagent specialization, every step got the same quality of reasoning — shallow surface-level analysis. A specialized F3 Investigation subagent could read actual code from workspace repos, search for commits, and produce evidence-backed RCA. Instead, I produced generic hypotheses from error messages alone.
 
@@ -145,7 +145,7 @@ Single-threaded processing took 25 minutes. With the MuxDispatcher already suppo
 
 ### Gap 6: Convergence self-awareness
 
-The agent should know when it can't improve — empty repo paths, no new evidence, poor data quality. Rather than inflating convergence to break loops, it should set realistic scores and let the pipeline proceed. The F3 prompt should include a "data quality indicator" that helps calibrate expectations.
+The agent should know when it can't improve — empty repo paths, no new evidence, poor data quality. Rather than inflating convergence to break loops, it should set realistic scores and let the circuit proceed. The F3 prompt should include a "data quality indicator" that helps calibrate expectations.
 
 ---
 
@@ -158,7 +158,7 @@ The agent should know when it can't improve — empty repo paths, no new evidenc
 | **3** | Add component frequency priors to F3 prompt | M15: 0.44 → ~0.70, M19: +0.05 | Low (prompt edit) |
 | **4** | Subagent delegation with workspace access | M14b: 0.22 → ~0.40, M12: 0.00 → ~0.30 | High (agent arch) |
 | **5** | Parallel execution (3 workers) | Wall clock: 25min → ~8min | Medium (agent loop) |
-| **6** | Convergence threshold tuning | M17: 6 → ~2, M18: 149K → ~80K | Low (pipeline config) |
+| **6** | Convergence threshold tuning | M17: 6 → ~2, M18: 149K → ~80K | Low (circuit config) |
 | **7** | Human operator narration (contract exists) | Operator experience | Low (rule update) |
 
 Fixes 1-3 are prompt/config changes that could lift M19 from 0.50 to ~0.70 without any architectural changes. Fixes 4-5 are the path to M19 >= 0.85.

@@ -50,8 +50,8 @@ flowchart TD
     end
 
     taxonomy -->|"M2: 0.00 -> ~0.75"| Scoring[Metric Scoring]
-    agents -->|"deterministic routing"| Pipeline[F0-F6 Pipeline]
-    workspace -->|"M12/M13: 0.00 -> >0"| Pipeline
+    agents -->|"deterministic routing"| Circuit[F0-F6 Circuit]
+    workspace -->|"M12/M13: 0.00 -> >0"| Circuit
 ```
 
 ## Context

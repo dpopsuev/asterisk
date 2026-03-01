@@ -4,7 +4,7 @@ import "github.com/dpopsuev/origami/kami"
 
 // PoliceStationTheme implements kami.Theme with Asterisk's police
 // station personality — each agent is a detective archetype, each
-// pipeline node is an investigative procedure.
+// circuit node is an investigative procedure.
 type PoliceStationTheme struct{}
 
 var _ kami.Theme = (*PoliceStationTheme)(nil)
@@ -46,7 +46,7 @@ func (PoliceStationTheme) AgentIntros() []kami.AgentIntro {
 		{
 			PersonaName: "Catalyst",
 			Element:     "Lightning",
-			Role:        "Dispatch / Pipeline Orchestrator",
+			Role:        "Dispatch / Circuit Orchestrator",
 			Catchphrase: "New failure incoming! All units respond!",
 		},
 	}
@@ -57,7 +57,7 @@ func (PoliceStationTheme) NodeDescriptions() map[string]string {
 		"recall":      "Witness Interview / Historical Failure Lookup — checking if we've seen this crime before",
 		"triage":      "Case Classification / Defect Type Classification — felony, misdemeanor, or false alarm?",
 		"resolve":     "Jurisdiction Check / Repository Selection — which precinct handles this repo?",
-		"investigate": "Crime Scene Analysis / Evidence Gathering — logs, commits, and pipelines",
+		"investigate": "Crime Scene Analysis / Evidence Gathering — logs, commits, and circuits",
 		"correlate":   "Cross-Reference / Failure Pattern Correlation — matching against the open case board",
 		"review":      "Evidence Review / Confidence Scoring — does the case hold up under scrutiny?",
 		"report":      "Case Report / RCA Verdict — filing the final analysis with evidence chain",

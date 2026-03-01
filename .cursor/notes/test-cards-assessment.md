@@ -64,7 +64,7 @@ Scored against verified cases only:
 | Workspace (M9-M11) | repo precision, repo recall, red herring rejection | Repo selection quality |
 | Evidence (M12-M13) | evidence recall, evidence precision | Evidence citation quality |
 | Semantic (M14-M15, M14b) | RCA message relevance, component ID, smoking gun hit | Explanation quality |
-| Pipeline (M16-M18) | path accuracy, loop efficiency, token cost | Execution efficiency |
+| Circuit (M16-M18) | path accuracy, loop efficiency, token cost | Execution efficiency |
 | Aggregate (M19-M20) | overall accuracy, run variance | System-level |
 
 ## Known limitations

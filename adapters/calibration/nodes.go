@@ -1,6 +1,6 @@
-// Package calibration provides Origami pipeline nodes for the calibration flow.
+// Package calibration provides Origami circuit nodes for the calibration flow.
 // Each node wraps existing calibrate package functions, enabling the calibration
-// to be expressed as a YAML-defined pipeline while preserving battle-tested logic.
+// to be expressed as a YAML-defined circuit while preserving battle-tested logic.
 package calibration
 
 import (
@@ -123,7 +123,7 @@ func (n *reportNode) Process(ctx context.Context, nc framework.NodeContext) (fra
 	return calArtifact{typ: "calibration-report", data: report, conf: 1.0}, nil
 }
 
-// NodeRegistry returns a registry with all calibration pipeline nodes.
+// NodeRegistry returns a registry with all calibration circuit nodes.
 func NodeRegistry() framework.NodeRegistry {
 	return framework.NodeRegistry{
 		"setup":     func(_ framework.NodeDef) framework.Node { return &setupNode{} },

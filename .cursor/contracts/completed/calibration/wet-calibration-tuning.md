@@ -36,7 +36,7 @@
 | M13 | Evidence Precision | 0.00 | no | >= 0.50 |
 | M14 | RCA Message Relevance | 1.00 | yes | >= 0.60 |
 | M15 | Component Identification | 0.55 | no | >= 0.70 |
-| M16 | Pipeline Path Accuracy | 0.33 | no | >= 0.60 |
+| M16 | Circuit Path Accuracy | 0.33 | no | >= 0.60 |
 | M17 | Loop Efficiency | 1.00 | yes | 0.5-2.0 |
 | M18 | Total Prompt Tokens | 53251 | yes | <= 60000 |
 | M19 | Overall Accuracy | 0.49 | no | >= 0.65 |

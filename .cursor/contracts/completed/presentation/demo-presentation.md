@@ -14,10 +14,10 @@
 
 ## Context
 
-- **Kabuki Presentation Engine** (Origami, draft): Data-driven presentation SPA as a framework feature (Kami = debugger, Kabuki = presentation). Defines `KabukiConfig` interface, `/api/theme` + `/api/pipeline` + `/api/kabuki` endpoints, scroll-snap section rendering, element selector. See `origami/.cursor/contracts/draft/kabuki-presentation-engine.md`. **This contract is the upstream dependency.**
+- **Kabuki Presentation Engine** (Origami, draft): Data-driven presentation SPA as a framework feature (Kami = debugger, Kabuki = presentation). Defines `KabukiConfig` interface, `/api/theme` + `/api/circuit` + `/api/kabuki` endpoints, scroll-snap section rendering, element selector. See `origami/.cursor/contracts/draft/kabuki-presentation-engine.md`. **This contract is the upstream dependency.**
 - **Kami Live Debugger** (Origami, complete): EventBridge, KamiServer, Debug API, MCP tools, Recorder/Replayer, React frontend.
 - **Red Hat Presentation DNA** (`origami/.cursor/docs/rh-presentation-dna.md`): Color system, web section patterns. Kabuki implements the layout; Asterisk provides the color tokens and content.
-- **Pipeline RCA** (`internal/orchestrate/pipeline_rca.yaml`): Asterisk's 7-node pipeline with 3 zones (Backcourt, Frontcourt, Paint). This is the graph visualized in the demo.
+- **Circuit RCA** (`internal/orchestrate/circuit_rca.yaml`): Asterisk's 7-node circuit with 3 zones (Backcourt, Frontcourt, Paint). This is the graph visualized in the demo.
 - **Origami Personas** (`persona.go`): 8 personas (Herald, Seeker, Sentinel, Weaver + Antithesis counterparts) with element affinities and personality traits.
 - **Origami Elements** (`element.go`): Fire (decisive), Water (thorough), Earth (methodical), Air (creative), Diamond (precise), Lightning (fast).
 - **Calibration results**: PoC demonstrated M19=0.83 (BasicAdapter) and M19=0.58 (CursorAdapter) on 18 verified cases. The demo should showcase a real calibration run with visible RCA evidence accumulation.
@@ -70,15 +70,15 @@ Phase 0 is removed — there is no standalone SPA to build. Asterisk provides on
   - `Closing()` — CTA, social links
   - `TransitionLine()` — "Time to investigate some crimes against CI"
 - [x] **T3** Agent intro lines — one per persona, personality-driven, funny. Fire=impatient detective, Water=forensic analyst, Earth=desk sergeant, Air=undercover, Diamond=internal affairs, Lightning=dispatch
-- [x] **T4** Node descriptions — map each pipeline node to a police metaphor
+- [x] **T4** Node descriptions — map each circuit node to a police metaphor
 - [x] **T5** Cooperation dialogs — funny argument templates for agent pairs
 - [x] **T6** Unit tests: theme + presentation implement interfaces, all sections return data, nil-safety
 
 ### Phase 2 — CLI command
 
 - [x] **D1** Update `cmd_demo.go` — `asterisk demo` Cobra command to pass `KabukiConfig` to Kami
-- [x] **D2** Flags: `--port` (default 3000), `--replay <path>` (JSONL file), `--speed` (default 1.0), `--live` (connect to running pipeline)
-- [x] **D3** Wiring: load `pipeline_rca.yaml` graph, create `PoliceStationTheme` + `PoliceStationKabuki`, pass to `kami.NewServer(kami.Config{Theme: theme, Kabuki: kabuki})`
+- [x] **D2** Flags: `--port` (default 3000), `--replay <path>` (JSONL file), `--speed` (default 1.0), `--live` (connect to running circuit)
+- [x] **D3** Wiring: load `circuit_rca.yaml` graph, create `PoliceStationTheme` + `PoliceStationKabuki`, pass to `kami.NewServer(kami.Config{Theme: theme, Kabuki: kabuki})`
 - [x] **D4** Integration test: `asterisk demo --replay testdata/demo/sample.jsonl` starts and serves without error
 
 ### Phase 3 — Record canonical demo
@@ -112,11 +112,11 @@ Phase 0 is removed — there is no standalone SPA to build. Asterisk provides on
 
 **Given** the `PoliceStationTheme` struct,  
 **When** it is passed to `kami.NewServer()`,  
-**Then** it satisfies the `kami.Theme` interface: all 7 pipeline nodes have descriptions, all active personas have intro lines, at least 4 cooperation dialog templates exist.
+**Then** it satisfies the `kami.Theme` interface: all 7 circuit nodes have descriptions, all active personas have intro lines, at least 4 cooperation dialog templates exist.
 
 **Given** a live calibration run with `--live` flag,  
 **When** `asterisk demo --live --port 3000` is started alongside `asterisk calibrate`,  
-**Then** the Live Demo section shows real-time pipeline execution with the police station theme applied, embedded within the presentation SPA.
+**Then** the Live Demo section shows real-time circuit execution with the police station theme applied, embedded within the presentation SPA.
 
 ## Security assessment
 

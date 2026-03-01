@@ -8,14 +8,14 @@ import (
 	sdkmcp "github.com/modelcontextprotocol/go-sdk/mcp"
 )
 
-func TestStartPipeline_InvalidScenario(t *testing.T) {
+func TestStartCircuit_InvalidScenario(t *testing.T) {
 	srv := newTestServer(t)
 	ctx := context.Background()
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
 	res, err := session.CallTool(ctx, &sdkmcp.CallToolParams{
-		Name: "start_pipeline",
+		Name: "start_circuit",
 		Arguments: map[string]any{
 			"extra": map[string]any{"scenario": "nonexistent", "adapter": "stub"},
 		},
@@ -28,14 +28,14 @@ func TestStartPipeline_InvalidScenario(t *testing.T) {
 	}
 }
 
-func TestStartPipeline_RealIngest_VerifiedOnly(t *testing.T) {
+func TestStartCircuit_RealIngest_VerifiedOnly(t *testing.T) {
 	srv := newTestServer(t)
 	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
 	defer cancel()
 	session := connectInMemory(t, ctx, srv)
 	defer session.Close()
 
-	startResult := startPipeline(t, ctx, session, "ptp-real-ingest", "stub", 0)
+	startResult := startCircuit(t, ctx, session, "ptp-real-ingest", "stub", 0)
 	sessionID := startResult["session_id"].(string)
 	totalCases, _ := startResult["total_cases"].(float64)
 

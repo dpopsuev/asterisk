@@ -14,8 +14,8 @@ func TestPoliceStationTheme_AllNodesHaveDescriptions(t *testing.T) {
 	theme := PoliceStationTheme{}
 	descs := theme.NodeDescriptions()
 
-	pipelineNodes := []string{"recall", "triage", "resolve", "investigate", "correlate", "review", "report"}
-	for _, node := range pipelineNodes {
+	circuitNodes := []string{"recall", "triage", "resolve", "investigate", "correlate", "review", "report"}
+	for _, node := range circuitNodes {
 		if _, ok := descs[node]; !ok {
 			t.Errorf("missing description for node %q", node)
 		}

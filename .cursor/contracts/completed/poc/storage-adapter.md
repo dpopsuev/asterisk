@@ -10,8 +10,8 @@
 
 ## Context
 
-- **Data model:** One investigation case per failure; cases reference pipeline/job; many cases can share one RCA. RCA: title, description, defect_type, evidence; optional jira_ticket_id, jira_link. See `docs/cli-data-model.mdc`.
-- **Pre-dev:** Single Store facade with CreateCase, GetCase, ListCasesByPipeline/ByJob, SaveRCA, LinkCaseToRCA, GetRCA, ListRCAs. DB placement: per-workspace (e.g. `./.asterisk/asterisk.db` or `./asterisk.db`). Create cases up front when opening investigation; create RCA row only after agent produces RCA (or "same as case X"). `notes/pre-dev-decisions.mdc`.
+- **Data model:** One investigation case per failure; cases reference circuit/job; many cases can share one RCA. RCA: title, description, defect_type, evidence; optional jira_ticket_id, jira_link. See `docs/cli-data-model.mdc`.
+- **Pre-dev:** Single Store facade with CreateCase, GetCase, ListCasesByCircuit/ByJob, SaveRCA, LinkCaseToRCA, GetRCA, ListRCAs. DB placement: per-workspace (e.g. `./.asterisk/asterisk.db` or `./asterisk.db`). Create cases up front when opening investigation; create RCA row only after agent produces RCA (or "same as case X"). `notes/pre-dev-decisions.mdc`.
 - **Current:** Only in-memory mocks (preinvest.MemStore, postinvest.MemPushStore). No SQLite or case/RCA persistence.
 
 ## Execution strategy
@@ -24,7 +24,7 @@
 
 ## Tasks
 
-- [x] **Define Store interface** — CreateCase, GetCase, ListCasesByLaunch/ByJob (or ByPipeline), SaveRCA, LinkCaseToRCA, GetRCA, ListRCAs. Types: Case, RCA (slim keys per pre-dev). Document in code and optionally in `docs/cli-data-model.mdc`.
+- [x] **Define Store interface** — CreateCase, GetCase, ListCasesByLaunch/ByJob (or ByCircuit), SaveRCA, LinkCaseToRCA, GetRCA, ListRCAs. Types: Case, RCA (slim keys per pre-dev). Document in code and optionally in `docs/cli-data-model.mdc`.
 - [x] **SQLite schema** — Tables for cases and rcas; migrations or single schema version for PoC.
 - [x] **Implement SQLite Store** — All facade methods; DB path from config (e.g. `./.asterisk/asterisk.db` or flag).
 - [x] **Per-workspace DB** — Resolve DB path (cwd, flag, or env); ensure `.asterisk` (or chosen dir) exists when opening Store.
