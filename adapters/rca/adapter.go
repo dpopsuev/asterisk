@@ -35,11 +35,8 @@ func Adapter(cfg AdapterConfig) *framework.Adapter {
 	}
 }
 
-func buildTransformers(cfg AdapterConfig) framework.TransformerRegistry {
-	reg := framework.TransformerRegistry{}
-	reg["context-builder"] = NewContextBuilder(cfg.Store, cfg.CaseData, cfg.Envelope, cfg.Catalog, cfg.CaseDir)
-	reg["prompt-filler"] = NewPromptFiller(cfg.PromptDir)
-	return reg
+func buildTransformers(_ AdapterConfig) framework.TransformerRegistry {
+	return framework.TransformerRegistry{}
 }
 
 func buildExtractors() framework.ExtractorRegistry {
@@ -56,6 +53,12 @@ func buildExtractors() framework.ExtractorRegistry {
 
 func buildHooks(cfg AdapterConfig) framework.HookRegistry {
 	reg := framework.HookRegistry{}
+
+	inject := InjectHooks(cfg.Store, cfg.CaseData, cfg.Envelope, cfg.Catalog, cfg.CaseDir)
+	for name, h := range inject {
+		reg[name] = h
+	}
+
 	if cfg.Store != nil && cfg.CaseData != nil {
 		hooks := StoreHooks(cfg.Store, cfg.CaseData)
 		for name, h := range hooks {

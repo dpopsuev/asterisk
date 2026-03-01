@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-
 	framework "github.com/dpopsuev/origami"
 )
 
@@ -14,6 +13,12 @@ import (
 const (
 	KeyAdapter   = "rca.adapter"
 	KeyCaseLabel = "rca.case_label"
+	KeyStore     = "rca.store"
+	KeyCaseData  = "rca.case_data"
+	KeyEnvelope  = "rca.envelope"
+	KeyCatalog   = "rca.catalog"
+	KeyCaseDir   = "rca.case_dir"
+	KeyPromptDir = "rca.prompt_dir"
 )
 
 // rcaNode is a real processing node that delegates to a ModelAdapter.
@@ -27,26 +32,69 @@ func (n *rcaNode) Name() string                { return n.nodeName }
 func (n *rcaNode) ElementAffinity() framework.Element { return n.element }
 
 func (n *rcaNode) Process(_ context.Context, nc framework.NodeContext) (framework.Artifact, error) {
-	adapter, ok := nc.WalkerState.Context[KeyAdapter].(ModelAdapter)
-	if !ok {
-		return nil, fmt.Errorf("rca node %q: missing %s in walker context", n.nodeName, KeyAdapter)
-	}
-	caseLabel, _ := nc.WalkerState.Context[KeyCaseLabel].(string)
-	if caseLabel == "" {
-		caseLabel = nc.WalkerState.ID
+	if input, ok := nc.WalkerState.Context["resume_input"]; ok {
+		delete(nc.WalkerState.Context, "resume_input")
+		data, err := json.Marshal(input)
+		if err != nil {
+			return nil, fmt.Errorf("rca node %q: marshal resume_input: %w", n.nodeName, err)
+		}
+		artifact, err := parseStepResponse(n.step, data)
+		if err != nil {
+			return nil, fmt.Errorf("rca node %q: parse resume_input: %w", n.nodeName, err)
+		}
+		return &rcaArtifact{raw: artifact, typeName: string(n.step)}, nil
 	}
 
-	response, err := adapter.SendPrompt(caseLabel, string(n.step), "")
+	if adapter, ok := nc.WalkerState.Context[KeyAdapter].(ModelAdapter); ok {
+		caseLabel, _ := nc.WalkerState.Context[KeyCaseLabel].(string)
+		if caseLabel == "" {
+			caseLabel = nc.WalkerState.ID
+		}
+		response, err := adapter.SendPrompt(caseLabel, string(n.step), "")
+		if err != nil {
+			return nil, fmt.Errorf("rca node %q: adapter.SendPrompt: %w", n.nodeName, err)
+		}
+		artifact, err := parseStepResponse(n.step, []byte(response))
+		if err != nil {
+			return nil, fmt.Errorf("rca node %q: parse response: %w", n.nodeName, err)
+		}
+		return &rcaArtifact{raw: artifact, typeName: string(n.step)}, nil
+	}
+
+	return n.processHITL(nc)
+}
+
+func (n *rcaNode) processHITL(nc framework.NodeContext) (framework.Artifact, error) {
+	promptDir, _ := nc.WalkerState.Context[KeyPromptDir].(string)
+	caseDir, _ := nc.WalkerState.Context[KeyCaseDir].(string)
+
+	if promptDir == "" {
+		promptDir = ".cursor/prompts"
+	}
+
+	params := ParamsFromContext(nc.WalkerState.Context)
+	params.StepName = string(n.step)
+
+	templatePath := TemplatePathForStep(promptDir, n.step)
+	if templatePath == "" {
+		return nil, fmt.Errorf("rca node %q: no template for step %s", n.nodeName, n.step)
+	}
+
+	prompt, err := FillTemplate(templatePath, params)
 	if err != nil {
-		return nil, fmt.Errorf("rca node %q: adapter.SendPrompt: %w", n.nodeName, err)
+		return nil, fmt.Errorf("rca node %q: fill template: %w", n.nodeName, err)
 	}
 
-	artifact, err := parseStepResponse(n.step, []byte(response))
+	loopIter := nc.WalkerState.LoopCounts[n.nodeName]
+	promptPath, err := WritePrompt(caseDir, n.step, loopIter, prompt)
 	if err != nil {
-		return nil, fmt.Errorf("rca node %q: parse response: %w", n.nodeName, err)
+		return nil, fmt.Errorf("rca node %q: write prompt: %w", n.nodeName, err)
 	}
 
-	return &rcaArtifact{raw: artifact, typeName: string(n.step)}, nil
+	return nil, framework.Interrupt{
+		Reason: fmt.Sprintf("awaiting human input for %s", n.step),
+		Data:   map[string]any{"prompt_path": promptPath, "step": string(n.step)},
+	}
 }
 
 // rcaArtifact wraps a typed orchestrate artifact as a framework.Artifact.

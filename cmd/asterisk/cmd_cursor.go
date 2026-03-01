@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/spf13/cobra"
@@ -74,11 +75,20 @@ func runCursor(cmd *cobra.Command, _ []string) error {
 		catalog = cat
 	}
 
-	cfg := rca.RunnerConfig{
-		PromptDir:  cursorFlags.promptDir,
-		Thresholds: rca.DefaultThresholds(),
+	suiteID := int64(1)
+	caseDir, err := rca.EnsureCaseDir(rca.DefaultBasePath, suiteID, caseData.ID)
+	if err != nil {
+		return fmt.Errorf("ensure case dir: %w", err)
 	}
-	result, err := rca.RunStep(st, caseData, env, catalog, cfg)
+
+	result, err := rca.RunHITLStep(context.Background(), rca.HITLConfig{
+		Store:     st,
+		CaseData:  caseData,
+		Envelope:  env,
+		Catalog:   catalog,
+		PromptDir: cursorFlags.promptDir,
+		CaseDir:   caseDir,
+	})
 	if err != nil {
 		return fmt.Errorf("orchestrate: %w", err)
 	}
@@ -89,9 +99,9 @@ func runCursor(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	fmt.Fprintf(out, "Step: %s\n", vocabNameWithCode(string(result.NextStep)))
+	fmt.Fprintf(out, "Step: %s\n", vocabNameWithCode(result.CurrentStep))
 	fmt.Fprintf(out, "Prompt: %s\n", result.PromptPath)
 	fmt.Fprintf(out, "\nPaste the prompt into Cursor, then save the artifact to the case directory.\n")
-	fmt.Fprintf(out, "Run 'asterisk cursor' again to advance to the next step.\n")
+	fmt.Fprintf(out, "Run 'asterisk save' to ingest the artifact and advance.\n")
 	return nil
 }

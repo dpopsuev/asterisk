@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -113,40 +114,27 @@ func runSaveOrchestrated(cmd *cobra.Command) error {
 	}
 
 	caseDir := rca.CaseDir(rca.DefaultBasePath, saveFlags.suiteID, saveFlags.caseID)
-	state, err := rca.LoadState(caseDir)
-	if err != nil || state == nil {
-		return fmt.Errorf("no state found for case #%d in suite #%d", saveFlags.caseID, saveFlags.suiteID)
-	}
 
-	artifactFilename := rca.ArtifactFilename(state.CurrentStep)
-	if artifactFilename == "" {
-		return fmt.Errorf("no artifact expected for step %s", vocabNameWithCode(string(state.CurrentStep)))
-	}
-
-	data, err := os.ReadFile(saveFlags.artifactPath)
+	artifactData, err := os.ReadFile(saveFlags.artifactPath)
 	if err != nil {
 		return fmt.Errorf("read artifact: %w", err)
 	}
-	destPath := caseDir + "/" + artifactFilename
-	if err := os.WriteFile(destPath, data, 0600); err != nil {
-		return fmt.Errorf("write artifact to case dir: %w", err)
-	}
 
-	cfg := rca.RunnerConfig{
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-	}
-	result, err := rca.SaveArtifactAndAdvance(st, caseData, caseDir, cfg)
+	result, err := rca.ResumeHITLStep(context.Background(), rca.HITLConfig{
+		Store:    st,
+		CaseData: caseData,
+		CaseDir:  caseDir,
+	}, artifactData)
 	if err != nil {
 		return fmt.Errorf("advance: %w", err)
 	}
 
 	out := cmd.OutOrStdout()
-	fmt.Fprintf(out, "Saved artifact for %s\n", vocabNameWithCode(string(state.CurrentStep)))
+	fmt.Fprintf(out, "Saved artifact and advanced circuit\n")
 	if result.IsDone {
 		fmt.Fprintf(out, "Circuit complete! %s\n", result.Explanation)
 	} else {
-		fmt.Fprintf(out, "Next step: %s (%s)\n", vocabNameWithCode(string(result.NextStep)), result.Explanation)
+		fmt.Fprintf(out, "Next step: %s (%s)\n", vocabNameWithCode(result.CurrentStep), result.Explanation)
 		fmt.Fprintf(out, "Run 'asterisk cursor' to generate the next prompt.\n")
 	}
 	return nil

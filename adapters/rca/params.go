@@ -9,6 +9,8 @@ import (
 )
 
 // BuildParams constructs the full TemplateParams from available data.
+// Delegates to InjectAllParams + ParamsFromContext internally. Retained
+// for callers (adapter_llm.go) that don't operate inside a walker context.
 func BuildParams(
 	st store.Store,
 	caseData *store.Case,
@@ -17,57 +19,13 @@ func BuildParams(
 	step CircuitStep,
 	caseDir string,
 ) *TemplateParams {
-	params := &TemplateParams{
-		CaseID:   caseData.ID,
-		StepName: string(step),
-		Taxonomy: DefaultTaxonomy(),
-		Timestamps: &TimestampParams{
-			ClockPlaneNote: "Note: Timestamps may originate from different clock planes (executor, test node, SUT). Cross-plane time comparisons may be unreliable.",
-		},
+	ctx := map[string]any{
+		KeyCaseData: caseData,
+		KeyEnvelope: env,
 	}
-
-	if env != nil {
-		params.LaunchID = env.RunID
-		params.Envelope = &EnvelopeParams{
-			Name:  env.Name,
-			RunID: env.RunID,
-		}
-		for _, f := range env.FailureList {
-			params.Siblings = append(params.Siblings, SiblingParams{
-				ID: f.ID, Name: f.Name, Status: f.Status,
-			})
-		}
-	}
-
-	params.Failure = &FailureParams{
-		TestName:     caseData.Name,
-		ErrorMessage: caseData.ErrorMessage,
-		LogSnippet:   caseData.LogSnippet,
-		LogTruncated: caseData.LogTruncated,
-		Status:       caseData.Status,
-	}
-
-	wsp := buildWorkspaceParams(env, catalog)
-	params.Workspace = wsp
-
-	if catalog != nil {
-		params.AlwaysReadSources = loadAlwaysReadSources(catalog)
-	}
-
-	params.Prior = loadPriorArtifacts(caseDir)
-
-	if st != nil && caseData.SymptomID != 0 {
-		params.History = loadHistory(st, caseData.SymptomID)
-	}
-
-	if st != nil && step == StepF0Recall && caseData.SymptomID == 0 && params.History == nil {
-		params.History = findRecallCandidates(st, caseData.Name)
-	}
-
-	if st != nil && step == StepF0Recall {
-		params.RecallDigest = buildRecallDigest(st)
-	}
-
+	InjectAllParams(st, caseData, env, catalog, step, caseDir, ctx)
+	params := ParamsFromContext(ctx)
+	params.StepName = string(step)
 	return params
 }
 
@@ -250,39 +208,3 @@ func loadHistory(st store.Store, symptomID int64) *HistoryParams {
 	return history
 }
 
-// LayeredCatalog filters a catalog using layered routing: base → version →
-// investigation. Returns a new catalog containing only the matched sources
-// in dependency-resolved order.
-func LayeredCatalog(
-	catalog *knowledge.KnowledgeSourceCatalog,
-	version string,
-	component string,
-	deps *knowledge.DepGraph,
-) *knowledge.KnowledgeSourceCatalog {
-	if catalog == nil {
-		return nil
-	}
-
-	baseTags := map[string]string{knowledge.LayerTagKey: knowledge.LayerBase}
-	versionTags := map[string]string{knowledge.LayerTagKey: knowledge.LayerVersion}
-	investigationTags := map[string]string{knowledge.LayerTagKey: knowledge.LayerInvestigation}
-
-	if component != "" {
-		baseTags["role"] = "sut"
-	}
-	if version != "" {
-		versionTags["version"] = version
-	}
-
-	router := knowledge.NewRouter(catalog, knowledge.RequestTagMatchRule{})
-	sources := router.LayeredRoute(baseTags, versionTags, investigationTags)
-
-	if deps != nil {
-		ordered, err := deps.OrderSources(sources)
-		if err == nil {
-			sources = ordered
-		}
-	}
-
-	return &knowledge.KnowledgeSourceCatalog{Sources: sources}
-}

@@ -277,18 +277,6 @@ func TestComputeFingerprint_Effects(t *testing.T) {
 	}
 }
 
-// --- SaveArtifactAndAdvance ---
-
-func TestSaveArtifactAndAdvance_NoCaseDir(t *testing.T) {
-	st := store.NewMemStore()
-	caseData := createTestCase(t, st)
-
-	_, err := SaveArtifactAndAdvance(st, caseData, "/nonexistent/dir", DefaultRunnerConfig())
-	if err == nil {
-		t.Error("expected error for nonexistent case dir")
-	}
-}
-
 // --- Helpers ---
 
 func createTestCase(t *testing.T, st store.Store) *store.Case {

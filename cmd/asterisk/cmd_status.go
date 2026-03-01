@@ -30,7 +30,7 @@ func init() {
 
 func runStatus(cmd *cobra.Command, _ []string) error {
 	caseDir := rca.CaseDir(rca.DefaultBasePath, statusFlags.suiteID, statusFlags.caseID)
-	state, err := rca.LoadState(caseDir)
+	state, err := rca.LoadCheckpointState(caseDir, statusFlags.caseID)
 	if err != nil {
 		return fmt.Errorf("load state: %w", err)
 	}
@@ -41,9 +41,9 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 		return nil
 	}
 
-	fmt.Fprintf(out, "Case:    #%d\n", state.CaseID)
-	fmt.Fprintf(out, "Suite:   #%d\n", state.SuiteID)
-	fmt.Fprintf(out, "Step:    %s\n", vocabNameWithCode(string(state.CurrentStep)))
+	fmt.Fprintf(out, "Case:    #%d\n", statusFlags.caseID)
+	fmt.Fprintf(out, "Suite:   #%d\n", statusFlags.suiteID)
+	fmt.Fprintf(out, "Step:    %s\n", vocabNameWithCode(state.CurrentNode))
 	fmt.Fprintf(out, "Status:  %s\n", state.Status)
 	if len(state.LoopCounts) > 0 {
 		fmt.Fprintf(out, "Loops:\n")
@@ -54,7 +54,7 @@ func runStatus(cmd *cobra.Command, _ []string) error {
 	if len(state.History) > 0 {
 		fmt.Fprintf(out, "History: (%d steps)\n", len(state.History))
 		for _, h := range state.History {
-			fmt.Fprintf(out, "  %s -> %s [%s] %s\n", vocabName(string(h.Step)), h.Outcome, vocabNameWithCode(h.HeuristicID), h.Timestamp)
+			fmt.Fprintf(out, "  %s -> %s [%s]\n", vocabName(h.Node), h.Outcome, vocabNameWithCode(h.EdgeID))
 		}
 	}
 	return nil

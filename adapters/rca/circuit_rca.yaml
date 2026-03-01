@@ -12,23 +12,30 @@ vars:
 nodes:
   - name: recall
     family: recall
+    before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy, inject.history, inject.recall-digest]
     after: [store.recall]
   - name: triage
     family: triage
+    before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy, inject.history]
     after: [store.triage]
   - name: resolve
     family: resolve
+    before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
   - name: investigate
     family: investigate
+    before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
     after: [store.investigate]
   - name: correlate
     family: correlate
+    before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
     after: [store.correlate]
   - name: review
     family: review
+    before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
     after: [store.review]
   - name: report
     family: report
+    before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
 
 edges:
   # F0 Recall
