@@ -10,13 +10,11 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `rca-pure-dsl.md` | Marble discovery: decompose rca/ (32 files, 5.6K LOC) into reusable Origami marbles. Ph1-3 done, Ph4-5 partial. | gate |
+| `origami-fold.md` | `origami fold` compiles YAML project to binary + moves domain code to Origami; eliminates all Go from Asterisk. | gate |
 
 ## draft/ -- Planned, not yet being executed
 
-| Contract | Goal | Tier |
-|----------|------|------|
-| `origami-fold.md` | `origami fold` compiles YAML project to binary; eliminates cmd/, mcpconfig/ (~3,700 LOC). Split from rca-pure-dsl G8. | gate |
+(none)
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
@@ -148,7 +146,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `evidence-gap-brief.md` | Structured "what's missing" output when circuit confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |
 
-### completed/dsl-migration/ (4)
+### completed/dsl-migration/ (5)
 
 | Contract | Goal |
 |----------|------|
@@ -156,6 +154,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `data-dsl-extraction.md` | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. Loaders remain (121 LOC). |
 | `adapter-migration.md` | RP adapter lift-and-drop to Origami. Residual `rp_source.go` (93 LOC) covered by rca-pure-dsl. |
 | `scorer-pattern.md` | 10 batch scorer patterns in Origami; 21 Asterisk scorers expressed as YAML declarations. Split from rca-pure-dsl G5. |
+| `rca-pure-dsl.md` | Marble decomposition of adapters/rca/ (5.6K→5.3K LOC). 8 phases: ModelAdapter→transformers, heuristic rules engine, per-node decomposition, BatchWalk. Residual tracked in origami-fold. |
 
 ### completed/presentation/ (1)
 

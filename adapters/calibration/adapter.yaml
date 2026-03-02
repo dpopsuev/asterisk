@@ -1,9 +1,0 @@
-adapter: asterisk-calibration
-namespace: calibration
-version: "1.0.0"
-description: Calibration adapter — wraps the E2E calibration loop as circuit nodes
-provides:
-  transformers: []
-  hooks: []
-requires:
-  origami: ">=0.3.0"

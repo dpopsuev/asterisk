@@ -1,8 +1,0 @@
-adapter: asterisk-store
-namespace: store
-version: "1.0.0"
-description: Persistence adapter for the two-tier investigation data model (SQLite + in-memory)
-provides:
-  hooks: [save-envelope, save-triage, save-symptom, save-rca, link-symptom-rca, update-case-status]
-requires:
-  origami: ">=0.3.0"

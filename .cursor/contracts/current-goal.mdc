@@ -45,24 +45,27 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 | # | Contract | Dir | Scope | Status |
 |---|----------|-----|-------|--------|
-| 1 | `rca-pure-dsl` | active/ | Marble decomposition of `adapters/rca/` (5,311 LOC) | Ph1-8 COMPLETE; residual for origami-fold |
-| 2 | `origami-fold` | draft/ | `origami fold` compiles YAML project to binary; eliminates cmd/ (3,244), mcpconfig/ (268), cursor wrapper (115) = 3,627 LOC | Not started |
+| 1 | `origami-fold` | active/ | Move domain code to Origami + build `origami fold` + eliminate all Go from Asterisk (~11,650 LOC) | In progress |
 
 ### Execution order
 
 ```
     ┌──────────────────────────────────────────┐
-    │ 1. rca-pure-dsl ✓ COMPLETE              │  adapters/rca/ → transformers + DSL
+    │ rca-pure-dsl ✓ COMPLETE                 │  moved to completed/dsl-migration/
     │    All 8 phases done                     │  5,311 LOC accepted residual
     └─────────────┬────────────────────────────┘
-                  │  remaining ~5,311 LOC (domain types, data prep, thin wrappers)
+                  │
     ┌─────────────▼────────────────────────────┐
-    │ 2. origami-fold                          │  YAML manifest → compiled binary
-    │    depends: rca-pure-dsl                 │  eliminates ~5,311 LOC residual
+    │ origami-fold (ACTIVE)                    │  4 phases:
+    │  Ph1: decomposition analysis             │  1. classify adapters/rca/ files
+    │  Ph2: move code to Origami               │  2. create marbles/rca/ in Origami
+    │  Ph3: build origami fold                 │  3. manifest → binary codegen
+    │  Ph4: migrate Asterisk to YAML           │  4. zero Go
     └──────────────────────────────────────────┘
 
+    rca-pure-dsl: COMPLETE (moved to completed/dsl-migration/)
     scorer-pattern: COMPLETE (moved to completed/dsl-migration/)
-    Store DSL migration (gap) can proceed in parallel once scope is defined.
+    Store DSL migration: gap — adapters/store/ (2,373 LOC) included in origami-fold scope.
 ```
 
 ### Uncovered gap: `adapters/store/` (2,373 LOC)

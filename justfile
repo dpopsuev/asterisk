@@ -4,8 +4,7 @@
 set dotenv-load := false
 
 bin_dir          := "bin"
-cmd_asterisk     := "./cmd/asterisk"
-cmd_analyze_rp   := "./cmd/asterisk-analyze-rp-cursor"
+asterisk         := bin_dir / "asterisk"
 db_path      := ".asterisk/asterisk.db"
 calib_dir    := ".asterisk/calibrate"
 
@@ -17,64 +16,31 @@ default:
 
 # ─── Build ────────────────────────────────────────────────
 
-# Build all binaries
+# Build via origami fold (YAML manifest → binary)
 build:
-    @mkdir -p {{ bin_dir }}
-    go build -o {{ bin_dir }}/asterisk {{ cmd_asterisk }}
-    go build -o {{ bin_dir }}/asterisk-analyze-rp-cursor {{ cmd_analyze_rp }}
-
-# Install asterisk to GOPATH/bin
-install:
-    go install {{ cmd_asterisk }}
+    origami fold --output {{ asterisk }}
 
 # ─── Test ─────────────────────────────────────────────────
 
-# Run all Go tests
-test:
-    go test ./...
-
-# Run all Go tests with race detector
-test-race:
-    go test -race ./...
-
-# Run all Go tests with verbose output
-test-v:
-    go test -v ./...
-
-# Run all Ginkgo BDD suites
-test-ginkgo:
-    go run github.com/onsi/ginkgo/v2/ginkgo -r
-
-# Run tests for a specific package (e.g. just test-pkg orchestrate)
-test-pkg pkg:
-    go test -v ./internal/{{ pkg }}/...
+# (Tests live in Origami — run `go test ./...` in Origami repo)
 
 # ─── Lint ─────────────────────────────────────────────────
 
-# Run go vet
-vet:
-    go vet ./...
-
-# Run golangci-lint
+# Lint pipeline YAMLs
 lint:
-    golangci-lint run ./...
-
-# Run staticcheck
-staticcheck:
-    staticcheck ./...
-
-# All checks: vet + lint + staticcheck
-check: vet lint staticcheck
+    origami lint --profile strict circuits/*.yaml
 
 # ─── Calibration ─────────────────────────────────────────
 
 # Run stub calibration (deterministic, no AI)
 calibrate-stub scenario="ptp-mock":
-    go run {{ cmd_asterisk }} calibrate --scenario={{ scenario }} --adapter=stub
+    just build
+    {{ asterisk }} calibrate --scenario={{ scenario }} --adapter=stub
 
 # Run wet calibration with file dispatch
 calibrate-wet scenario="ptp-real-ingest":
-    go run {{ cmd_asterisk }} calibrate \
+    just build
+    {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
         --adapter=llm \
         --dispatch=file \
@@ -82,7 +48,8 @@ calibrate-wet scenario="ptp-real-ingest":
 
 # Run wet calibration with debug logging
 calibrate-debug scenario="ptp-real-ingest":
-    go run {{ cmd_asterisk }} calibrate \
+    just build
+    {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
         --adapter=llm \
         --dispatch=file \
@@ -91,11 +58,13 @@ calibrate-debug scenario="ptp-real-ingest":
 
 # Run stub calibration with parallel workers
 calibrate-parallel scenario="ptp-mock" workers="4":
-    go run {{ cmd_asterisk }} calibrate --scenario={{ scenario }} --adapter=stub --parallel={{ workers }}
+    just build
+    {{ asterisk }} calibrate --scenario={{ scenario }} --adapter=stub --parallel={{ workers }}
 
 # Run wet calibration with token/cost report
 calibrate-cost scenario="ptp-real-ingest":
-    go run {{ cmd_asterisk }} calibrate \
+    just build
+    {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
         --adapter=llm \
         --dispatch=file \
@@ -104,7 +73,8 @@ calibrate-cost scenario="ptp-real-ingest":
 
 # Run wet calibration with batch-file dispatch for multi-subagent mode
 calibrate-batch scenario="ptp-real-ingest" batch="4":
-    go run {{ cmd_asterisk }} calibrate \
+    just build
+    {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
         --adapter=llm \
         --dispatch=batch-file \
@@ -116,7 +86,8 @@ calibrate-batch scenario="ptp-real-ingest" batch="4":
 calibrate-save scenario="ptp-real-ingest" round="":
     #!/usr/bin/env bash
     set -euo pipefail
-    output=$(go run {{ cmd_asterisk }} calibrate \
+    just build
+    output=$({{ asterisk }} calibrate \
         --scenario={{ scenario }} \
         --adapter=llm \
         --dispatch=file \
@@ -131,7 +102,8 @@ calibrate-save scenario="ptp-real-ingest" round="":
 
 # Run E2E calibration with RP-sourced cases (4 live from RP, 26 embedded)
 calibrate-e2e scenario="ptp-real-ingest":
-    go run {{ cmd_asterisk }} calibrate \
+    just build
+    {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
         --adapter=basic \
         --rp-base-url https://your-reportportal.example.com \
@@ -160,7 +132,7 @@ clean: clean-bin clean-runtime clean-stray
 # Run an analysis on the example launch
 run-example:
     just build
-    ./{{ bin_dir }}/asterisk analyze \
+    {{ asterisk }} analyze \
         --launch=examples/pre-investigation-33195-4.21/envelope_33195_4.21.json \
         -o /tmp/asterisk-artifact.json
 
