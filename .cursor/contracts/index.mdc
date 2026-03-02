@@ -8,13 +8,15 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 ## active/ -- Contracts being executed
 
-| Contract | Goal | Tier |
-|----------|------|------|
-| `origami-fold.md` | `origami fold` compiles YAML project to binary + moves domain code to Origami; eliminates all Go from Asterisk. | gate |
+(none)
 
 ## draft/ -- Planned, not yet being executed
 
-(none)
+| Contract | Goal | Tier |
+|----------|------|------|
+| `naming-taxonomy.md` | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. | gate |
+| `design-principle-deterministic.md` | Codify "Deterministic over Stochastic" as a framework design principle with lint enforcement. | quick-win |
+| `origami-autodoc.md` | `origami autodoc` CLI: Mermaid diagrams + Markdown docs from circuit YAML, D/S boundary visualization. | next-milestone |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
@@ -146,7 +148,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `evidence-gap-brief.md` | Structured "what's missing" output when circuit confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |
 
-### completed/dsl-migration/ (5)
+### completed/dsl-migration/ (6)
 
 | Contract | Goal |
 |----------|------|
@@ -155,6 +157,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `adapter-migration.md` | RP adapter lift-and-drop to Origami. Residual `rp_source.go` (93 LOC) covered by rca-pure-dsl. |
 | `scorer-pattern.md` | 10 batch scorer patterns in Origami; 21 Asterisk scorers expressed as YAML declarations. Split from rca-pure-dsl G5. |
 | `rca-pure-dsl.md` | Marble decomposition of adapters/rca/ (5.6K→5.3K LOC). 8 phases: ModelAdapter→transformers, heuristic rules engine, per-node decomposition, BatchWalk. Residual tracked in origami-fold. |
+| `origami-fold.md` | `origami fold` compiles YAML project to binary. All Go moved to Origami `marbles/rca/`; Asterisk achieves zero Go. |
 
 ### completed/presentation/ (1)
 

@@ -5,7 +5,7 @@ description: Active goal manifest — single-read orientation for agents to know
 # Current Goal
 
 **Goal:** 100% DSL — Zero Go  
-**Summary:** Asterisk is a playbook repository. There is no Python in an Ansible repo — only YAML. The Python lives in Ansible (the engine) and in collections (the plugins). Asterisk follows the same model: **zero Go code.** The Go lives in Origami (the engine) and in Origami's adapters/marbles (the collections). Achilles is a sibling playbook repository — both are analysis tools on Origami, differing only in domain (CI post-mortem vs. security probing). Any Go code in Asterisk is a signal that the framework or its adapters are missing a primitive.
+**Summary:** Asterisk is a playbook repository. There is no Python in an Ansible repo — only YAML. The Python lives in Ansible (the engine) and in collections (the plugins). Asterisk follows the same model: **zero Go code.** The Go lives in Origami (the engine) and in Origami's modules (the collections). Achilles is a sibling playbook repository — both are analysis tools on Origami, differing only in domain (CI post-mortem vs. security probing). Any Go code in Asterisk is a signal that the framework or its modules are missing a primitive.
 
 ## The ROI That Changes Everything
 
@@ -26,56 +26,43 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 | BasicAdapter | ptp-real-ingest (18 verified) | **0.83** | M1=1.00, M2=1.00, M15=0.72 | Heuristic baseline. 19/21 metrics pass. |
 | CursorAdapter | ptp-real-ingest (18 verified) | **0.58** | M2=0.78, M8=0.60, M14b=0.30 | AI baseline. 10/21 pass. |
 
-## Current Go LOC (11,771 prod)
+## Go LOC Status
 
-| Area | Prod LOC | Files | Covered by | Status |
-|------|----------|-------|-----------|--------|
-| `adapters/rca/` | 5,311 | 36 | **rca-pure-dsl** | Ph1-8 done; accepted residual for origami-fold |
-| `cmd/asterisk/` | 3,244 | 18 | **origami-fold** | Draft (includes relocated demo/dataset/ingest) |
-| `adapters/store/` | 2,373 | 8 | Store DSL migration (gap) | Origami sqlite-dsl-adapter exists; v1 deleted, V2 suffix removed |
-| `internal/mcpconfig/` | 268 | 2 | **origami-fold** | Draft |
-| `cmd/asterisk-analyze-rp-cursor/` | 115 | 1 | **origami-fold** | Draft (cursor wrapper binary) |
-| `adapters/rp/` | 93 | 1 | **rca-pure-dsl** residual | `rp_source.go` — domain utility, not generic adapter |
-| `adapters/vocabulary/` | 79 | 1 | — (loader, expected) | YAML loader — data-dsl-extraction complete |
-| `adapters/calibration/scenarios/` | 42 | 1 | — (loader, expected) | YAML loader — data-dsl-extraction complete |
+**Zero Go achieved.** All 11,771 LOC moved to Origami `marbles/rca/` (pending rename to `modules/rca/` — see `naming-taxonomy` contract). Asterisk contains only YAML, Markdown, and configuration files.
 
-**True zero Go:** 11,771 LOC total. Loaders (121 LOC) are expected residual from completed contracts. Target: eliminate 11,650 LOC.
+## Draft Contracts
 
-## Active Contracts
-
-| # | Contract | Dir | Scope | Status |
-|---|----------|-----|-------|--------|
-| 1 | `origami-fold` | active/ | Move domain code to Origami + build `origami fold` + eliminate all Go from Asterisk (~11,650 LOC) | In progress |
+| # | Contract | Dir | Tier | Scope |
+|---|----------|-----|------|-------|
+| 1 | `naming-taxonomy` | draft/ | gate | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. |
+| 2 | `design-principle-deterministic` | draft/ | quick-win | Codify "Deterministic over Stochastic" as framework design principle with lint enforcement. |
+| 3 | `origami-autodoc` | draft/ | next-milestone | `origami autodoc` CLI: Mermaid diagrams + Markdown docs from circuit YAML, D/S boundary visualization. |
 
 ### Execution order
 
 ```
     ┌──────────────────────────────────────────┐
-    │ rca-pure-dsl ✓ COMPLETE                 │  moved to completed/dsl-migration/
-    │    All 8 phases done                     │  5,311 LOC accepted residual
+    │ origami-fold ✓ COMPLETE                 │  Zero Go achieved.
+    │    All 4 phases done                     │  11,650 LOC moved to Origami.
     └─────────────┬────────────────────────────┘
                   │
     ┌─────────────▼────────────────────────────┐
-    │ origami-fold (ACTIVE)                    │  4 phases:
-    │  Ph1: decomposition analysis             │  1. classify adapters/rca/ files
-    │  Ph2: move code to Origami               │  2. create marbles/rca/ in Origami
-    │  Ph3: build origami fold                 │  3. manifest → binary codegen
-    │  Ph4: migrate Asterisk to YAML           │  4. zero Go
-    └──────────────────────────────────────────┘
-
-    rca-pure-dsl: COMPLETE (moved to completed/dsl-migration/)
-    scorer-pattern: COMPLETE (moved to completed/dsl-migration/)
-    Store DSL migration: gap — adapters/store/ (2,373 LOC) included in origami-fold scope.
+    │ naming-taxonomy (GATE)                   │  4 phases:
+    │  Ph1: glossary entries                   │  1. taxonomy documentation
+    │  Ph2: marbles/ → modules/ rename         │  2. mechanical rename (101 files)
+    │  Ph3: Deterministic/Stochastic marker    │  3. type system on Transformer
+    │  Ph4: Adapter → Component eval           │  4. optional rename evaluation
+    └──────────┬───────────────┬───────────────┘
+               │               │
+    ┌──────────▼──────┐  ┌─────▼──────────────────────┐
+    │ design-principle│  │ origami-autodoc             │
+    │ -deterministic  │  │  Ph1: Mermaid generation    │
+    │ (QUICK-WIN)     │  │  Ph2: Markdown tables       │
+    │  Depends: Ph3   │  │  Ph3: CLI command           │
+    └─────────────────┘  │  Ph4: D/S boundary viz      │
+                         │  Ph5: context flow (stretch) │
+                         └────────────────────────────┘
 ```
-
-### Uncovered gap: `adapters/store/` (2,373 LOC)
-
-Origami's YAML-defined SQLite adapter exists (`sqlite-dsl-adapter` contract — done). The Asterisk consumer code still uses hand-written Go store implementations. Resolution paths:
-- v1 dead code deleted, V2 suffix removed — unified API (`CreateCase`, `GetCase`, `SaveRCA`, `GetRCA`).
-- `sqlstore_entities.go` (992 LOC) + `memstore_entities.go` (670 LOC) — migrate to Origami's YAML-driven adapter.
-- Store facade + types (`store.go` 110 + `types.go` 157 + `schema.go` 80 + `adapter.go` 18 = 365 LOC) — interfaces for framework.
-
-**Decision pending.** Scope as a dedicated contract.
 
 ## End-State Architecture
 
@@ -94,7 +81,7 @@ flowchart TB
     engine["framework (walk, DSL, vars, templates)"]
     rpAdapter["adapters/rp/ (RP I/O)"]
     sqliteAdapter["adapters/sqlite/ (YAML-defined schema/CRUD)"]
-    rcaMarbles["marbles/rca/ (llm-extract, context-builder, persist, score, report)"]
+    rcaModules["modules/rca/ (llm-extract, context-builder, persist, score, report)"]
     fold["origami fold (YAML → binary)"]
     transformers["transformers (http, jq, file, match, dedup)"]
   end
@@ -104,7 +91,7 @@ flowchart TB
   scenarios --> engine
   rpAdapter --> engine
   sqliteAdapter --> engine
-  rcaMarbles --> engine
+  rcaModules --> engine
   transformers --> engine
 ```
 
@@ -112,7 +99,9 @@ flowchart TB
 
 - [ ] CursorAdapter M19 >= 0.70 with principled weights (baseline: 0.58)
 - [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
-- [ ] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 11,771 LOC resolved.
+- [x] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 11,771 LOC resolved.
+- [ ] **Naming taxonomy:** `marbles/` renamed to `modules/`, D/S classification on Transformer interface.
+- [ ] **Autodoc:** `origami autodoc` generates valid Mermaid from circuit YAML.
 
 ## Completed Contracts (this goal)
 
@@ -122,6 +111,8 @@ flowchart TB
 | `adapter-migration` | -600 LOC (RP adapter → Origami) | dsl-migration |
 | `sqlite-dsl-adapter` | Origami primitive built; Asterisk migration pending | dsl-migration |
 | `scorer-pattern` | -700 LOC (21 Go scorers → 10 batch patterns in Origami YAML) | dsl-migration |
+| `rca-pure-dsl` | -942 net LOC (5.6K→5.3K); structural transformation to framework primitives | dsl-migration |
+| `origami-fold` | -11,650 LOC (all Go moved to Origami `marbles/rca/`; `origami fold` codegen) | dsl-migration |
 
 All prior goals achieved. Bundles 1-4 (Principled Metrics, Rich Names, Smart Routing, Demo Polish) complete. Full history: `notes/goal-history-poc.md`
 
