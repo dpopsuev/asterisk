@@ -13,10 +13,10 @@ Run stages in order after every substantive change. Each stage is a quality gate
 
 | Stage | Command | SLA | On failure |
 |-------|---------|-----|------------|
-| **Build** | `go build ./...` | 30 s | Fix compilation errors immediately |
+| **Build** | `just build` (runs `origami fold`) | 30 s | Fix compilation errors immediately |
 | **Circuit lint** | `origami lint --profile strict` on changed YAMLs | 5 s | Fix findings; auto-fix with `--fix` where available |
 | **Lint** | `ReadLints` on changed files | 10 s | Fix introduced lints; ignore pre-existing |
-| **Unit test** | `go test ./...` | 60 s | Stop; fix before proceeding |
+| **Unit test** | `go test ./...` in Origami repo (Asterisk has no Go tests) | 60 s | Stop; fix before proceeding |
 | **Integration** | `just calibrate-stub` or scenario-specific | 2 min | Triage metric regressions |
 | **Wet validation** | `just calibrate-wet` or equivalent | 10 min | Monitor output; apply abort protocol |
 
@@ -30,8 +30,8 @@ Time spent waiting on unresponsive code is a defect, not an inevitable cost. **A
 
 | Scope | Silence budget | Action |
 |-------|---------------|--------|
-| Project binaries (`asterisk`, `mock-calibration-agent`) | 30 s | Kill and diagnose |
-| External toolchain (`go build`, `go test`, linters) | 60 s cold / 30 s incremental | Kill and diagnose |
+| Project binaries (`asterisk`) | 30 s | Kill and diagnose |
+| External toolchain (`origami fold`, `origami lint`, linters) | 60 s cold / 30 s incremental | Kill and diagnose |
 | Dispatcher polling (file-based or MCP) | Configured timeout | Inspect state, kill, diagnose |
 
 ### Calibration SLAs
@@ -54,7 +54,7 @@ After each calibration run, record elapsed time. Flag regressions immediately.
 
 1. **Stream, don't stare.** Always use `--debug`, `--verbose`, or `-v`. If a command produces no output for 15 seconds, something is wrong.
 2. **Fail fast, diagnose loud.** Print the exact error, file, and failing case. Never retry blindly.
-3. **Incremental over full.** After a targeted fix, run the affected test (`-run TestName`) first, then the full suite.
+3. **Incremental over full.** After a targeted fix, run the affected test first, then the full suite. (Go tests live in Origami: `go test -run TestName ./...` in the Origami repo.)
 4. **Commit at green gates.** Offer to commit when build + lint + unit tests all pass. Do not bundle uncommitted changes across features.
 
 ## Design for fast abort

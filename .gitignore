@@ -30,11 +30,6 @@
 # Local runtime directory
 .asterisk/
 
-# Go
-*.test
-*.out
-go.work
-
 # IDE / editor
 .idea/
 .vscode/

@@ -146,9 +146,5 @@ ingest:
 select-cases:
     cd .dev && python3 scripts/select_cases.py
 
-# Generate Go scenario file from selected cases
-generate-scenario:
-    cd .dev && python3 scripts/generate_scenario.py
-
-# Full ingestion pipeline: ingest → select → generate
-ingest-all: ingest select-cases generate-scenario
+# Full ingestion pipeline: ingest → select
+ingest-all: ingest select-cases

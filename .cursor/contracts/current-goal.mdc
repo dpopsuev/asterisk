@@ -36,10 +36,9 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 |---|----------|-----|------|-------|
 | 1 | `naming-taxonomy` | draft/ | gate | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. |
 | 2 | `design-principle-deterministic` | draft/ | quick-win | Codify "Deterministic over Stochastic" as framework design principle with lint enforcement. |
-| 3 | `housekeeping` | draft/ | quick-win | Remove Go-era leftover artifacts (.gitignore, justfile, skills, rules, dev scripts). |
-| 4 | `origami-autodoc` | draft/ | quick-win | `origami autodoc` CLI: docs tree scaffold (Kubernetes pattern), Mermaid + Markdown, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. |
-| 5 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. |
-| 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+| 3 | `origami-autodoc` | draft/ | quick-win | `origami autodoc` CLI: docs tree scaffold (Kubernetes pattern), Mermaid + Markdown, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. |
+| 4 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. |
+| 5 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
 
@@ -127,7 +126,7 @@ flowchart TB
 - [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
 - [x] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 11,771 LOC resolved.
 - [ ] **Naming taxonomy:** `marbles/` renamed to `modules/`, D/S classification on Transformer interface.
-- [ ] **Housekeeping:** Go-era leftover artifacts removed from .gitignore, justfile, skills, rules, dev scripts.
+- [x] **Housekeeping:** Go-era leftover artifacts removed from .gitignore, justfile, skills, rules, dev scripts.
 - [ ] **Autodoc:** `origami autodoc` generates docs tree scaffold (Kubernetes pattern), valid Mermaid, Markdown reference. Precursor to docs.
 - [ ] **YAML playbook docs:** Autodoc skeleton extended with Asterisk narrative, Ansible analogy, project identity.
 - [ ] **Kabuki demo revamp:** New three-act narrative, canonical wet recording, updated section content.
@@ -142,6 +141,7 @@ flowchart TB
 | `scorer-pattern` | -700 LOC (21 Go scorers → 10 batch patterns in Origami YAML) | dsl-migration |
 | `rca-pure-dsl` | -942 net LOC (5.6K→5.3K); structural transformation to framework primitives | dsl-migration |
 | `origami-fold` | -11,650 LOC (all Go moved to Origami `marbles/rca/`; `origami fold` codegen) | dsl-migration |
+| `housekeeping` | Mechanical cleanup: .gitignore, justfile, skills, rules, dev scripts updated for YAML-only era | housekeeping |
 
 All prior goals achieved. Bundles 1-4 (Principled Metrics, Rich Names, Smart Routing, Demo Polish) complete. Full history: `notes/goal-history-poc.md`
 

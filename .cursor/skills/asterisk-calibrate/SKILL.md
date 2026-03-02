@@ -41,7 +41,7 @@ Expected: an `"asterisk"` entry pointing to `bin/asterisk serve`. If missing,
 the user must add it. If the binary doesn't exist, build it:
 
 ```bash
-go build -o bin/asterisk ./cmd/asterisk/
+just build
 ```
 
 ### 2. Verify MCP tools are available
@@ -231,9 +231,10 @@ When triggered with no args, "help", or unrecognized input:
 >
 > **Prerequisites:**
 >
-> 1. **Go 1.24+** installed
-> 2. **MCP server** — `asterisk` entry in `.cursor/mcp.json`
-> 3. **Binary** — `go build -o bin/asterisk ./cmd/asterisk/`
+> 1. **`origami` CLI** installed
+> 2. **`just`** task runner installed
+> 3. **MCP server** — `asterisk` entry in `.cursor/mcp.json`
+> 4. **Binary** — `just build`
 >
 > **What it does:**
 >
@@ -247,7 +248,7 @@ When triggered with no args, "help", or unrecognized input:
 ## Security guardrails
 
 - **Never** echo or log the contents of `.rp-api-key`.
-- **Never** read ground truth files (`internal/calibrate/scenarios/`, `*_test.go`)
+- **Never** read ground truth scenario YAML files
   during calibration — this corrupts the blind evaluation.
 - **Never** read prior calibration artifacts from other cases mid-run.
 - Workers must respect the calibration preamble in prompts.

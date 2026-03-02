@@ -35,13 +35,13 @@ Extract `LAUNCH_ID` from the user's input.
 ### 2. Check binaries
 
 ```bash
-ls bin/asterisk bin/asterisk-analyze-rp-cursor
+ls bin/asterisk
 ```
 
-If missing, build both:
+If missing, build it:
 
 ```bash
-go build -o bin/asterisk ./cmd/asterisk/ && go build -o bin/asterisk-analyze-rp-cursor ./cmd/asterisk-analyze-rp-cursor/
+just build
 ```
 
 If the build fails, report the error and stop.
@@ -76,19 +76,18 @@ Stop if any prerequisite is missing.
 ### 4. Launch analysis
 
 ```bash
-bin/asterisk-analyze-rp-cursor LAUNCH_ID
+bin/asterisk analyze LAUNCH_ID --adapter=llm --dispatch=file --report
 ```
 
-This runs `asterisk analyze LAUNCH_ID --adapter=llm --dispatch=file --report`
-with RP config from environment. The command fetches failures from RP, then
-writes signal.json files in `.asterisk/analyze/` and waits for artifacts.
+This fetches failures from RP using environment config, then writes
+signal.json files in `.asterisk/analyze/` and waits for artifacts.
 
 ---
 
 ## Part 2 — Investigate (signal protocol)
 
-Once the binary is running, you ARE the investigation engine. The Go process
-writes prompts; you read them, reason, and write JSON artifacts back.
+Once the binary is running, you ARE the investigation engine. The analysis
+process writes prompts; you read them, reason, and write JSON artifacts back.
 
 ### Signal protocol
 
@@ -119,7 +118,7 @@ When `signal.json` has `status: "waiting"`:
 5. Produce the JSON artifact for that step.
 6. **Wrap it**: `{"dispatch_id": <from signal>, "data": <your artifact>}`.
 7. Write the wrapped JSON to `artifact_path`.
-8. Wait for the next signal (the Go process polls and advances).
+8. Wait for the next signal (the process polls and advances).
 
 ### Artifact wrapper (REQUIRED)
 
@@ -201,7 +200,7 @@ For worked prompt-to-artifact examples, see [examples.md](examples.md).
 When the prompt begins with `**CALIBRATION MODE -- BLIND EVALUATION**`:
 
 1. Respond ONLY based on information in the prompt.
-2. Do NOT read `internal/calibrate/scenarios/`, `*_test.go`, `.cursor/contracts/`, or prior calibration artifacts.
+2. Do NOT read scenario YAML files, `.cursor/contracts/`, or prior calibration artifacts.
 3. Produce your best independent analysis.
 
 ### Investigation mode
@@ -218,7 +217,7 @@ If you cannot produce an artifact, update `signal.json` directly:
 {"status": "error", "dispatch_id": 1, "error": "description of what went wrong", ...}
 ```
 
-The Go process fails fast instead of waiting for timeout.
+The process fails fast instead of waiting for timeout.
 
 ---
 
@@ -285,10 +284,11 @@ When triggered with no args, "help", or non-numeric input:
 >
 > **Prerequisites:**
 >
-> 1. **Go 1.24+** installed
-> 2. **RP URL** — `export ASTERISK_RP_URL=https://your-rp-instance.example.com`
-> 3. **RP project** — `export ASTERISK_RP_PROJECT=your-project-name`
-> 4. **RP token** — `echo 'TOKEN' > .rp-api-key && chmod 600 .rp-api-key`
+> 1. **`origami` CLI** installed (build the binary with `just build`)
+> 2. **`just`** task runner installed
+> 3. **RP URL** — `export ASTERISK_RP_URL=https://your-rp-instance.example.com`
+> 4. **RP project** — `export ASTERISK_RP_PROJECT=your-project-name`
+> 5. **RP token** — `echo 'TOKEN' > .rp-api-key && chmod 600 .rp-api-key`
 >
 > **What it does:**
 >

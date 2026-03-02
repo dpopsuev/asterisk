@@ -6,7 +6,9 @@ globs: "**/*.go"
 
 # Go Test Conventions
 
-Asterisk uses a hybrid approach: **Ginkgo + Gomega** for BDD and integration specs, **standard library `testing`** for unit tests. Choose the right tool per situation.
+> **Scope:** This rule applies to the **Origami** repo only. Asterisk has zero `.go` files — all tests live in Origami. This rule is relevant when working on Go code in the Origami workspace.
+
+The project uses a hybrid approach: **Ginkgo + Gomega** for BDD and integration specs, **standard library `testing`** for unit tests. Choose the right tool per situation.
 
 ## Framework selection
 

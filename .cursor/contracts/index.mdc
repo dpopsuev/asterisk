@@ -16,7 +16,6 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|------|
 | `naming-taxonomy.md` | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. | gate |
 | `design-principle-deterministic.md` | Codify "Deterministic over Stochastic" as a framework design principle with lint enforcement. | quick-win |
-| `housekeeping.md` | Remove Go-era leftover artifacts from Asterisk (.gitignore, justfile, skills, rules, dev scripts). | quick-win |
 | `origami-autodoc.md` | `origami autodoc` CLI: docs tree scaffold, Mermaid diagrams, Markdown reference, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. | quick-win |
 | `yaml-playbook-docs.md` | Extend autodoc-generated skeleton with Asterisk-specific narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. | quick-win |
 | `kabuki-demo-revamp.md` | Full demo rethink for post-zero-Go era: new narrative arc, canonical wet recording, updated sections. | next-milestone |
@@ -161,6 +160,12 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `scorer-pattern.md` | 10 batch scorer patterns in Origami; 21 Asterisk scorers expressed as YAML declarations. Split from rca-pure-dsl G5. |
 | `rca-pure-dsl.md` | Marble decomposition of adapters/rca/ (5.6K→5.3K LOC). 8 phases: ModelAdapter→transformers, heuristic rules engine, per-node decomposition, BatchWalk. Residual tracked in origami-fold. |
 | `origami-fold.md` | `origami fold` compiles YAML project to binary. All Go moved to Origami `marbles/rca/`; Asterisk achieves zero Go. |
+
+### completed/housekeeping/ (1)
+
+| Contract | Goal |
+|----------|------|
+| `housekeeping.md` | Remove Go-era leftover artifacts (.gitignore, justfile, skills, rules, dev scripts). |
 
 ### completed/presentation/ (1)
 
