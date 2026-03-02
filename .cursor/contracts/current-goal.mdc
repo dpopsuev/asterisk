@@ -37,8 +37,8 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 | 1 | `naming-taxonomy` | draft/ | gate | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. |
 | 2 | `design-principle-deterministic` | draft/ | quick-win | Codify "Deterministic over Stochastic" as framework design principle with lint enforcement. |
 | 3 | `housekeeping` | draft/ | quick-win | Remove Go-era leftover artifacts (.gitignore, justfile, skills, rules, dev scripts). |
-| 4 | `yaml-playbook-docs` | draft/ | quick-win | Rewrite README, CONTRIBUTING, architecture docs for YAML-only playbook identity. |
-| 5 | `origami-autodoc` | draft/ | next-milestone | `origami autodoc` CLI: Mermaid diagrams + Markdown docs from circuit YAML, D/S boundary visualization. |
+| 4 | `origami-autodoc` | draft/ | quick-win | `origami autodoc` CLI: docs tree scaffold (Kubernetes pattern), Mermaid + Markdown, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. |
+| 5 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. |
 | 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
@@ -59,34 +59,34 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
                │               │
     ┌──────────▼──────┐  ┌─────▼──────────────────────┐
     │ design-principle│  │ origami-autodoc             │
-    │ -deterministic  │  │  Ph1: Mermaid generation    │
-    │ (QUICK-WIN)     │  │  Ph2: Markdown tables       │
-    │  Depends: Ph3   │  │  Ph3: CLI command           │
-    └─────────────────┘  │  Ph4: D/S boundary viz      │
-                         │  Ph5: context flow (stretch) │
-                         └──────────────┬─────────────┘
-                                        │ (optional)
-    ┌───────────────────┐               │
-    │ housekeeping      │               │
-    │ (QUICK-WIN)       │               │
-    │  Clean Go-era     │               │
+    │ -deterministic  │  │  (QUICK-WIN, promoted)      │
+    │ (QUICK-WIN)     │  │  Ph0: Docs tree scaffold    │  ← Kubernetes pattern
+    │  Depends: Ph3   │  │  Ph1: Mermaid generation    │  ← extends Render()
+    └─────────────────┘  │  Ph2: Markdown tables       │
+                         │  Ph3: CLI command            │
+    ┌───────────────────┐│  Ph4: D/S boundary viz      │  ← naming-taxonomy Ph3
+    │ housekeeping      ││  Ph5: Stochastic enrichment │  ← optional LLM
+    │ (QUICK-WIN)       ││  Ph6: Context flow (stretch)│
+    │  Clean Go-era     │└──────────────┬──────────────┘
     │  leftovers        │               │
-    └────────┬──────────┘               │
-             │                          │
-    ┌────────▼──────────┐               │
-    │ yaml-playbook-docs│               │
-    │ (QUICK-WIN)       │               │
-    │  Depends:         │               │
-    │  housekeeping     │               │
     └────────┬──────────┘               │
              │                          │
              └──────────┬───────────────┘
                         │
              ┌──────────▼──────────────┐
+             │ yaml-playbook-docs      │
+             │ (QUICK-WIN)             │
+             │  Depends: autodoc +     │
+             │  housekeeping           │
+             │  Extends generated      │
+             │  skeleton with narrative│
+             └──────────┬──────────────┘
+                        │
+             ┌──────────▼──────────────┐
              │ kabuki-demo-revamp      │
              │ (NEXT-MILESTONE)        │
              │  Depends: naming-tax,   │
-             │  docs, autodoc (opt)    │
+             │  docs, autodoc          │
              └─────────────────────────┘
 ```
 
@@ -128,8 +128,8 @@ flowchart TB
 - [x] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 11,771 LOC resolved.
 - [ ] **Naming taxonomy:** `marbles/` renamed to `modules/`, D/S classification on Transformer interface.
 - [ ] **Housekeeping:** Go-era leftover artifacts removed from .gitignore, justfile, skills, rules, dev scripts.
-- [ ] **YAML playbook docs:** README, CONTRIBUTING, architecture docs rewritten for YAML-only identity.
-- [ ] **Autodoc:** `origami autodoc` generates valid Mermaid from circuit YAML.
+- [ ] **Autodoc:** `origami autodoc` generates docs tree scaffold (Kubernetes pattern), valid Mermaid, Markdown reference. Precursor to docs.
+- [ ] **YAML playbook docs:** Autodoc skeleton extended with Asterisk narrative, Ansible analogy, project identity.
 - [ ] **Kabuki demo revamp:** New three-act narrative, canonical wet recording, updated section content.
 
 ## Completed Contracts (this goal)

@@ -17,8 +17,8 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `naming-taxonomy.md` | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. | gate |
 | `design-principle-deterministic.md` | Codify "Deterministic over Stochastic" as a framework design principle with lint enforcement. | quick-win |
 | `housekeeping.md` | Remove Go-era leftover artifacts from Asterisk (.gitignore, justfile, skills, rules, dev scripts). | quick-win |
-| `yaml-playbook-docs.md` | Rewrite README, CONTRIBUTING, and architecture docs for Asterisk's YAML-only playbook identity. | quick-win |
-| `origami-autodoc.md` | `origami autodoc` CLI: Mermaid diagrams + Markdown docs from circuit YAML, D/S boundary visualization. | next-milestone |
+| `origami-autodoc.md` | `origami autodoc` CLI: docs tree scaffold, Mermaid diagrams, Markdown reference, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. | quick-win |
+| `yaml-playbook-docs.md` | Extend autodoc-generated skeleton with Asterisk-specific narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. | quick-win |
 | `kabuki-demo-revamp.md` | Full demo rethink for post-zero-Go era: new narrative arc, canonical wet recording, updated sections. | next-milestone |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
