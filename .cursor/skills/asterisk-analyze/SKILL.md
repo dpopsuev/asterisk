@@ -76,7 +76,7 @@ Stop if any prerequisite is missing.
 ### 4. Launch analysis
 
 ```bash
-bin/asterisk analyze LAUNCH_ID --adapter=llm --dispatch=file --report
+bin/asterisk analyze LAUNCH_ID --backend=llm --dispatch=file --report
 ```
 
 This fetches failures from RP using environment config, then writes

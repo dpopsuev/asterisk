@@ -35,14 +35,14 @@ lint:
 # Run stub calibration (deterministic, no AI)
 calibrate-stub scenario="ptp-mock":
     just build
-    {{ asterisk }} calibrate --scenario={{ scenario }} --adapter=stub
+    {{ asterisk }} calibrate --scenario={{ scenario }} --backend=stub
 
 # Run wet calibration with file dispatch
 calibrate-wet scenario="ptp-real-ingest":
     just build
     {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=llm \
+        --backend=llm \
         --dispatch=file \
         --clean
 
@@ -51,7 +51,7 @@ calibrate-debug scenario="ptp-real-ingest":
     just build
     {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=llm \
+        --backend=llm \
         --dispatch=file \
         --clean \
         --agent-debug
@@ -59,14 +59,14 @@ calibrate-debug scenario="ptp-real-ingest":
 # Run stub calibration with parallel workers
 calibrate-parallel scenario="ptp-mock" workers="4":
     just build
-    {{ asterisk }} calibrate --scenario={{ scenario }} --adapter=stub --parallel={{ workers }}
+    {{ asterisk }} calibrate --scenario={{ scenario }} --backend=stub --parallel={{ workers }}
 
 # Run wet calibration with token/cost report
 calibrate-cost scenario="ptp-real-ingest":
     just build
     {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=llm \
+        --backend=llm \
         --dispatch=file \
         --clean \
         --cost-report
@@ -76,7 +76,7 @@ calibrate-batch scenario="ptp-real-ingest" batch="4":
     just build
     {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=llm \
+        --backend=llm \
         --dispatch=batch-file \
         --batch-size={{ batch }} \
         --clean \
@@ -89,7 +89,7 @@ calibrate-save scenario="ptp-real-ingest" round="":
     just build
     output=$({{ asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=llm \
+        --backend=llm \
         --dispatch=file \
         --clean 2>&1)
     echo "$output"
@@ -105,7 +105,7 @@ calibrate-e2e scenario="ptp-real-ingest":
     just build
     {{ asterisk }} calibrate \
         --scenario={{ scenario }} \
-        --adapter=basic \
+        --backend=basic \
         --rp-base-url https://your-reportportal.example.com \
         --rp-api-key .rp-api-key
 
