@@ -26,6 +26,7 @@ When the user's message matches a trigger phrase, read the referenced rule befor
 | "workspace", "local repo", "service-api", "RP version", "read from disk" | Workspace Context | `domain/workspace-context.mdc` |
 | "display name", "human readable", "codes for machines", "output format" | Human-Readable Output | `domain/human-readable-output.mdc` |
 | "DSL", "circuit format", "YAML circuit", "circuit definition", "declarative circuit" | DSL Design Principles (Origami) | See `github.com/dpopsuev/origami/.cursor/rules/domain/dsl-design-principles.mdc` |
+| "deterministic", "stochastic", "token cost", "D/S boundary", "ADC node" | Deterministic First (Origami) | See `github.com/dpopsuev/origami/.cursor/rules/universal/deterministic-first.mdc` |
 
 ## Auto-loaded (no trigger needed)
 

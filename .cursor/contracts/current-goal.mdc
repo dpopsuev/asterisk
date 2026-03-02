@@ -34,58 +34,19 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 | # | Contract | Dir | Tier | Scope |
 |---|----------|-----|------|-------|
-| 1 | `design-principle-deterministic` | draft/ | quick-win | Codify "Deterministic over Stochastic" as framework design principle with lint enforcement. |
-| 2 | `origami-autodoc` | draft/ | quick-win | `origami autodoc` CLI: docs tree scaffold (Kubernetes pattern), Mermaid + Markdown, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. |
-| 3 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. |
-| 4 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+| 1 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami). |
+| 2 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
 
 ```
-    ┌──────────────────────────────────────────┐
-    │ origami-fold ✓ COMPLETE                 │  Zero Go achieved.
-    │    All 4 phases done                     │  11,650 LOC moved to Origami.
-    └─────────────┬────────────────────────────┘
-                  │
-    ┌─────────────▼────────────────────────────┐
-    │ naming-taxonomy ✓ COMPLETE               │  4 phases done:
-    │  Ph1: glossary entries ✓                 │  modules/ renamed (348 files)
-    │  Ph2: marbles/ → modules/ ✓             │  DeterministicTransformer interface
-    │  Ph3: D/S marker + B7 lint ✓            │  B7 stochastic-transformer rule
-    │  Ph4: Adapter eval → deferred ✓         │  200+ refs, low ROI during PoC
-    └──────────┬───────────────┬───────────────┘
-               │               │
-    ┌──────────▼──────┐  ┌─────▼──────────────────────┐
-    │ design-principle│  │ origami-autodoc             │
-    │ -deterministic  │  │  (QUICK-WIN, promoted)      │
-    │ (QUICK-WIN)     │  │  Ph0: Docs tree scaffold    │  ← Kubernetes pattern
-    │  Depends: Ph3   │  │  Ph1: Mermaid generation    │  ← extends Render()
-    └─────────────────┘  │  Ph2: Markdown tables       │
-                         │  Ph3: CLI command            │
-    ┌───────────────────┐│  Ph4: D/S boundary viz      │  ← naming-taxonomy Ph3
-    │ housekeeping      ││  Ph5: Stochastic enrichment │  ← optional LLM
-    │ (QUICK-WIN)       ││  Ph6: Context flow (stretch)│
-    │  Clean Go-era     │└──────────────┬──────────────┘
-    │  leftovers        │               │
-    └────────┬──────────┘               │
-             │                          │
-             └──────────┬───────────────┘
-                        │
-             ┌──────────▼──────────────┐
-             │ yaml-playbook-docs      │
-             │ (QUICK-WIN)             │
-             │  Depends: autodoc +     │
-             │  housekeeping           │
-             │  Extends generated      │
-             │  skeleton with narrative│
-             └──────────┬──────────────┘
-                        │
-             ┌──────────▼──────────────┐
-             │ kabuki-demo-revamp      │
-             │ (NEXT-MILESTONE)        │
-             │  Depends: naming-tax,   │
-             │  docs, autodoc          │
-             └─────────────────────────┘
+origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
+  └─► naming-taxonomy      ✓ COMPLETE (modules/ rename, D/S markers, B7 lint)
+        ├─► design-principle-deterministic  ✓ COMPLETE (moved to Origami)
+        ├─► origami-autodoc                 ✓ COMPLETE (moved to Origami, all 7 phases)
+        └─► housekeeping                    ✓ COMPLETE
+              └─► yaml-playbook-docs        ← NEXT (extends autodoc skeleton)
+                    └─► kabuki-demo-revamp  (NEXT-MILESTONE)
 ```
 
 ## End-State Architecture
@@ -124,9 +85,10 @@ flowchart TB
 - [ ] CursorAdapter M19 >= 0.70 with principled weights (baseline: 0.58)
 - [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
 - [x] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 11,771 LOC resolved.
-- [ ] **Naming taxonomy:** `modules/` renamed to `modules/`, D/S classification on Transformer interface.
+- [x] **Naming taxonomy:** `modules/` renamed, D/S classification on Transformer interface. Moved to Origami `completed/api-stabilization/`.
 - [x] **Housekeeping:** Go-era leftover artifacts removed from .gitignore, justfile, skills, rules, dev scripts.
-- [ ] **Autodoc:** `origami autodoc` generates docs tree scaffold (Kubernetes pattern), valid Mermaid, Markdown reference. Precursor to docs.
+- [x] **Design-principle-deterministic:** Deterministic-first rule, D/S boundary docs, B7s aggregate summary. Moved to Origami `completed/api-stabilization/`.
+- [x] **Autodoc:** `origami autodoc` generates docs tree scaffold (Kubernetes pattern), valid Mermaid, Markdown reference, D/S boundary, context flow, enrichment. Moved to Origami `completed/api-stabilization/`.
 - [ ] **YAML playbook docs:** Autodoc skeleton extended with Asterisk narrative, Ansible analogy, project identity.
 - [ ] **Kabuki demo revamp:** New three-act narrative, canonical wet recording, updated section content.
 

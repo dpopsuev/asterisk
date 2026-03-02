@@ -16,6 +16,7 @@ alwaysApply: true
 - Start every story with Gherkin acceptance criteria (Given / When / Then).
 - Follow the **Red-Orange-Green-Yellow-Blue** cycle (see `rules/testing-methodology.mdc`).
 - Run the local circuit after every change (see `rules/agent-operations.mdc`).
+- **Deterministic first.** Every circuit node that can be deterministic should be. Stochastic (LLM) processing is reserved for genuine reasoning tasks. See Origami `rules/universal/deterministic-first.mdc` for the full principle and D/S boundary guidance. Stub calibration validates deterministic nodes; dry/wet validates stochastic.
 - Prefer deterministic outputs for identical inputs; seed ordering where needed.
 - Every AI inference must cite evidence (logs, commits, circuit data).
 

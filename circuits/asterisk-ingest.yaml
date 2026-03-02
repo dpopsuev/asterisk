@@ -39,27 +39,27 @@ edges:
     name: launches fetched
     from: fetch_launches
     to: parse_failures
-    when: "len(vars.launches) > 0"
+    when: "len(output.launches) > 0"
 
   - id: E1-empty
     name: no launches
     from: fetch_launches
     to: _done
     shortcut: true
-    when: "len(vars.launches) == 0"
+    when: "len(output.launches) == 0"
 
   - id: E2
     name: failures parsed
     from: parse_failures
     to: match_symptoms
-    when: "len(vars.failures) > 0"
+    when: "len(output.failures) > 0"
 
   - id: E2-empty
     name: no failures
     from: parse_failures
     to: _done
     shortcut: true
-    when: "len(vars.failures) == 0"
+    when: "len(output.failures) == 0"
 
   - id: E3
     name: symptoms matched
@@ -71,13 +71,13 @@ edges:
     name: deduplicated
     from: deduplicate
     to: create_candidates
-    when: "len(vars.new_cases) > 0"
+    when: "len(output.new_cases) > 0"
 
   - id: E4-empty
     name: all duplicates
     from: deduplicate
     to: notify_review
-    when: "len(vars.new_cases) == 0"
+    when: "len(output.new_cases) == 0"
 
   - id: E5
     name: candidates created

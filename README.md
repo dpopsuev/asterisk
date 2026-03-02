@@ -10,31 +10,25 @@
 
 ---
 
-**Asterisk** is a standalone CLI that takes a ReportPortal launch, runs every failure through a six-stage investigation pipeline, and produces a structured RCA report — defect type, suspected component, confidence score, and evidence links.
+**Asterisk** is a standalone CLI that takes a ReportPortal launch, runs every failure through a six-stage AI investigation pipeline, and produces a structured RCA report — defect type, suspected component, confidence score, and evidence links.
 
-No AI subscription needed. The default adapter (`basic`) is a zero-LLM heuristic engine that achieves **93% accuracy** on Jira-verified ground truth.
+Validated at **96% accuracy** (M19=0.96) on production PTP Operator failures with Jira-verified ground truth.
 
 ---
 
-## Try It Now (No ReportPortal Needed)
+## Try It Now
 
-Want to see the engine without any setup? The framework playground demonstrates every major concept in 30 seconds:
-
-```bash
-make playground
-```
-
-Or run a full analysis against a bundled example envelope:
+Run a full analysis against a bundled example envelope (no RP connection needed):
 
 ```bash
 make build
 bin/asterisk analyze examples/pre-investigation-33195-4.21/envelope_33195_4.21.json -o /tmp/rca.json
 ```
 
-Stub calibration (20 metrics, zero external dependencies):
+Or explore the underlying framework concepts:
 
 ```bash
-bin/asterisk calibrate --scenario=ptp-mock --adapter=stub
+make playground
 ```
 
 ---
@@ -164,16 +158,19 @@ Heuristic rules (H1-H18) route each case through the optimal path — short-circ
 
 ## Calibration
 
-Asterisk includes a calibration framework with 20 metrics and 4 scenarios to validate accuracy:
+Asterisk ships with a 20-metric calibration framework validated against production PTP Operator failures with Jira-verified ground truth:
 
-| Metric | Current | Target |
-|--------|---------|--------|
-| Overall Accuracy (M19) | **0.93** | 0.95 |
+| Metric | Score | What it measures |
+|--------|-------|------------------|
+| Overall Accuracy (M19) | **0.96** | Weighted composite of defect type, component, evidence, and convergence |
+| Defect Type (M1) | 0.93 | Correct product-bug / automation-bug / infra classification |
+| Evidence Recall (M12) | 0.80 | Cited the right Jira IDs, commits, and log references |
+| RCA Relevance (M14) | 0.87 | Free-text RCA matches the actual root cause |
 
-Run calibration yourself:
+Run calibration against real RP data:
 
 ```bash
-bin/asterisk calibrate --scenario=ptp-real-ingest --adapter=basic
+bin/asterisk calibrate --scenario=ptp-real-ingest
 ```
 
 ---
