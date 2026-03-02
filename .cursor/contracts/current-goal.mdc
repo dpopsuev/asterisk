@@ -36,7 +36,10 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 |---|----------|-----|------|-------|
 | 1 | `naming-taxonomy` | draft/ | gate | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. |
 | 2 | `design-principle-deterministic` | draft/ | quick-win | Codify "Deterministic over Stochastic" as framework design principle with lint enforcement. |
-| 3 | `origami-autodoc` | draft/ | next-milestone | `origami autodoc` CLI: Mermaid diagrams + Markdown docs from circuit YAML, D/S boundary visualization. |
+| 3 | `housekeeping` | draft/ | quick-win | Remove Go-era leftover artifacts (.gitignore, justfile, skills, rules, dev scripts). |
+| 4 | `yaml-playbook-docs` | draft/ | quick-win | Rewrite README, CONTRIBUTING, architecture docs for YAML-only playbook identity. |
+| 5 | `origami-autodoc` | draft/ | next-milestone | `origami autodoc` CLI: Mermaid diagrams + Markdown docs from circuit YAML, D/S boundary visualization. |
+| 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
 
@@ -61,7 +64,30 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
     │  Depends: Ph3   │  │  Ph3: CLI command           │
     └─────────────────┘  │  Ph4: D/S boundary viz      │
                          │  Ph5: context flow (stretch) │
-                         └────────────────────────────┘
+                         └──────────────┬─────────────┘
+                                        │ (optional)
+    ┌───────────────────┐               │
+    │ housekeeping      │               │
+    │ (QUICK-WIN)       │               │
+    │  Clean Go-era     │               │
+    │  leftovers        │               │
+    └────────┬──────────┘               │
+             │                          │
+    ┌────────▼──────────┐               │
+    │ yaml-playbook-docs│               │
+    │ (QUICK-WIN)       │               │
+    │  Depends:         │               │
+    │  housekeeping     │               │
+    └────────┬──────────┘               │
+             │                          │
+             └──────────┬───────────────┘
+                        │
+             ┌──────────▼──────────────┐
+             │ kabuki-demo-revamp      │
+             │ (NEXT-MILESTONE)        │
+             │  Depends: naming-tax,   │
+             │  docs, autodoc (opt)    │
+             └─────────────────────────┘
 ```
 
 ## End-State Architecture
@@ -101,7 +127,10 @@ flowchart TB
 - [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
 - [x] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 11,771 LOC resolved.
 - [ ] **Naming taxonomy:** `marbles/` renamed to `modules/`, D/S classification on Transformer interface.
+- [ ] **Housekeeping:** Go-era leftover artifacts removed from .gitignore, justfile, skills, rules, dev scripts.
+- [ ] **YAML playbook docs:** README, CONTRIBUTING, architecture docs rewritten for YAML-only identity.
 - [ ] **Autodoc:** `origami autodoc` generates valid Mermaid from circuit YAML.
+- [ ] **Kabuki demo revamp:** New three-act narrative, canonical wet recording, updated section content.
 
 ## Completed Contracts (this goal)
 
