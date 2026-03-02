@@ -106,14 +106,6 @@ type StepRecord struct {
 	Timestamp   string       `json:"timestamp"`    // ISO 8601
 }
 
-// HeuristicAction is the result of evaluating a heuristic: what step to go to next
-// and any context to carry forward.
-type HeuristicAction struct {
-	NextStep         CircuitStep       `json:"next_step"`
-	ContextAdditions map[string]any     `json:"context_additions,omitempty"`
-	Explanation      string             `json:"explanation"`
-}
-
 // --- Typed intermediate artifacts (one per family) ---
 
 // RecallResult is the F0 output.

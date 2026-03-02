@@ -1,14 +1,14 @@
 package rca_test
 
 import (
-	"fmt"
 	"testing"
 
 	"asterisk/adapters/store"
-	"asterisk/adapters/rca"
+	rca "asterisk/adapters/rca"
+	framework "github.com/dpopsuev/origami"
 )
 
-func TestRunAnalysis_BasicAdapter(t *testing.T) {
+func TestRunAnalysis_HeuristicTransformer(t *testing.T) {
 	tmpDir := t.TempDir()
 	st := store.NewMemStore()
 
@@ -42,7 +42,6 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 		t.Fatalf("create job: %v", err)
 	}
 
-	// Create test cases
 	caseInfos := []struct {
 		name string
 		err  string
@@ -53,7 +52,6 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 		{"Automation Test", "automation: test setup failed", "ginkgo internal error"},
 	}
 
-	adapter := rca.NewBasicAdapter(st, []string{"linuxptp-daemon", "cloud-event-proxy"})
 	var storeCases []*store.Case
 
 	for i, ci := range caseInfos {
@@ -71,19 +69,10 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 		}
 		c.ID = caseID
 		storeCases = append(storeCases, c)
-
-		// Register with the adapter using the label RunAnalysis will use
-		label := fmt.Sprintf("A%d", i+1)
-		adapter.RegisterCase(label, &rca.BasicCaseInfo{
-			Name:         ci.name,
-			ErrorMessage: ci.err,
-			LogSnippet:   ci.log,
-			StoreCaseID:  caseID,
-		})
 	}
 
 	cfg := rca.AnalysisConfig{
-		Adapter:    adapter,
+		Adapters:   []*framework.Adapter{rca.HeuristicAdapter(st, []string{"linuxptp-daemon", "cloud-event-proxy"})},
 		Thresholds: rca.DefaultThresholds(),
 		BasePath:   tmpDir,
 	}
@@ -99,15 +88,16 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 	if len(report.CaseResults) != 3 {
 		t.Errorf("expected 3 case results, got %d", len(report.CaseResults))
 	}
+	if report.Transformer != "rca-heuristic" {
+		t.Errorf("expected transformer name %q, got %q", "rca-heuristic", report.Transformer)
+	}
 
-	// Each case should have a non-empty path
 	for _, cr := range report.CaseResults {
 		if len(cr.Path) == 0 {
 			t.Errorf("case %s has empty path", cr.CaseLabel)
 		}
 	}
 
-	// The third case (automation) should be skipped
 	if len(report.CaseResults) >= 3 {
 		cr := report.CaseResults[2]
 		if !cr.Skip {
@@ -119,10 +109,9 @@ func TestRunAnalysis_BasicAdapter(t *testing.T) {
 func TestRunAnalysis_EmptyCases(t *testing.T) {
 	tmpDir := t.TempDir()
 	st := store.NewMemStore()
-	adapter := rca.NewBasicAdapter(st, nil)
 
 	cfg := rca.AnalysisConfig{
-		Adapter:    adapter,
+		Adapters:   []*framework.Adapter{rca.HeuristicAdapter(st, nil)},
 		Thresholds: rca.DefaultThresholds(),
 		BasePath:   tmpDir,
 	}
@@ -141,8 +130,8 @@ func TestRunAnalysis_EmptyCases(t *testing.T) {
 
 func TestFormatAnalysisReport_Structure(t *testing.T) {
 	report := &rca.AnalysisReport{
-		LaunchName: "test-launch",
-		Adapter:    "stub",
+		LaunchName:  "test-launch",
+		Transformer: "stub",
 		TotalCases: 2,
 		CaseResults: []rca.AnalysisCaseResult{
 			{

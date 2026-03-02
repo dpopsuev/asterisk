@@ -15,7 +15,7 @@ quick_wins:
     prereqs: [QW-1]
 
   - id: QW-3
-    name: Tune BasicAdapter keyword maps
+    name: Tune heuristic keyword maps
     description: >-
       Analyze misclassification patterns from E2E run. Adjust
       keyword-to-component mappings.

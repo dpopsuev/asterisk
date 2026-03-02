@@ -9,7 +9,7 @@ import (
 )
 
 func TestBuildCostBill_NilTokens(t *testing.T) {
-	report := &CalibrationReport{CalibrationReport: cal.CalibrationReport{Scenario: "test", Adapter: "stub"}}
+	report := &CalibrationReport{CalibrationReport: cal.CalibrationReport{Scenario: "test", Transformer: "stub"}}
 	bill := BuildCostBill(report)
 	if bill != nil {
 		t.Fatal("expected nil bill when Tokens is nil")
@@ -19,8 +19,8 @@ func TestBuildCostBill_NilTokens(t *testing.T) {
 func TestBuildCostBill_Basic(t *testing.T) {
 	report := &CalibrationReport{
 		CalibrationReport: cal.CalibrationReport{
-			Scenario: "ptp-real-ingest",
-			Adapter:  "llm",
+			Scenario:    "ptp-real-ingest",
+			Transformer: "llm",
 			Tokens: &dispatch.TokenSummary{
 				TotalPromptTokens:   100_000,
 				TotalArtifactTokens: 5_000,
@@ -91,8 +91,8 @@ func TestFormatCostBill_Nil(t *testing.T) {
 func TestFormatCostBill_Markdown(t *testing.T) {
 	report := &CalibrationReport{
 		CalibrationReport: cal.CalibrationReport{
-			Scenario: "ptp-real-ingest",
-			Adapter:  "llm",
+			Scenario:    "ptp-real-ingest",
+			Transformer: "llm",
 			Tokens: &dispatch.TokenSummary{
 				TotalPromptTokens:   100_000,
 				TotalArtifactTokens: 5_000,

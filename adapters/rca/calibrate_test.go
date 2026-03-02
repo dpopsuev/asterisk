@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	cal "github.com/dpopsuev/origami/calibrate"
+	framework "github.com/dpopsuev/origami"
 
 	"asterisk/adapters/calibration/scenarios"
 	"asterisk/adapters/rca"
@@ -35,15 +36,17 @@ func TestStubCalibration_AllMetricsPass(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := rca.NewStubAdapter(scenario)
+	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-		BasePath:   tmpDir,
-		ScoreCard:  loadTestScoreCard(t),
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  rca.DefaultThresholds(),
+		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := rca.RunCalibration(context.Background(), cfg)
@@ -111,15 +114,17 @@ func TestStubCalibration_MultiRun(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := rca.NewStubAdapter(scenario)
+	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       3,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-		BasePath:   tmpDir,
-		ScoreCard:  loadTestScoreCard(t),
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        3,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  rca.DefaultThresholds(),
+		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := rca.RunCalibration(context.Background(), cfg)
@@ -146,8 +151,9 @@ func TestFormatReport(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := rca.NewStubAdapter(scenario)
-	cfg := rca.DefaultRunConfig(scenario, adapter)
+	stub := rca.NewStubTransformer(scenario)
+	cfg := rca.DefaultRunConfig(scenario, []*framework.Adapter{rca.TransformerAdapter(stub)}, "stub")
+	cfg.IDMapper = stub
 	cfg.Thresholds = rca.DefaultThresholds()
 	cfg.BasePath = tmpDir
 	cfg.ScoreCard = loadTestScoreCard(t)
@@ -189,15 +195,17 @@ func TestStubCalibration_DaemonMock(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "daemon-mock")
-	adapter := rca.NewStubAdapter(scenario)
+	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-		BasePath:   tmpDir,
-		ScoreCard:  loadTestScoreCard(t),
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  rca.DefaultThresholds(),
+		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := rca.RunCalibration(context.Background(), cfg)
@@ -240,15 +248,17 @@ func TestStubCalibration_PTPReal(t *testing.T) {
 	// basePath is passed via RunConfig.BasePath below
 
 	scenario := mustLoadScenario(t, "ptp-real")
-	adapter := rca.NewStubAdapter(scenario)
+	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-		BasePath:   tmpDir,
-		ScoreCard:  loadTestScoreCard(t),
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  rca.DefaultThresholds(),
+		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := rca.RunCalibration(context.Background(), cfg)

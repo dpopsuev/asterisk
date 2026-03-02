@@ -8,27 +8,6 @@ import (
 	"github.com/dpopsuev/origami/knowledge"
 )
 
-// BuildParams constructs the full TemplateParams from available data.
-// Delegates to InjectAllParams + ParamsFromContext internally. Retained
-// for callers (adapter_llm.go) that don't operate inside a walker context.
-func BuildParams(
-	st store.Store,
-	caseData *store.Case,
-	env *rp.Envelope,
-	catalog *knowledge.KnowledgeSourceCatalog,
-	step CircuitStep,
-	caseDir string,
-) *TemplateParams {
-	ctx := map[string]any{
-		KeyCaseData: caseData,
-		KeyEnvelope: env,
-	}
-	InjectAllParams(st, caseData, env, catalog, step, caseDir, ctx)
-	params := ParamsFromContext(ctx)
-	params.StepName = string(step)
-	return params
-}
-
 func buildWorkspaceParams(env *rp.Envelope, catalog *knowledge.KnowledgeSourceCatalog) *WorkspaceParams {
 	wsp := &WorkspaceParams{}
 

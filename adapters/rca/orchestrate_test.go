@@ -1,6 +1,7 @@
 package rca
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -92,245 +93,188 @@ func TestArtifactFilename(t *testing.T) {
 	}
 }
 
-// --- State management tests ---
-
-func TestStateInitAndAdvance(t *testing.T) {
-	state := InitState(10, 1)
-	if state.CurrentStep != StepInit || state.Status != "running" {
-		t.Fatalf("InitState: %+v", state)
-	}
-
-	AdvanceStep(state, StepF0Recall, "INIT", "start")
-	if state.CurrentStep != StepF0Recall || len(state.History) != 1 {
-		t.Fatalf("after advance to F0: %+v", state)
-	}
-	if state.History[0].Step != StepInit {
-		t.Errorf("history[0].Step: %s", state.History[0].Step)
-	}
-
-	AdvanceStep(state, StepDone, "H12", "approve")
-	if state.Status != "done" {
-		t.Errorf("status after done: %q", state.Status)
-	}
-}
-
-func TestStatePersistence(t *testing.T) {
-	dir := t.TempDir()
-	caseDir := filepath.Join(dir, "1", "10")
-	if err := os.MkdirAll(caseDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-
-	state := InitState(10, 1)
-	AdvanceStep(state, StepF0Recall, "INIT", "start")
-	state.LoopCounts["investigate"] = 1
-
-	if err := SaveState(caseDir, state); err != nil {
-		t.Fatalf("SaveState: %v", err)
-	}
-
-	loaded, err := LoadState(caseDir)
-	if err != nil {
-		t.Fatalf("LoadState: %v", err)
-	}
-	if loaded == nil {
-		t.Fatal("LoadState returned nil")
-	}
-	if loaded.CurrentStep != StepF0Recall || loaded.CaseID != 10 || loaded.SuiteID != 1 {
-		t.Errorf("loaded state mismatch: %+v", loaded)
-	}
-	if loaded.LoopCounts["investigate"] != 1 {
-		t.Errorf("loaded loop count: %d", loaded.LoopCounts["investigate"])
-	}
-
-	// LoadState on empty dir = nil
-	emptyDir := filepath.Join(dir, "empty")
-	if err := os.MkdirAll(emptyDir, 0755); err != nil {
-		t.Fatal(err)
-	}
-	empty, err := LoadState(emptyDir)
-	if err != nil {
-		t.Fatalf("LoadState empty: %v", err)
-	}
-	if empty != nil {
-		t.Errorf("expected nil for empty dir, got %+v", empty)
-	}
-}
-
-func TestLoopCounting(t *testing.T) {
-	state := InitState(10, 1)
-
-	// Not exhausted initially
-	if IsLoopExhausted(state, "investigate", 2) {
-		t.Error("should not be exhausted at 0")
-	}
-
-	IncrementLoop(state, "investigate")
-	if IsLoopExhausted(state, "investigate", 2) {
-		t.Error("should not be exhausted at 1")
-	}
-
-	IncrementLoop(state, "investigate")
-	if !IsLoopExhausted(state, "investigate", 2) {
-		t.Error("should be exhausted at 2")
-	}
-}
-
 // --- Graph-edge evaluation tests ---
+//
+// These validate the YAML expression edges in circuit_rca.yaml using
+// framework APIs directly (no domain wrappers).
 
-// buildTestRunner creates a shared runner for all edge evaluation tests.
+type noopTransformer struct{}
+
+func (noopTransformer) Name() string { return "noop" }
+func (noopTransformer) Transform(_ context.Context, _ *framework.TransformerContext) (any, error) {
+	return nil, nil
+}
+
 func buildTestRunner(t *testing.T) *framework.Runner {
 	t.Helper()
-	runner, err := BuildRunner(DefaultThresholds())
+	runner, err := BuildRunner(DefaultThresholds(), TransformerAdapter(&noopTransformer{}))
 	if err != nil {
 		t.Fatalf("BuildRunner: %v", err)
 	}
 	return runner
 }
 
+// evaluateEdge finds the first matching edge from nodeName and returns
+// (target node, edge ID). Returns ("", "") if no edge matches.
+func evaluateEdge(runner *framework.Runner, nodeName string, art framework.Artifact, ws *framework.WalkerState) (string, string) {
+	for _, e := range runner.Graph.EdgesFrom(nodeName) {
+		if tr := e.Evaluate(art, ws); tr != nil {
+			return tr.NextNode, e.ID()
+		}
+	}
+	return "", ""
+}
+
 func TestEdge_RecallHit(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF0Recall, &RecallResult{Match: true, PriorRCAID: 5, Confidence: 0.9})
+	ws := framework.NewWalkerState("10")
 
-	recall := &RecallResult{Match: true, PriorRCAID: 5, Confidence: 0.9}
-	action, edgeID := EvaluateGraphEdge(runner, StepF0Recall, recall, state)
-	if action.NextStep != StepF5Review || edgeID != "H1" {
-		t.Errorf("recall-hit: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "recall", art, ws)
+	if target != "review" || edgeID != "H1" {
+		t.Errorf("recall-hit: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_RecallMiss(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF0Recall, &RecallResult{Match: false, Confidence: 0})
+	ws := framework.NewWalkerState("10")
 
-	recall := &RecallResult{Match: false, Confidence: 0}
-	action, edgeID := EvaluateGraphEdge(runner, StepF0Recall, recall, state)
-	if action.NextStep != StepF1Triage || edgeID != "H2" {
-		t.Errorf("recall-miss: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "recall", art, ws)
+	if target != "triage" || edgeID != "H2" {
+		t.Errorf("recall-miss: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_RecallUncertain(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF0Recall, &RecallResult{Match: true, PriorRCAID: 5, Confidence: 0.6})
+	ws := framework.NewWalkerState("10")
 
-	recall := &RecallResult{Match: true, PriorRCAID: 5, Confidence: 0.6}
-	action, edgeID := EvaluateGraphEdge(runner, StepF0Recall, recall, state)
-	if action.NextStep != StepF1Triage || edgeID != "H3" {
-		t.Errorf("recall-uncertain: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "recall", art, ws)
+	if target != "triage" || edgeID != "H3" {
+		t.Errorf("recall-uncertain: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_TriageSkipInfra(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF1Triage, &TriageResult{SymptomCategory: "infra", SkipInvestigation: true})
+	ws := framework.NewWalkerState("10")
 
-	triage := &TriageResult{SymptomCategory: "infra", SkipInvestigation: true}
-	action, edgeID := EvaluateGraphEdge(runner, StepF1Triage, triage, state)
-	if action.NextStep != StepF5Review || edgeID != "H4" {
-		t.Errorf("triage-skip-infra: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "triage", art, ws)
+	if target != "review" || edgeID != "H4" {
+		t.Errorf("triage-skip-infra: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_TriageInvestigate(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF1Triage, &TriageResult{
+		SymptomCategory: "assertion", SkipInvestigation: false, CandidateRepos: []string{"repo-a", "repo-b"},
+	})
+	ws := framework.NewWalkerState("10")
 
-	triage := &TriageResult{SymptomCategory: "assertion", SkipInvestigation: false, CandidateRepos: []string{"repo-a", "repo-b"}}
-	action, edgeID := EvaluateGraphEdge(runner, StepF1Triage, triage, state)
-	if action.NextStep != StepF2Resolve || edgeID != "H6" {
-		t.Errorf("triage-investigate: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "triage", art, ws)
+	if target != "resolve" || edgeID != "H6" {
+		t.Errorf("triage-investigate: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_TriageSingleRepo(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF1Triage, &TriageResult{
+		SymptomCategory: "assertion", SkipInvestigation: false, CandidateRepos: []string{"repo-a"},
+	})
+	ws := framework.NewWalkerState("10")
 
-	triage := &TriageResult{SymptomCategory: "assertion", SkipInvestigation: false, CandidateRepos: []string{"repo-a"}}
-	action, edgeID := EvaluateGraphEdge(runner, StepF1Triage, triage, state)
-	if action.NextStep != StepF3Invest || edgeID != "H7" {
-		t.Errorf("triage-single-repo: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "triage", art, ws)
+	if target != "investigate" || edgeID != "H7" {
+		t.Errorf("triage-single-repo: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_InvestigateConverged(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF3Invest, &InvestigateArtifact{ConvergenceScore: 0.85})
+	ws := framework.NewWalkerState("10")
 
-	artifact := &InvestigateArtifact{ConvergenceScore: 0.85}
-	action, edgeID := EvaluateGraphEdge(runner, StepF3Invest, artifact, state)
-	if action.NextStep != StepF4Correlate || edgeID != "H9" {
-		t.Errorf("investigate-converged: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "investigate", art, ws)
+	if target != "correlate" || edgeID != "H9" {
+		t.Errorf("investigate-converged: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_InvestigateLowLoop(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF3Invest, &InvestigateArtifact{
+		ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"},
+	})
+	ws := framework.NewWalkerState("10")
 
-	artifact := &InvestigateArtifact{ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"}}
-	action, edgeID := EvaluateGraphEdge(runner, StepF3Invest, artifact, state)
-	if action.NextStep != StepF2Resolve || edgeID != "H10" {
-		t.Errorf("investigate-low: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "investigate", art, ws)
+	if target != "resolve" || edgeID != "H10" {
+		t.Errorf("investigate-low: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_InvestigateExhausted(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
-	state.LoopCounts["investigate"] = 1 // exhausted (MaxInvestigateLoops=1)
+	art := WrapArtifact(StepF3Invest, &InvestigateArtifact{
+		ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"},
+	})
+	ws := framework.NewWalkerState("10")
+	ws.LoopCounts["investigate"] = 1
 
-	artifact := &InvestigateArtifact{ConvergenceScore: 0.40, EvidenceRefs: []string{"some-evidence"}}
-	action, edgeID := EvaluateGraphEdge(runner, StepF3Invest, artifact, state)
-	if action.NextStep != StepF5Review || edgeID != "H11" {
-		t.Errorf("investigate-exhausted: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "investigate", art, ws)
+	if target != "review" || edgeID != "H11" {
+		t.Errorf("investigate-exhausted: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_ReviewApprove(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF5Review, &ReviewDecision{Decision: "approve"})
+	ws := framework.NewWalkerState("10")
 
-	review := &ReviewDecision{Decision: "approve"}
-	action, edgeID := EvaluateGraphEdge(runner, StepF5Review, review, state)
-	if action.NextStep != StepF6Report || edgeID != "H12" {
-		t.Errorf("review-approve: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "review", art, ws)
+	if target != "report" || edgeID != "H12" {
+		t.Errorf("review-approve: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_ReviewReassess(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	art := WrapArtifact(StepF5Review, &ReviewDecision{Decision: "reassess", LoopTarget: StepF3Invest})
+	ws := framework.NewWalkerState("10")
 
-	review := &ReviewDecision{Decision: "reassess", LoopTarget: StepF3Invest}
-	action, edgeID := EvaluateGraphEdge(runner, StepF5Review, review, state)
-	// YAML H13 always loops back to resolve (which leads to investigate)
-	if action.NextStep != StepF2Resolve || edgeID != "H13" {
-		t.Errorf("review-reassess: got step=%s edge=%s", action.NextStep, edgeID)
+	target, edgeID := evaluateEdge(runner, "review", art, ws)
+	if target != "resolve" || edgeID != "H13" {
+		t.Errorf("review-reassess: got target=%s edge=%s", target, edgeID)
 	}
 }
 
 func TestEdge_ReviewOverturn(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
-
-	review := &ReviewDecision{
+	art := WrapArtifact(StepF5Review, &ReviewDecision{
 		Decision:      "overturn",
 		HumanOverride: &HumanOverride{DefectType: "pb001", RCAMessage: "human says this"},
-	}
-	action, edgeID := EvaluateGraphEdge(runner, StepF5Review, review, state)
-	if action.NextStep != StepF6Report || edgeID != "H14" {
-		t.Errorf("review-overturn: got step=%s edge=%s", action.NextStep, edgeID)
+	})
+	ws := framework.NewWalkerState("10")
+
+	target, edgeID := evaluateEdge(runner, "review", art, ws)
+	if target != "report" || edgeID != "H14" {
+		t.Errorf("review-overturn: got target=%s edge=%s", target, edgeID)
 	}
 }
 
-func TestEdge_DefaultFallback(t *testing.T) {
+func TestEdge_ReportToDone(t *testing.T) {
 	runner := buildTestRunner(t)
-	state := InitState(10, 1)
+	ws := framework.NewWalkerState("10")
 
-	action, edgeID := EvaluateGraphEdge(runner, StepF6Report, nil, state)
-	if action.NextStep != StepDone || edgeID != "FALLBACK" {
-		t.Errorf("f6-fallback: got step=%s edge=%s", action.NextStep, edgeID)
+	target, _ := evaluateEdge(runner, "report", nil, ws)
+	if target != "DONE" {
+		t.Errorf("report->done: got target=%s", target)
 	}
 }

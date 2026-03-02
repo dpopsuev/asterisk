@@ -7,60 +7,34 @@ import (
 	"asterisk/adapters/store"
 
 	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/adapters/rp"
+	"github.com/dpopsuev/origami/knowledge"
 )
 
 // WalkConfig holds configuration for a walk-based RCA run.
 type WalkConfig struct {
 	Store      store.Store
 	CaseData   *store.Case
-	Adapter    ModelAdapter
+	Envelope   *rp.Envelope
+	Catalog    *knowledge.KnowledgeSourceCatalog
+	CaseDir    string
 	CaseLabel  string
 	Thresholds Thresholds
-	Hooks      framework.HookRegistry
+	Adapters   []*framework.Adapter
 }
 
 // WalkResult captures the outcome of a walk-based RCA.
 type WalkResult struct {
 	Path          []string
-	Artifact      framework.Artifact
 	StepArtifacts map[string]framework.Artifact
+	State         *framework.WalkerState
 }
 
-// WalkCase runs a single case through the RCA circuit using a real graph walk
-// with processing nodes instead of the procedural runner loop.
+// WalkCase runs a single case through the RCA circuit using BatchWalk.
 func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
-	nodes := NodeRegistry()
-
 	th := cfg.Thresholds
 	if th == (Thresholds{}) {
 		th = DefaultThresholds()
-	}
-
-	runner, err := BuildRunnerWith(th, nodes, cfg.Hooks)
-	if err != nil {
-		return nil, fmt.Errorf("build runner: %w", err)
-	}
-
-	walker := framework.NewProcessWalker(cfg.CaseLabel)
-	walker.State().Context[KeyAdapter] = cfg.Adapter
-	walker.State().Context[KeyCaseLabel] = cfg.CaseLabel
-
-	var path []string
-	var lastArtifact framework.Artifact
-	stepArtifacts := map[string]framework.Artifact{}
-
-	observer := framework.WalkObserverFunc(func(event framework.WalkEvent) {
-		if event.Type == framework.EventNodeEnter {
-			path = append(path, event.Node)
-		}
-		if event.Type == framework.EventNodeExit && event.Artifact != nil {
-			lastArtifact = event.Artifact
-			stepArtifacts[event.Node] = event.Artifact
-		}
-	})
-
-	if dg, ok := runner.Graph.(*framework.DefaultGraph); ok {
-		dg.SetObserver(observer)
 	}
 
 	def, err := AsteriskCircuitDef(th)
@@ -68,14 +42,29 @@ func WalkCase(ctx context.Context, cfg WalkConfig) (*WalkResult, error) {
 		return nil, fmt.Errorf("load circuit def: %w", err)
 	}
 
-	walkErr := runner.Walk(ctx, walker, def.Start)
-	if walkErr != nil {
-		return nil, fmt.Errorf("walk: %w", walkErr)
+	results := framework.BatchWalk(ctx, framework.BatchWalkConfig{
+		Def:    def,
+		Shared: framework.GraphRegistries{},
+		Cases: []framework.BatchCase{{
+			ID: cfg.CaseLabel,
+			Context: map[string]any{
+				KeyCaseData:  cfg.CaseData,
+				KeyEnvelope:  cfg.Envelope,
+				KeyCaseDir:   cfg.CaseDir,
+				KeyCaseLabel: cfg.CaseLabel,
+			},
+			Adapters: cfg.Adapters,
+		}},
+	})
+
+	r := results[0]
+	if r.Error != nil {
+		return nil, r.Error
 	}
 
 	return &WalkResult{
-		Path:          path,
-		Artifact:      lastArtifact,
-		StepArtifacts: stepArtifacts,
+		Path:          r.Path,
+		StepArtifacts: r.StepArtifacts,
+		State:         r.State,
 	}, nil
 }

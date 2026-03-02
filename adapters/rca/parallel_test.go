@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	framework "github.com/dpopsuev/origami"
+
 	"asterisk/adapters/rca"
 )
 
@@ -11,11 +13,14 @@ func TestParallel_ResultsMatch(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	scenario := mustLoadScenario(t, "ptp-mock")
+	stub := rca.NewStubTransformer(scenario)
 
 	serialCfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    rca.NewStubAdapter(scenario),
-		Runs:       1,
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: rca.DefaultThresholds(),
 		Parallel:   1,
@@ -28,9 +33,11 @@ func TestParallel_ResultsMatch(t *testing.T) {
 	}
 
 	parallelCfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    rca.NewStubAdapter(scenario),
-		Runs:       1,
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: rca.DefaultThresholds(),
 		Parallel:   4,
@@ -70,10 +77,13 @@ func TestParallel_NoRace(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	scenario := mustLoadScenario(t, "ptp-mock")
+	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    rca.NewStubAdapter(scenario),
-		Runs:       1,
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: rca.DefaultThresholds(),
 		Parallel:   4,
@@ -95,10 +105,13 @@ func TestParallel_AllCasesComplete(t *testing.T) {
 	tmpDir := t.TempDir()
 
 	scenario := mustLoadScenario(t, "ptp-mock")
+	stub := rca.NewStubTransformer(scenario)
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    rca.NewStubAdapter(scenario),
-		Runs:       1,
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
 		PromptDir:  ".cursor/prompts",
 		Thresholds: rca.DefaultThresholds(),
 		Parallel:   4,

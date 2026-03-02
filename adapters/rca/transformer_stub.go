@@ -1,122 +1,114 @@
 package rca
 
 import (
-	"encoding/json"
+	"context"
 	"fmt"
 	"sync"
 
 	framework "github.com/dpopsuev/origami"
 )
 
-// StubAdapter returns pre-authored "ideal" responses for each case+step.
-// Deterministic: validates circuit/heuristic/metric machinery without LLM variance.
-// Thread-safe: maps are protected by a mutex for parallel mode.
-type StubAdapter struct {
+type stubTransformer struct {
 	scenario     *Scenario
 	mu           sync.RWMutex
 	rcaIDMap     map[string]int64
 	symptomIDMap map[string]int64
 }
 
-func NewStubAdapter(scenario *Scenario) *StubAdapter {
-	return &StubAdapter{
+func NewStubTransformer(scenario *Scenario) *stubTransformer {
+	return &stubTransformer{
 		scenario:     scenario,
 		rcaIDMap:     make(map[string]int64),
 		symptomIDMap: make(map[string]int64),
 	}
 }
 
-func (a *StubAdapter) Name() string { return "stub" }
+func (t *stubTransformer) Name() string { return "stub" }
 
-func (a *StubAdapter) Identify() (framework.ModelIdentity, error) {
-	return framework.ModelIdentity{ModelName: "stub", Provider: "asterisk"}, nil
+func (t *stubTransformer) SetRCAID(gtID string, storeID int64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.rcaIDMap[gtID] = storeID
 }
 
-func (a *StubAdapter) SetRCAID(gtID string, storeID int64) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	a.rcaIDMap[gtID] = storeID
+func (t *stubTransformer) SetSymptomID(gtID string, storeID int64) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	t.symptomIDMap[gtID] = storeID
 }
 
-func (a *StubAdapter) SetSymptomID(gtID string, storeID int64) {
-	a.mu.Lock()
-	defer a.mu.Unlock()
-	a.symptomIDMap[gtID] = storeID
+func (t *stubTransformer) getRCAID(gtID string) int64 {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.rcaIDMap[gtID]
 }
 
-func (a *StubAdapter) getRCAID(gtID string) int64 {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	return a.rcaIDMap[gtID]
+func (t *stubTransformer) getSymptomID(gtID string) int64 {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+	return t.symptomIDMap[gtID]
 }
 
-func (a *StubAdapter) getSymptomID(gtID string) int64 {
-	a.mu.RLock()
-	defer a.mu.RUnlock()
-	return a.symptomIDMap[gtID]
-}
+func (t *stubTransformer) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+	step := NodeNameToStep(tc.NodeName)
+	if step == "" {
+		return nil, fmt.Errorf("stub transformer: unknown node %q", tc.NodeName)
+	}
 
-func (a *StubAdapter) SendPrompt(caseID string, step string, _ string) (json.RawMessage, error) {
-	gtCase := a.findCase(caseID)
+	caseID := tc.WalkerState.ID
+	gtCase := t.findCase(caseID)
 	if gtCase == nil {
-		return nil, fmt.Errorf("stub: unknown case %q", caseID)
+		return nil, fmt.Errorf("stub transformer: unknown case %q", caseID)
 	}
 
-	var artifact any
-	switch CircuitStep(step) {
+	switch step {
 	case StepF0Recall:
-		artifact = a.buildRecall(gtCase)
+		return t.buildRecall(gtCase), nil
 	case StepF1Triage:
-		artifact = a.buildTriage(gtCase)
+		return t.buildTriage(gtCase), nil
 	case StepF2Resolve:
-		artifact = a.buildResolve(gtCase)
+		return t.buildResolve(gtCase), nil
 	case StepF3Invest:
-		artifact = a.buildInvestigate(gtCase)
+		return t.buildInvestigate(gtCase), nil
 	case StepF4Correlate:
-		artifact = a.buildCorrelate(gtCase)
+		return t.buildCorrelate(gtCase), nil
 	case StepF5Review:
-		artifact = a.buildReview(gtCase)
+		return t.buildReview(gtCase), nil
 	case StepF6Report:
-		artifact = a.buildReport(gtCase)
+		return t.buildReport(gtCase), nil
 	default:
-		return nil, fmt.Errorf("stub: no response for step %s", step)
+		return nil, fmt.Errorf("stub transformer: no response for step %s", step)
 	}
-
-	data, err := json.Marshal(artifact)
-	if err != nil {
-		return nil, fmt.Errorf("stub: marshal: %w", err)
-	}
-	return data, nil
 }
 
-func (a *StubAdapter) findCase(id string) *GroundTruthCase {
-	for i := range a.scenario.Cases {
-		if a.scenario.Cases[i].ID == id {
-			return &a.scenario.Cases[i]
+func (t *stubTransformer) findCase(id string) *GroundTruthCase {
+	for i := range t.scenario.Cases {
+		if t.scenario.Cases[i].ID == id {
+			return &t.scenario.Cases[i]
 		}
 	}
 	return nil
 }
 
-func (a *StubAdapter) findRCA(id string) *GroundTruthRCA {
-	for i := range a.scenario.RCAs {
-		if a.scenario.RCAs[i].ID == id {
-			return &a.scenario.RCAs[i]
+func (t *stubTransformer) findRCA(id string) *GroundTruthRCA {
+	for i := range t.scenario.RCAs {
+		if t.scenario.RCAs[i].ID == id {
+			return &t.scenario.RCAs[i]
 		}
 	}
 	return nil
 }
 
-func (a *StubAdapter) buildRecall(c *GroundTruthCase) *RecallResult {
+func (t *stubTransformer) buildRecall(c *GroundTruthCase) *RecallResult {
 	if c.ExpectedRecall != nil {
 		r := &RecallResult{Match: c.ExpectedRecall.Match, Confidence: c.ExpectedRecall.Confidence}
 		if c.ExpectedRecall.Match {
 			r.Reasoning = fmt.Sprintf("Recalled prior RCA for symptom matching case %s", c.ID)
 			if c.RCAID != "" {
-				r.PriorRCAID = a.getRCAID(c.RCAID)
+				r.PriorRCAID = t.getRCAID(c.RCAID)
 			}
 			if c.SymptomID != "" {
-				r.SymptomID = a.getSymptomID(c.SymptomID)
+				r.SymptomID = t.getSymptomID(c.SymptomID)
 			}
 		} else {
 			r.Reasoning = "No prior RCA found matching this failure pattern"
@@ -126,7 +118,7 @@ func (a *StubAdapter) buildRecall(c *GroundTruthCase) *RecallResult {
 	return &RecallResult{Match: false, Confidence: 0.0, Reasoning: "no recall data"}
 }
 
-func (a *StubAdapter) buildTriage(c *GroundTruthCase) *TriageResult {
+func (t *stubTransformer) buildTriage(c *GroundTruthCase) *TriageResult {
 	if c.ExpectedTriage != nil {
 		return &TriageResult{
 			SymptomCategory:      c.ExpectedTriage.SymptomCategory,
@@ -140,7 +132,7 @@ func (a *StubAdapter) buildTriage(c *GroundTruthCase) *TriageResult {
 	return &TriageResult{SymptomCategory: "unknown"}
 }
 
-func (a *StubAdapter) buildResolve(c *GroundTruthCase) *ResolveResult {
+func (t *stubTransformer) buildResolve(c *GroundTruthCase) *ResolveResult {
 	if c.ExpectedResolve != nil {
 		var repos []RepoSelection
 		for _, r := range c.ExpectedResolve.SelectedRepos {
@@ -151,7 +143,7 @@ func (a *StubAdapter) buildResolve(c *GroundTruthCase) *ResolveResult {
 	return &ResolveResult{}
 }
 
-func (a *StubAdapter) buildInvestigate(c *GroundTruthCase) *InvestigateArtifact {
+func (t *stubTransformer) buildInvestigate(c *GroundTruthCase) *InvestigateArtifact {
 	if c.ExpectedInvest != nil {
 		return &InvestigateArtifact{
 			RCAMessage:       c.ExpectedInvest.RCAMessage,
@@ -164,7 +156,7 @@ func (a *StubAdapter) buildInvestigate(c *GroundTruthCase) *InvestigateArtifact 
 	return &InvestigateArtifact{ConvergenceScore: 0.5}
 }
 
-func (a *StubAdapter) buildCorrelate(c *GroundTruthCase) *CorrelateResult {
+func (t *stubTransformer) buildCorrelate(c *GroundTruthCase) *CorrelateResult {
 	if c.ExpectedCorrelate != nil {
 		r := &CorrelateResult{
 			IsDuplicate:       c.ExpectedCorrelate.IsDuplicate,
@@ -172,22 +164,22 @@ func (a *StubAdapter) buildCorrelate(c *GroundTruthCase) *CorrelateResult {
 			CrossVersionMatch: c.ExpectedCorrelate.CrossVersionMatch,
 		}
 		if c.ExpectedCorrelate.IsDuplicate && c.RCAID != "" {
-			r.LinkedRCAID = a.getRCAID(c.RCAID)
+			r.LinkedRCAID = t.getRCAID(c.RCAID)
 		}
 		return r
 	}
 	return &CorrelateResult{IsDuplicate: false}
 }
 
-func (a *StubAdapter) buildReview(c *GroundTruthCase) *ReviewDecision {
+func (t *stubTransformer) buildReview(c *GroundTruthCase) *ReviewDecision {
 	if c.ExpectedReview != nil {
 		return &ReviewDecision{Decision: c.ExpectedReview.Decision}
 	}
 	return &ReviewDecision{Decision: "approve"}
 }
 
-func (a *StubAdapter) buildReport(c *GroundTruthCase) map[string]any {
-	rcaDef := a.findRCA(c.RCAID)
+func (t *stubTransformer) buildReport(c *GroundTruthCase) map[string]any {
+	rcaDef := t.findRCA(c.RCAID)
 	report := map[string]any{"case_id": c.ID, "test_name": c.TestName, "defect_type": "nd001"}
 	if rcaDef != nil {
 		report["defect_type"] = rcaDef.DefectType

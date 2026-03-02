@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
+	framework "github.com/dpopsuev/origami"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 
@@ -105,27 +106,32 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 		debugLogger.Info("agent-debug enabled: dispatcher and adapter operations will be traced to stderr")
 	}
 
-	var adapter rca.ModelAdapter
+	var adapters []*framework.Adapter
+	var transformerLabel string
+	var idMapper rca.IDMappable
+	var routingRecorder *rca.RoutingRecorder
 	switch calibrateFlags.adapter {
 	case "stub":
-		adapter = rca.NewStubAdapter(scenario)
+		stub := rca.NewStubTransformer(scenario)
+		var t framework.Transformer = stub
+		if calibrateFlags.routingLog != "" {
+			routingRecorder = rca.NewRoutingRecorder(t, adapterColor(calibrateFlags.adapter))
+			t = routingRecorder
+		}
+		adapters = []*framework.Adapter{rca.TransformerAdapter(t)}
+		transformerLabel = "stub"
+		idMapper = stub
 	case "basic":
 		basicSt, err := store.Open(":memory:")
 		if err != nil {
-			return fmt.Errorf("basic adapter: open store: %w", err)
+			return fmt.Errorf("basic transformer: open store: %w", err)
 		}
 		var repoNames []string
 		for _, r := range scenario.Workspace.Repos {
 			repoNames = append(repoNames, r.Name)
 		}
-		ba := rca.NewBasicAdapter(basicSt, repoNames)
-		for _, c := range scenario.Cases {
-			ba.RegisterCase(c.ID, &rca.BasicCaseInfo{
-				Name:         c.TestName,
-				ErrorMessage: c.ErrorMessage,
-			})
-		}
-		adapter = ba
+		adapters = []*framework.Adapter{rca.HeuristicAdapter(basicSt, repoNames)}
+		transformerLabel = "basic"
 	case "llm":
 		dispatcher, err := buildDispatcher(DispatchOpts{
 			Mode:      calibrateFlags.dispatchMode,
@@ -137,15 +143,15 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 			return err
 		}
 		trackedDispatcher := dispatch.NewTokenTrackingDispatcher(dispatcher, tokenTracker)
-		adapter = rca.NewLLMAdapter(calibrateFlags.promptDir, rca.WithDispatcher(trackedDispatcher), rca.WithBasePath(calibDir))
+		var t framework.Transformer = rca.NewRCATransformer(trackedDispatcher, calibrateFlags.promptDir, rca.WithRCABasePath(calibDir))
+		if calibrateFlags.routingLog != "" {
+			routingRecorder = rca.NewRoutingRecorder(t, adapterColor(calibrateFlags.adapter))
+			t = routingRecorder
+		}
+		adapters = []*framework.Adapter{rca.TransformerAdapter(t)}
+		transformerLabel = "llm"
 	default:
 		return fmt.Errorf("unknown adapter: %s (available: stub, basic, llm)", calibrateFlags.adapter)
-	}
-
-	var routingRecorder *rca.RoutingRecorder
-	if calibrateFlags.routingLog != "" {
-		routingRecorder = rca.NewRoutingRecorder(adapter, adapterColor(calibrateFlags.adapter))
-		adapter = routingRecorder
 	}
 
 	var basePath string
@@ -205,7 +211,9 @@ func runCalibrate(cmd *cobra.Command, _ []string) error {
 
 	cfg := rca.RunConfig{
 		Scenario:     scenario,
-		Adapter:      adapter,
+		Adapters:     adapters,
+		TransformerName: transformerLabel,
+		IDMapper:     idMapper,
 		Runs:         calibrateFlags.runs,
 		PromptDir:    calibrateFlags.promptDir,
 		Thresholds:   rca.DefaultThresholds(),

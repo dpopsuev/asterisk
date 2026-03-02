@@ -2,7 +2,6 @@ package rca
 
 import (
 	"context"
-	"encoding/json"
 	"testing"
 
 	"asterisk/adapters/store"
@@ -10,23 +9,22 @@ import (
 	framework "github.com/dpopsuev/origami"
 )
 
-// fullCircuitAdapter returns deterministic responses for all RCA steps,
+// fullCircuitTransformer returns deterministic typed results for all steps,
 // driving the circuit through recall-hit → review-approve → report-done.
-type fullCircuitAdapter struct{}
+type fullCircuitTransformer struct{}
 
-func (a *fullCircuitAdapter) Name() string { return "test-full" }
-func (a *fullCircuitAdapter) SendPrompt(_ string, step string, _ string) (json.RawMessage, error) {
-	switch CircuitStep(step) {
+func (f *fullCircuitTransformer) Name() string { return "test-full" }
+func (f *fullCircuitTransformer) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+	step := NodeNameToStep(tc.NodeName)
+	switch step {
 	case StepF0Recall:
-		return json.Marshal(RecallResult{
-			Match: true, Confidence: 0.95, Reasoning: "known failure",
-		})
+		return &RecallResult{Match: true, Confidence: 0.95, Reasoning: "known failure"}, nil
 	case StepF5Review:
-		return json.Marshal(ReviewDecision{Decision: "approve"})
+		return &ReviewDecision{Decision: "approve"}, nil
 	case StepF6Report:
-		return json.Marshal(map[string]any{"summary": "done"})
+		return map[string]any{"summary": "done"}, nil
 	default:
-		return json.Marshal(map[string]any{})
+		return map[string]any{}, nil
 	}
 }
 
@@ -34,14 +32,17 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 	ms := store.NewMemStore()
 	c := &store.Case{ID: 1, Name: "test-case"}
 
-	hooks := StoreHooks(ms, c)
+	storeAdapter := &framework.Adapter{
+		Namespace: "store", Name: "test-store",
+		Hooks: StoreHooks(ms, c),
+	}
+	transAdapter := TransformerAdapter(&fullCircuitTransformer{})
 
 	result, err := WalkCase(context.Background(), WalkConfig{
-		Store:     ms,
-		CaseData:  c,
-		Adapter:   &fullCircuitAdapter{},
+		Store:    ms,
+		CaseData: c,
 		CaseLabel: "T1",
-		Hooks:     hooks,
+		Adapters: []*framework.Adapter{transAdapter, storeAdapter},
 	})
 	if err != nil {
 		t.Fatalf("WalkCase: %v", err)
@@ -54,7 +55,6 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 		t.Errorf("first step = %q, want recall", result.Path[0])
 	}
 
-	// recall-hit shortcut goes to review, then report, then DONE
 	expectedPath := []string{"recall", "review", "report"}
 	if len(result.Path) != len(expectedPath) {
 		t.Errorf("path = %v, want %v", result.Path, expectedPath)
@@ -65,57 +65,56 @@ func TestWalkCase_RecallHitPath(t *testing.T) {
 			}
 		}
 	}
+
+	if result.State == nil {
+		t.Fatal("expected non-nil State in WalkResult")
+	}
 }
 
-// triageInvestigateAdapter drives: recall-miss → triage → investigate → correlate → review → report
-type triageInvestigateAdapter struct{}
+// triageInvestigateTransformer drives: recall-miss → triage → investigate → correlate → review → report
+type triageInvestigateTransformer struct{}
 
-func (a *triageInvestigateAdapter) Name() string { return "test-triage" }
-func (a *triageInvestigateAdapter) SendPrompt(_ string, step string, _ string) (json.RawMessage, error) {
-	switch CircuitStep(step) {
+func (f *triageInvestigateTransformer) Name() string { return "test-triage" }
+func (f *triageInvestigateTransformer) Transform(_ context.Context, tc *framework.TransformerContext) (any, error) {
+	step := NodeNameToStep(tc.NodeName)
+	switch step {
 	case StepF0Recall:
-		return json.Marshal(RecallResult{Match: false, Confidence: 0.1})
+		return &RecallResult{Match: false, Confidence: 0.1}, nil
 	case StepF1Triage:
-		return json.Marshal(TriageResult{
-			SymptomCategory: "product_bug",
-			CandidateRepos:  []string{"repo-a"},
-		})
+		return &TriageResult{SymptomCategory: "product_bug", CandidateRepos: []string{"repo-a"}}, nil
 	case StepF3Invest:
-		return json.Marshal(InvestigateArtifact{
-			ConvergenceScore: 0.8,
-			EvidenceRefs:     []string{"commit-abc"},
-			DefectType:       "product_bug",
-		})
+		return &InvestigateArtifact{ConvergenceScore: 0.8, EvidenceRefs: []string{"commit-abc"}, DefectType: "product_bug"}, nil
 	case StepF4Correlate:
-		return json.Marshal(CorrelateResult{
-			IsDuplicate: false, Confidence: 0.3,
-		})
+		return &CorrelateResult{IsDuplicate: false, Confidence: 0.3}, nil
 	case StepF5Review:
-		return json.Marshal(ReviewDecision{Decision: "approve"})
+		return &ReviewDecision{Decision: "approve"}, nil
 	case StepF6Report:
-		return json.Marshal(map[string]any{"summary": "done"})
+		return map[string]any{"summary": "done"}, nil
 	default:
-		return json.Marshal(map[string]any{})
+		return map[string]any{}, nil
 	}
 }
 
 func TestWalkCase_TriageInvestigatePath(t *testing.T) {
 	ms := store.NewMemStore()
 	c := &store.Case{ID: 2, Name: "test-deep"}
-	hooks := StoreHooks(ms, c)
+
+	storeAdapter := &framework.Adapter{
+		Namespace: "store", Name: "test-store",
+		Hooks: StoreHooks(ms, c),
+	}
+	transAdapter := TransformerAdapter(&triageInvestigateTransformer{})
 
 	result, err := WalkCase(context.Background(), WalkConfig{
-		Store:     ms,
-		CaseData:  c,
-		Adapter:   &triageInvestigateAdapter{},
+		Store:    ms,
+		CaseData: c,
 		CaseLabel: "T2",
-		Hooks:     hooks,
+		Adapters: []*framework.Adapter{transAdapter, storeAdapter},
 	})
 	if err != nil {
 		t.Fatalf("WalkCase: %v", err)
 	}
 
-	// recall-miss → triage → single-repo shortcut to investigate → correlate → review → report
 	if len(result.Path) < 4 {
 		t.Errorf("expected at least 4 steps, got %d: %v", len(result.Path), result.Path)
 	}
@@ -127,14 +126,13 @@ func TestWalkCase_TriageInvestigatePath(t *testing.T) {
 	}
 }
 
-func TestWalkCase_MissingAdapter(t *testing.T) {
-	nodes := NodeRegistry()
+func TestWalkCase_HITL_Fallback(t *testing.T) {
+	hitlAdapter := HITLAdapter()
 	th := DefaultThresholds()
-	runner, err := BuildRunnerWith(th, nodes)
+	runner, err := BuildRunner(th, hitlAdapter)
 	if err != nil {
-		t.Fatalf("BuildRunnerWith: %v", err)
+		t.Fatalf("BuildRunner: %v", err)
 	}
-	_ = runner
 
 	walker := framework.NewProcessWalker("test")
 
@@ -145,6 +143,6 @@ func TestWalkCase_MissingAdapter(t *testing.T) {
 
 	err = runner.Walk(context.Background(), walker, def.Start)
 	if err == nil {
-		t.Fatal("expected error for missing adapter in walker context")
+		t.Fatal("expected error for HITL fallback (no prompt dir)")
 	}
 }

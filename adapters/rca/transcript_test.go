@@ -7,25 +7,29 @@ import (
 	"strings"
 	"testing"
 
+	framework "github.com/dpopsuev/origami"
+
 	"asterisk/adapters/rca"
 )
 
-// TestWeaveTranscripts_StubAdapter runs a full calibration with the stub adapter
+// TestWeaveTranscripts_StubTransformer runs a full calibration with the stub transformer
 // and verifies the weaver produces transcripts grouped by RCA.
-func TestWeaveTranscripts_StubAdapter(t *testing.T) {
+func TestWeaveTranscripts_StubTransformer(t *testing.T) {
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := rca.NewStubAdapter(scenario)
+	stub := rca.NewStubTransformer(scenario)
 
 	tmpDir := t.TempDir()
 
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-		BasePath:   tmpDir,
-		ScoreCard:  loadTestScoreCard(t),
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  rca.DefaultThresholds(),
+		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := rca.RunCalibration(context.Background(), cfg)
@@ -85,18 +89,20 @@ func TestWeaveTranscripts_EmptyCaseResults(t *testing.T) {
 // appear in the same transcript.
 func TestWeaveTranscripts_GroupsByRCA(t *testing.T) {
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := rca.NewStubAdapter(scenario)
+	stub := rca.NewStubTransformer(scenario)
 
 	tmpDir := t.TempDir()
 
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-		BasePath:   tmpDir,
-		ScoreCard:  loadTestScoreCard(t),
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  rca.DefaultThresholds(),
+		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := rca.RunCalibration(context.Background(), cfg)
@@ -269,18 +275,20 @@ func TestTranscriptSlug(t *testing.T) {
 // weave, render, and write transcript files to disk.
 func TestWeaveTranscripts_WritesToDisk(t *testing.T) {
 	scenario := mustLoadScenario(t, "ptp-mock")
-	adapter := rca.NewStubAdapter(scenario)
+	stub := rca.NewStubTransformer(scenario)
 
 	tmpDir := t.TempDir()
 
 	cfg := rca.RunConfig{
-		Scenario:   scenario,
-		Adapter:    adapter,
-		Runs:       1,
-		PromptDir:  ".cursor/prompts",
-		Thresholds: rca.DefaultThresholds(),
-		BasePath:   tmpDir,
-		ScoreCard:  loadTestScoreCard(t),
+		Scenario:    scenario,
+		Adapters:    []*framework.Adapter{rca.TransformerAdapter(stub)},
+		TransformerName: "stub",
+		IDMapper:    stub,
+		Runs:        1,
+		PromptDir:   ".cursor/prompts",
+		Thresholds:  rca.DefaultThresholds(),
+		BasePath:    tmpDir,
+		ScoreCard:   loadTestScoreCard(t),
 	}
 
 	report, err := rca.RunCalibration(context.Background(), cfg)

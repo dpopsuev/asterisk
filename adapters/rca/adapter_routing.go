@@ -1,22 +1,22 @@
 package rca
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"os"
 	"sync"
 	"time"
 
-	"asterisk/adapters/store"
-	"github.com/dpopsuev/origami/knowledge"
+	framework "github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/logging"
 )
 
-// RoutingEntry records a single adapter routing decision.
+// RoutingEntry records a single dispatch routing decision.
 type RoutingEntry struct {
-	CaseID       string    `json:"case_id"`
-	Step         string    `json:"step"`
-	AdapterColor string    `json:"adapter_color"`
+	CaseID     string    `json:"case_id"`
+	Step       string    `json:"step"`
+	Color      string    `json:"color"`
 	Timestamp    time.Time `json:"timestamp"`
 	DispatchID   int64     `json:"dispatch_id,omitempty"`
 }
@@ -46,34 +46,40 @@ func (l RoutingLog) ForStep(step string) RoutingLog {
 
 func (l RoutingLog) Len() int { return len(l) }
 
-// RoutingRecorder wraps a ModelAdapter, recording every SendPrompt call.
+// RoutingRecorder wraps a framework.Transformer, recording every Transform call.
 // Thread-safe for parallel calibration.
 type RoutingRecorder struct {
-	inner ModelAdapter
+	inner framework.Transformer
 	color string
 	mu    sync.Mutex
 	log   RoutingLog
 	seq   int64
 }
 
-func NewRoutingRecorder(inner ModelAdapter, color string) *RoutingRecorder {
+func NewRoutingRecorder(inner framework.Transformer, color string) *RoutingRecorder {
 	return &RoutingRecorder{inner: inner, color: color}
 }
 
 func (r *RoutingRecorder) Name() string { return r.inner.Name() }
 
-func (r *RoutingRecorder) SendPrompt(caseID string, step string, prompt string) (json.RawMessage, error) {
+func (r *RoutingRecorder) Transform(ctx context.Context, tc *framework.TransformerContext) (any, error) {
+	step := NodeNameToStep(tc.NodeName)
+	caseLabel, _ := tc.WalkerState.Context[KeyCaseLabel].(string)
+	if caseLabel == "" {
+		caseLabel = tc.WalkerState.ID
+	}
+
 	r.mu.Lock()
 	r.seq++
 	entry := RoutingEntry{
-		CaseID: caseID, Step: step, AdapterColor: r.color,
+		CaseID: caseLabel, Step: string(step), Color: r.color,
 		Timestamp: time.Now(), DispatchID: r.seq,
 	}
 	r.log = append(r.log, entry)
 	r.mu.Unlock()
 
-	logging.New("routing").Info("dispatch", "color", r.color, "case_id", caseID, "step", step)
-	return r.inner.SendPrompt(caseID, step, prompt)
+	logging.New("routing").Info("dispatch", "color", r.color, "case_id", caseLabel, "step", step)
+	return r.inner.Transform(ctx, tc)
 }
 
 func (r *RoutingRecorder) Log() RoutingLog {
@@ -84,32 +90,7 @@ func (r *RoutingRecorder) Log() RoutingLog {
 	return out
 }
 
-// StoreAware delegation
-func (r *RoutingRecorder) SetStore(st store.Store) {
-	if sa, ok := r.inner.(StoreAware); ok {
-		sa.SetStore(st)
-	}
-}
-
-func (r *RoutingRecorder) SetSuiteID(id int64) {
-	if sa, ok := r.inner.(StoreAware); ok {
-		sa.SetSuiteID(id)
-	}
-}
-
-func (r *RoutingRecorder) SetCatalog(cat *knowledge.KnowledgeSourceCatalog) {
-	if sa, ok := r.inner.(StoreAware); ok {
-		sa.SetCatalog(cat)
-	}
-}
-
-func (r *RoutingRecorder) RegisterCase(gtCaseID string, storeCase *store.Case) {
-	if sa, ok := r.inner.(StoreAware); ok {
-		sa.RegisterCase(gtCaseID, storeCase)
-	}
-}
-
-// IDMappable delegation
+// IDMappable delegation — stubTransformer implements SetRCAID/SetSymptomID.
 func (r *RoutingRecorder) SetRCAID(gtID string, storeID int64) {
 	if im, ok := r.inner.(IDMappable); ok {
 		im.SetRCAID(gtID, storeID)
@@ -157,25 +138,25 @@ func CompareRoutingLogs(expected, actual RoutingLog) []RoutingDiff {
 	type key struct{ CaseID, Step string }
 	actualMap := make(map[key]string, len(actual))
 	for _, e := range actual {
-		actualMap[key{e.CaseID, e.Step}] = e.AdapterColor
+		actualMap[key{e.CaseID, e.Step}] = e.Color
 	}
 	expectedMap := make(map[key]string, len(expected))
 
 	var diffs []RoutingDiff
 	for _, e := range expected {
 		k := key{e.CaseID, e.Step}
-		expectedMap[k] = e.AdapterColor
+		expectedMap[k] = e.Color
 		ac, ok := actualMap[k]
 		if !ok {
-			diffs = append(diffs, RoutingDiff{CaseID: e.CaseID, Step: e.Step, Expected: e.AdapterColor, Actual: "<missing>"})
-		} else if ac != e.AdapterColor {
-			diffs = append(diffs, RoutingDiff{CaseID: e.CaseID, Step: e.Step, Expected: e.AdapterColor, Actual: ac})
+			diffs = append(diffs, RoutingDiff{CaseID: e.CaseID, Step: e.Step, Expected: e.Color, Actual: "<missing>"})
+		} else if ac != e.Color {
+			diffs = append(diffs, RoutingDiff{CaseID: e.CaseID, Step: e.Step, Expected: e.Color, Actual: ac})
 		}
 	}
 	for _, e := range actual {
 		k := key{e.CaseID, e.Step}
 		if _, ok := expectedMap[k]; !ok {
-			diffs = append(diffs, RoutingDiff{CaseID: e.CaseID, Step: e.Step, Expected: "<missing>", Actual: e.AdapterColor})
+			diffs = append(diffs, RoutingDiff{CaseID: e.CaseID, Step: e.Step, Expected: "<missing>", Actual: e.Color})
 		}
 	}
 	return diffs

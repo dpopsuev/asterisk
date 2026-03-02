@@ -11,30 +11,30 @@ vars:
 
 nodes:
   - name: recall
-    family: recall
+    transformer: rca.recall
     before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy, inject.history, inject.recall-digest]
     after: [store.recall]
   - name: triage
-    family: triage
+    transformer: rca.triage
     before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy, inject.history]
     after: [store.triage]
   - name: resolve
-    family: resolve
+    transformer: rca.resolve
     before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
   - name: investigate
-    family: investigate
+    transformer: rca.investigate
     before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
     after: [store.investigate]
   - name: correlate
-    family: correlate
+    transformer: rca.correlate
     before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
     after: [store.correlate]
   - name: review
-    family: review
+    transformer: rca.review
     before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
     after: [store.review]
   - name: report
-    family: report
+    transformer: rca.report
     before: [inject.envelope, inject.failure, inject.workspace, inject.sources, inject.prior, inject.taxonomy]
 
 edges:

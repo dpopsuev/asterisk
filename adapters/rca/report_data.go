@@ -84,7 +84,7 @@ func CalibrationReportData(r *CalibrationReport) map[string]any {
 	data := make(map[string]any)
 
 	data["scenario_name"] = r.CalibrationReport.Scenario
-	data["adapter"] = r.CalibrationReport.Adapter
+	data["transformer"] = r.CalibrationReport.Transformer
 	data["total_cases"] = len(r.CaseResults)
 
 	passed, total := r.Metrics.PassCount()
@@ -195,7 +195,7 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 	data := make(map[string]any)
 	data["launch_name"] = r.LaunchName
 	data["total_cases"] = len(r.CaseResults)
-	data["adapter"] = r.Adapter
+	data["transformer"] = r.Transformer
 
 	headerFields := []map[string]any{}
 	if r.LaunchName != "" {
@@ -205,7 +205,7 @@ func AnalysisReportData(r *AnalysisReport, timestamp time.Time) map[string]any {
 	}
 	headerFields = append(headerFields,
 		map[string]any{"Field": "Analyzed", "Value": timestamp.UTC().Format("2006-01-02 15:04 UTC")},
-		map[string]any{"Field": "Adapter", "Value": r.Adapter},
+		map[string]any{"Field": "Transformer", "Value": r.Transformer},
 		map[string]any{"Field": "Failures", "Value": r.TotalCases},
 	)
 	data["header_fields"] = headerFields
@@ -368,7 +368,7 @@ func BuildCostBill(report *CalibrationReport) *dispatch.CostBill {
 
 	return dispatch.BuildCostBill(report.Tokens,
 		dispatch.WithTitle("TokiMeter"),
-		dispatch.WithSubtitle(fmt.Sprintf("**%s** | adapter: `%s`", report.Scenario, report.Adapter)),
+		dispatch.WithSubtitle(fmt.Sprintf("**%s** | transformer: `%s`", report.Scenario, report.Transformer)),
 		dispatch.WithStepOrder(asteriskStepOrder),
 		dispatch.WithStepNames(func(step string) string {
 			return vocabNameWithCode(step)
@@ -582,7 +582,7 @@ func buildCaseTranscript(calReport *CalibrationReport, cr *CaseResult) (*CaseTra
 
 	caseDir := CaseDir(calReport.BasePath, calReport.SuiteID, cr.StoreCaseID)
 
-	state, err := LoadState(caseDir)
+	state, err := ReadArtifact[CaseState](caseDir, "state.json")
 	if err != nil {
 		return ct, fmt.Errorf("load state: %w", err)
 	}

@@ -6,7 +6,7 @@ sections:
     level: 1
 
   - type: text
-    content: "Scenario: {{ .scenario_name }}  Adapter: {{ .adapter }}  Cases: {{ .total_cases }}"
+    content: "Scenario: {{ .scenario_name }}  Transformer: {{ .transformer }}  Cases: {{ .total_cases }}"
 
   - type: header
     title: "Outcome"

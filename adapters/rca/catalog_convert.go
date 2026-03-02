@@ -6,8 +6,8 @@ import (
 	"github.com/dpopsuev/origami/knowledge"
 )
 
-// ScenarioToCatalog converts a calibrate.WorkspaceConfig to a knowledge.KnowledgeSourceCatalog
-// so store-aware adapters can use it for BuildParams.
+// ScenarioToCatalog converts a WorkspaceConfig to a knowledge.KnowledgeSourceCatalog
+// for inject hooks and template parameter assembly.
 func ScenarioToCatalog(wc WorkspaceConfig) *knowledge.KnowledgeSourceCatalog {
 	cat := &knowledge.KnowledgeSourceCatalog{}
 	for _, r := range wc.Repos {

@@ -35,6 +35,63 @@ func Adapter(cfg AdapterConfig) *framework.Adapter {
 	}
 }
 
+// allNodeNames lists every RCA circuit node name. Used when registering
+// a single monolithic transformer under each node for backwards compat.
+var allNodeNames = []string{"recall", "triage", "resolve", "investigate", "correlate", "review", "report"}
+
+// HeuristicAdapter returns an Adapter with per-node heuristic transformers
+// that implement deterministic, keyword-based RCA logic.
+func HeuristicAdapter(st store.Store, repos []string) *framework.Adapter {
+	ht := NewHeuristicTransformer(st, repos)
+	return &framework.Adapter{
+		Namespace: "rca",
+		Name:      "rca-heuristic",
+		Transformers: framework.TransformerRegistry{
+			"recall":      &recallHeuristic{ht: ht},
+			"triage":      &triageHeuristic{ht: ht},
+			"resolve":     &resolveHeuristic{ht: ht},
+			"investigate": &investigateHeuristic{ht: ht},
+			"correlate":   &correlateHeuristic{ht: ht},
+			"review":      &reviewHeuristic{},
+			"report":      &reportHeuristic{},
+		},
+	}
+}
+
+// TransformerAdapter wraps a monolithic framework.Transformer (e.g. stub, rca)
+// and registers it under every node name so that DSL transformer: resolution
+// can find it. The transformer's Transform() dispatches on tc.NodeName.
+func TransformerAdapter(t framework.Transformer) *framework.Adapter {
+	reg := framework.TransformerRegistry{}
+	for _, name := range allNodeNames {
+		reg[name] = t
+	}
+	return &framework.Adapter{
+		Namespace:    "rca",
+		Name:         "rca-transformer",
+		Transformers: reg,
+	}
+}
+
+// HITLAdapter returns an Adapter with per-node HITL transformers that
+// fill prompt templates and return framework.Interrupt for human input.
+func HITLAdapter() *framework.Adapter {
+	reg := framework.TransformerRegistry{}
+	steps := map[string]CircuitStep{
+		"recall": StepF0Recall, "triage": StepF1Triage, "resolve": StepF2Resolve,
+		"investigate": StepF3Invest, "correlate": StepF4Correlate, "review": StepF5Review,
+		"report": StepF6Report,
+	}
+	for name, step := range steps {
+		reg[name] = &hitlTransformerNode{step: step}
+	}
+	return &framework.Adapter{
+		Namespace:    "rca",
+		Name:         "rca-hitl",
+		Transformers: reg,
+	}
+}
+
 func buildTransformers(_ AdapterConfig) framework.TransformerRegistry {
 	return framework.TransformerRegistry{}
 }

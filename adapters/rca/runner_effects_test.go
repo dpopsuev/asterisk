@@ -6,16 +6,16 @@ import (
 	"asterisk/adapters/store"
 )
 
-// --- ApplyStoreEffects tests ---
+// --- applyStoreEffects tests ---
 
-func TestApplyStoreEffects_F0Recall_NoMatch(t *testing.T) {
+func TestStoreEffects_F0Recall_NoMatch(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
 	artifact := &RecallResult{Match: false, Confidence: 0.1}
-	err := ApplyStoreEffects(st, caseData, StepF0Recall, artifact)
+	err := applyStoreEffects(st, caseData, StepF0Recall, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	// No links should be created
@@ -31,7 +31,7 @@ func TestApplyStoreEffects_F0Recall_NoMatch(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F0Recall_Match(t *testing.T) {
+func TestStoreEffects_F0Recall_Match(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
@@ -49,9 +49,9 @@ func TestApplyStoreEffects_F0Recall_Match(t *testing.T) {
 	}
 
 	artifact := &RecallResult{Match: true, PriorRCAID: rcaID, SymptomID: symID, Confidence: 0.85}
-	err = ApplyStoreEffects(st, caseData, StepF0Recall, artifact)
+	err = applyStoreEffects(st, caseData, StepF0Recall, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	if caseData.SymptomID != symID {
@@ -62,7 +62,7 @@ func TestApplyStoreEffects_F0Recall_Match(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F1Triage(t *testing.T) {
+func TestStoreEffects_F1Triage(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
@@ -72,9 +72,9 @@ func TestApplyStoreEffects_F1Triage(t *testing.T) {
 		DefectTypeHypothesis: "pb001",
 		CandidateRepos:       []string{"linuxptp-daemon"},
 	}
-	err := ApplyStoreEffects(st, caseData, StepF1Triage, artifact)
+	err := applyStoreEffects(st, caseData, StepF1Triage, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	// Case should be triaged
@@ -88,7 +88,7 @@ func TestApplyStoreEffects_F1Triage(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F3Investigate(t *testing.T) {
+func TestStoreEffects_F3Investigate(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 	// Pre-set symptom for the symptom->RCA link test
@@ -103,9 +103,9 @@ func TestApplyStoreEffects_F3Investigate(t *testing.T) {
 		ConvergenceScore: 0.85,
 		EvidenceRefs:     []string{"src/ptp.c"},
 	}
-	err := ApplyStoreEffects(st, caseData, StepF3Invest, artifact)
+	err := applyStoreEffects(st, caseData, StepF3Invest, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	// RCA should be created
@@ -134,7 +134,7 @@ func TestApplyStoreEffects_F3Investigate(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F4Correlate_Duplicate(t *testing.T) {
+func TestStoreEffects_F4Correlate_Duplicate(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
@@ -147,9 +147,9 @@ func TestApplyStoreEffects_F4Correlate_Duplicate(t *testing.T) {
 		LinkedRCAID: rcaID,
 		Confidence:  0.90,
 	}
-	err := ApplyStoreEffects(st, caseData, StepF4Correlate, artifact)
+	err := applyStoreEffects(st, caseData, StepF4Correlate, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	if caseData.RCAID != rcaID {
@@ -157,14 +157,14 @@ func TestApplyStoreEffects_F4Correlate_Duplicate(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F4Correlate_NotDuplicate(t *testing.T) {
+func TestStoreEffects_F4Correlate_NotDuplicate(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
 	artifact := &CorrelateResult{IsDuplicate: false}
-	err := ApplyStoreEffects(st, caseData, StepF4Correlate, artifact)
+	err := applyStoreEffects(st, caseData, StepF4Correlate, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	if caseData.RCAID != 0 {
@@ -172,14 +172,14 @@ func TestApplyStoreEffects_F4Correlate_NotDuplicate(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F5Review_Approve(t *testing.T) {
+func TestStoreEffects_F5Review_Approve(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
 	artifact := &ReviewDecision{Decision: "approve"}
-	err := ApplyStoreEffects(st, caseData, StepF5Review, artifact)
+	err := applyStoreEffects(st, caseData, StepF5Review, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	if caseData.Status != "reviewed" {
@@ -187,7 +187,7 @@ func TestApplyStoreEffects_F5Review_Approve(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F5Review_Overturn(t *testing.T) {
+func TestStoreEffects_F5Review_Overturn(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
@@ -203,9 +203,9 @@ func TestApplyStoreEffects_F5Review_Overturn(t *testing.T) {
 			RCAMessage: "human corrected: automation issue",
 		},
 	}
-	err := ApplyStoreEffects(st, caseData, StepF5Review, artifact)
+	err := applyStoreEffects(st, caseData, StepF5Review, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 
 	if caseData.Status != "reviewed" {
@@ -225,35 +225,35 @@ func TestApplyStoreEffects_F5Review_Overturn(t *testing.T) {
 	}
 }
 
-func TestApplyStoreEffects_F2Resolve_NoOp(t *testing.T) {
+func TestStoreEffects_F2Resolve_NoOp(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
 	artifact := &ResolveResult{SelectedRepos: []RepoSelection{{Name: "repo"}}}
-	err := ApplyStoreEffects(st, caseData, StepF2Resolve, artifact)
+	err := applyStoreEffects(st, caseData, StepF2Resolve, artifact)
 	if err != nil {
-		t.Fatalf("ApplyStoreEffects: %v", err)
+		t.Fatalf("applyStoreEffects: %v", err)
 	}
 	// F2 has no store effects, this just verifies no error
 }
 
-func TestApplyStoreEffects_NilArtifact(t *testing.T) {
+func TestStoreEffects_NilArtifact(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
 	// nil artifact should be safely handled
-	err := ApplyStoreEffects(st, caseData, StepF0Recall, nil)
+	err := applyStoreEffects(st, caseData, StepF0Recall, nil)
 	if err != nil {
 		t.Fatalf("expected nil artifact to be safe, got: %v", err)
 	}
 }
 
-func TestApplyStoreEffects_WrongType(t *testing.T) {
+func TestStoreEffects_WrongType(t *testing.T) {
 	st := store.NewMemStore()
 	caseData := createTestCase(t, st)
 
 	// Wrong artifact type should be silently ignored
-	err := ApplyStoreEffects(st, caseData, StepF0Recall, "not a recall result")
+	err := applyStoreEffects(st, caseData, StepF0Recall, "not a recall result")
 	if err != nil {
 		t.Fatalf("expected wrong type to be safe, got: %v", err)
 	}

@@ -22,7 +22,7 @@ const (
 )
 
 // InjectHooks creates a HookRegistry with the inject.* before-hooks
-// that decompose BuildParams into per-concern data providers.
+// that populate walker.Context with per-concern template data.
 // Each hook uses WalkerStateFromContext to write into walker.Context.
 func InjectHooks(st store.Store, caseData *store.Case, env *rp.Envelope, catalog *knowledge.KnowledgeSourceCatalog, caseDir string) framework.HookRegistry {
 	reg := framework.HookRegistry{}
@@ -255,30 +255,3 @@ func injectTaxonomyData(walkerCtx map[string]any) {
 	walkerCtx[KeyParamsTaxonomy] = DefaultTaxonomy()
 }
 
-// InjectAllParams is a convenience that calls all inject* functions.
-// Used by BuildParams compatibility layer.
-func InjectAllParams(
-	st store.Store,
-	caseData *store.Case,
-	env *rp.Envelope,
-	catalog *knowledge.KnowledgeSourceCatalog,
-	step CircuitStep,
-	caseDir string,
-	walkerCtx map[string]any,
-) {
-	injectEnvelopeData(env, walkerCtx)
-	injectFailureData(caseData, walkerCtx)
-	injectWorkspaceData(env, catalog, walkerCtx)
-	injectSourcesData(catalog, walkerCtx)
-	injectPriorData(caseDir, walkerCtx)
-	injectTaxonomyData(walkerCtx)
-
-	if step == StepF0Recall {
-		injectHistoryData(st, caseData, walkerCtx)
-		injectRecallDigestData(st, walkerCtx)
-	} else if caseData != nil && caseData.SymptomID != 0 {
-		injectHistoryData(st, caseData, walkerCtx)
-	}
-
-	walkerCtx["step_name"] = string(step)
-}

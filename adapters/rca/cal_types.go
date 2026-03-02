@@ -177,7 +177,7 @@ type CandidateInfo struct {
 }
 
 // CalibrationReport is the final output of a calibration run.
-// It embeds the generic cal.CalibrationReport (Scenario, Adapter, Runs,
+// It embeds the generic cal.CalibrationReport (Scenario, Transformer, Runs,
 // Metrics, RunMetrics, Tokens) and adds domain-specific fields.
 type CalibrationReport struct {
 	cal.CalibrationReport

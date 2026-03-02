@@ -29,7 +29,7 @@ func TestRenderAnalysisReport_EmptyReport(t *testing.T) {
 func TestRenderAnalysisReport_SingleCase(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "test-launch-4.20",
-		Adapter:    "basic",
+		Transformer: "basic",
 		TotalCases: 1,
 		CaseResults: []AnalysisCaseResult{
 			{
@@ -76,7 +76,7 @@ func TestRenderAnalysisReport_SingleCase(t *testing.T) {
 func TestRenderAnalysisReport_MultipleComponentsGrouped(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "test-launch",
-		Adapter:    "basic",
+		Transformer: "basic",
 		TotalCases: 3,
 		CaseResults: []AnalysisCaseResult{
 			{CaseLabel: "A1", TestName: "test-1", DefectType: "pb001", Component: "comp-a", Convergence: 0.70, RCAID: 1},
@@ -107,7 +107,7 @@ func TestRenderAnalysisReport_MultipleComponentsGrouped(t *testing.T) {
 func TestRenderAnalysisReport_RPTags(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "rp-test",
-		Adapter:    "basic",
+		Transformer: "basic",
 		TotalCases: 2,
 		CaseResults: []AnalysisCaseResult{
 			{CaseLabel: "A1", TestName: "t1", DefectType: "pb001", Component: "comp",
@@ -133,7 +133,7 @@ func TestRenderAnalysisReport_RPTags(t *testing.T) {
 func TestRenderAnalysisReport_Flags(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "flags-test",
-		Adapter:    "basic",
+		Transformer: "basic",
 		TotalCases: 3,
 		CaseResults: []AnalysisCaseResult{
 			{CaseLabel: "A1", TestName: "t1", DefectType: "pb001", Component: "c", RecallHit: true, RCAID: 1},
@@ -161,7 +161,7 @@ func TestRenderAnalysisReport_Flags(t *testing.T) {
 func TestRenderAnalysisReport_ConvergenceRounding(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "conv-test",
-		Adapter:    "basic",
+		Transformer: "basic",
 		TotalCases: 1,
 		CaseResults: []AnalysisCaseResult{
 			{CaseLabel: "A1", TestName: "t1", DefectType: "pb001", Component: "c",
@@ -182,7 +182,7 @@ func TestRenderAnalysisReport_ConvergenceRounding(t *testing.T) {
 func TestRenderAnalysisReport_UnknownComponent(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "unknown-test",
-		Adapter:    "basic",
+		Transformer: "basic",
 		TotalCases: 1,
 		CaseResults: []AnalysisCaseResult{
 			{CaseLabel: "A1", TestName: "t1", DefectType: "en001", Component: "", Skip: true},
@@ -202,7 +202,7 @@ func TestRenderAnalysisReport_UnknownComponent(t *testing.T) {
 func TestRenderAnalysisReport_EvidenceDeduplication(t *testing.T) {
 	report := &AnalysisReport{
 		LaunchName: "evidence-test",
-		Adapter:    "basic",
+		Transformer: "basic",
 		TotalCases: 2,
 		CaseResults: []AnalysisCaseResult{
 			{CaseLabel: "A1", TestName: "t1", DefectType: "pb001", Component: "comp",

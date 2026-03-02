@@ -8,19 +8,29 @@ import (
 	"strings"
 	"sync"
 
+	framework "github.com/dpopsuev/origami"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
 	"github.com/dpopsuev/origami/logging"
 
 	"github.com/dpopsuev/origami/adapters/rp"
 	"asterisk/adapters/store"
-	"golang.org/x/sync/errgroup"
 )
+
+// IDMappable is implemented by transformers that track ground-truth-to-store
+// ID mappings (e.g. stubTransformer). Used by calibration to wire recall/correlate
+// cross-case references.
+type IDMappable interface {
+	SetRCAID(gtID string, storeID int64)
+	SetSymptomID(gtID string, storeID int64)
+}
 
 // RunConfig holds configuration for a calibration run.
 type RunConfig struct {
 	Scenario     *Scenario
-	Adapter      ModelAdapter
+	Adapters     []*framework.Adapter // transformer adapter(s) for the circuit
+	TransformerName string             // label for reports
+	IDMapper     IDMappable           // optional; stub cross-case references
 	Runs         int
 	PromptDir    string
 	Thresholds   Thresholds
@@ -37,10 +47,11 @@ type RunConfig struct {
 }
 
 // DefaultRunConfig returns defaults for calibration.
-func DefaultRunConfig(scenario *Scenario, adapter ModelAdapter) RunConfig {
+func DefaultRunConfig(scenario *Scenario, adapters []*framework.Adapter, transformerName string) RunConfig {
 	return RunConfig{
 		Scenario:                 scenario,
-		Adapter:                  adapter,
+		Adapters:                 adapters,
+		TransformerName:         transformerName,
 		Runs:                     1,
 		PromptDir:                ".cursor/prompts",
 		Thresholds:               DefaultThresholds(),
@@ -81,9 +92,9 @@ func RunCalibration(ctx context.Context, cfg RunConfig) (*CalibrationReport, err
 
 	report := &CalibrationReport{
 		CalibrationReport: cal.CalibrationReport{
-			Scenario: cfg.Scenario.Name,
-			Adapter:  cfg.Adapter.Name(),
-			Runs:     cfg.Runs,
+			Scenario:    cfg.Scenario.Name,
+			Transformer: cfg.TransformerName,
+			Runs:        cfg.Runs,
 		},
 		BasePath: cfg.BasePath,
 		Dataset:  buildDatasetHealth(cfg.Scenario),
@@ -208,20 +219,18 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		}
 	}
 
-	if sa, ok := cfg.Adapter.(StoreAware); ok {
-		sa.SetStore(st)
-		sa.SetSuiteID(suiteID)
-		sa.SetCatalog(ScenarioToCatalog(cfg.Scenario.Workspace))
-	}
-
-	idMapper, hasIDMap := cfg.Adapter.(IDMappable)
+	idMapper, hasIDMap := cfg.IDMapper, cfg.IDMapper != nil
 	logger := logging.New("calibrate")
 
 	type caseEntry struct {
 		gtCase   GroundTruthCase
 		caseData *store.Case
+		caseDir  string
 	}
 	entries := make([]caseEntry, len(cfg.Scenario.Cases))
+	batchCases := make([]framework.BatchCase, len(cfg.Scenario.Cases))
+	catalog := ScenarioToCatalog(cfg.Scenario.Workspace)
+
 	for i, gtCase := range cfg.Scenario.Cases {
 		pk := pipeKey{gtCase.Version, gtCase.Job}
 		caseData := &store.Case{
@@ -239,56 +248,68 @@ func runSingleCalibration(ctx context.Context, cfg RunConfig) ([]CaseResult, int
 		}
 		caseData.ID = caseID
 
-		if sa, ok := cfg.Adapter.(StoreAware); ok {
-			sa.RegisterCase(gtCase.ID, caseData)
+		env := &rp.Envelope{
+			Name:        caseData.Name,
+			FailureList: []rp.FailureItem{{Name: caseData.Name}},
 		}
-		entries[i] = caseEntry{gtCase: gtCase, caseData: caseData}
+		caseDir, _ := EnsureCaseDir(cfg.BasePath, suiteID, caseData.ID)
+
+		storeAdapter := &framework.Adapter{
+			Namespace: "store",
+			Name:      "rca-store-hooks",
+			Hooks:     StoreHooks(st, caseData),
+		}
+		injectAdapter := &framework.Adapter{
+			Namespace: "inject",
+			Name:      "rca-inject-hooks",
+			Hooks:     InjectHooks(st, caseData, env, catalog, caseDir),
+		}
+
+		entries[i] = caseEntry{gtCase: gtCase, caseData: caseData, caseDir: caseDir}
+
+		adapters := make([]*framework.Adapter, len(cfg.Adapters), len(cfg.Adapters)+2)
+		copy(adapters, cfg.Adapters)
+		adapters = append(adapters, storeAdapter, injectAdapter)
+
+		batchCases[i] = framework.BatchCase{
+			ID: gtCase.ID,
+			Context: map[string]any{
+				KeyCaseData:  caseData,
+				KeyEnvelope:  env,
+				KeyCaseDir:   caseDir,
+				KeyCaseLabel: gtCase.ID,
+			},
+			Adapters: adapters,
+		}
 	}
+
+	def, err := AsteriskCircuitDef(cfg.Thresholds)
+	if err != nil {
+		return nil, suiteID, fmt.Errorf("load circuit def: %w", err)
+	}
+
+	var mu sync.Mutex
+	batchResults := framework.BatchWalk(ctx, framework.BatchWalkConfig{
+		Def:      def,
+		Shared:   framework.GraphRegistries{},
+		Cases:    batchCases,
+		Parallel: cfg.Parallel,
+		OnCaseComplete: func(i int, _ framework.BatchWalkResult) {
+			if hasIDMap {
+				mu.Lock()
+				updateIDMaps(idMapper, st, entries[i].caseData, entries[i].gtCase, cfg.Scenario)
+				mu.Unlock()
+			}
+		},
+	})
 
 	results := make([]CaseResult, len(entries))
-	var mu sync.Mutex
-
-	runCase := func(gCtx context.Context, i int, entry caseEntry) {
-		logger.Info("processing case",
+	for i, br := range batchResults {
+		entry := entries[i]
+		logger.Info("processed case",
 			"case_id", entry.gtCase.ID, "index", i+1, "total", len(entries), "test", entry.gtCase.TestName)
 
-		result, err := runCaseCircuit(gCtx, st, entry.caseData, suiteID, entry.gtCase, cfg)
-		if err != nil {
-			logger.Error("case circuit failed", "case_id", entry.gtCase.ID, "error", err)
-			result = &CaseResult{
-				CaseID:        entry.gtCase.ID,
-				TestName:      entry.gtCase.TestName,
-				Version:       entry.gtCase.Version,
-				Job:           entry.gtCase.Job,
-				StoreCaseID:   entry.caseData.ID,
-				CircuitError: err.Error(),
-			}
-		}
-
-		if hasIDMap {
-			mu.Lock()
-			updateIDMaps(idMapper, st, entry.caseData, entry.gtCase, cfg.Scenario)
-			mu.Unlock()
-		}
-
-		results[i] = *result
-	}
-
-	if cfg.Parallel > 1 {
-		g, gCtx := errgroup.WithContext(ctx)
-		g.SetLimit(cfg.Parallel)
-		for i, entry := range entries {
-			i, entry := i, entry
-			g.Go(func() error {
-				runCase(gCtx, i, entry)
-				return nil
-			})
-		}
-		_ = g.Wait()
-	} else {
-		for i, entry := range entries {
-			runCase(ctx, i, entry)
-		}
+		results[i] = collectCaseResult(br, entry.gtCase, entry.caseData, entry.caseDir, suiteID, st, cfg)
 	}
 
 	for i := range results {
@@ -330,19 +351,18 @@ func scoreCaseResult(r *CaseResult, scenario *Scenario) {
 	}
 }
 
-// runCaseCircuit drives the circuit for a single case using framework
-// Runner.Walk(). The calibrationWalker handles adapter dispatch, artifact
-// parsing, metric extraction, and store side effects. The framework graph
-// walk handles edge evaluation (heuristics) and state advancement.
-func runCaseCircuit(
-	ctx context.Context,
-	st store.Store,
-	caseData *store.Case,
-	suiteID int64,
+// collectCaseResult builds a CaseResult from a BatchWalkResult, extracting
+// step metrics, writing artifacts, and reading final store state.
+func collectCaseResult(
+	br framework.BatchWalkResult,
 	gtCase GroundTruthCase,
+	caseData *store.Case,
+	caseDir string,
+	suiteID int64,
+	st store.Store,
 	cfg RunConfig,
-) (*CaseResult, error) {
-	result := &CaseResult{
+) CaseResult {
+	result := CaseResult{
 		CaseID:         gtCase.ID,
 		TestName:       gtCase.TestName,
 		Version:        gtCase.Version,
@@ -352,55 +372,47 @@ func runCaseCircuit(
 		RPAutoAnalyzed: gtCase.RPAutoAnalyzed,
 	}
 
-	caseDir, err := EnsureCaseDir(cfg.BasePath, suiteID, caseData.ID)
-	if err != nil {
-		return result, fmt.Errorf("ensure case dir: %w", err)
+	if br.Error != nil {
+		result.CircuitError = br.Error.Error()
+		return result
 	}
 
-	hooks := StoreHooks(st, caseData)
-	runner, err := BuildRunner(cfg.Thresholds, hooks)
-	if err != nil {
-		return result, fmt.Errorf("build runner: %w", err)
+	for _, nodeName := range br.Path {
+		result.ActualPath = append(result.ActualPath, stepName(NodeNameToStep(nodeName)))
 	}
 
-	walker := newCalibrationWalker(calibrationWalkerConfig{
-		Adapter:  cfg.Adapter,
-		Store:    st,
-		CaseData: caseData,
-		GTCase:   gtCase,
-		RunCfg:   cfg,
-		Result:   result,
-		CaseDir:  caseDir,
-		SuiteID:  suiteID,
-	})
-
-	if err := runner.Walk(ctx, walker, "recall"); err != nil {
-		return result, fmt.Errorf("circuit walk: %w", err)
+	for nodeName, art := range br.StepArtifacts {
+		step := NodeNameToStep(nodeName)
+		extractStepMetrics(&result, step, art.Raw(), gtCase)
+		if err := WriteArtifact(caseDir, ArtifactFilename(step), art.Raw()); err != nil {
+			logging.New("calibrate").Warn("write artifact", "step", step, "error", err)
+		}
 	}
 
-	// Persist the case state to disk so transcript weaving can read it.
-	history := make([]StepRecord, 0, len(walker.state.History))
-	for _, h := range walker.state.History {
-		history = append(history, StepRecord{
-			Step:        NodeNameToStep(h.Node),
-			Outcome:     h.Outcome,
-			HeuristicID: h.EdgeID,
-			Timestamp:   h.Timestamp,
-		})
+	if br.State != nil {
+		ws := br.State
+		history := make([]StepRecord, 0, len(ws.History))
+		for _, h := range ws.History {
+			history = append(history, StepRecord{
+				Step:        NodeNameToStep(h.Node),
+				Outcome:     h.Outcome,
+				HeuristicID: h.EdgeID,
+				Timestamp:   h.Timestamp,
+			})
+		}
+		caseState := &CaseState{
+			CaseID:      caseData.ID,
+			SuiteID:     suiteID,
+			CurrentStep: NodeNameToStep(ws.CurrentNode),
+			Status:      ws.Status,
+			LoopCounts:  ws.LoopCounts,
+			History:     history,
+		}
+		if err := WriteArtifact(caseDir, "state.json", caseState); err != nil {
+			logging.New("calibrate").Warn("save final state", "error", err)
+		}
+		result.ActualLoops = ws.LoopCounts["investigate"]
 	}
-	caseState := &CaseState{
-		CaseID:      caseData.ID,
-		SuiteID:     suiteID,
-		CurrentStep: NodeNameToStep(walker.state.CurrentNode),
-		Status:      walker.state.Status,
-		LoopCounts:  walker.state.LoopCounts,
-		History:     history,
-	}
-	if err := SaveState(caseDir, caseState); err != nil {
-		logging.New("calibrate").Warn("save final state", "error", err)
-	}
-
-	result.ActualLoops = walker.state.LoopCounts["investigate"]
 
 	updatedCase, err := st.GetCase(caseData.ID)
 	if err == nil && updatedCase != nil {
@@ -416,7 +428,7 @@ func runCaseCircuit(
 		}
 	}
 
-	return result, nil
+	return result
 }
 
 
@@ -536,7 +548,7 @@ func selectRepoByHypothesis(hypothesis string, repos []RepoConfig) []string {
 	return matched
 }
 
-// updateIDMaps updates the adapter's RCA/symptom ID maps after a case
+// updateIDMaps updates the transformer's RCA/symptom ID maps after a case
 // completes, so subsequent cases can reference prior RCAs/symptoms by store ID.
 func updateIDMaps(mapper IDMappable, st store.Store, caseData *store.Case, gtCase GroundTruthCase, scenario *Scenario) {
 	updated, err := st.GetCase(caseData.ID)

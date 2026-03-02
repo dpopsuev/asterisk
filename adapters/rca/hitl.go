@@ -41,7 +41,13 @@ func RunHITLStep(ctx context.Context, cfg HITLConfig) (*HITLResult, error) {
 		return nil, fmt.Errorf("create checkpointer: %w", err)
 	}
 
-	runner, err := BuildRunnerWith(th, NodeRegistry(), StoreHooks(cfg.Store, cfg.CaseData))
+	hitlAdapter := HITLAdapter()
+	storeAdapter := &framework.Adapter{
+		Namespace: "store",
+		Name:      "rca-store-hooks",
+		Hooks:     StoreHooks(cfg.Store, cfg.CaseData),
+	}
+	runner, err := BuildRunner(th, hitlAdapter, storeAdapter)
 	if err != nil {
 		return nil, fmt.Errorf("build runner: %w", err)
 	}
@@ -67,7 +73,13 @@ func ResumeHITLStep(ctx context.Context, cfg HITLConfig, artifactData []byte) (*
 		return nil, fmt.Errorf("create checkpointer: %w", err)
 	}
 
-	runner, err := BuildRunnerWith(th, NodeRegistry(), StoreHooks(cfg.Store, cfg.CaseData))
+	hitlAdapter := HITLAdapter()
+	storeAdapter := &framework.Adapter{
+		Namespace: "store",
+		Name:      "rca-store-hooks",
+		Hooks:     StoreHooks(cfg.Store, cfg.CaseData),
+	}
+	runner, err := BuildRunner(th, hitlAdapter, storeAdapter)
 	if err != nil {
 		return nil, fmt.Errorf("build runner: %w", err)
 	}

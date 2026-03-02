@@ -11,6 +11,7 @@ import (
 	"asterisk/adapters/calibration/scenarios"
 	astrp "asterisk/adapters/rp"
 	"asterisk/adapters/store"
+	framework "github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/adapters/rp"
 	cal "github.com/dpopsuev/origami/calibrate"
 	"github.com/dpopsuev/origami/dispatch"
@@ -66,7 +67,7 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	extra := params.Extra
 
 	scenarioName, _ := extra["scenario"].(string)
-	adapterName, _ := extra["adapter"].(string)
+	transformerName, _ := extra["adapter"].(string)
 	rpBaseURL, _ := extra["rp_base_url"].(string)
 	rpProject, _ := extra["rp_project"].(string)
 
@@ -104,33 +105,34 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 	tokenTracker := dispatch.NewTokenTracker()
 	tracked := dispatch.NewTokenTrackingDispatcher(disp, tokenTracker)
 
-	var adapter rca.ModelAdapter
-	switch adapterName {
+	var adapters []*framework.Adapter
+	var transformerLabel string
+	var idMapper rca.IDMappable
+	switch transformerName {
 	case "stub":
-		adapter = rca.NewStubAdapter(scenario)
+		stub := rca.NewStubTransformer(scenario)
+		adapters = []*framework.Adapter{rca.TransformerAdapter(stub)}
+		transformerLabel = "stub"
+		idMapper = stub
 	case "basic":
 		basicSt, err := store.Open(":memory:")
 		if err != nil {
-			return nil, fwmcp.SessionMeta{}, fmt.Errorf("basic adapter: open store: %w", err)
+			return nil, fwmcp.SessionMeta{}, fmt.Errorf("basic transformer: open store: %w", err)
 		}
 		var repoNames []string
 		for _, r := range scenario.Workspace.Repos {
 			repoNames = append(repoNames, r.Name)
 		}
-		ba := rca.NewBasicAdapter(basicSt, repoNames)
-		for _, c := range scenario.Cases {
-			ba.RegisterCase(c.ID, &rca.BasicCaseInfo{
-				Name:         c.TestName,
-				ErrorMessage: c.ErrorMessage,
-			})
-		}
-		adapter = ba
+		adapters = []*framework.Adapter{rca.HeuristicAdapter(basicSt, repoNames)}
+		transformerLabel = "basic"
 	default:
-		adapter = rca.NewLLMAdapter(
+		t := rca.NewRCATransformer(
+			tracked,
 			promptDir,
-			rca.WithDispatcher(tracked),
-			rca.WithBasePath(basePath),
+			rca.WithRCABasePath(basePath),
 		)
+		adapters = []*framework.Adapter{rca.TransformerAdapter(t)}
+		transformerLabel = "rca"
 	}
 
 	parallel := params.Parallel
@@ -150,7 +152,9 @@ func (s *Server) createSession(ctx context.Context, params fwmcp.StartParams, di
 
 	cfg := rca.RunConfig{
 		Scenario:     scenario,
-		Adapter:      adapter,
+		Adapters:     adapters,
+		TransformerName: transformerLabel,
+		IDMapper:     idMapper,
 		Runs:         1,
 		PromptDir:    promptDir,
 		Thresholds:   rca.DefaultThresholds(),

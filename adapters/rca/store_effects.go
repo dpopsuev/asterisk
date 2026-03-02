@@ -8,10 +8,10 @@ import (
 	"github.com/dpopsuev/origami/logging"
 )
 
-// ApplyStoreEffects updates Store entities based on the completed step's artifact.
-// These are the side effects defined in the prompt-orchestrator contract §Phase 5.
-// Exported so that callers (e.g. calibrate runner) can reuse the same logic.
-func ApplyStoreEffects(
+// applyStoreEffects updates Store entities based on the completed step's artifact.
+// Individual apply*Effects functions are called directly from StoreHooks (hooks.go).
+// This dispatch wrapper is retained for test convenience.
+func applyStoreEffects(
 	st store.Store,
 	caseData *store.Case,
 	step CircuitStep,

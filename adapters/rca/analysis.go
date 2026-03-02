@@ -7,13 +7,18 @@ import (
 
 	"asterisk/adapters/store"
 
+	framework "github.com/dpopsuev/origami"
+	"github.com/dpopsuev/origami/adapters/rp"
 	"github.com/dpopsuev/origami/format"
+	"github.com/dpopsuev/origami/knowledge"
 	"github.com/dpopsuev/origami/logging"
 )
 
 // AnalysisConfig holds configuration for an analysis run.
 type AnalysisConfig struct {
-	Adapter    ModelAdapter
+	Adapters   []*framework.Adapter
+	Envelope   *rp.Envelope
+	Catalog    *knowledge.KnowledgeSourceCatalog
 	Thresholds Thresholds
 	BasePath   string // root directory for investigation artifacts; defaults to DefaultBasePath
 }
@@ -22,7 +27,7 @@ type AnalysisConfig struct {
 // Unlike CalibrationReport, there is no ground truth scoring — just investigation results.
 type AnalysisReport struct {
 	LaunchName  string               `json:"launch_name"`
-	Adapter     string               `json:"adapter"`
+	Transformer string               `json:"transformer"`
 	TotalCases  int                  `json:"total_cases"`
 	CaseResults []AnalysisCaseResult `json:"case_results"`
 }
@@ -48,12 +53,16 @@ type AnalysisCaseResult struct {
 	RPAutoAnalyzed bool     `json:"rp_auto_analyzed,omitempty"`
 }
 
-// RunAnalysis drives the F0–F6 circuit for a set of cases using the provided adapter.
+// RunAnalysis drives the F0–F6 circuit for a set of cases using the provided transformer.
 // Unlike RunCalibration, there is no ground truth scoring — just investigation results.
 // Each case is walked through the circuit graph using WalkCase with store-effect hooks.
 func RunAnalysis(st store.Store, cases []*store.Case, suiteID int64, cfg AnalysisConfig) (*AnalysisReport, error) {
+	transformerName := "unknown"
+	if len(cfg.Adapters) > 0 {
+		transformerName = cfg.Adapters[0].Name
+	}
 	report := &AnalysisReport{
-		Adapter:    cfg.Adapter.Name(),
+		Transformer: transformerName,
 		TotalCases: len(cases),
 	}
 
@@ -93,15 +102,33 @@ func walkAnalysisCase(
 		StoreCaseID: caseData.ID,
 	}
 
-	hooks := StoreHooks(st, caseData)
+	basePath := cfg.BasePath
+	if basePath == "" {
+		basePath = DefaultBasePath
+	}
+	caseDir, _ := EnsureCaseDir(basePath, 0, caseData.ID)
+
+	hooksAdapter := &framework.Adapter{
+		Namespace: "store",
+		Name:      "rca-store-hooks",
+		Hooks:     StoreHooks(st, caseData),
+	}
+	injectAdapter := &framework.Adapter{
+		Namespace: "inject",
+		Name:      "rca-inject-hooks",
+		Hooks:     InjectHooks(st, caseData, cfg.Envelope, cfg.Catalog, caseDir),
+	}
+	adapters := append(cfg.Adapters, hooksAdapter, injectAdapter)
 
 	walkCfg := WalkConfig{
 		Store:      st,
 		CaseData:   caseData,
-		Adapter:    cfg.Adapter,
+		Envelope:   cfg.Envelope,
+		Catalog:    cfg.Catalog,
+		CaseDir:    caseDir,
 		CaseLabel:  caseLabel,
 		Thresholds: cfg.Thresholds,
-		Hooks:      hooks,
+		Adapters:   adapters,
 	}
 
 	walkResult, err := WalkCase(context.Background(), walkCfg)
@@ -173,7 +200,7 @@ func FormatAnalysisReport(report *AnalysisReport) string {
 	if report.LaunchName != "" {
 		b.WriteString(fmt.Sprintf("Launch:  %s\n", report.LaunchName))
 	}
-	b.WriteString(fmt.Sprintf("Adapter: %s\n", report.Adapter))
+	b.WriteString(fmt.Sprintf("Transformer: %s\n", report.Transformer))
 	b.WriteString(fmt.Sprintf("Cases:   %d\n\n", report.TotalCases))
 
 	recallHits := 0

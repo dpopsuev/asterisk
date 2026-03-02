@@ -13,6 +13,7 @@ import (
 
 	"asterisk/adapters/rca"
 	"asterisk/adapters/store"
+	framework "github.com/dpopsuev/origami"
 	"github.com/dpopsuev/origami/knowledge"
 )
 
@@ -124,12 +125,14 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 	}
 	defer st.Close()
 
+	var catalog *knowledge.KnowledgeSourceCatalog
 	var repoNames []string
 	if analyzeFlags.workspacePath != "" {
-		catalog, err := knowledge.LoadFromPath(analyzeFlags.workspacePath)
+		cat, err := knowledge.LoadFromPath(analyzeFlags.workspacePath)
 		if err != nil {
 			return fmt.Errorf("load catalog: %w", err)
 		}
+		catalog = cat
 		for _, s := range catalog.Sources {
 			repoNames = append(repoNames, s.Name)
 		}
@@ -139,20 +142,14 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 
 	suiteID, cases := createAnalysisScaffolding(st, env)
 
-	var adapter rca.ModelAdapter
+	cfg := rca.AnalysisConfig{
+		Thresholds: rca.DefaultThresholds(),
+		Envelope:   env,
+		Catalog:    catalog,
+	}
 	switch analyzeFlags.adapterName {
 	case "basic":
-		ba := rca.NewBasicAdapter(st, repoNames)
-		for i, c := range cases {
-			label := fmt.Sprintf("A%d", i+1)
-			ba.RegisterCase(label, &rca.BasicCaseInfo{
-				Name:         c.Name,
-				ErrorMessage: c.ErrorMessage,
-				LogSnippet:   c.LogSnippet,
-				StoreCaseID:  c.ID,
-			})
-		}
-		adapter = ba
+		cfg.Adapters = []*framework.Adapter{rca.HeuristicAdapter(st, repoNames)}
 	case "llm":
 		dispatcher, err := buildDispatcher(DispatchOpts{Mode: analyzeFlags.dispatchMode})
 		if err != nil {
@@ -162,17 +159,13 @@ func runAnalyze(cmd *cobra.Command, args []string) error {
 		if err := os.MkdirAll(basePath, 0755); err != nil {
 			return fmt.Errorf("create analyze dir: %w", err)
 		}
-		adapter = rca.NewLLMAdapter(analyzeFlags.promptDir,
-			rca.WithDispatcher(dispatcher),
-			rca.WithBasePath(basePath),
+		t := rca.NewRCATransformer(dispatcher, analyzeFlags.promptDir,
+			rca.WithRCABasePath(basePath),
 		)
+		cfg.Adapters = []*framework.Adapter{rca.TransformerAdapter(t)}
+		cfg.BasePath = basePath
 	default:
 		return fmt.Errorf("unknown adapter: %s (supported: basic, llm)", analyzeFlags.adapterName)
-	}
-
-	cfg := rca.AnalysisConfig{
-		Adapter:    adapter,
-		Thresholds: rca.DefaultThresholds(),
 	}
 	report, err := rca.RunAnalysis(st, cases, suiteID, cfg)
 	if err != nil {

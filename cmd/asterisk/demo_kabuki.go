@@ -47,7 +47,7 @@ func (PoliceStationKabuki) Results() *kami.ResultsSection {
 		},
 		Summary: []kami.SummaryCard{
 			{Value: "19/21", Label: "Metrics passing", Color: "#3e8635"},
-			{Value: "0.83", Label: "M19 (BasicAdapter)", Color: "#ee0000"},
+			{Value: "0.83", Label: "M19 (Heuristic)", Color: "#ee0000"},
 			{Value: "18", Label: "Verified cases", Color: "#06c"},
 		},
 	}
