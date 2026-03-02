@@ -11,7 +11,7 @@
 - Every section page must display its own title matching the Agenda label.
 - The police allegory is excellent — keep it, but pair every metaphor with its real domain term on the same line.
 - The War Room is the cherry on top. It must work in both replay and live mode.
-- Adapters & Marbles showcase (Act 2) is a conceptual placeholder until `origami-adapters` and `origami-marbles` contracts ship. Show the design and DSL surface, mark as "coming next."
+- Adapters & Modules showcase (Act 2) is a conceptual placeholder until `origami-adapters` and `origami-modules` contracts ship. Show the design and DSL surface, mark as "coming next."
 
 ## Context
 
@@ -31,7 +31,7 @@
 - **Adversarial Dialectic** (Origami, `agentic-framework-III.3-shadow`): D0-D4 escalation levels, antithesis personas, prosecution vs defense. Showcased in Act 2.
 - **Masks** (Origami, `agentic-framework-III.2-masks`): Detachable middleware masks. Showcased in Act 2.
 - **Three MCP servers**: `origami-circuit-marshaller` (circuit operations), `origami-kami-debugger` (14 debug tools), `origami-ouroboros-metacalibration` (discovery + marshaller). All complete and running. Showcased in Act 2.
-- **Soft dependencies**: `origami-adapters` (Origami, draft/vision) and `origami-marbles` (Origami, draft/vision) for Act 2 DSL purity story. Not blockers — demo proceeds with conceptual placeholders.
+- **Soft dependencies**: `origami-adapters` (Origami, draft/vision) and `origami-modules` (Origami, draft/vision) for Act 2 DSL purity story. Not blockers — demo proceeds with conceptual placeholders.
 
 ### Current architecture
 
@@ -107,7 +107,7 @@ flowchart TB
         Dialectic["Adversarial Dialectic"]
         Masks_[Masks]
         KnowledgeSources["Knowledge Sources\nwith Read Labels"]
-        AdaptersMarbles[Adapters and Marbles]
+        AdaptersModules[Adapters and Modules]
     end
 
     subgraph act3 [Act 3 -- Deep Science]
@@ -126,8 +126,8 @@ flowchart TB
     end
 
     Hero --> Agenda --> Problem --> Solution --> Agents --> Transition --> WarRoom2 --> Results
-    Results --> DSL --> Colors --> OrigArch --> KamiArch --> MCPs --> Dialectic --> Masks_ --> KnowledgeSources --> AdaptersMarbles
-    AdaptersMarbles --> Ouroboros --> Personas --> Papercup --> Skills --> RTFM_ --> Process_
+    Results --> DSL --> Colors --> OrigArch --> KamiArch --> MCPs --> Dialectic --> Masks_ --> KnowledgeSources --> AdaptersModules
+    AdaptersModules --> Ouroboros --> Personas --> Papercup --> Skills --> RTFM_ --> Process_
     Process_ --> Competitive --> Roadmap --> Closing
 ```
 
@@ -140,7 +140,7 @@ flowchart TB
 
 ## Execution strategy
 
-Phase 1 fixes structural issues (section titles, responsive scaling, configurable ordering for 26 sections). Phase 2 grounds the language (domain terms alongside police metaphor). Phase 3 overhauls the graph (dagre layout, arrows, hover, agent dots). Phase 4 builds the War Room (the centerpiece live-analysis view). Phase 5 adds new section types for Act 2 and Act 3 content. Phase 6 populates Act 2 (9 sections: DSL, Color Coding, Architecture, Kami Demiurge, Three MCPs, Adversarial Dialectic, Masks, Knowledge Sources with Read Labels, Adapters & Marbles). Phase 7 populates Act 3 (6 sections: Ouroboros, Personas, Papercup Protocol, Cursor Skills, RTFM, The Process grand finale). Phase 8 records the canonical demo. Phase 9 validates. Bloated-first — reduction during Phase 9 tuning.
+Phase 1 fixes structural issues (section titles, responsive scaling, configurable ordering for 26 sections). Phase 2 grounds the language (domain terms alongside police metaphor). Phase 3 overhauls the graph (dagre layout, arrows, hover, agent dots). Phase 4 builds the War Room (the centerpiece live-analysis view). Phase 5 adds new section types for Act 2 and Act 3 content. Phase 6 populates Act 2 (9 sections: DSL, Color Coding, Architecture, Kami Demiurge, Three MCPs, Adversarial Dialectic, Masks, Knowledge Sources with Read Labels, Adapters & Modules). Phase 7 populates Act 3 (6 sections: Ouroboros, Personas, Papercup Protocol, Cursor Skills, RTFM, The Process grand finale). Phase 8 records the canonical demo. Phase 9 validates. Bloated-first — reduction during Phase 9 tuning.
 
 Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (content). Phase 8 requires a wet calibration session.
 
@@ -218,9 +218,9 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 - [ ] **A2-6** Adversarial Dialectic section — D0-D4 escalation levels: antithesis personas challenging conclusions. Prosecution vs defense, confidence threshold gates. Concept cards showing the escalation ladder (Asterisk `kabuki.go`)
 - [ ] **A2-7** Masks section — detachable behavioral middleware. How masks modify agent behavior without changing identity. Composable: stack multiple masks. Concept card explaining the pattern with examples (Asterisk `kabuki.go`)
 - [ ] **A2-8** Knowledge Sources with Read Labels section — framework building block: `KnowledgeSourceCatalog`, `Source` types (`SourceKindRepo`, `SourceKindDoc`, `SourceKindAPI`), `KnowledgeSourceRouter` for tag-based selection. Showcase the `ReadPolicy` labels (`Read: Always`, `Read: When...`) that tell agents which knowledge is mandatory prerequisite reading and which is conditionally relevant. Concept cards showing the policy system + code showcase with example `Source` definitions including `ReadPolicy` and `ReadWhen` fields (Asterisk `kabuki.go`)
-- [ ] **A2-9** Adapters & Marbles section — conceptual design with DSL surface examples. Adapters: helper bundles (transformers, extractors, hooks). Marbles: reusable graph nodes (atomic, composite subgraphs). Marked as "coming next" (Asterisk `kabuki.go`)
+- [ ] **A2-9** Adapters & Modules section — conceptual design with DSL surface examples. Adapters: helper bundles (transformers, extractors, hooks). Modules: reusable graph nodes (atomic, composite subgraphs). Marked as "coming next" (Asterisk `kabuki.go`)
 
-*Soft dependency:* A2-9 is a placeholder. Updated to show real FQCN resolution and marble YAML when `origami-adapters` and `origami-marbles` contracts ship.
+*Soft dependency:* A2-9 is a placeholder. Updated to show real FQCN resolution and module YAML when `origami-adapters` and `origami-modules` contracts ship.
 
 ### Phase 7 — Act 3 Content: Deep Science
 
@@ -252,7 +252,7 @@ Phases 1-4 are Origami-heavy (frontend). Phases 2, 6-7 are Asterisk-heavy (conte
 
 **Given** `asterisk demo --replay testdata/demo/ptp-real-ingest.jsonl`,  
 **When** a browser navigates to the demo URL,  
-**Then** the presentation follows the three-act narrative with 26 sections: Act 1 (Asterisk product: Problem through Results, 8 sections), Act 2 (Origami engine: DSL through Adapters & Marbles including Kami Demiurge, Three MCPs, Adversarial Dialectic, Masks, Knowledge Sources with Read Labels, 9 sections), Act 3 (Deep Science: Ouroboros through The Process including Papercup, Cursor Skills, RTFM, 6 sections), followed by Competitive, Roadmap, Closing.
+**Then** the presentation follows the three-act narrative with 26 sections: Act 1 (Asterisk product: Problem through Results, 8 sections), Act 2 (Origami engine: DSL through Adapters & Modules including Kami Demiurge, Three MCPs, Adversarial Dialectic, Masks, Knowledge Sources with Read Labels, 9 sections), Act 3 (Deep Science: Ouroboros through The Process including Papercup, Cursor Skills, RTFM, 6 sections), followed by Competitive, Roadmap, Closing.
 
 **Given** the War Room section during replay,  
 **When** multiple agents are active in the circuit,  
@@ -316,7 +316,7 @@ No trust boundaries affected. The demo runs on localhost, serves static content,
 
 ## Notes
 
-2026-02-26 — Contract created from demo postmortem. Six failures identified: no live action, poor graph, language too strong on allegory, scaling issues, missing section titles, wrong story order. Three-act structure agreed: Asterisk (product) → Origami (engine) → Deep Science. War Room view designed from user's ASCII art. Absorbs Phase 3 of `demo-presentation` (canonical recording). Soft dependency on `origami-adapters` + `origami-marbles` for Act 2 DSL purity story — those sections are placeholders until the contracts ship.
+2026-02-26 — Contract created from demo postmortem. Six failures identified: no live action, poor graph, language too strong on allegory, scaling issues, missing section titles, wrong story order. Three-act structure agreed: Asterisk (product) → Origami (engine) → Deep Science. War Room view designed from user's ASCII art. Absorbs Phase 3 of `demo-presentation` (canonical recording). Soft dependency on `origami-adapters` + `origami-modules` for Act 2 DSL purity story — those sections are placeholders until the contracts ship.
 
 2026-02-26 — Expanded from 18 to 25 sections. Added 7 missing topics: Kami Demiurge pattern (Act 2), Three MCP Servers (Act 2), Adversarial Dialectic (Act 2), Masks (Act 2), Papercup Protocol (Act 3), Cursor Skills (Act 3), Knowledge Sources + RTFM (Act 3). "The Process" promoted to grand finale tying all pieces together. Bloated-first approach — add everything, reduce during tuning.
 

@@ -14,7 +14,6 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `naming-taxonomy.md` | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. | gate |
 | `design-principle-deterministic.md` | Codify "Deterministic over Stochastic" as a framework design principle with lint enforcement. | quick-win |
 | `origami-autodoc.md` | `origami autodoc` CLI: docs tree scaffold, Mermaid diagrams, Markdown reference, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. | quick-win |
 | `yaml-playbook-docs.md` | Extend autodoc-generated skeleton with Asterisk-specific narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. | quick-win |
@@ -150,16 +149,17 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `evidence-gap-brief.md` | Structured "what's missing" output when circuit confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |
 
-### completed/dsl-migration/ (6)
+### completed/dsl-migration/ (7)
 
 | Contract | Goal |
 |----------|------|
+| `naming-taxonomy.md` | Rename `marbles/` → `modules/`, add Deterministic/Stochastic Transformer classification, B7 lint rule, Adapter evaluation. |
 | `sqlite-dsl-adapter.md` | YAML-defined SQLite adapter in Origami; Asterisk schema.go replaced by schema.yaml + migrations. |
 | `data-dsl-extraction.md` | Scenarios + vocabulary to YAML; zero Go struct literals for ground truth data. Loaders remain (121 LOC). |
 | `adapter-migration.md` | RP adapter lift-and-drop to Origami. Residual `rp_source.go` (93 LOC) covered by rca-pure-dsl. |
 | `scorer-pattern.md` | 10 batch scorer patterns in Origami; 21 Asterisk scorers expressed as YAML declarations. Split from rca-pure-dsl G5. |
-| `rca-pure-dsl.md` | Marble decomposition of adapters/rca/ (5.6K→5.3K LOC). 8 phases: ModelAdapter→transformers, heuristic rules engine, per-node decomposition, BatchWalk. Residual tracked in origami-fold. |
-| `origami-fold.md` | `origami fold` compiles YAML project to binary. All Go moved to Origami `marbles/rca/`; Asterisk achieves zero Go. |
+| `rca-pure-dsl.md` | Module decomposition of adapters/rca/ (5.6K→5.3K LOC). 8 phases: ModelAdapter→transformers, heuristic rules engine, per-node decomposition, BatchWalk. Residual tracked in origami-fold. |
+| `origami-fold.md` | `origami fold` compiles YAML project to binary. All Go moved to Origami `modules/rca/`; Asterisk achieves zero Go. |
 
 ### completed/housekeeping/ (1)
 

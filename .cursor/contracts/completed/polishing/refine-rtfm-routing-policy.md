@@ -33,7 +33,7 @@
   - `Prior.ContextResult` from prompt templates
 - **Cross-references**:
   - `knowledge-source-evolution` (Asterisk, draft/vision) — layered composition, artifact dependency graph. This contract provides the policy primitive that evolution builds on.
-  - `origami-marbles` (Origami, draft) — RTFM marble reference removed; superseded by ReadPolicy.
+  - `origami-modules` (Origami, draft) — RTFM module reference removed; superseded by ReadPolicy.
   - `principled-calibration-scorecard` (Both, draft) — ReadPolicy feeds into evidence quality (M12, M13).
 
 ### Current architecture

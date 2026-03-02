@@ -28,17 +28,16 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 ## Go LOC Status
 
-**Zero Go achieved.** All 11,771 LOC moved to Origami `marbles/rca/` (pending rename to `modules/rca/` — see `naming-taxonomy` contract). Asterisk contains only YAML, Markdown, and configuration files.
+**Zero Go achieved.** All 11,771 LOC moved to Origami `modules/rca/`. Asterisk contains only YAML, Markdown, and configuration files.
 
 ## Draft Contracts
 
 | # | Contract | Dir | Tier | Scope |
 |---|----------|-----|------|-------|
-| 1 | `naming-taxonomy` | draft/ | gate | Rename `marbles/` → `modules/`, add Deterministic/Stochastic classification, evaluate Adapter → Component. |
-| 2 | `design-principle-deterministic` | draft/ | quick-win | Codify "Deterministic over Stochastic" as framework design principle with lint enforcement. |
-| 3 | `origami-autodoc` | draft/ | quick-win | `origami autodoc` CLI: docs tree scaffold (Kubernetes pattern), Mermaid + Markdown, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. |
-| 4 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. |
-| 5 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+| 1 | `design-principle-deterministic` | draft/ | quick-win | Codify "Deterministic over Stochastic" as framework design principle with lint enforcement. |
+| 2 | `origami-autodoc` | draft/ | quick-win | `origami autodoc` CLI: docs tree scaffold (Kubernetes pattern), Mermaid + Markdown, D/S visualization, optional stochastic enrichment. Precursor to yaml-playbook-docs. |
+| 3 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc + housekeeping. |
+| 4 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
 
@@ -49,11 +48,11 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
     └─────────────┬────────────────────────────┘
                   │
     ┌─────────────▼────────────────────────────┐
-    │ naming-taxonomy (GATE)                   │  4 phases:
-    │  Ph1: glossary entries                   │  1. taxonomy documentation
-    │  Ph2: marbles/ → modules/ rename         │  2. mechanical rename (101 files)
-    │  Ph3: Deterministic/Stochastic marker    │  3. type system on Transformer
-    │  Ph4: Adapter → Component eval           │  4. optional rename evaluation
+    │ naming-taxonomy ✓ COMPLETE               │  4 phases done:
+    │  Ph1: glossary entries ✓                 │  modules/ renamed (348 files)
+    │  Ph2: marbles/ → modules/ ✓             │  DeterministicTransformer interface
+    │  Ph3: D/S marker + B7 lint ✓            │  B7 stochastic-transformer rule
+    │  Ph4: Adapter eval → deferred ✓         │  200+ refs, low ROI during PoC
     └──────────┬───────────────┬───────────────┘
                │               │
     ┌──────────▼──────┐  ┌─────▼──────────────────────┐
@@ -125,7 +124,7 @@ flowchart TB
 - [ ] CursorAdapter M19 >= 0.70 with principled weights (baseline: 0.58)
 - [ ] M14b (smoking gun) confirmed >= 0.30 in wet run (baseline: 0.30 — at threshold)
 - [x] **Zero Go (umbrella):** Asterisk repo contains zero `.go` files — all 11,771 LOC resolved.
-- [ ] **Naming taxonomy:** `marbles/` renamed to `modules/`, D/S classification on Transformer interface.
+- [ ] **Naming taxonomy:** `modules/` renamed to `modules/`, D/S classification on Transformer interface.
 - [x] **Housekeeping:** Go-era leftover artifacts removed from .gitignore, justfile, skills, rules, dev scripts.
 - [ ] **Autodoc:** `origami autodoc` generates docs tree scaffold (Kubernetes pattern), valid Mermaid, Markdown reference. Precursor to docs.
 - [ ] **YAML playbook docs:** Autodoc skeleton extended with Asterisk narrative, Ansible analogy, project identity.
@@ -140,7 +139,7 @@ flowchart TB
 | `sqlite-dsl-adapter` | Origami primitive built; Asterisk migration pending | dsl-migration |
 | `scorer-pattern` | -700 LOC (21 Go scorers → 10 batch patterns in Origami YAML) | dsl-migration |
 | `rca-pure-dsl` | -942 net LOC (5.6K→5.3K); structural transformation to framework primitives | dsl-migration |
-| `origami-fold` | -11,650 LOC (all Go moved to Origami `marbles/rca/`; `origami fold` codegen) | dsl-migration |
+| `origami-fold` | -11,650 LOC (all Go moved to Origami `modules/rca/`; `origami fold` codegen) | dsl-migration |
 | `housekeeping` | Mechanical cleanup: .gitignore, justfile, skills, rules, dev scripts updated for YAML-only era | housekeeping |
 
 All prior goals achieved. Bundles 1-4 (Principled Metrics, Rich Names, Smart Routing, Demo Polish) complete. Full history: `notes/goal-history-poc.md`

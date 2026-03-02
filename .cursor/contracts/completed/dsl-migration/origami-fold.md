@@ -1,7 +1,7 @@
 # Contract — origami-fold
 
 **Status:** complete  
-**Goal:** `origami fold` compiles a YAML-only consumer project into a standalone Go binary. All Go code leaves Asterisk — domain logic moves to `origami/marbles/rca/`, CLI wiring is fold-generated. Asterisk becomes YAML-only.  
+**Goal:** `origami fold` compiles a YAML-only consumer project into a standalone Go binary. All Go code leaves Asterisk — domain logic moves to `origami/modules/rca/`, CLI wiring is fold-generated. Asterisk becomes YAML-only.  
 **Serves:** 100% DSL — Zero Go
 
 ## Contract rules
@@ -32,7 +32,7 @@ flowchart TB
   subgraph origami ["Origami (framework)"]
     cli["cli/scaffold.go<br/>NewCLI builder"]
     mcp["mcp/circuit_server.go<br/>CircuitServer + CircuitConfig"]
-    adapters["adapters/ + marbles/"]
+    adapters["adapters/ + modules/"]
   end
   rootGo -->|"calls"| cli
   mcpconfig -->|"constructs"| mcp
@@ -82,7 +82,7 @@ Classification of `adapters/rca/` 5,311 LOC (36 files) by target:
 | `framework_adapters.go` | 52 | NodeNameToStep, WrapArtifact — YAML node→step bridge. |
 | `extractor.go` | 40 | Generic `StepExtractor[T]` — JSON→typed struct. |
 
-### MARBLE → `origami/marbles/rca/` (1,529 LOC, 8 files)
+### MARBLE → `origami/modules/rca/` (1,529 LOC, 8 files)
 
 | File | LOC | Summary |
 |------|-----|---------|
@@ -95,7 +95,7 @@ Classification of `adapters/rca/` 5,311 LOC (36 files) by target:
 | `artifact.go` | 122 | CaseDir, artifact I/O, prompt file layout. |
 | `evidence_gap.go` | 61 | EvidenceGap, GapBrief, ClassifyVerdict. |
 
-### DOMAIN_ADAPTER → `origami/marbles/rca/` (3,235 LOC, 22 files)
+### DOMAIN_ADAPTER → `origami/modules/rca/` (3,235 LOC, 22 files)
 
 These are Asterisk-specific but encode reusable RCA patterns parameterized by YAML config:
 
@@ -129,16 +129,16 @@ These are Asterisk-specific but encode reusable RCA patterns parameterized by YA
 | File | LOC | Summary |
 |------|-----|---------|
 | `circuit_def.go` | 52 | Loads `circuit_rca.yaml` + wires thresholds → vars. Fold-generated. |
-| `tuning.go` (QW defs) | 163 | QuickWin definitions already in `tuning-quickwins.yaml`. Runner moves to marble. |
+| `tuning.go` (QW defs) | 163 | QuickWin definitions already in `tuning-quickwins.yaml`. Runner moves to module. |
 
 ### Other Asterisk Go that must move
 
 | Area | LOC | Target |
 |------|-----|--------|
-| `cmd/asterisk/` | 3,245 | Eliminated by fold. Orchestration (analyze, calibrate, serve, demo, dataset) absorbed by marble CLI entry points. |
-| `internal/mcpconfig/` | 272 | Absorbed by marble ServeConfig implementation. |
+| `cmd/asterisk/` | 3,245 | Eliminated by fold. Orchestration (analyze, calibrate, serve, demo, dataset) absorbed by module CLI entry points. |
+| `internal/mcpconfig/` | 272 | Absorbed by module ServeConfig implementation. |
 | `cmd/asterisk-analyze-rp-cursor/` | 115 | Eliminated (wrapper becomes shell alias or fold config). |
-| `adapters/store/` | 2,373 | Moves to `origami/adapters/store/` or `origami/marbles/rca/store/`. |
+| `adapters/store/` | 2,373 | Moves to `origami/adapters/store/` or `origami/modules/rca/store/`. |
 | `adapters/rp/rp_source.go` | 93 | Moves to `origami/adapters/rp/`. |
 | `adapters/vocabulary/` | 79 | YAML loader — stays as embedded YAML. |
 | `adapters/calibration/scenarios/` | 42 | YAML loader — stays as embedded YAML. |
@@ -156,7 +156,7 @@ Four phases: close predecessor → move code → build fold → migrate consumer
 
 ### Phase 1: Move domain code to Origami
 
-Create `origami/marbles/rca/` and mechanically move all `adapters/rca/` files. Framework-generic files go to Origami core. Store moves to `origami/adapters/store/`.
+Create `origami/modules/rca/` and mechanically move all `adapters/rca/` files. Framework-generic files go to Origami core. Store moves to `origami/adapters/store/`.
 
 Add CLI entry points implementing Origami's builder interfaces:
 - `CalibrateRunner` (absorbs `cmd_calibrate.go` orchestration)
@@ -175,7 +175,7 @@ description: Evidence-based RCA for ReportPortal test failures
 version: "1.0"
 
 imports:
-  - origami.marbles.rca
+  - origami.modules.rca
   - origami.adapters.rp
   - origami.adapters.sqlite
 
@@ -192,22 +192,22 @@ cli:
     - {name: log-level, type: string, default: info}
     - {name: log-format, type: string, default: text}
   analyze:
-    provider: marbles.rca.AnalyzeFunc
+    provider: modules.rca.AnalyzeFunc
   calibrate:
-    provider: marbles.rca.CalibrateRunner
+    provider: modules.rca.CalibrateRunner
   consume:
     circuit: circuits/asterisk-ingest.yaml
   dataset:
-    provider: marbles.rca.DatasetStore
+    provider: modules.rca.DatasetStore
 
 serve:
-  provider: marbles.rca.ServeConfig
+  provider: modules.rca.ServeConfig
 
 demo:
-  provider: marbles.rca.DemoConfig
+  provider: modules.rca.DemoConfig
 ```
 
-**FQCN resolution**: `origami.marbles.rca` → `github.com/dpopsuev/origami/marbles/rca`.
+**FQCN resolution**: `origami.modules.rca` → `github.com/dpopsuev/origami/modules/rca`.
 
 **Code generation**: `text/template` producing `main.go` using `NewCLI().With*().Build()` pattern.
 - `provider:` entries → `With*` builder calls (e.g., `WithCalibrate(rca.NewCalibrateRunner())`)
@@ -243,13 +243,13 @@ demo:
 
 ### Phase 1: Move domain code to Origami — COMPLETE
 
-- [x] T1a: Created `origami/marbles/rca/` — moved all 36 .go + 7 .yaml files
-- [x] T1b: Moved all domain adapter files to `origami/marbles/rca/`
-- [x] T1c: Framework files kept in marble (pragmatic: avoids import complexity)
-- [x] T1d: Moved `adapters/store/` to `origami/marbles/rca/store/`
-- [x] T1e: Moved `adapters/rp/rp_source.go` to `origami/marbles/rca/`
+- [x] T1a: Created `origami/modules/rca/` — moved all 36 .go + 7 .yaml files
+- [x] T1b: Moved all domain adapter files to `origami/modules/rca/`
+- [x] T1c: Framework files kept in module (pragmatic: avoids import complexity)
+- [x] T1d: Moved `adapters/store/` to `origami/modules/rca/store/`
+- [x] T1e: Moved `adapters/rp/rp_source.go` to `origami/modules/rca/`
 - [x] T1f: Updated all import paths, both repos green
-- [x] T1g-T1i: cmd/ and mcpconfig/ moved to `origami/marbles/rca/cmd/` and `origami/marbles/rca/mcpconfig/`
+- [x] T1g-T1i: cmd/ and mcpconfig/ moved to `origami/modules/rca/cmd/` and `origami/modules/rca/mcpconfig/`
 - [x] T1j: Both repos build + test green. Calibration PASS 21/21.
 
 ### Phase 2: Build origami fold — COMPLETE
@@ -257,7 +257,7 @@ demo:
 - [x] T2a: Manifest types + YAML parser in `fold/manifest.go`
 - [x] T2b: FQCN resolver in `fold/fqcn.go`
 - [x] T2c: Code generation in `fold/codegen.go`
-- [x] T2d-T2f: Codegen generates `rcacmd.Execute()` — marble owns CLI structure
+- [x] T2d-T2f: Codegen generates `rcacmd.Execute()` — module owns CLI structure
 - [x] T2g: Wired `origami fold` CLI command in `cmd/origami/cmd_fold.go`
 - [x] T2h: Unit + integration tests (manifest parsing, FQCN resolution, codegen, round-trip build)
 
@@ -291,6 +291,6 @@ demo:
 
 ## Notes
 
-2026-03-02 12:00 — CONTRACT COMPLETE. Zero Go in Asterisk achieved. 11,651 LOC moved to Origami `marbles/rca/`. Fold tooling built: manifest parser, FQCN resolver, codegen, CLI command, integration tests. `origami fold --output bin/asterisk` produces a functionally identical binary. Calibration: PASS 21/21, M19=0.98. Asterisk is now YAML-only: `origami.yaml` (manifest) + domain config (circuits, scenarios, scorecards, prompts, heuristics, vocabulary).
-2026-03-02 11:30 — Contract ACTIVATED. Scope expanded from CLI-only (3,600 LOC) to full zero-Go (11,650 LOC). Phases revised: Ph0 (decomposition, COMPLETE), Ph1 (move code to Origami), Ph2 (build fold), Ph3 (migrate Asterisk). Manifest format revised to builder-based (provider: refs to With* interfaces instead of circuit-only). Decomposition map produced: 332 LOC → framework, 1,529 LOC → marble, 3,235 LOC → domain adapter, 215 LOC → YAML config. rca-pure-dsl closed and moved to completed/dsl-migration/.
+2026-03-02 12:00 — CONTRACT COMPLETE. Zero Go in Asterisk achieved. 11,651 LOC moved to Origami `modules/rca/`. Fold tooling built: manifest parser, FQCN resolver, codegen, CLI command, integration tests. `origami fold --output bin/asterisk` produces a functionally identical binary. Calibration: PASS 21/21, M19=0.98. Asterisk is now YAML-only: `origami.yaml` (manifest) + domain config (circuits, scenarios, scorecards, prompts, heuristics, vocabulary).
+2026-03-02 11:30 — Contract ACTIVATED. Scope expanded from CLI-only (3,600 LOC) to full zero-Go (11,650 LOC). Phases revised: Ph0 (decomposition, COMPLETE), Ph1 (move code to Origami), Ph2 (build fold), Ph3 (migrate Asterisk). Manifest format revised to builder-based (provider: refs to With* interfaces instead of circuit-only). Decomposition map produced: 332 LOC → framework, 1,529 LOC → module, 3,235 LOC → domain adapter, 215 LOC → YAML config. rca-pure-dsl closed and moved to completed/dsl-migration/.
 2026-02-28 23:00 — Contract drafted. Split from rca-pure-dsl G8 (previously cancelled as "Large effort"). Scoped to 13 tasks across 2 phases. Key design: convention-based FQCN resolution, text/template codegen, manifest-declared CLI commands and MCP serve config. Prerequisites exist: NewCLI builder, CircuitServer, ResolveFQCN, MergeAdapters.

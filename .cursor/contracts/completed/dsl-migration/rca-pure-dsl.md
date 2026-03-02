@@ -7,7 +7,7 @@
 ## Contract rules
 
 - Any Go in `rca/` that cannot become YAML is a missing Origami primitive — file it, implement it, then delete the Go.
-- Asterisk and Achilles are sibling playbook repositories on the same framework. Achilles does proactive security RCA; Asterisk does passive CI post-mortem RCA. Marbles extracted here must work for both.
+- Asterisk and Achilles are sibling playbook repositories on the same framework. Achilles does proactive security RCA; Asterisk does passive CI post-mortem RCA. Modules extracted here must work for both.
 - Scope: `adapters/rca/` and `adapters/rca/adapt/` are the primary decomposition target. Phase 1 also catalogs the 22% gap (ingest, cmd, mcpconfig, demo, dataset) to produce a complete Origami gaps inventory. CLI, store, and vocabulary implementation are handled by other contracts.
 - **No backward-compatibility debt.** Asterisk is the sole consumer (project-standards §API stability). When a phase eliminates a concept (e.g., `ModelAdapter`), all naming residue — struct fields, JSON keys, comments, test names — must be renamed or deleted in the same phase. "Persisted format" and "serialization contract" are not valid reasons to keep stale names; there is no external user base.
 
@@ -25,22 +25,22 @@ Asterisk's `adapters/rca/` is the largest non-DSL surface in the project. It con
 - Report formatting
 - Framework adapters (basic, stub, LLM)
 
-The circuit structure (`circuit_rca.yaml`) and routing edges are already DSL. The remaining Go code falls into categories that need decomposition — and the right decomposition target is **marbles**, not just "YAML configs."
+The circuit structure (`circuit_rca.yaml`) and routing edges are already DSL. The remaining Go code falls into categories that need decomposition — and the right decomposition target is **modules**, not just "YAML configs."
 
-### Marble discovery
+### Module discovery
 
-The 6,000 lines of Go in `rca/` are not random domain code. They encode reusable analysis patterns that repeat across any RCA-style tool. The decomposition should identify **candidate marbles** — composable subgraph building blocks that both Asterisk and Achilles import:
+The 6,000 lines of Go in `rca/` are not random domain code. They encode reusable analysis patterns that repeat across any RCA-style tool. The decomposition should identify **candidate modules** — composable subgraph building blocks that both Asterisk and Achilles import:
 
-| Pattern | Current Go | Marble candidate | Reuse signal |
+| Pattern | Current Go | Module candidate | Reuse signal |
 |---------|-----------|-----------------|-------------|
-| LLM extraction | Extractors: prompt template → structured output | `llm-extract` marble (prompt + schema → parsed result) | Both tools send prompts and parse structured responses |
-| Context assembly | Transformers: walker state → prompt variables | `context-builder` marble (state + template → filled prompt) | Both tools build prompts from accumulated evidence |
-| Store persistence | Hooks: step completion → save to DB | `persist` marble (artifact → sqlite.exec chain) | Both tools persist results per step |
-| Scoring | Metrics: results → quality scores | `score` marble (results + scorecard → metric values) | Both tools evaluate output quality |
-| Report generation | Report formatting: analysis → structured output | `report` marble (scored results → formatted report) | Both tools produce human-readable reports |
-| Dispatch routing | Framework adapters: model selection + fallback | `dispatch` marble (intent → provider → fallback chain) | Both tools route to LLM providers |
+| LLM extraction | Extractors: prompt template → structured output | `llm-extract` module (prompt + schema → parsed result) | Both tools send prompts and parse structured responses |
+| Context assembly | Transformers: walker state → prompt variables | `context-builder` module (state + template → filled prompt) | Both tools build prompts from accumulated evidence |
+| Store persistence | Hooks: step completion → save to DB | `persist` module (artifact → sqlite.exec chain) | Both tools persist results per step |
+| Scoring | Metrics: results → quality scores | `score` module (results + scorecard → metric values) | Both tools evaluate output quality |
+| Report generation | Report formatting: analysis → structured output | `report` module (scored results → formatted report) | Both tools produce human-readable reports |
+| Dispatch routing | Framework adapters: model selection + fallback | `dispatch` module (intent → provider → fallback chain) | Both tools route to LLM providers |
 
-These are Origami's first user-discovered marbles. The decomposition is not "delete Go" — it is "extract marbles from lived experience." The Go code is the prototype; the marbles are the product.
+These are Origami's first user-discovered modules. The decomposition is not "delete Go" — it is "extract modules from lived experience." The Go code is the prototype; the modules are the product.
 
 ### Sibling validation: Achilles
 
@@ -51,40 +51,40 @@ Achilles (`github.com/dpopsuev/achilles`) is a proactive security vulnerability 
 - Score results against ground truth
 - Produce structured reports
 
-Achilles is the **litmus test** for every marble extracted from Asterisk. If a marble works for CI post-mortem RCA but not for security probing RCA, the abstraction is wrong — go back and generalize. The goal is not to serve Asterisk; the goal is to serve any analysis tool on Origami.
+Achilles is the **litmus test** for every module extracted from Asterisk. If a module works for CI post-mortem RCA but not for security probing RCA, the abstraction is wrong — go back and generalize. The goal is not to serve Asterisk; the goal is to serve any analysis tool on Origami.
 
-This makes `rca-pure-dsl` the most strategically important contract in the project: it produces the first marble catalog, validated by two real consumers.
+This makes `rca-pure-dsl` the most strategically important contract in the project: it produces the first module catalog, validated by two real consumers.
 
 ## FSC artifacts
 
 | Artifact | Target | Compartment |
 |----------|--------|-------------|
-| Marble catalog (first user-discovered marbles) | Origami `docs/` | domain |
+| module catalog (first user-discovered modules) | Origami `docs/` | domain |
 | Origami framework gaps inventory | `docs/` | domain |
 | RCA decomposition analysis | `docs/` | domain |
 
 ## Execution strategy
 
-**Phase 1: Marble discovery** (design, no code changes)
+**Phase 1: Module discovery** (design, no code changes)
 
-Catalog every Go file in `adapters/rca/`. For each file/function, classify into a marble candidate or framework gap:
+Catalog every Go file in `adapters/rca/`. For each file/function, classify into a module candidate or framework gap:
 
-| Category | Marble candidate | Origami primitive needed | Achilles reuse? |
+| Category | Module candidate | Origami primitive needed | Achilles reuse? |
 |----------|-----------------|------------------------|-----------------|
 | Already DSL | — (circuit_rca.yaml) | None | Yes (achilles.yaml) |
 | LLM extraction | `llm-extract` | Declarative extractor DSL | Yes (scan, classify, assess) |
 | Context assembly | `context-builder` | State-to-prompt transformer | Yes (evidence assembly) |
 | Store persistence | `persist` | SQLite adapter (from `adapter-migration`) | Yes (finding storage) |
 | Scoring | `score` | `calibrate/` metric definition DSL | Yes (vulnerability scoring) |
-| Report generation | `report` | Template/format marble | Yes (security report) |
+| Report generation | `report` | Template/format module | Yes (security report) |
 | Dispatch routing | `dispatch` | Adapter-level YAML config | Yes (model routing) |
 | Pure glue | Delete | None | — |
 
-Cross-validate every candidate marble against Achilles's circuit. If a marble is Asterisk-only, the abstraction is wrong.
+Cross-validate every candidate module against Achilles's circuit. If a module is Asterisk-only, the abstraction is wrong.
 
-**Phase 2: Marble implementation** — build the marbles in Origami, validated by both Asterisk and Achilles.
+**Phase 2: Module implementation** — build the modules in Origami, validated by both Asterisk and Achilles.
 
-**Phase 3: Migration** — replace `rca/` Go files with marble imports + YAML configuration.
+**Phase 3: Migration** — replace `rca/` Go files with module imports + YAML configuration.
 
 **Phase 4: Validate** — `just calibrate-stub` and `just calibrate-wet` produce identical results.
 
@@ -101,31 +101,31 @@ Cross-validate every candidate marble against Achilles's circuit. If a marble is
 
 ## Tasks
 
-### Phase 1: Marble discovery + full Zero Go inventory — COMPLETE
+### Phase 1: Module discovery + full Zero Go inventory — COMPLETE
 
 Deliverables produced:
-- [x] Marble catalog: `origami/docs/marble-catalog.md` — 6 marbles with interfaces, source files, Achilles cross-validation matrix
+- [x] module catalog: `origami/docs/module-catalog.md` — 6 modules with interfaces, source files, Achilles cross-validation matrix
 - [x] Framework gaps inventory: `origami/docs/framework-gaps.md` — 11 gaps (G1-G11) with resolution path
-- [x] RCA decomposition analysis: `asterisk/.cursor/docs/rca-decomposition.md` — per-file classification of 62 files (14,600 LOC) with marble/framework assignments
-- [x] Achilles cross-validation: every marble validated against scan→classify→assess→report circuit
+- [x] RCA decomposition analysis: `asterisk/.cursor/docs/rca-decomposition.md` — per-file classification of 62 files (14,600 LOC) with module/framework assignments
+- [x] Achilles cross-validation: every module validated against scan→classify→assess→report circuit
 - [x] 22% gap areas cataloged: ingest, cmd, mcpconfig, demo, dataset
 
 ### Phase 2: Foundation gaps (Origami) — COMPLETE
 
-- [x] G7: Add `Meta map[string]any` to `NodeDef` — smallest gap, unblocks all marbles
+- [x] G7: Add `Meta map[string]any` to `NodeDef` — smallest gap, unblocks all modules
 - [x] G1: Declarative extractor DSL — built-in `json-schema` extractor type, YAML-configured
 - [x] G2: Declarative transformer DSL — `template-params` and `go-template` types, YAML-configured
 - [x] G4: Hook persistence DSL — YAML-declared `file_write` and `sqlite_exec` hook actions
 
-### Phase 3: Marble implementation (Origami) — COMPLETE
+### Phase 3: Module implementation (Origami) — COMPLETE
 
-- [x] G3: YAML-configured provider chains (`dispatch` marble) — `adapt/` package eliminated; StaticDispatcher + `heuristics.yaml`
-- [x] G5: Scorer registry + evaluation engine (`score` marble) — **completed via `scorer-pattern` contract**. All 10 batch patterns in Origami `calibrate/batch_scorer.go`. Comparators in `calibrate/comparators.go`. Asterisk scorecard uses framework names. `scorers.go` deleted.
-- [x] G6: Report template engine (`report` marble) — data-prep functions in `report_data.go`; 4 YAML templates created; old `report.go`, `rca_report.go`, `transcript.go`, `briefing.go`, `tokimeter.go` deleted. Go renderers are thin wrappers calling `report.Render(def, data)` — accepted residual (domain data marshalling).
+- [x] G3: YAML-configured provider chains (`dispatch` module) — `adapt/` package eliminated; StaticDispatcher + `heuristics.yaml`
+- [x] G5: Scorer registry + evaluation engine (`score` module) — **completed via `scorer-pattern` contract**. All 10 batch patterns in Origami `calibrate/batch_scorer.go`. Comparators in `calibrate/comparators.go`. Asterisk scorecard uses framework names. `scorers.go` deleted.
+- [x] G6: Report template engine (`report` module) — data-prep functions in `report_data.go`; 4 YAML templates created; old `report.go`, `rca_report.go`, `transcript.go`, `briefing.go`, `tokimeter.go` deleted. Go renderers are thin wrappers calling `report.Render(def, data)` — accepted residual (domain data marshalling).
 
 ### Phase 4: Asterisk migration — COMPLETE
 
-- [x] Replace `adapters/rca/adapt/` (1,278 LOC) with `dispatch` marble YAML config — adapt/ eliminated
+- [x] Replace `adapters/rca/adapt/` (1,278 LOC) with `dispatch` module YAML config — adapt/ eliminated
 - [x] Replace `adapters/rca/metrics.go` + domain logic — scorers registered in YAML via `scorer-pattern` contract. All 21 metrics use framework batch patterns.
 - [x] Replace `adapters/rca/` report files — old files deleted, `report_data.go` + YAML templates created; Go rendering wrappers are thin `report.Render()` calls (accepted residual)
 - [x] Replace `adapters/rca/` orchestration — RunAnalysis rewired to WalkCase + StoreHooks; bridgeNode/passthroughNode/buildNodeRegistry deleted; RunStep/SaveArtifactAndAdvance isolated in `runner.go` for manual modes (207 LOC); store effects extracted to `store_effects.go` (222 LOC)
@@ -186,7 +186,7 @@ Executed in 6 passes:
 - **Pass 2** (adapter constructors): Created `adapter.go` with `HeuristicAdapter`, `TransformerAdapter`, `HITLAdapter`. `HeuristicAdapter` registers per-node transformers under `rca.*` namespace. `TransformerAdapter` wraps monolithic transformers (stub/rca) for all 7 nodes. `HITLAdapter` registers per-node `hitlTransformerNode` instances.
 - **Pass 3** (YAML + graph wiring): Updated `circuit_rca.yaml` to use `transformer: rca.<node>`. Refactored `BuildRunner` to accept `...*framework.Adapter` via `MergeAdapters`.
 - **Pass 4** (caller migration): Updated `WalkConfig`, `AnalysisConfig`, `RunConfig` to use `Adapters []*framework.Adapter` instead of single `Transformer`. Updated all callers (`cmd_calibrate.go`, `cmd_analyze.go`, `server.go`, `hitl.go`). Updated all test files.
-- **Pass 5** (dead code deletion): Deleted `rcaNode` struct + methods, `NodeRegistry()`, `MarbleRegistry()`, `newRCANodeFactory()`, `KeyTransformer` constant, `rcaArtifact`, `StepToNodeName()`, monolithic `heuristicTransformer.Transform()` and `Name()`. Deleted `nodes_test.go`. `heuristicTransformer` is now a shared-deps struct, not a `framework.Transformer`.
+- **Pass 5** (dead code deletion): Deleted `rcaNode` struct + methods, `NodeRegistry()`, `ModuleRegistry()`, `newRCANodeFactory()`, `KeyTransformer` constant, `rcaArtifact`, `StepToNodeName()`, monolithic `heuristicTransformer.Transform()` and `Name()`. Deleted `nodes_test.go`. `heuristicTransformer` is now a shared-deps struct, not a `framework.Transformer`.
 - **Pass 6** (validate): `go build ./...` and `go test ./...` all green.
 
 Files created: `adapter.go`, `hitl_transformer.go`, 7 `*_heuristic.go` files (Asterisk)
@@ -247,8 +247,8 @@ origami-fold (separate contract): 5,311 →     ~0 LOC  (net −5,311)
 
 - **Given** `adapters/rca/`, **when** listing `.go` files after this contract, **then** all domain logic is expressed through framework primitives (adapters, transformers, hooks, match rules) registered via `circuit_rca.yaml` — no monolithic `ModelAdapter`, `BasicAdapter`, or `rcaNode` patterns remain.
 - **Given** `just calibrate-stub`, **when** run before and after, **then** PASS 21/21 metrics. Validated 2026-03-02: M19=0.98.
-- **Given** the marble catalog produced in Phase 1, **when** applied to Achilles's circuit (scan → classify → assess → report), **then** every marble has a clear Achilles counterpart.
-- **Given** a new analysis tool on Origami, **when** defining an RCA-style circuit, **then** it can compose the same marbles without writing Go.
+- **Given** the module catalog produced in Phase 1, **when** applied to Achilles's circuit (scan → classify → assess → report), **then** every module has a clear Achilles counterpart.
+- **Given** a new analysis tool on Origami, **when** defining an RCA-style circuit, **then** it can compose the same modules without writing Go.
 - **Residual**: 5,311 LOC of typed Go (domain types, data prep, store effects, thin wrappers) remains in `adapters/rca/`. This is accepted residual — the code cannot be expressed as YAML without `origami fold` codegen. Tracked in `origami-fold` contract.
 
 ## Security assessment
@@ -262,17 +262,17 @@ origami-fold (separate contract): 5,311 →     ~0 LOC  (net −5,311)
 2026-03-02 11:22 — CONTRACT COMPLETE. Final validation: `just calibrate-stub` PASS 21/21, M19=0.98. Acceptance criteria narrowed to reflect actual scope: all domain logic now expressed through framework primitives (adapters, transformers, hooks, match rules). 5,311 LOC accepted residual (domain types, data prep, store effects) tracked in `origami-fold` contract. 8 phases executed across ~10 sessions. LOC trajectory: 6,253 → 5,311 (net −942 prod LOC in adapters/rca/; structural transformation from monolithic to framework-registered).
 2026-03-02 06:00 — Phase 8 COMPLETE. Three sub-tasks: (8a) Built `BatchWalk` primitive in Origami — `batch_walk.go` ~100 LOC with `OnCaseComplete` callback for incremental ID mapping. 5 tests. (8b) Rewrote `WalkCase` to delegate to `BatchWalk` (87→70 LOC). Replaced `runCaseCircuit` + manual errgroup in `runSingleCalibration` with `BatchWalk` + `collectCaseResult`. Fixed slice aliasing bug in adapter construction. `cal_runner.go` 663→653 LOC. (8c) Cross-repo naming cleanup: `Adapter`→`Transformer` in reports (Origami 7 files + Asterisk 15 files), `AdapterColor`→`Color` in routing, `AdapterName`→`TransformerName` in RunConfig. All naming debt resolved. `adapters/rca/` prod: 5,311 LOC (down from 5,338). Total Asterisk prod: ~11,530 LOC.
 2026-03-02 05:00 — Phase 8c COMPLETE. Cross-repo naming cleanup. Origami `calibrate/`: `CalibrationReport.Adapter`→`.Transformer`, `CalibrationInput.Adapter`→`.Transformer`, report output label, scorecard param (7 files). Asterisk: `AnalysisReport.Adapter`→`.Transformer`, `RunConfig.AdapterName`→`.TransformerName`, `RoutingEntry.AdapterColor`→`.Color`, report_data.go template keys, YAML templates, `tuning-quickwins.yaml` BasicAdapter→heuristic (15 files). All naming debt resolved. Both repos build+test green.
-2026-03-02 04:00 — Phase 7.5 COMPLETE (6 passes). Per-node transformer decomposition. `rcaNode` eliminated — all node processing now goes through `framework.Adapter`-registered transformers looked up via `circuit_rca.yaml` `transformer: rca.<node>`. Created `adapter.go` with `HeuristicAdapter`/`TransformerAdapter`/`HITLAdapter`. Created 7 per-node heuristic transformers. `hitl_transformer.go` implements `framework.Interrupt` for HITL mode. `BuildRunner` refactored to accept `...*framework.Adapter`. `WalkConfig`/`AnalysisConfig`/`RunConfig` restructured to `Adapters []*framework.Adapter`. Deleted: `rcaNode`, `NodeRegistry`, `MarbleRegistry`, `StepToNodeName`, `KeyTransformer`, monolithic `heuristicTransformer.Transform()`/`Name()`, `nodes_test.go`. `adapters/rca/` prod: 5,338 LOC (down from 5,557). Total Asterisk prod: 11,557 LOC.
+2026-03-02 04:00 — Phase 7.5 COMPLETE (6 passes). Per-node transformer decomposition. `rcaNode` eliminated — all node processing now goes through `framework.Adapter`-registered transformers looked up via `circuit_rca.yaml` `transformer: rca.<node>`. Created `adapter.go` with `HeuristicAdapter`/`TransformerAdapter`/`HITLAdapter`. Created 7 per-node heuristic transformers. `hitl_transformer.go` implements `framework.Interrupt` for HITL mode. `BuildRunner` refactored to accept `...*framework.Adapter`. `WalkConfig`/`AnalysisConfig`/`RunConfig` restructured to `Adapters []*framework.Adapter`. Deleted: `rcaNode`, `NodeRegistry`, `ModuleRegistry`, `StepToNodeName`, `KeyTransformer`, monolithic `heuristicTransformer.Transform()`/`Name()`, `nodes_test.go`. `adapters/rca/` prod: 5,338 LOC (down from 5,557). Total Asterisk prod: 11,557 LOC.
 2026-03-02 02:00 — Phase 7 COMPLETE (6 passes). `BasicAdapter` and `RegisterCase` pattern eliminated. `adapter_basic.go` deleted (454 LOC). Origami gained `transformers/match.go` — generic match evaluator with 6 operators (`all_of`, `any_of`, `none_of`, `not_all_of`, `regex`, `none_regex`), registered as `"match"` in CoreAdapter. `heuristics.yaml` expanded from keyword lists to 31 priority-ordered match rules (9 classification + 22 component). `heuristicTransformer` rewritten: reads from walker context (`KeyParamsFailure` via inject hooks) instead of pre-registered case data. `RegisterCase` loops removed from all 4 callers. All baseline tests pass via new API. File renames: `transformer_heuristic.go` → `heuristic.go`, `adapter_basic_test.go` → `heuristic_test.go`.
 2026-03-02 01:00 — Phase 6 COMPLETE (Pass 1 + Pass 2). `ModelAdapter`, `StoreAware`, `calibrationWalker` eliminated. 4 files deleted, 4 created (3 transformers + routing test). Contract rule added: "No backward-compatibility debt" — stale names from eliminated concepts must be renamed in the same phase, not rationalized as serialization contracts. Remaining naming debt (`AdapterColor`, `Adapter` report field, `BasicAdapter`/`SendPrompt`) explicitly tracked as sub-tasks in Phase 7 (7c) and Phase 8 (8c).
-2026-03-01 24:00 — Contract restructured. Replaced vague "Remaining 5,557 LOC" section with 3 concrete phases: Phase 6 (replace ModelAdapter with framework transformers, −946 LOC, actionable now), Phase 7 (Origami `match` transformer for heuristic rules, −400 LOC), Phase 8 (calibration-as-circuit via batch-walk marble, −600 LOC). Added accepted residual table (~2,895 LOC eliminated by `origami-fold` contract). Added LOC trajectory: 5,557 → 4,600 → 4,200 → 3,600 → 0. Phase 4/5 marked COMPLETE. Root cause identified: `rcaNode` bypasses Origami's transformer pipeline — the `ModelAdapter` pattern is the bottleneck.
+2026-03-01 24:00 — Contract restructured. Replaced vague "Remaining 5,557 LOC" section with 3 concrete phases: Phase 6 (replace ModelAdapter with framework transformers, −946 LOC, actionable now), Phase 7 (Origami `match` transformer for heuristic rules, −400 LOC), Phase 8 (calibration-as-circuit via batch-walk module, −600 LOC). Added accepted residual table (~2,895 LOC eliminated by `origami-fold` contract). Added LOC trajectory: 5,557 → 4,600 → 4,200 → 3,600 → 0. Phase 4/5 marked COMPLETE. Root cause identified: `rcaNode` bypasses Origami's transformer pipeline — the `ModelAdapter` pattern is the bottleneck.
 2026-03-01 23:00 — Phases 4-5 COMPLETE + Tail GREEN. Dead code sweep: deleted `state.go` (67 LOC), `calibration/nodes.go` (136 LOC), `EvaluateGraphEdge`/`defaultFallback`/`HeuristicAction`/`caseStateToWalkerState`/`walkerStateToCaseState` (~74 LOC prod), unexported `ApplyStoreEffects`. Inlined `LoadState`/`SaveState` into callers. Rewrote 13 edge tests to use framework APIs (`Graph.EdgesFrom` + `Evaluate`), deleted 3 dead state tests. `adapters/rca/` prod LOC: 5,557 (down from 5,610). Total Asterisk prod LOC: 11,771. Store v1/v2 naming consolidated in prior session.
-2026-03-01 17:00 — Phase 3 COMPLETE. G5 scorer-pattern verified: all 21 metrics use framework batch patterns, `scorers.go` deleted. G6 report marble complete (YAML templates + thin Go wrappers). Phase 4 advanced: `runner.go` refactored (483→207 LOC, store effects extracted to `store_effects.go` 222 LOC), `params.go` split (types→`params_types.go` 169 LOC, logic 244 LOC), `tuning.go` QuickWin defs moved to `tuning-quickwins.yaml`. `adapters/rca/` prod LOC: 5,610 (down from 6,253). `scorer-pattern` contract moved to completed.
+2026-03-01 17:00 — Phase 3 COMPLETE. G5 scorer-pattern verified: all 21 metrics use framework batch patterns, `scorers.go` deleted. G6 report module complete (YAML templates + thin Go wrappers). Phase 4 advanced: `runner.go` refactored (483→207 LOC, store effects extracted to `store_effects.go` 222 LOC), `params.go` split (types→`params_types.go` 169 LOC, logic 244 LOC), `tuning.go` QuickWin defs moved to `tuning-quickwins.yaml`. `adapters/rca/` prod LOC: 5,610 (down from 6,253). `scorer-pattern` contract moved to completed.
 2026-02-28 23:00 — G8 (origami fold) split into dedicated `origami-fold` contract. Properly scoped: 13 tasks, 2 phases, manifest spec + codegen + FQCN resolver + CLI command. Eliminates ~3,400 LOC (cmd/, mcpconfig/, cursor wrapper).
 2026-02-28 22:00 — G5 (scorer registry + evaluation engine) split into dedicated `scorer-pattern` contract. Deconstruction identified 10 generic batch patterns covering all 21 metrics. Phase 3 G5 task updated to reference the new contract.
-2026-02-28 20:00 — Phase 4[Leftovers]+5 sweep complete (B1-B7). B1: G1 extractor DSL in Origami (resolveExtractor, circuit-level ExtractorDef). B2: G3 dispatch marble — StaticDispatcher, adapt/ package eliminated, heuristics.yaml extracted, consumers updated. B3: G4 sqlite-exec hook in Origami, StoreHooks integration preserved. B4: G6 report marble — report_data.go data-prep functions for YAML templates, runtime template loading. B5: G11 calibration simplification — deleted parallel.go (753 LOC), cluster.go (165 LOC), briefing.go (129 LOC), briefing_test.go, cluster_test.go; replaced with simple errgroup parallelism in cal_runner.go. B6: G9 ingest migration — adapters/ingest/ package eliminated, inlined into cmd/asterisk/ingest.go. B7: internal/demo/ and internal/dataset/ packages eliminated, inlined into cmd/asterisk/. B8 (G8 origami fold) cancelled — requires building code-gen feature in Origami, marked Large effort. Total: ~2,500 LOC deleted across 15+ files. All builds green, all tests green.
+2026-02-28 20:00 — Phase 4[Leftovers]+5 sweep complete (B1-B7). B1: G1 extractor DSL in Origami (resolveExtractor, circuit-level ExtractorDef). B2: G3 dispatch module — StaticDispatcher, adapt/ package eliminated, heuristics.yaml extracted, consumers updated. B3: G4 sqlite-exec hook in Origami, StoreHooks integration preserved. B4: G6 report module — report_data.go data-prep functions for YAML templates, runtime template loading. B5: G11 calibration simplification — deleted parallel.go (753 LOC), cluster.go (165 LOC), briefing.go (129 LOC), briefing_test.go, cluster_test.go; replaced with simple errgroup parallelism in cal_runner.go. B6: G9 ingest migration — adapters/ingest/ package eliminated, inlined into cmd/asterisk/ingest.go. B7: internal/demo/ and internal/dataset/ packages eliminated, inlined into cmd/asterisk/. B8 (G8 origami fold) cancelled — requires building code-gen feature in Origami, marked Large effort. Total: ~2,500 LOC deleted across 15+ files. All builds green, all tests green.
 2026-02-28 16:30 — Phase 4 partial. Metrics: fully migrated to ScorerRegistry (21 scorers, YAML scorer: declarations, computeMetrics via ScoreCard.ScoreCase). Reports: 4 YAML templates created (calibration, briefing, rca, transcript); Go renderers kept — data-prep deferred. Dispatch: shared buildDispatcher helper extracted; BuildRouter deferred (overkill for current single-mode selection). Orchestration: RunAnalysis rewired to WalkCase with StoreHooks and per-step artifact collection; bridgeNode/passthroughNode/buildNodeRegistry deleted; BuildRunner defaults to real NodeRegistry. RunStep/SaveArtifactAndAdvance kept for manual cmd_cursor/cmd_save mode. Origami gained: ScorerFunc detail strings, ReportDef repeat sections, graph loop auto-increment for expression edges. Remaining for Phase 5: adapt/ replacement (1,278 LOC), rp_source move (blocked by circular dep), full persistence absorption, cal_runner/parallel.go migration.
-2026-02-28 03:00 — Phase 1 complete. Marble catalog (6 marbles), framework gaps inventory (11 gaps), and RCA decomposition analysis (62 files, 14,600 LOC classified) produced. Achilles cross-validated. Phase 2-5 tasks now concrete. Migration order: G7 (NodeDef meta) → G1+G2 (extractor+transformer DSL) → G3 (dispatch) → G4 (persist) → G5 (score) → G6 (report) → G9 (generic transformers) → G8 (origami fold) → G11 (calibration-as-circuit).
+2026-02-28 03:00 — Phase 1 complete. module catalog (6 modules), framework gaps inventory (11 gaps), and RCA decomposition analysis (62 files, 14,600 LOC classified) produced. Achilles cross-validated. Phase 2-5 tasks now concrete. Migration order: G7 (NodeDef meta) → G1+G2 (extractor+transformer DSL) → G3 (dispatch) → G4 (persist) → G5 (score) → G6 (report) → G9 (generic transformers) → G8 (origami fold) → G11 (calibration-as-circuit).
 2026-02-28 01:00 — Expanded Phase 1 to catalog the 22% gap (ingest, cmd, mcpconfig, demo, dataset). Added framework gaps: NodeDef `meta:` field, `origami fold` concept. Phase 1 now produces the complete Origami gaps inventory for achieving zero Go across all 28K LOC.
-2026-02-27 22:30 — Reframed as marble discovery. The 6K lines of Go in rca/ are prototypes for Origami's first user-discovered marbles: llm-extract, context-builder, persist, score, report, dispatch. Phase 1 produces the marble catalog, cross-validated against Achilles. This is the most strategically important contract — it defines the reusable building blocks for any analysis tool on Origami.
+2026-02-27 22:30 — Reframed as module discovery. The 6K lines of Go in rca/ are prototypes for Origami's first user-discovered modules: llm-extract, context-builder, persist, score, report, dispatch. Phase 1 produces the module catalog, cross-validated against Achilles. This is the most strategically important contract — it defines the reusable building blocks for any analysis tool on Origami.
 2026-02-27 22:15 — Contract drafted. Gate-tier: this is the final step to zero-Go Asterisk. Phase 1 is design-only — no code changes. Achilles validates the abstraction.
