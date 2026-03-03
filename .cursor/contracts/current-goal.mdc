@@ -46,7 +46,8 @@ origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
         ├─► origami-autodoc                 ✓ COMPLETE (moved to Origami, all 7 phases)
         └─► housekeeping                    ✓ COMPLETE
               └─► yaml-playbook-docs        ← NEXT (extends autodoc skeleton)
-                    └─► kabuki-demo-revamp  (NEXT-MILESTONE)
+              └─► prompt-first-class-consumer  ✓ COMPLETE (prompts/ at root, manifest.yaml, embed)
+                    └─► kabuki-demo-revamp  ← NEXT-MILESTONE
 ```
 
 ## End-State Architecture

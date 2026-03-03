@@ -4,3 +4,6 @@ version: "1.0"
 
 imports:
   - origami.modules.rca
+
+embed:
+  - prompts/

@@ -15,7 +15,7 @@ PoC uses **no Cursor API**. The handoff is manual: Asterik produces a prompt (fi
    - `--workspace`: path to context workspace file (YAML/JSON).  
    - `--case-id`: optional failure (test item) ID; default is first failure in envelope.  
    - `-o`: output path for the prompt; if omitted, prompt is printed to stdout.  
-   - Output: RCA prompt with LaunchID, CaseID, WorkspacePath, FailedTestName, ArtifactPath filled from template (`.cursor/prompts/rca.md` by default).
+   - Output: RCA prompt with LaunchID, CaseID, WorkspacePath, FailedTestName, ArtifactPath filled from embedded templates (`prompts/` at repo root, embedded via `origami fold`).
 
 2. **Use prompt in Cursor**  
    - If you used `-o <file>`: open the file in Cursor.  

@@ -20,7 +20,6 @@ The `.cursor/` directory is the project's structured knowledge store. All reusab
 | `docs/` | Deep references and long-form analysis |
 | `notes/` | Short summaries and quick references |
 | `guide/` | Software development process guidance |
-| `prompts/` | RCA prompt templates (file-based) |
 | `security-cases/` | Security post-mortems (RCA, severity, mitigation) |
 | `strategy/` | Long-term objectives and invariants |
 | `tactics/` | Situational playbooks ("if X, do Y") |

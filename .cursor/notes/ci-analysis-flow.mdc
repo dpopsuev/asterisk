@@ -43,6 +43,6 @@ Tension: **small scope = better AI quality but more repetitive manual steps**; *
 ## PoC alignment
 
 - **First scenario:** This PTP CI flow (assessment → RCA → human review → Jira → report).
-- **File-based prompts:** Each stage (assessment, RCA, review, Jira, report) can be a template under `.cursor/prompts/ptp-ci/` (or similar); parameterized by job ID, failed case, workspace paths.
+- **File-based prompts:** Each circuit step (recall, triage, resolve, investigate, correlate, review, report) has a template under `prompts/` (repo root); parameterized by job ID, failed case, workspace paths. See `prompts/manifest.yaml` for the step-to-template mapping.
 - **Data store / artifacts:** Persist assessment tables and RCA table (and optional defect type / Jira draft) to files so they are not only in chat context; CLI or flow can pass paths into the next prompt.
 - **Scoped steps:** One CI result + one failed case per prompt where it helps; orchestration (CLI or text adventure) advances to next case/run and reuses the same template with new parameters.

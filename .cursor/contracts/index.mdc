@@ -39,7 +39,7 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `storage-adapter.md` | SQLite + Store facade (cases, RCAs); per-workspace DB. |
 | `context-workspace.md` | Load workspace from FS (YAML/JSON); pass into analyze. |
 | `artifact-schema.md` | Add `rca_message` to artifact; document schema. |
-| `prompts.md` | Prompt templates in `.cursor/prompts/`; params doc. |
+| `prompts.md` | Prompt templates in `prompts/` (repo root); params doc. |
 | `rp-fetch.md` | Real fetch from RP (launch by ID); produce envelope. |
 | `rp-push.md` | Real push to RP (defect-type update from artifact). |
 | `asterisk-cli.md` | `asterisk` binary with `analyze` and `push -f`. |
@@ -159,11 +159,12 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `rca-pure-dsl.md` | Module decomposition of adapters/rca/ (5.6K→5.3K LOC). 8 phases: ModelAdapter→transformers, heuristic rules engine, per-node decomposition, BatchWalk. Residual tracked in origami-fold. |
 | `origami-fold.md` | `origami fold` compiles YAML project to binary. All Go moved to Origami `modules/rca/`; Asterisk achieves zero Go. |
 
-### completed/housekeeping/ (1)
+### completed/housekeeping/ (2)
 
 | Contract | Goal |
 |----------|------|
 | `housekeeping.md` | Remove Go-era leftover artifacts (.gitignore, justfile, skills, rules, dev scripts). |
+| `prompt-first-class-consumer.md` | Prompt templates as source artifacts at `prompts/` repo root with `manifest.yaml` metric mapping. |
 
 ### completed/presentation/ (1)
 

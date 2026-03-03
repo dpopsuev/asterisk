@@ -73,5 +73,5 @@ Asterisk PoC is a **Go CLI + MCP server** that proves real-world RCA capability:
 2. **Run Phase 5a via MCP** — 18 grade-A cases, cursor adapter, score against ground truth.
 3. **Head-to-head comparison** — fill comparison table, document findings.
 4. **Push to RP** — best-quality artifact after confidence gained.
-5. **Embed prompts in binary (`go:embed`)** — In production the binary ships alone with no workspace. Move `.cursor/prompts/` into the Go module tree (e.g. `internal/prompts/templates/`), embed via `go:embed`, keep `--prompt-dir` as override for local tuning.
+5. **Embed prompts in binary** — Done. Prompts live at `prompts/` (repo root) and are embedded via `origami fold`. `--prompts-dir` flag available as override for local tuning.
 6. **Document and close PoC.**

@@ -1,0 +1,34 @@
+families:
+  - step: F0_RECALL
+    template: recall/judge-similarity.md
+    affected_metrics: [M3, M4]
+    output_schema: recall-result.json
+  - step: F1_TRIAGE
+    template: triage/classify-symptoms.md
+    affected_metrics: [M2, M6, M7]
+    output_schema: triage-result.json
+  - step: F2_RESOLVE
+    template: resolve/select-repo.md
+    affected_metrics: [M9, M10, M11]
+    output_schema: resolve-result.json
+  - step: F3_INVESTIGATE
+    template: investigate/deep-rca.md
+    affected_metrics: [M1, M8, M12, M13, M14, M14b, M15]
+    output_schema: artifact.json
+  - step: F4_CORRELATE
+    template: correlate/match-cases.md
+    affected_metrics: [M5]
+    output_schema: correlate-result.json
+  - step: F5_REVIEW
+    template: review/present-findings.md
+    affected_metrics: [M16]
+    output_schema: review-decision.json
+  - step: F6_REPORT
+    template: report/regression-table.md
+    affected_metrics: []
+    output_schema: jira-draft.json
+
+references:
+  - path: review/gap-analysis.md
+    referenced_by: [F3_INVESTIGATE]
+    purpose: "Evidence gap categories and output format for gap_brief field"

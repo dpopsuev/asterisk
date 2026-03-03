@@ -1,5 +1,5 @@
 ---
-description: File-based RCA prompt templates; dev location vs CLI; red-green-blue iteration
+description: File-based RCA prompt templates; canonical location prompts/ at repo root; red-green-blue iteration
 ---
 
 # RCA Prompt Templates
@@ -10,12 +10,12 @@ RCA prompts are **file-based** (not generated only at CLI runtime). They are tem
 
 ## Locations
 
-| Phase | Location | Purpose |
-|-------|----------|---------|
-| **Development** | `.cursor/prompts/` (in repo) | Experiment, edit, run in Cursor, see results. Iterate quickly without rebuilding the CLI. |
-| **Shipped** | CLI’s prompt directory | When prompts are stable, move (or copy) into the CLI’s dedicated prompt directory so the binary ships with them. |
+| Artifact | Location | Purpose |
+|----------|----------|---------|
+| **Source** | `prompts/` (repo root) | Canonical location. Embedded into the binary via `origami fold`. Versionable, diffable, lintable. |
+| **Manifest** | `prompts/manifest.yaml` | Maps each template to its circuit step and affected metrics. |
 
-During development, keep prompts under **`.cursor/prompts/`** so you can change them, run the flow in Cursor, observe outcomes, and refine. When a scenario (e.g. PTP test cases CI) is good enough, promote those files into the CLI’s prompt directory for distribution.
+Prompts live at **`prompts/`** (repo root) — a source artifact directory, not a knowledge-store path. The `origami fold` build step embeds them into the binary. Edit templates, run calibration, observe outcomes, and refine.
 
 ## Red–green–blue development
 
@@ -27,12 +27,13 @@ Prompt development follows an **experiment–observe–iterate** loop:
 
 Then repeat for the next step or scenario. File-based prompts make this loop fast: edit file → run in Cursor → observe → iterate. No CLI rebuild required during prompt iteration.
 
-## Structure under `.cursor/prompts/`
+## Structure under `prompts/`
 
-- One subdirectory per **scenario** (e.g. `ptp-ci/` for PTP test cases CI).
-- Per scenario: one file per step or stage (e.g. `step-01-assessment.mdc`, `step-02-rca.mdc`, `step-03-review.mdc`, `step-04-jira.mdc`, `step-05-report.mdc`) matching the contract of work in `notes/ci-analysis-flow.mdc`.
-- Templates can use placeholders (e.g. `{{.JobID}}`, `{{.WorkspacePath}}`, `{{.FailedCase}}`) for the CLI to fill when emitting agent commands.
-- Persist intermediate outputs (assessment tables, RCA table) to artifacts so the next step can read paths instead of relying on chat context alone — avoids context compression and data loss.
+- One subdirectory per **circuit step** (e.g. `recall/`, `triage/`, `resolve/`, `investigate/`, `correlate/`, `review/`, `report/`).
+- Per step: one template file (Go `text/template` `.md`).
+- `manifest.yaml` maps each template to its circuit step and affected metrics.
+- Templates use Go `text/template` placeholders (e.g. `{{.JobID}}`, `{{.Failure.ErrorMessage}}`) filled from the `TemplateParams` struct.
+- Persist intermediate outputs as artifacts so the next step can read paths instead of relying on chat context alone.
 
 ## Template parameters
 
@@ -260,6 +261,6 @@ Instruct the model to produce output in the **artifact** format (see `docs/artif
 
 ## Loader contract
 
-- **Resolve path:** Prompts dir = `.cursor/prompts/` (dev) or CLI flag/config (e.g. `./.asterisk/prompts/`, `~/.config/asterisk/prompts/`). CLI loads by name (e.g. `rca.md`).
-- **Substitution:** Load template file, execute with `text/template` and a param struct; result is the prompt text (for user to paste, or for handoff to write to file/stdout).
-- **No Cursor API in PoC:** Output is text or file; user or handoff command opens/pastes.
+- **Resolve path:** Prompts are embedded from `prompts/` at repo root via `origami fold`. At runtime, the binary reads from the embedded filesystem. For local development, templates can also be loaded from disk via `--prompts-dir` flag.
+- **Substitution:** Load template file, execute with `text/template` and a `TemplateParams` struct; result is the prompt text.
+- **Manifest:** `prompts/manifest.yaml` maps each template to its circuit step and affected metrics. See the manifest for the full mapping.
