@@ -1,6 +1,6 @@
 # Contract — store-staleness-cleanup
 
-**Status:** draft
+**Status:** complete
 **Goal:** Aborted or completed circuit sessions leave a clean Kami store (no frozen walkers); manual reset available via MCP tool, CLI flag, and standalone command.
 **Serves:** 100% DSL — Zero Go
 
@@ -53,19 +53,19 @@ Code only — no FSC artifacts.
 
 ## Tasks
 
-- [ ] Add `POST /api/store/reset` HTTP endpoint to Kami server (Origami `kami/server.go`)
-- [ ] Add `OnSessionEnd` callback to `CircuitConfig` (Origami `mcp/circuit_config.go`)
-- [ ] Call `OnSessionEnd` in `handleStartCircuit` on all teardown paths (done, abort, force)
-- [ ] Wire `OnSessionEnd` in `mcpconfig/server.go` to emit `WalkComplete`
-- [ ] Add `kami_reset_store` MCP tool backed by the HTTP endpoint (Origami `kami/mcp_tools.go`)
-- [ ] Add `--clean` flag to `origami sumi --watch` — POST reset before bootstrap (Origami `cmd/origami/main.go` + `sumi/run.go`)
-- [ ] Add `origami kami reset <addr>` CLI subcommand (Origami `cmd/origami/main.go`)
-- [ ] Test: aborted session clears walkers; snapshot shows completed + zero walkers
-- [ ] Test: manual reset tool clears store
-- [ ] Test: `--clean` flag resets store before bootstrap
-- [ ] Validate (green) — all tests pass, acceptance criteria met.
-- [ ] Tune (blue) — refactor for quality. No behavior changes.
-- [ ] Validate (green) — all tests still pass after tuning.
+- [x] Add `POST /api/store/reset` HTTP endpoint to Kami server (Origami `kami/server.go`)
+- [x] Add `OnSessionEnd` callback to `CircuitConfig` (Origami `mcp/circuit_config.go`)
+- [x] Call `OnSessionEnd` in `handleStartCircuit` on all teardown paths (done, abort, force)
+- [x] Wire `OnSessionEnd` in `mcpconfig/server.go` to emit `WalkComplete`
+- [x] Add `kami_reset_store` MCP tool backed by the HTTP endpoint (Origami `kami/mcp_tools.go`)
+- [x] Add `--clean` flag to `origami sumi --watch` — POST reset before bootstrap (Origami `cmd/origami/main.go` + `sumi/run.go`)
+- [x] Add `origami kami reset <addr>` CLI subcommand (Origami `cmd/origami/main.go`)
+- [x] Test: aborted session clears walkers; snapshot shows completed + zero walkers
+- [x] Test: manual reset tool clears store
+- [x] Test: `--clean` flag resets store before bootstrap
+- [x] Validate (green) — all tests pass, acceptance criteria met.
+- [x] Tune (blue) — no changes needed.
+- [x] Validate (green) — all tests still pass after tuning.
 
 ## Acceptance criteria
 
@@ -91,4 +91,5 @@ No trust boundaries affected.
 
 ## Notes
 
+2026-03-03 23:00 — Contract complete. All tasks implemented, tested (3 integration tests), race-free, pushed.
 2026-03-03 22:30 — Contract created from plan-mode discussion. Root cause: `handleStartCircuit` cancels old sessions without notifying Kami's store. Keeping node states post-abort is intentional (post-mortem); only walkers are cleared.
