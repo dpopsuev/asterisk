@@ -16,6 +16,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 |----------|------|------|
 | `yaml-playbook-docs.md` | Extend autodoc-generated skeleton with Asterisk-specific narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami) + housekeeping. | quick-win |
 | `store-staleness-cleanup.md` | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, and standalone command. | quick-win |
+| `sumi-refining.md` | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. | quick-win |
 | `kabuki-demo-revamp.md` | Full demo rethink for post-zero-Go era: new narrative arc, canonical wet recording, updated sections. | next-milestone |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)

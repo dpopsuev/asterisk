@@ -6,4 +6,5 @@
 ## Files
 - `kabuki-demo-revamp.md` — Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections.
 - `store-staleness-cleanup.md` — Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, and standalone command.
+- `sumi-refining.md` — Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering.
 - `yaml-playbook-docs.md` — Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity.

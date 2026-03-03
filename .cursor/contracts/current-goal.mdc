@@ -36,7 +36,8 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 |---|----------|-----|------|-------|
 | 1 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami). |
 | 2 | `store-staleness-cleanup` | draft/ | quick-win | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, `origami kami reset`. |
-| 3 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+| 3 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
+| 4 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
 
