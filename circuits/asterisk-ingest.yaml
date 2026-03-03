@@ -11,26 +11,32 @@ description: "Fetch new CI failures from RP, create candidate cases, grow the da
 
 nodes:
   - name: fetch_launches
+    description: "Query RP for recent launches; extract test items with failures"
     element: water
     family: ingest.fetch
 
   - name: parse_failures
+    description: "Parse test-item logs into structured failure records with stack traces"
     element: fire
     family: ingest.parse
 
   - name: match_symptoms
+    description: "Match failures against known symptom patterns from the vocabulary"
     element: earth
     family: ingest.match
 
   - name: deduplicate
+    description: "Filter out failures already present in the dataset"
     element: earth
     family: ingest.dedup
 
   - name: create_candidates
+    description: "Create candidate case entries for new failures"
     element: fire
     family: ingest.candidate
 
   - name: notify_review
+    description: "Queue candidates for human review and promotion to the dataset"
     element: air
     family: ingest.notify
 

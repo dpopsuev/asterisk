@@ -11,23 +11,30 @@ vars:
 
 nodes:
   - name: recall
+    description: "Pattern-match against known failures database; shortcut to review on high-confidence hit"
     family: recall
     after: [store.recall]
   - name: triage
+    description: "Classify failure symptom (infra, flake, product bug) and select candidate repos"
     family: triage
     after: [store.triage]
   - name: resolve
+    description: "Select the next repo to investigate from the candidate set"
     family: resolve
   - name: investigate
+    description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
     family: investigate
     after: [store.investigate]
   - name: correlate
+    description: "Cross-reference findings across repos; detect duplicates against prior RCAs"
     family: correlate
     after: [store.correlate]
   - name: review
+    description: "Adversarial quality gate: approve, reassess, or overturn the draft RCA"
     family: review
     after: [store.review]
   - name: report
+    description: "Produce the final structured RCA with defect type, confidence, and evidence links"
     family: report
 
 edges:
