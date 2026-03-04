@@ -40,6 +40,7 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 | 4 | `store-staleness-cleanup` | draft/ | quick-win | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, `origami kami reset`. |
 | 5 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
 | 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+| 7 | `knowledge-sources-github` | draft/ | gate | Composable source packs + GitHub code access for real evidence in RCA investigation. M12/M13 at 0.00 — #1 blocker for wet accuracy. |
 
 ### Execution order
 

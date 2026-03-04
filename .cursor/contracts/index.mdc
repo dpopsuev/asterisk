@@ -20,6 +20,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 | `store-staleness-cleanup.md` | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, and standalone command. | quick-win |
 | `sumi-refining.md` | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. | quick-win |
 | `kabuki-demo-revamp.md` | Full demo rethink for post-zero-Go era: new narrative arc, canonical wet recording, updated sections. | next-milestone |
+| `knowledge-sources-github.md` | Composable source packs + GitHub code access for real evidence in RCA investigation. 4 phases. | gate |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
