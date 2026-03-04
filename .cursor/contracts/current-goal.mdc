@@ -34,10 +34,11 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 | # | Contract | Dir | Tier | Scope |
 |---|----------|-----|------|-------|
-| 1 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami). |
-| 2 | `store-staleness-cleanup` | draft/ | quick-win | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, `origami kami reset`. |
-| 3 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
-| 4 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+| 1 | `circuit-dsl-shorthand` | draft/ | quick-win | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. |
+| 2 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami). |
+| 3 | `store-staleness-cleanup` | draft/ | quick-win | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, `origami kami reset`. |
+| 4 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
+| 5 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
 
@@ -49,6 +50,7 @@ origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
         └─► housekeeping                    ✓ COMPLETE
               └─► yaml-playbook-docs        ← NEXT (extends autodoc skeleton)
               └─► prompt-first-class-consumer  ✓ COMPLETE (prompts/ at root, manifest.yaml, embed)
+              └─► circuit-dsl-shorthand    ← NEXT (cohesive edges, topology inference)
                     └─► kabuki-demo-revamp  ← NEXT-MILESTONE
 ```
 

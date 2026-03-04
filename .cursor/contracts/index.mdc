@@ -14,6 +14,7 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
+| `circuit-dsl-shorthand.md` | Cohesive node-scoped edges, auto-inferred topology flags, and implicit defaults for circuit YAMLs. | quick-win |
 | `yaml-playbook-docs.md` | Extend autodoc-generated skeleton with Asterisk-specific narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami) + housekeeping. | quick-win |
 | `store-staleness-cleanup.md` | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, and standalone command. | quick-win |
 | `sumi-refining.md` | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. | quick-win |
