@@ -2,364 +2,156 @@ version: 1
 
 tables:
   - name: schema_version
+    auto_id: false
     columns:
-      - name: version
-        type: integer
-        not_null: true
+      - version: integer not_null
 
   # Tier 1: Investigation-scoped entities
 
   - name: investigation_suites
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: name
-        type: text
-        not_null: true
-      - name: description
-        type: text
-      - name: status
-        type: text
-        not_null: true
-        default: "'open'"
-      - name: created_at
-        type: text
-        not_null: true
-      - name: closed_at
-        type: text
+      - name: text not_null
+      - description: text
+      - status: text not_null default='open'
+      - created_at: text not_null
+      - closed_at: text
 
   - name: versions
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: label
-        type: text
-        not_null: true
-        unique: true
-      - name: build_id
-        type: text
+      - label: text not_null unique
+      - build_id: text
 
   - name: circuits
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: suite_id
-        type: integer
-        not_null: true
-        references: "investigation_suites(id)"
-      - name: version_id
-        type: integer
-        not_null: true
-        references: "versions(id)"
-      - name: name
-        type: text
-        not_null: true
-      - name: source_run_id
-        type: text
-      - name: status
-        type: text
-        not_null: true
-      - name: started_at
-        type: text
-      - name: ended_at
-        type: text
+      - suite_id: integer not_null -> investigation_suites
+      - version_id: integer not_null -> versions
+      - name: text not_null
+      - source_run_id: text
+      - status: text not_null
+      - started_at: text
+      - ended_at: text
+    indexes:
+      - [suite_id]
 
   - name: launches
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: circuit_id
-        type: integer
-        not_null: true
-        references: "circuits(id)"
-      - name: source_run_id
-        type: text
-      - name: source_run_uuid
-        type: text
-      - name: name
-        type: text
-      - name: status
-        type: text
-      - name: started_at
-        type: text
-      - name: ended_at
-        type: text
-      - name: env_attributes
-        type: text
-      - name: git_branch
-        type: text
-      - name: git_commit
-        type: text
-      - name: envelope_payload
-        type: blob
+      - circuit_id: integer not_null -> circuits
+      - source_run_id: text
+      - source_run_uuid: text
+      - name: text
+      - status: text
+      - started_at: text
+      - ended_at: text
+      - env_attributes: text
+      - git_branch: text
+      - git_commit: text
+      - envelope_payload: blob
     unique:
       - [circuit_id, source_run_id]
+    indexes:
+      - [circuit_id]
 
   - name: jobs
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: launch_id
-        type: integer
-        not_null: true
-        references: "launches(id)"
-      - name: source_item_id
-        type: text
-      - name: name
-        type: text
-        not_null: true
-      - name: clock_type
-        type: text
-      - name: status
-        type: text
-      - name: stats_total
-        type: integer
-      - name: stats_failed
-        type: integer
-      - name: stats_passed
-        type: integer
-      - name: stats_skipped
-        type: integer
-      - name: started_at
-        type: text
-      - name: ended_at
-        type: text
+      - launch_id: integer not_null -> launches
+      - source_item_id: text
+      - name: text not_null
+      - clock_type: text
+      - status: text
+      - stats_total: integer
+      - stats_failed: integer
+      - stats_passed: integer
+      - stats_skipped: integer
+      - started_at: text
+      - ended_at: text
     unique:
       - [launch_id, source_item_id]
+    indexes:
+      - [launch_id]
 
   - name: cases
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: job_id
-        type: integer
-        not_null: true
-        references: "jobs(id)"
-      - name: launch_id
-        type: integer
-        not_null: true
-        references: "launches(id)"
-      - name: source_item_id
-        type: text
-      - name: name
-        type: text
-        not_null: true
-        default: "''"
-      - name: external_ref
-        type: text
-      - name: status
-        type: text
-        not_null: true
-        default: "'open'"
-      - name: symptom_id
-        type: integer
-        references: "symptoms(id)"
-      - name: rca_id
-        type: integer
-        references: "rcas(id)"
-      - name: error_message
-        type: text
-      - name: log_snippet
-        type: text
-      - name: log_truncated
-        type: integer
-        default: "0"
-      - name: started_at
-        type: text
-      - name: ended_at
-        type: text
-      - name: created_at
-        type: text
-        not_null: true
-      - name: updated_at
-        type: text
-        not_null: true
+      - job_id: integer not_null -> jobs
+      - launch_id: integer not_null -> launches
+      - source_item_id: text
+      - name: text not_null default=''
+      - external_ref: text
+      - status: text not_null default='open'
+      - symptom_id: integer -> symptoms
+      - rca_id: integer -> rcas
+      - error_message: text
+      - log_snippet: text
+      - log_truncated: integer default=0
+      - started_at: text
+      - ended_at: text
+      - created_at: text not_null
+      - updated_at: text not_null
     unique:
       - [launch_id, source_item_id]
+    indexes:
+      - [symptom_id]
+      - [rca_id]
+      - [launch_id]
+      - [job_id]
 
   - name: triages
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: case_id
-        type: integer
-        not_null: true
-        unique: true
-        references: "cases(id)"
-      - name: symptom_category
-        type: text
-        not_null: true
-      - name: severity
-        type: text
-      - name: defect_type_hypothesis
-        type: text
-      - name: skip_investigation
-        type: integer
-        default: "0"
-      - name: clock_skew_suspected
-        type: integer
-        default: "0"
-      - name: cascade_suspected
-        type: integer
-        default: "0"
-      - name: candidate_repos
-        type: text
-      - name: data_quality_notes
-        type: text
-      - name: created_at
-        type: text
-        not_null: true
+      - case_id: integer not_null unique -> cases
+      - symptom_category: text not_null
+      - severity: text
+      - defect_type_hypothesis: text
+      - skip_investigation: integer default=0
+      - clock_skew_suspected: integer default=0
+      - cascade_suspected: integer default=0
+      - candidate_repos: text
+      - data_quality_notes: text
+      - created_at: text not_null
 
   # Tier 2: Global knowledge entities
 
   - name: symptoms
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: fingerprint
-        type: text
-        not_null: true
-        unique: true
-      - name: name
-        type: text
-        not_null: true
-      - name: description
-        type: text
-      - name: error_pattern
-        type: text
-      - name: test_name_pattern
-        type: text
-      - name: component
-        type: text
-      - name: severity
-        type: text
-      - name: first_seen_at
-        type: text
-        not_null: true
-      - name: last_seen_at
-        type: text
-        not_null: true
-      - name: occurrence_count
-        type: integer
-        not_null: true
-        default: "1"
-      - name: status
-        type: text
-        not_null: true
-        default: "'active'"
+      - fingerprint: text not_null unique
+      - name: text not_null
+      - description: text
+      - error_pattern: text
+      - test_name_pattern: text
+      - component: text
+      - severity: text
+      - first_seen_at: text not_null
+      - last_seen_at: text not_null
+      - occurrence_count: integer not_null default=1
+      - status: text not_null default='active'
+    indexes:
+      - [fingerprint]
 
   - name: rcas
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: title
-        type: text
-        not_null: true
-      - name: description
-        type: text
-        not_null: true
-        default: "''"
-      - name: defect_type
-        type: text
-        not_null: true
-      - name: category
-        type: text
-      - name: component
-        type: text
-      - name: affected_versions
-        type: text
-      - name: evidence_refs
-        type: text
-      - name: convergence_score
-        type: real
-      - name: jira_ticket_id
-        type: text
-      - name: jira_link
-        type: text
-      - name: status
-        type: text
-        not_null: true
-        default: "'open'"
-      - name: created_at
-        type: text
-        not_null: true
-      - name: resolved_at
-        type: text
-      - name: verified_at
-        type: text
-      - name: archived_at
-        type: text
+      - title: text not_null
+      - description: text not_null default=''
+      - defect_type: text not_null
+      - category: text
+      - component: text
+      - affected_versions: text
+      - evidence_refs: text
+      - convergence_score: real
+      - jira_ticket_id: text
+      - jira_link: text
+      - status: text not_null default='open'
+      - created_at: text not_null
+      - resolved_at: text
+      - verified_at: text
+      - archived_at: text
 
   - name: symptom_rca
     columns:
-      - name: id
-        type: integer
-        primary_key: true
-        autoincrement: true
-      - name: symptom_id
-        type: integer
-        not_null: true
-        references: "symptoms(id)"
-      - name: rca_id
-        type: integer
-        not_null: true
-        references: "rcas(id)"
-      - name: confidence
-        type: real
-      - name: notes
-        type: text
-      - name: linked_at
-        type: text
-        not_null: true
+      - symptom_id: integer not_null -> symptoms
+      - rca_id: integer not_null -> rcas
+      - confidence: real
+      - notes: text
+      - linked_at: text not_null
     unique:
       - [symptom_id, rca_id]
-
-indexes:
-  - name: idx_cases_symptom
-    table: cases
-    columns: [symptom_id]
-  - name: idx_cases_rca
-    table: cases
-    columns: [rca_id]
-  - name: idx_cases_launch
-    table: cases
-    columns: [launch_id]
-  - name: idx_cases_job
-    table: cases
-    columns: [job_id]
-  - name: idx_circuits_suite
-    table: circuits
-    columns: [suite_id]
-  - name: idx_launches_circuit
-    table: launches
-    columns: [circuit_id]
-  - name: idx_jobs_launch
-    table: jobs
-    columns: [launch_id]
-  - name: idx_symptoms_fingerprint
-    table: symptoms
-    columns: [fingerprint]
-  - name: idx_symptom_rca_symptom
-    table: symptom_rca
-    columns: [symptom_id]
-  - name: idx_symptom_rca_rca
-    table: symptom_rca
-    columns: [rca_id]
+    indexes:
+      - [symptom_id]
+      - [rca_id]
