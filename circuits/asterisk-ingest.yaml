@@ -14,88 +14,58 @@ nodes:
     description: "Query RP for recent launches; extract test items with failures"
     element: water
     family: ingest.fetch
+    edges:
+      - name: launches fetched
+        to: parse_failures
+        when: "len(output.launches) > 0"
+      - name: no launches
+        to: _done
+        shortcut: true
+        when: "len(output.launches) == 0"
 
   - name: parse_failures
     description: "Parse test-item logs into structured failure records with stack traces"
     element: fire
     family: ingest.parse
+    edges:
+      - name: failures parsed
+        to: match_symptoms
+        when: "len(output.failures) > 0"
+      - name: no failures
+        to: _done
+        shortcut: true
+        when: "len(output.failures) == 0"
 
   - name: match_symptoms
     description: "Match failures against known symptom patterns from the vocabulary"
     element: earth
     family: ingest.match
+    edges: [deduplicate]
 
   - name: deduplicate
     description: "Filter out failures already present in the dataset"
     element: earth
     family: ingest.dedup
+    edges:
+      - name: deduplicated
+        to: create_candidates
+        when: "len(output.new_cases) > 0"
+      - name: all duplicates
+        to: notify_review
+        shortcut: true
+        when: "len(output.new_cases) == 0"
 
   - name: create_candidates
     description: "Create candidate case entries for new failures"
     element: fire
     family: ingest.candidate
+    edges: [notify_review]
 
   - name: notify_review
     description: "Queue candidates for human review and promotion to the dataset"
     element: air
     family: ingest.notify
-
-edges:
-  - id: E1
-    name: launches fetched
-    from: fetch_launches
-    to: parse_failures
-    when: "len(output.launches) > 0"
-
-  - id: E1-empty
-    name: no launches
-    from: fetch_launches
-    to: _done
-    shortcut: true
-    when: "len(output.launches) == 0"
-
-  - id: E2
-    name: failures parsed
-    from: parse_failures
-    to: match_symptoms
-    when: "len(output.failures) > 0"
-
-  - id: E2-empty
-    name: no failures
-    from: parse_failures
-    to: _done
-    shortcut: true
-    when: "len(output.failures) == 0"
-
-  - id: E3
-    name: symptoms matched
-    from: match_symptoms
-    to: deduplicate
-    condition: "always"
-
-  - id: E4
-    name: deduplicated
-    from: deduplicate
-    to: create_candidates
-    when: "len(output.new_cases) > 0"
-
-  - id: E4-empty
-    name: all duplicates
-    from: deduplicate
-    to: notify_review
-    when: "len(output.new_cases) == 0"
-
-  - id: E5
-    name: candidates created
-    from: create_candidates
-    to: notify_review
-    condition: "always"
-
-  - id: E6
-    name: done
-    from: notify_review
-    to: _done
-    condition: "always (terminal)"
+    edges: [_done]
 
 start: fetch_launches
 done: _done

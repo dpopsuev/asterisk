@@ -36,169 +36,121 @@ vars:
   correlate_dup: 0.80
 
 nodes:
+  # ── F0 Recall ──
   - name: recall
     description: "Pattern-match against known failures database; shortcut to review on high-confidence hit"
     family: recall
     after: [store.recall]
+    edges:
+      - name: recall-hit
+        to: review
+        shortcut: true
+        when: "output.match == true && output.confidence >= config.recall_hit"
+      - name: recall-uncertain
+        to: triage
+        when: "output.match == true && output.confidence >= config.recall_uncertain && output.confidence < config.recall_hit"
+      - name: recall-miss
+        to: triage
+        when: "output.match != true"
+
+  # ── F1 Triage ──
   - name: triage
     description: "Classify failure symptom (infra, flake, product bug) and select candidate repos"
     family: triage
     after: [store.triage]
+    edges:
+      - name: triage-skip-infra
+        to: review
+        shortcut: true
+        when: 'output.symptom_category == "infra"'
+      - name: triage-skip-flake
+        to: review
+        shortcut: true
+        when: 'output.symptom_category == "flake"'
+      - name: triage-skip-investigation
+        to: review
+        shortcut: true
+        when: "output.skip_investigation == true"
+      # Only one candidate repo → skip resolve, go straight to investigate
+      # H7b "triage-hypothesis-repo" is a runner-level interception
+      # (calibrate/parallel.go) that deterministically resolves repos from
+      # workspace Purpose metadata when the triage hypothesis matches.
+      - name: triage-single-repo
+        to: investigate
+        shortcut: true
+        when: "output.skip_investigation != true && len(output.candidate_repos) == 1"
+      - name: triage-investigate
+        to: resolve
+        when: "output.skip_investigation != true"
+
+  # ── F2 Resolve ──
   - name: resolve
     description: "Select the next repo to investigate from the candidate set"
     family: resolve
+    edges:
+      - name: resolve-multi
+        to: investigate
+        when: "true"
+
+  # ── F3 Investigate ──
   - name: investigate
     description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
     family: investigate
     after: [store.investigate]
+    edges:
+      - name: investigate-converged
+        to: correlate
+        when: "output.convergence_score >= config.convergence_sufficient"
+      - name: investigate-no-evidence-skip
+        to: correlate
+        when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) == 0"
+      - name: investigate-low
+        to: resolve
+        loop: true
+        when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) > 0 && state.loops.investigate < config.max_investigate_loops"
+      - name: investigate-exhausted
+        to: review
+        shortcut: true
+        when: "output.convergence_score < config.convergence_sufficient && state.loops.investigate >= config.max_investigate_loops"
+
+  # ── F4 Correlate ──
   - name: correlate
     description: "Cross-reference findings across repos; detect duplicates against prior RCAs"
     family: correlate
     after: [store.correlate]
+    edges:
+      - name: correlate-dup
+        to: DONE
+        when: "output.is_duplicate == true && output.confidence >= config.correlate_dup"
+      - name: correlate-proceed
+        to: review
+        when: "true"
+
+  # ── F5 Review ──
   - name: review
     description: "Adversarial quality gate: approve, reassess, or overturn the draft RCA"
     family: review
     after: [store.review]
+    edges:
+      - name: review-approve
+        to: report
+        when: 'output.decision == "approve"'
+      - name: review-reassess
+        to: resolve
+        loop: true
+        when: 'output.decision == "reassess"'
+      - name: review-overturn
+        to: report
+        when: 'output.decision == "overturn"'
+
+  # ── F6 Report ──
   - name: report
     description: "Produce the final structured RCA with defect type, confidence, and evidence links"
     family: report
-
-edges:
-  # ── F0 Recall ──
-  # High confidence → skip investigation, go straight to review
-  - id: H1
-    name: recall-hit
-    from: recall
-    to: review
-    shortcut: true
-    when: "output.match == true && output.confidence >= config.recall_hit"
-  # Uncertain match → still worth triaging
-  - id: H3
-    name: recall-uncertain
-    from: recall
-    to: triage
-    when: "output.match == true && output.confidence >= config.recall_uncertain && output.confidence < config.recall_hit"
-  # No match → full investigation path
-  - id: H2
-    name: recall-miss
-    from: recall
-    to: triage
-    when: "output.match != true"
-
-  # ── F1 Triage ──
-  # Infrastructure and flake failures skip deep investigation
-  - id: H4
-    name: triage-skip-infra
-    from: triage
-    to: review
-    shortcut: true
-    when: 'output.symptom_category == "infra"'
-  - id: H5
-    name: triage-skip-flake
-    from: triage
-    to: review
-    shortcut: true
-    when: 'output.symptom_category == "flake"'
-  # Explicit skip flag (set by triage when investigation is pointless)
-  - id: H18
-    name: triage-skip-investigation
-    from: triage
-    to: review
-    shortcut: true
-    when: "output.skip_investigation == true"
-  # Only one candidate repo → skip resolve, go straight to investigate
-  - id: H7
-    name: triage-single-repo
-    from: triage
-    to: investigate
-    shortcut: true
-    when: "output.skip_investigation != true && len(output.candidate_repos) == 1"
-  # H7b "triage-hypothesis-repo" is a runner-level interception
-  # (calibrate/parallel.go) that deterministically resolves repos from
-  # workspace Purpose metadata when the triage hypothesis matches.
-  # Multiple candidate repos → resolve picks which to investigate first
-  - id: H6
-    name: triage-investigate
-    from: triage
-    to: resolve
-    when: "output.skip_investigation != true"
-
-  # ── F2 Resolve ──
-  - id: H8
-    name: resolve-multi
-    from: resolve
-    to: investigate
-    when: "true"
-
-  # ── F3 Investigate ──
-  # Sufficient evidence gathered → move to cross-reference
-  - id: H9
-    name: investigate-converged
-    from: investigate
-    to: correlate
-    when: "output.convergence_score >= config.convergence_sufficient"
-  # Low convergence but no evidence at all → move on rather than loop
-  - id: H10a
-    name: investigate-no-evidence-skip
-    from: investigate
-    to: correlate
-    when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) == 0"
-  # Low convergence with some evidence → try another repo (loop)
-  - id: H10
-    name: investigate-low
-    from: investigate
-    to: resolve
-    loop: true
-    when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) > 0 && state.loops.investigate < config.max_investigate_loops"
-  # Loop budget exhausted → send what we have to review
-  - id: H11
-    name: investigate-exhausted
-    from: investigate
-    to: review
-    shortcut: true
-    when: "output.convergence_score < config.convergence_sufficient && state.loops.investigate >= config.max_investigate_loops"
-
-  # ── F4 Correlate ──
-  # High-confidence duplicate → terminate early (no report needed)
-  - id: H15
-    name: correlate-dup
-    from: correlate
-    to: DONE
-    when: "output.is_duplicate == true && output.confidence >= config.correlate_dup"
-  # Otherwise proceed to review
-  - id: H15b
-    name: correlate-proceed
-    from: correlate
-    to: review
-    when: "true"
-
-  # ── F5 Review ──
-  # Approve → finalize report
-  - id: H12
-    name: review-approve
-    from: review
-    to: report
-    when: 'output.decision == "approve"'
-  # Reassess → gather more evidence (loop back to resolve)
-  - id: H13
-    name: review-reassess
-    from: review
-    to: resolve
-    loop: true
-    when: 'output.decision == "reassess"'
-  # Overturn → produce report with reviewer's corrected assessment
-  - id: H14
-    name: review-overturn
-    from: review
-    to: report
-    when: 'output.decision == "overturn"'
-
-  # ── F6 Report ──
-  - id: FALLBACK
-    name: report-done
-    from: report
-    to: DONE
-    when: "true"
+    edges:
+      - name: report-done
+        to: DONE
+        when: "true"
 
 start: recall
 done: DONE
