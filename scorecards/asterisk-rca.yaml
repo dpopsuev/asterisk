@@ -1,9 +1,31 @@
+# RCA Calibration Scorecard
+#
+# Defines every metric used to evaluate Asterisk's RCA quality.
+# Thresholds are derived from ROI analysis (see cost_model), not
+# arbitrary tuning — a correct answer at $0.25 beats a wrong one
+# at $0.05.
+#
+# Metric tiers (in priority order):
+#   outcome       — primary outputs: defect type, category, recall accuracy
+#   investigation — repo selection quality, red herring rejection
+#   detection     — evidence quality, component identification
+#   efficiency    — circuit path accuracy, token budget, loop efficiency
+#   meta          — aggregate score (M19), run variance (M20)
+#
+# Key fields per metric:
+#   threshold   — pass/fail boundary (direction determines comparison)
+#   weight      — contribution to M19 aggregate (0 = health check only)
+#   scorer      — algorithm name (batch_field_match, batch_set_recall, etc.)
+#   dry_capped  — true if metric is structurally limited without real repos
+
 scorecard: asterisk-rca
 description: >-
   Principled calibration scorecard for Asterisk RCA circuit.
   Thresholds derived from ROI analysis, not arbitrary PoC tuning.
 version: 2
 
+# ROI model: 30 cases cost ~$1 in tokens but save ~100 person-days
+# ($50K) of manual triage. At 50,000x ROI, token budget is irrelevant.
 cost_model:
   cases_per_batch: 30
   cost_per_batch_usd: 1.00
@@ -11,7 +33,9 @@ cost_model:
   person_day_cost_usd: 500
 
 metrics:
-  # --- Tier 1: Outcome Correctness ---
+  # ── Tier 1: Outcome Correctness ──
+  # These metrics measure whether the final RCA is correct.
+
   - id: M1
     name: defect_type_accuracy
     tier: outcome
@@ -121,7 +145,9 @@ metrics:
     strategy: roi_based
     rationale: "Health check for confidence scores. Lowered from 0.40 — Pearson r is strict."
 
-  # --- Tier 2: Investigation Quality ---
+  # ── Tier 2: Investigation Quality ──
+  # These metrics measure whether the right repos were selected.
+
   - id: M9
     name: repo_selection_precision
     tier: investigation
@@ -164,7 +190,9 @@ metrics:
     strategy: roi_based
     rationale: "Lowered from 0.80 — selecting a red herring wastes tokens but doesn't prevent correct answer."
 
-  # --- Tier 3: Detection Quality ---
+  # ── Tier 3: Detection Quality ──
+  # These metrics measure evidence gathering and component identification.
+
   - id: M12
     name: evidence_recall
     tier: detection
@@ -246,7 +274,9 @@ metrics:
     strategy: roi_based
     rationale: "'Where to look' signal. Raised from 0.70. High human value."
 
-  # --- Tier 4: Efficiency ---
+  # ── Tier 4: Efficiency ──
+  # Health checks — correct answers via suboptimal paths are acceptable.
+
   - id: M16
     name: circuit_path_accuracy
     tier: efficiency
@@ -287,7 +317,8 @@ metrics:
     strategy: roi_based
     rationale: "Budget raised 3.3x from 60K. At $0.003/1K tokens, 200K costs $0.60 — trivial vs $2,500 labor."
 
-  # --- Tier 5: Aggregate & Meta ---
+  # ── Tier 5: Aggregate & Meta ──
+
   - id: M20
     name: run_variance
     tier: meta
@@ -321,6 +352,8 @@ metrics:
     strategy: fixed
     rationale: "Stub — manual verification required."
 
+# M19 is the weighted aggregate of the metrics listed in `include`.
+# Only metrics with weight > 0 contribute. Threshold: 0.70 overall.
 aggregate:
   id: M19
   name: overall_accuracy

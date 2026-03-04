@@ -1,3 +1,20 @@
+# Prompt Manifest
+#
+# Maps each RCA circuit step (F0-F6) to its LLM prompt template and
+# declares which calibration metrics that step's output affects.
+#
+# Structure:
+#   families    — one entry per circuit step
+#     step            — circuit step ID (matches node family in the circuit YAML)
+#     template        — path to the Markdown prompt template (relative to prompts/)
+#     affected_metrics — metrics scored against this step's output (see scorecard)
+#     output_schema   — JSON schema the LLM response must conform to
+#
+#   references  — supplementary documents injected into prompts
+#     path            — path to the reference document
+#     referenced_by   — which steps include this document
+#     purpose         — what the document provides
+
 families:
   - step: F0_RECALL
     template: recall/judge-similarity.md

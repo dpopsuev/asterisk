@@ -1,13 +1,42 @@
+# Asterisk Database Schema
+#
+# Defines every SQLite table used by Asterisk's RCA store. Parsed by
+# Origami's connectors/sqlite package at build time and embedded into
+# the binary via the `store.schema` binding in origami.yaml.
+#
+# Syntax guide (Origami schema DSL):
+#   Shorthand column:  column_name: type [modifiers...]
+#     Modifiers: not_null, unique, pk, auto, default=VALUE
+#     Foreign key:  -> table          (expands to table(id))
+#                   -> table(column)  (explicit column)
+#   Implicit id:  Every table gets an auto-increment integer PK named
+#                 "id" unless one is already defined or auto_id: false.
+#   Table-local indexes:  indexes: [[col1], [col2, col3]]
+#                 Auto-named idx_{table}_{columns}.
+#
+# Data model overview:
+#   Tier 1 — Investigation-scoped: entities created per CI run
+#     investigation_suites → versions → circuits → launches → jobs → cases → triages
+#   Tier 2 — Global knowledge: shared across investigations
+#     symptoms (fingerprinted failure patterns)
+#     rcas     (root-cause analyses, linked to symptoms via symptom_rca)
+
 version: 1
 
 tables:
+  # Tracks which schema version the database was created with.
+  # auto_id: false because this table holds a single row, not a collection.
   - name: schema_version
     auto_id: false
     columns:
       - version: integer not_null
 
+  # ──────────────────────────────────────────────────────────────────
   # Tier 1: Investigation-scoped entities
+  # Created fresh for each CI run / analysis session.
+  # ──────────────────────────────────────────────────────────────────
 
+  # A logical grouping of related analysis runs (e.g. "PTP 4.20 regression hunt").
   - name: investigation_suites
     columns:
       - name: text not_null
@@ -16,11 +45,13 @@ tables:
       - created_at: text not_null
       - closed_at: text
 
+  # Software versions under test (e.g. "OCP 4.20", "OCP 4.21").
   - name: versions
     columns:
       - label: text not_null unique
       - build_id: text
 
+  # A CI pipeline execution within a suite, targeting a specific version.
   - name: circuits
     columns:
       - suite_id: integer not_null -> investigation_suites
@@ -33,6 +64,8 @@ tables:
     indexes:
       - [suite_id]
 
+  # Individual CI launches (ReportPortal "launches") within a circuit.
+  # envelope_payload stores the raw fetched data for reproducibility.
   - name: launches
     columns:
       - circuit_id: integer not_null -> circuits
@@ -51,6 +84,7 @@ tables:
     indexes:
       - [circuit_id]
 
+  # Test jobs (RP "suites") — groups of related test cases within a launch.
   - name: jobs
     columns:
       - launch_id: integer not_null -> launches
@@ -69,6 +103,8 @@ tables:
     indexes:
       - [launch_id]
 
+  # Individual test failures — the primary unit of RCA analysis.
+  # Each case links to a symptom (pattern match) and an rca (conclusion).
   - name: cases
     columns:
       - job_id: integer not_null -> jobs
@@ -94,6 +130,8 @@ tables:
       - [launch_id]
       - [job_id]
 
+  # Triage decisions produced by F1_TRIAGE — one per case.
+  # Determines routing: skip investigation, single-repo shortcut, or full analysis.
   - name: triages
     columns:
       - case_id: integer not_null unique -> cases
@@ -107,8 +145,13 @@ tables:
       - data_quality_notes: text
       - created_at: text not_null
 
+  # ──────────────────────────────────────────────────────────────────
   # Tier 2: Global knowledge entities
+  # Shared across all investigations. Accumulate over time.
+  # ──────────────────────────────────────────────────────────────────
 
+  # Failure patterns identified by fingerprinting error messages and test names.
+  # Used by F0_RECALL to shortcut known failures before investigation.
   - name: symptoms
     columns:
       - fingerprint: text not_null unique
@@ -125,6 +168,8 @@ tables:
     indexes:
       - [fingerprint]
 
+  # Completed root-cause analyses. Each RCA explains why failures occur
+  # and links to evidence (commits, logs, CI data).
   - name: rcas
     columns:
       - title: text not_null
@@ -143,6 +188,9 @@ tables:
       - verified_at: text
       - archived_at: text
 
+  # Many-to-many link between symptoms and RCAs.
+  # Multiple symptoms can share one root cause; one symptom can have
+  # multiple candidate RCAs with different confidence scores.
   - name: symptom_rca
     columns:
       - symptom_id: integer not_null -> symptoms

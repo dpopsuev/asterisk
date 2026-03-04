@@ -1,8 +1,28 @@
+# Calibration Circuit
+#
+# Measures RCA quality by running the analysis pipeline against a
+# dataset of known failures with ground-truth expectations, then
+# scoring and aggregating the results into M1-M20 metrics.
+#
+# Three modes (see project-standards.mdc for full definitions):
+#   stub  — deterministic (no LLM), validates circuit machinery
+#   dry   — real LLM + synthetic data, validates prompts
+#   wet   — real LLM + production data, the final acceptance gate
+#
+# Usage:
+#   just calibrate-stub          # fast, after every code change
+#   just calibrate-wet           # slow, only when dry passes consistently
+
 circuit: asterisk-calibration
 description: "Calibration circuit — setup cases, run RCA, score, aggregate metrics, report"
 imports:
   - rca
 
+# Calibration tuning:
+#   parallel   — concurrent case walkers (1 = serial, safe default)
+#   runs       — number of full runs for variance measurement (M20)
+#   token_budget — max tokens per run (0 = unlimited)
+#   batch_size — cases per batch (0 = all at once)
 vars:
   parallel: 1
   runs: 1
