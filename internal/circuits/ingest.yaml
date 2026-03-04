@@ -6,7 +6,7 @@
 #
 # Triggered by: asterisk consume run
 # Human supervision: asterisk dataset review / promote
-circuit: asterisk-ingest
+circuit: ingest
 description: "Fetch new CI failures from RP, create candidate cases, grow the dataset"
 
 nodes:
@@ -19,7 +19,7 @@ nodes:
         to: parse_failures
         when: "len(output.launches) > 0"
       - name: no launches
-        to: _done
+        to: DONE
         shortcut: true
         when: "len(output.launches) == 0"
 
@@ -32,7 +32,7 @@ nodes:
         to: match_symptoms
         when: "len(output.failures) > 0"
       - name: no failures
-        to: _done
+        to: DONE
         shortcut: true
         when: "len(output.failures) == 0"
 
@@ -65,7 +65,7 @@ nodes:
     description: "Queue candidates for human review and promotion to the dataset"
     approach: holistic
     family: ingest.notify
-    edges: [_done]
+    edges: [DONE]
 
 start: fetch_launches
-done: _done
+done: DONE

@@ -13,10 +13,9 @@
 #   just calibrate-stub          # fast, after every code change
 #   just calibrate-wet           # slow, only when dry passes consistently
 
-circuit: asterisk-calibration
+circuit: calibration
 description: "Calibration circuit — setup cases, run RCA, score, aggregate metrics, report"
-imports:
-  - rca
+scorecard: internal/scorecards/rca.yaml
 
 # Calibration tuning:
 #   parallel   — concurrent case walkers (1 = serial, safe default)

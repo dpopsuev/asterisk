@@ -18,18 +18,19 @@ version: "1.0"
 imports:
   - origami.schematics.rca
 
-# Bindings connect schematic sockets to concrete connector implementations.
-#   source       — where to read test data from    (ReportPortal API)
-#   writer       — where to write RCA results to   (ReportPortal API)
-#   discoverer   — how to discover CI runs         (ReportPortal API)
-#   store.schema — the SQLite schema definition     (see internal/schema.yaml)
-bindings:
-  source: origami.connectors.rp
-  writer: origami.connectors.rp
-  discoverer: origami.connectors.rp
-  store.schema: internal/schema.yaml
+# Circuit definitions, keyed by logical name.
+circuits:
+  rca: internal/circuits/rca.yaml
+  calibration: internal/circuits/calibration.yaml
+  ingest: internal/circuits/ingest.yaml
 
-# Files embedded into the binary at compile time.
-# internal/prompts/ contains the LLM prompt templates used by each circuit node.
+# Bindings connect schematic sockets to concrete connector implementations.
+# Keys are namespaced: <schematic-namespace>.<socket-name>.
+bindings:
+  rca.source: origami.connectors.rp
+  rca.writer: origami.connectors.rp
+  rca.discoverer: origami.connectors.rp
+  rca.store.schema: internal/schema.yaml
+
 embed:
   - internal/prompts/

@@ -18,7 +18,7 @@
 #   scorer      — algorithm name (batch_field_match, batch_set_recall, etc.)
 #   dry_capped  — true if metric is structurally limited without real repos
 
-scorecard: asterisk-rca
+scorecard: rca
 description: >-
   Principled calibration scorecard for Asterisk RCA circuit.
   Thresholds derived from ROI analysis, not arbitrary PoC tuning.

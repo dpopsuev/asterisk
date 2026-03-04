@@ -117,7 +117,7 @@ Underneath the RCA product is a generic **agentic pipeline framework** — a gra
 The framework now lives in its own repository: [`github.com/dpopsuev/origami`](https://github.com/dpopsuev/origami).
 
 ```
-internal/circuits/asterisk-rca.yaml   Domain-specific RCA circuit definition
+internal/circuits/rca.yaml            Domain-specific RCA circuit definition
 ```
 
 **Key concepts:**

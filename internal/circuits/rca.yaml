@@ -17,10 +17,8 @@
 # Shortcuts allow fast paths: high-confidence recall hits skip straight
 # to Review; infra/flake triages bypass investigation entirely.
 
-circuit: asterisk-rca
+circuit: rca
 description: "Root-cause analysis circuit (F0 Recall through F6 Report)"
-imports:
-  - rca
 
 # Tuning knobs — adjust these to control routing sensitivity.
 #   recall_hit:             confidence above which recall skips to review
@@ -40,6 +38,7 @@ nodes:
   - name: recall
     description: "Pattern-match against known failures database; shortcut to review on high-confidence hit"
     family: recall
+    prompt: prompts/recall/judge-similarity.md
     after: [store.recall]
     edges:
       - name: recall-hit
@@ -57,6 +56,7 @@ nodes:
   - name: triage
     description: "Classify failure symptom (infra, flake, product bug) and select candidate repos"
     family: triage
+    prompt: prompts/triage/classify-symptoms.md
     after: [store.triage]
     edges:
       - name: triage-skip-infra
@@ -87,6 +87,7 @@ nodes:
   - name: resolve
     description: "Select the next repo to investigate from the candidate set"
     family: resolve
+    prompt: prompts/resolve/select-repo.md
     edges:
       - name: resolve-multi
         to: investigate
@@ -96,6 +97,7 @@ nodes:
   - name: investigate
     description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
     family: investigate
+    prompt: prompts/investigate/deep-rca.md
     after: [store.investigate]
     edges:
       - name: investigate-converged
@@ -117,6 +119,7 @@ nodes:
   - name: correlate
     description: "Cross-reference findings across repos; detect duplicates against prior RCAs"
     family: correlate
+    prompt: prompts/correlate/match-cases.md
     after: [store.correlate]
     edges:
       - name: correlate-dup
@@ -130,6 +133,7 @@ nodes:
   - name: review
     description: "Adversarial quality gate: approve, reassess, or overturn the draft RCA"
     family: review
+    prompt: prompts/review/present-findings.md
     after: [store.review]
     edges:
       - name: review-approve
@@ -147,6 +151,7 @@ nodes:
   - name: report
     description: "Produce the final structured RCA with defect type, confidence, and evidence links"
     family: report
+    prompt: prompts/report/regression-table.md
     edges:
       - name: report-done
         to: DONE
