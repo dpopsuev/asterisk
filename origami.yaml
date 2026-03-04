@@ -9,6 +9,7 @@ bindings:
   source: origami.connectors.rp
   writer: origami.connectors.rp
   discoverer: origami.connectors.rp
+  store.schema: schema.yaml
 
 embed:
   - prompts/
