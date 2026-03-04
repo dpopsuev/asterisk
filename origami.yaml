@@ -3,7 +3,7 @@ description: Evidence-based RCA for ReportPortal test failures
 version: "1.0"
 
 imports:
-  - origami.modules.rca
+  - origami.schematics.rca
 
 embed:
   - prompts/
