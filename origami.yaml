@@ -22,14 +22,14 @@ imports:
 #   source       — where to read test data from    (ReportPortal API)
 #   writer       — where to write RCA results to   (ReportPortal API)
 #   discoverer   — how to discover CI runs         (ReportPortal API)
-#   store.schema — the SQLite schema definition     (see schema.yaml)
+#   store.schema — the SQLite schema definition     (see internal/schema.yaml)
 bindings:
   source: origami.connectors.rp
   writer: origami.connectors.rp
   discoverer: origami.connectors.rp
-  store.schema: schema.yaml
+  store.schema: internal/schema.yaml
 
 # Files embedded into the binary at compile time.
-# prompts/ contains the LLM prompt templates used by each circuit node.
+# internal/prompts/ contains the LLM prompt templates used by each circuit node.
 embed:
-  - prompts/
+  - internal/prompts/

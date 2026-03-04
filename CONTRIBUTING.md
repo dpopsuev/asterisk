@@ -72,18 +72,13 @@ See `.cursor/rules/testing-methodology.mdc` for details.
 ## Project Structure
 
 ```
-cmd/asterisk/          CLI entrypoint (Cobra subcommands)
-internal/orchestrate/  Pipeline definition, heuristics, templates, params
-internal/calibrate/    Calibration runner, metrics (M1-M20), scenarios, adapters
-internal/mcpconfig/    Marshaller MCP configuration (wraps Origami PipelineServer)
-internal/investigate/  RP-specific RCA investigation
-internal/preinvest/    Pre-investigation fetch (envelope, RP API)
-internal/postinvest/   Post-investigation push (RP, Jira)
-internal/rp/           ReportPortal API client
-internal/store/        Persistence (suite, pipeline, case, triage, RCA)
-internal/display/      Human-readable metric names and formatting
-internal/dataset/      DatasetStore, mapper, completeness (curate bridge)
-pipelines/             YAML pipeline definitions
+origami.yaml                    Manifest — single entrypoint for origami fold
+internal/circuits/              Circuit YAML definitions (RCA, calibration, ingest)
+internal/prompts/               LLM prompt templates per circuit step
+internal/scorecards/            Calibration metric scorecards
+internal/datasets/              Calibration datasets (scenarios, ground truth)
+internal/schema.yaml            SQLite schema definition
+examples/                       Example launch data for quickstart
 ```
 
 ## License
