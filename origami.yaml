@@ -18,6 +18,12 @@ version: "1.0"
 imports:
   - origami.schematics.rca
 
+# Source packs define which repositories and docs are available for
+# code access during RCA investigation. Use --sources=ptp to select.
+sources:
+  ptp: internal/sources/ptp.yaml
+  ocp-platform: internal/sources/ocp-platform.yaml
+
 # Circuit definitions, keyed by logical name.
 circuits:
   rca: internal/circuits/rca.yaml
@@ -30,6 +36,7 @@ bindings:
   rca.source: origami.connectors.rp
   rca.writer: origami.connectors.rp
   rca.discoverer: origami.connectors.rp
+  rca.code: origami.connectors.github
   rca.store.schema: internal/schema.yaml
 
 embed:

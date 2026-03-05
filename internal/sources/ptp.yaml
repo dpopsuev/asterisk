@@ -1,0 +1,24 @@
+name: ptp
+operator: PTP Operator
+description: PTP Operator sources for precision time protocol root-cause analysis
+version_key: ocp_version
+includes:
+  - ocp-platform
+
+repos:
+  - org: openshift
+    name: linuxptp-daemon
+    purpose: "SUT: PTP daemon — clock synchronization and holdover"
+    branch_pattern: "release-{ocp_version}"
+  - org: openshift
+    name: ptp-operator
+    purpose: "SUT: operator lifecycle, CRDs, and node selection"
+    branch_pattern: "release-{ocp_version}"
+  - org: openshift-kni
+    name: cnf-features-deploy
+    purpose: test framework and CI job definitions
+    branch_pattern: master
+  - org: redhat-cne
+    name: cloud-event-proxy
+    purpose: PTP event sidecar for cloud-native notifications
+    branch_pattern: "release-{ocp_version}"

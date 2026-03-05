@@ -1,0 +1,13 @@
+name: ocp-platform
+operator: OCP Platform
+description: Shared OpenShift platform sources used across operators
+
+repos:
+  - org: openshift
+    name: cluster-etcd-operator
+    purpose: etcd lifecycle and cluster stability
+    branch_pattern: "release-{ocp_version}"
+  - org: openshift
+    name: machine-config-operator
+    purpose: node configuration and OS management
+    branch_pattern: "release-{ocp_version}"

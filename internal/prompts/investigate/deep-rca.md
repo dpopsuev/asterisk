@@ -48,20 +48,20 @@ Perform deep root-cause analysis for the failed test by investigating the select
 {{if .Prior.ResolveResult.CrossRefStrategy}}**Cross-reference strategy:** {{.Prior.ResolveResult.CrossRefStrategy}}{{end}}
 {{end}}{{end}}
 
-{{if .Workspace}}{{if eq .Workspace.AttrsStatus "resolved"}}## Launch attributes
+{{if .Sources}}{{if eq .Sources.AttrsStatus "resolved"}}## Launch attributes
 
 | Key | Value |
 |-----|-------|
-{{range .Workspace.LaunchAttributes}}{{if not .System}}| {{.Key}} | {{.Value}} |
+{{range .Sources.LaunchAttributes}}{{if not .System}}| {{.Key}} | {{.Value}} |
 {{end}}{{end}}
 {{else}}*No launch attributes available.*
 {{end}}
 
-{{if eq .Workspace.JiraStatus "resolved"}}## Linked Jira tickets
+{{if eq .Sources.JiraStatus "resolved"}}## Linked Jira tickets
 
 | Ticket | URL |
 |--------|-----|
-{{range .Workspace.JiraLinks}}| {{.TicketID}} | {{.URL}} |
+{{range .Sources.JiraLinks}}| {{.TicketID}} | {{.URL}} |
 {{end}}
 {{else}}*No linked Jira tickets.*
 {{end}}{{end}}
@@ -71,6 +71,29 @@ Perform deep root-cause analysis for the failed test by investigating the select
 {{if .Git.Branch}}**Branch:** {{.Git.Branch}}{{end}}
 {{if .Git.Commit}}**Commit:** {{.Git.Commit}}{{end}}
 {{if not .Git.Branch}}**Warning: no git branch/commit from envelope.** The branch under investigation is unknown. Use the workspace repo's current checkout with caution — it may not match the code that was actually tested. State this uncertainty in your RCA and lower confidence accordingly.{{end}}
+{{end}}
+
+{{if .Code}}## Source code context
+
+{{if .Code.SearchResults}}### Code search results
+
+| Repo | File | Line | Snippet |
+|------|------|------|---------|
+{{range .Code.SearchResults}}| `{{.Repo}}` | `{{.File}}` | {{.Line}} | `{{.Snippet}}` |
+{{end}}
+{{end}}
+
+{{if .Code.Files}}### File contents
+
+{{range .Code.Files}}#### `{{.Repo}}:{{.Path}}`
+```
+{{.Content}}
+```
+{{if .Truncated}}*File truncated due to token budget.*{{end}}
+{{end}}
+{{end}}
+
+{{if .Code.Truncated}}**Warning:** Code injection was truncated to fit token budget. Some files may be incomplete or missing.{{end}}
 {{end}}
 
 ## Defect type taxonomy

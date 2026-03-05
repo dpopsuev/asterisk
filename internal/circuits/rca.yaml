@@ -88,6 +88,7 @@ nodes:
     description: "Select the next repo to investigate from the candidate set"
     family: resolve
     prompt: prompts/resolve/select-repo.md
+    before: [inject.code.tree]
     edges:
       - name: resolve-multi
         to: investigate
@@ -98,6 +99,7 @@ nodes:
     description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
     family: investigate
     prompt: prompts/investigate/deep-rca.md
+    before: [inject.code.search, inject.code.read]
     after: [store.investigate]
     edges:
       - name: investigate-converged
