@@ -1,5 +1,5 @@
 name: ocp-platform
-operator: OCP Platform
+domain: OCP Platform
 description: Shared OpenShift platform sources used across operators
 
 repos:

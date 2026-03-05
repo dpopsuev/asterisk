@@ -1,5 +1,5 @@
 name: ptp
-operator: PTP Operator
+domain: PTP Operator
 description: PTP Operator sources for precision time protocol root-cause analysis
 version_key: ocp_version
 includes:
@@ -22,3 +22,6 @@ repos:
     name: cloud-event-proxy
     purpose: PTP event sidecar for cloud-native notifications
     branch_pattern: "release-{ocp_version}"
+
+docs:
+  - https://docs.openshift.com/container-platform/latest/networking/ptp/about-ptp.html

@@ -17,6 +17,7 @@ version: "1.0"
 # Correlate → Review → Report).
 imports:
   - origami.schematics.rca
+  # TODO: add origami.schematics.knowledge when fold supports multi-schematic imports (P6.13)
 
 # Source packs define which repositories and docs are available for
 # code access during RCA investigation. Use --sources=ptp to select.
@@ -36,7 +37,7 @@ bindings:
   rca.source: origami.connectors.rp
   rca.writer: origami.connectors.rp
   rca.discoverer: origami.connectors.rp
-  rca.code: origami.connectors.github
+  # rca.knowledge: origami.schematics.knowledge  # blocked on fold multi-schematic (P6.13)
   rca.store.schema: internal/schema.yaml
 
 embed:
