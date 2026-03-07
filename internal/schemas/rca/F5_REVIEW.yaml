@@ -1,0 +1,7 @@
+name: F5_REVIEW
+fields:
+  decision: "approve|reassess|overturn"
+defs:
+  - name: decision
+    type: string
+    required: true

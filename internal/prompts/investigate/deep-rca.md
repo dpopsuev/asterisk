@@ -30,22 +30,22 @@ Perform deep root-cause analysis for the failed test by investigating the select
 {{if .Failure.LogTruncated}}**Warning: log was truncated. The actual error may not be visible.** State that the log is incomplete and lower your confidence. Do NOT infer root cause from truncated output alone.{{end}}
 {{end}}
 
-{{if .Prior}}{{if .Prior.TriageResult}}## Triage context (from F1)
+{{if .Prior}}{{if .Prior.Triage}}## Triage context (from F1)
 
-- Symptom category: `{{.Prior.TriageResult.SymptomCategory}}`
-- Defect type hypothesis: `{{.Prior.TriageResult.DefectTypeHypothesis}}`
-{{if .Prior.TriageResult.CascadeSuspected}}- **Cascade suspected** — check if this is a shared setup failure.{{end}}
+- Symptom category: `{{.Prior.Triage.symptom_category}}`
+- Defect type hypothesis: `{{.Prior.Triage.defect_type_hypothesis}}`
+{{if .Prior.Triage.cascade_suspected}}- **Cascade suspected** — check if this is a shared setup failure.{{end}}
 {{end}}
 
-{{if .Prior.ResolveResult}}## Repo selection (from F2)
+{{if .Prior.Resolve}}## Repo selection (from F2)
 
-{{range .Prior.ResolveResult.SelectedRepos}}### {{.Name}}
-- **Path:** {{.Path}}
-- **Focus paths:** {{range .FocusPaths}}`{{.}}` {{end}}
-- **Branch:** {{.Branch}}
-- **Reason:** {{.Reason}}
+{{range .Prior.Resolve.selected_repos}}### {{.name}}
+- **Path:** {{.path}}
+- **Focus paths:** {{range .focus_paths}}`{{.}}` {{end}}
+- **Branch:** {{.branch}}
+- **Reason:** {{.reason}}
 {{end}}
-{{if .Prior.ResolveResult.CrossRefStrategy}}**Cross-reference strategy:** {{.Prior.ResolveResult.CrossRefStrategy}}{{end}}
+{{if .Prior.Resolve.cross_ref_strategy}}**Cross-reference strategy:** {{.Prior.Resolve.cross_ref_strategy}}{{end}}
 {{end}}{{end}}
 
 {{if .Sources}}{{if eq .Sources.AttrsStatus "resolved"}}## Launch attributes

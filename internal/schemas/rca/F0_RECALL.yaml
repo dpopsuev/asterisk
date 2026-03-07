@@ -1,0 +1,15 @@
+name: F0_RECALL
+fields:
+  match: "bool"
+  confidence: "float"
+  reasoning: "string"
+defs:
+  - name: match
+    type: bool
+    required: true
+  - name: confidence
+    type: float
+    required: true
+  - name: reasoning
+    type: string
+    required: true

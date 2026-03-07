@@ -1,0 +1,15 @@
+name: F6_REPORT
+fields:
+  defect_type: "string"
+  case_id: "string"
+  summary: "string"
+defs:
+  - name: defect_type
+    type: string
+    required: true
+  - name: case_id
+    type: string
+    required: true
+  - name: summary
+    type: string
+    required: true

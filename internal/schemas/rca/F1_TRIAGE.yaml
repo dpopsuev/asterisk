@@ -1,0 +1,27 @@
+name: F1_TRIAGE
+fields:
+  symptom_category: "string"
+  severity: "string"
+  defect_type_hypothesis: "string"
+  "candidate_repos[]": "string[]"
+  skip_investigation: "bool"
+  cascade_suspected: "bool"
+defs:
+  - name: symptom_category
+    type: string
+    required: true
+  - name: severity
+    type: string
+    required: true
+  - name: defect_type_hypothesis
+    type: string
+    required: true
+  - name: candidate_repos
+    type: array
+    required: false
+  - name: skip_investigation
+    type: bool
+    required: false
+  - name: cascade_suspected
+    type: bool
+    required: false

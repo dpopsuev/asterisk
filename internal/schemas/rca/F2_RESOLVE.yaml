@@ -1,0 +1,7 @@
+name: F2_RESOLVE
+fields:
+  "selected_repos[]": "{name, reason}"
+defs:
+  - name: selected_repos
+    type: array
+    required: true

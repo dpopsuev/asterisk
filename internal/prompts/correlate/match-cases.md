@@ -10,14 +10,14 @@
 
 Determine whether this case's root cause matches another case in the same launch, circuit, or suite. Detect "serial killers" (same root cause spanning multiple cases or versions).
 
-{{if .Prior}}{{if .Prior.InvestigateResult}}## Investigation result (from F3)
+{{if .Prior}}{{if .Prior.Investigate}}## Investigation result (from F3)
 
 | Field | Value |
 |-------|-------|
-| RCA message | {{.Prior.InvestigateResult.RCAMessage}} |
-| Defect type | {{.Prior.InvestigateResult.DefectType}} |
-| Convergence | {{.Prior.InvestigateResult.ConvergenceScore}} |
-| Evidence | {{range .Prior.InvestigateResult.EvidenceRefs}}`{{.}}` {{end}} |
+| RCA message | {{.Prior.Investigate.rca_message}} |
+| Defect type | {{.Prior.Investigate.defect_type}} |
+| Convergence | {{.Prior.Investigate.convergence_score}} |
+| Evidence | {{range .Prior.Investigate.evidence_refs}}`{{.}}` {{end}} |
 {{end}}{{end}}
 
 {{if .History}}{{if .History.SymptomInfo}}## Symptom context

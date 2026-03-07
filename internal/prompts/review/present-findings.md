@@ -14,39 +14,39 @@ This step presents the investigation findings for your review. **No write to RP 
 
 **Test name:** `{{.Failure.TestName}}`
 
-{{if .Prior}}{{if .Prior.InvestigateResult}}### Investigation result
+{{if .Prior}}{{if .Prior.Investigate}}### Investigation result
 
 | Field | Value |
 |-------|-------|
-| **RCA message** | {{.Prior.InvestigateResult.RCAMessage}} |
-| **Defect type** | `{{.Prior.InvestigateResult.DefectType}}` |
-| **Convergence score** | {{.Prior.InvestigateResult.ConvergenceScore}} |
+| **RCA message** | {{.Prior.Investigate.rca_message}} |
+| **Defect type** | `{{.Prior.Investigate.defect_type}}` |
+| **Convergence score** | {{.Prior.Investigate.convergence_score}} |
 
 **Evidence:**
-{{range .Prior.InvestigateResult.EvidenceRefs}}- {{.}}
+{{range .Prior.Investigate.evidence_refs}}- {{.}}
 {{end}}
 {{end}}
 
-{{if .Prior.RecallResult}}{{if .Prior.RecallResult.Match}}### Recall match
+{{if .Prior.Recall}}{{if .Prior.Recall.match}}### Recall match
 
-This case matched a prior RCA (#{{.Prior.RecallResult.PriorRCAID}}) with confidence {{.Prior.RecallResult.Confidence}}.
-{{if .Prior.RecallResult.IsRegression}}**⚠ This appears to be a regression — a previously resolved or dormant symptom has reappeared.**{{end}}
+This case matched a prior RCA (#{{.Prior.Recall.prior_rca_id}}) with confidence {{.Prior.Recall.confidence}}.
+{{if .Prior.Recall.is_regression}}**⚠ This appears to be a regression — a previously resolved or dormant symptom has reappeared.**{{end}}
 {{end}}{{end}}
 
-{{if .Prior.TriageResult}}### Triage classification
+{{if .Prior.Triage}}### Triage classification
 
-- Category: `{{.Prior.TriageResult.SymptomCategory}}`
-- Defect hypothesis: `{{.Prior.TriageResult.DefectTypeHypothesis}}`
-{{if .Prior.TriageResult.ClockSkewSuspected}}- **⚠ Clock skew suspected** — timestamps may be unreliable. Verify real vs apparent timing before accepting timeout classification.{{end}}
-{{if .Prior.TriageResult.CascadeSuspected}}- **⚠ Cascade suspected** — this may be a downstream effect of a shared setup failure.{{end}}
+- Category: `{{.Prior.Triage.symptom_category}}`
+- Defect hypothesis: `{{.Prior.Triage.defect_type_hypothesis}}`
+{{if .Prior.Triage.clock_skew_suspected}}- **⚠ Clock skew suspected** — timestamps may be unreliable. Verify real vs apparent timing before accepting timeout classification.{{end}}
+{{if .Prior.Triage.cascade_suspected}}- **⚠ Cascade suspected** — this may be a downstream effect of a shared setup failure.{{end}}
 {{end}}
 
-{{if .Prior.CorrelateResult}}### Correlation result
+{{if .Prior.Correlate}}### Correlation result
 
-{{if .Prior.CorrelateResult.IsDuplicate}}- **Duplicate** of RCA #{{.Prior.CorrelateResult.LinkedRCAID}} (confidence: {{.Prior.CorrelateResult.Confidence}})
-{{if .Prior.CorrelateResult.CrossVersionMatch}}- Cross-version match across: {{range .Prior.CorrelateResult.AffectedVersions}}`{{.}}` {{end}}{{end}}
-{{else}}- Not a duplicate (confidence: {{.Prior.CorrelateResult.Confidence}})
-- Reasoning: {{.Prior.CorrelateResult.Reasoning}}
+{{if .Prior.Correlate.is_duplicate}}- **Duplicate** of RCA #{{.Prior.Correlate.linked_rca_id}} (confidence: {{.Prior.Correlate.confidence}})
+{{if .Prior.Correlate.cross_version_match}}- Cross-version match across: {{range .Prior.Correlate.affected_versions}}`{{.}}` {{end}}{{end}}
+{{else}}- Not a duplicate (confidence: {{.Prior.Correlate.confidence}})
+- Reasoning: {{.Prior.Correlate.reasoning}}
 {{end}}
 {{end}}{{end}}
 

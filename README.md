@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="internal/assets/asterisk-rh.png" alt="Asterisk" width="200" />
+  <img src="assets/asterisk-rh.png" alt="Asterisk" width="200" />
 </p>
 
 <h1 align="center">Asterisk</h1>

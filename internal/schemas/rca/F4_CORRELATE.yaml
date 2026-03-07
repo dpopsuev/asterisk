@@ -1,0 +1,11 @@
+name: F4_CORRELATE
+fields:
+  is_duplicate: "bool"
+  confidence: "float"
+defs:
+  - name: is_duplicate
+    type: bool
+    required: true
+  - name: confidence
+    type: float
+    required: true

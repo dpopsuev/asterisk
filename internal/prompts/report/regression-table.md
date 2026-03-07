@@ -10,22 +10,22 @@
 
 Generate the final report artifacts: a Jira ticket draft and a regression summary table.
 
-{{if .Prior}}{{if .Prior.InvestigateResult}}## Approved RCA
+{{if .Prior}}{{if .Prior.Investigate}}## Approved RCA
 
 | Field | Value |
 |-------|-------|
-| **RCA message** | {{.Prior.InvestigateResult.RCAMessage}} |
-| **Defect type** | `{{.Prior.InvestigateResult.DefectType}}` |
-| **Convergence** | {{.Prior.InvestigateResult.ConvergenceScore}} |
+| **RCA message** | {{.Prior.Investigate.rca_message}} |
+| **Defect type** | `{{.Prior.Investigate.defect_type}}` |
+| **Convergence** | {{.Prior.Investigate.convergence_score}} |
 
 **Evidence:**
-{{range .Prior.InvestigateResult.EvidenceRefs}}- {{.}}
+{{range .Prior.Investigate.evidence_refs}}- {{.}}
 {{end}}
 {{end}}
 
-{{if .Prior.CorrelateResult}}{{if .Prior.CorrelateResult.CrossVersionMatch}}### Cross-version impact
+{{if .Prior.Correlate}}{{if .Prior.Correlate.cross_version_match}}### Cross-version impact
 
-Affected versions: {{range .Prior.CorrelateResult.AffectedVersions}}`{{.}}` {{end}}
+Affected versions: {{range .Prior.Correlate.affected_versions}}`{{.}}` {{end}}
 {{end}}{{end}}{{end}}
 
 ## Failure context

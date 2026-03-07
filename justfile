@@ -4,9 +4,11 @@
 set dotenv-load := false
 
 bin_dir          := "bin"
-asterisk         := bin_dir / "asterisk"
+domain_serve     := bin_dir / "asterisk-domain-serve"
 db_path      := ".asterisk/asterisk.db"
 calib_dir    := ".asterisk/calibrate"
+origami_dir  := "../origami"
+rca_test_pkg := origami_dir / "schematics/rca/mcpconfig"
 
 # ─── Default ──────────────────────────────────────────────
 
@@ -16,9 +18,9 @@ default:
 
 # ─── Build ────────────────────────────────────────────────
 
-# Build via origami fold (YAML manifest → binary)
+# Build domain-serve binary via origami fold
 build:
-    origami fold --output {{ asterisk }}
+    origami fold
 
 # ─── Test ─────────────────────────────────────────────────
 
@@ -31,83 +33,45 @@ lint:
     origami lint --profile strict internal/circuits/*.yaml
 
 # ─── Calibration ─────────────────────────────────────────
+# Calibration and analysis now run as go test wrappers in Origami.
+# Wet calibration uses the MCP server via Papercup skill.
 
 # Run stub calibration (deterministic, no AI)
 calibrate-stub scenario="ptp-mock":
-    just build
-    {{ asterisk }} calibrate --scenario={{ scenario }} --backend=stub
+    CALIBRATE_SCENARIO={{ scenario }} CALIBRATE_BACKEND=stub \
+        go test -run TestCalibrate_PTPMock -v ./{{ rca_test_pkg }}/ -timeout 2m
 
-# Run wet calibration with file dispatch
-calibrate-wet scenario="ptp-real-ingest":
-    just build
-    {{ asterisk }} calibrate \
-        --scenario={{ scenario }} \
-        --backend=llm \
-        --dispatch=file \
-        --clean
+# Run analysis on a local envelope file (heuristic backend)
+analyze envelope:
+    ANALYZE_ENVELOPE={{ envelope }} \
+        go test -run TestAnalyze_Heuristic -v ./{{ rca_test_pkg }}/ -timeout 2m
 
-# Run wet calibration with debug logging
-calibrate-debug scenario="ptp-real-ingest":
-    just build
-    {{ asterisk }} calibrate \
-        --scenario={{ scenario }} \
-        --backend=llm \
-        --dispatch=file \
-        --clean \
-        --agent-debug
+# ─── Container ───────────────────────────────────────────
 
-# Run stub calibration with parallel workers
-calibrate-parallel scenario="ptp-mock" workers="4":
+# Build the OCI image (rebuilds binary first)
+container-build:
     just build
-    {{ asterisk }} calibrate --scenario={{ scenario }} --backend=stub --parallel={{ workers }}
+    docker build -t asterisk .
 
-# Run wet calibration with token/cost report
-calibrate-cost scenario="ptp-real-ingest":
-    just build
-    {{ asterisk }} calibrate \
-        --scenario={{ scenario }} \
-        --backend=llm \
-        --dispatch=file \
-        --clean \
-        --cost-report
+# Start container (MCP :9100, Kami :3001)
+container-run:
+    docker run -d --name asterisk-server \
+        -p 9100:9100 -p 3001:3001 \
+        asterisk serve --transport http --kami-port 3001
 
-# Run wet calibration with batch-file dispatch for multi-subagent mode
-calibrate-batch scenario="ptp-real-ingest" batch="4":
-    just build
-    {{ asterisk }} calibrate \
-        --scenario={{ scenario }} \
-        --backend=llm \
-        --dispatch=batch-file \
-        --batch-size={{ batch }} \
-        --clean \
-        --cost-report
+# Stop and remove container
+container-stop:
+    docker rm -f asterisk-server
 
-# Run wet calibration and save results to .dev/calibration-runs/
-calibrate-save scenario="ptp-real-ingest" round="":
-    #!/usr/bin/env bash
-    set -euo pipefail
-    just build
-    output=$({{ asterisk }} calibrate \
-        --scenario={{ scenario }} \
-        --backend=llm \
-        --dispatch=file \
-        --clean 2>&1)
-    echo "$output"
-    if [ -n "{{ round }}" ]; then
-        dest=".dev/calibration-runs/round-{{ round }}-results.txt"
-        mkdir -p .dev/calibration-runs
-        echo "$output" > "$dest"
-        echo "--- Saved to $dest ---"
-    fi
+# Hot-swap: rebuild binary + image, restart container
+container-restart:
+    -just container-stop
+    just container-build
+    just container-run
 
-# Run E2E calibration with RP-sourced cases (4 live from RP, 26 embedded)
-calibrate-e2e scenario="ptp-real-ingest":
-    just build
-    {{ asterisk }} calibrate \
-        --scenario={{ scenario }} \
-        --backend=basic \
-        --rp-base-url https://your-reportportal.example.com \
-        --rp-api-key .rp-api-key
+# Tail container logs
+container-logs:
+    docker logs -f asterisk-server
 
 # ─── Clean ────────────────────────────────────────────────
 
@@ -129,12 +93,9 @@ clean: clean-bin clean-runtime clean-stray
 
 # ─── Run ──────────────────────────────────────────────────
 
-# Run an analysis on the example launch
-run-example:
-    just build
-    {{ asterisk }} analyze \
-        --launch=examples/pre-investigation-33195-4.21/envelope_33195_4.21.json \
-        -o /tmp/asterisk-artifact.json
+# Run an analysis on an envelope (heuristic backend)
+run-example envelope="examples/envelope.json":
+    just analyze {{ envelope }}
 
 # ─── Data Ingestion (Python scripts in .dev/) ────────────
 

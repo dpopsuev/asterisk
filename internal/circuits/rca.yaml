@@ -19,6 +19,7 @@
 
 circuit: rca
 description: "Root-cause analysis circuit (F0 Recall through F6 Report)"
+topology: cascade
 
 # Tuning knobs — adjust these to control routing sensitivity.
 #   recall_hit:             confidence above which recall skips to review

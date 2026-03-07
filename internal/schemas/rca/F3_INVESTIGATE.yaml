@@ -1,0 +1,23 @@
+name: F3_INVESTIGATE
+fields:
+  rca_message: "string"
+  defect_type: "string"
+  component: "string"
+  convergence_score: "float"
+  "evidence_refs[]": "string[]"
+defs:
+  - name: rca_message
+    type: string
+    required: true
+  - name: defect_type
+    type: string
+    required: true
+  - name: component
+    type: string
+    required: true
+  - name: convergence_score
+    type: float
+    required: false
+  - name: evidence_refs
+    type: array
+    required: false

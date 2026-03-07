@@ -10,31 +10,31 @@
 
 Given the triage classification and the available repos, select which repo(s) to investigate and narrow the focus to specific paths/modules.
 
-{{if .Prior}}{{if .Prior.TriageResult}}## Triage result (from F1)
+{{if .Prior}}{{if .Prior.Triage}}## Triage result (from F1)
 
 | Field | Value |
 |-------|-------|
-| Symptom category | {{.Prior.TriageResult.SymptomCategory}} |
-| Severity | {{.Prior.TriageResult.Severity}} |
-| Defect type hypothesis | {{.Prior.TriageResult.DefectTypeHypothesis}} |
-| Candidate repos | {{range .Prior.TriageResult.CandidateRepos}}`{{.}}` {{end}}|
-| Skip investigation | {{.Prior.TriageResult.SkipInvestigation}} |
-{{if .Prior.TriageResult.CascadeSuspected}}| Cascade suspected | true |{{end}}
-{{if .Prior.TriageResult.ClockSkewSuspected}}| Clock skew suspected | true |{{end}}
+| Symptom category | {{.Prior.Triage.symptom_category}} |
+| Severity | {{.Prior.Triage.severity}} |
+| Defect type hypothesis | {{.Prior.Triage.defect_type_hypothesis}} |
+| Candidate repos | {{range .Prior.Triage.candidate_repos}}`{{.}}` {{end}}|
+| Skip investigation | {{.Prior.Triage.skip_investigation}} |
+{{if .Prior.Triage.cascade_suspected}}| Cascade suspected | true |{{end}}
+{{if .Prior.Triage.clock_skew_suspected}}| Clock skew suspected | true |{{end}}
 {{end}}
 
-{{if .Sources.AlwaysRead}}## Domain knowledge
+{{if .Sources}}{{if .Sources.AlwaysRead}}## Domain knowledge
 {{range .Sources.AlwaysRead}}
 ### {{.Name}}{{if .Purpose}} — {{.Purpose}}{{end}}
 
 {{.Content}}
-{{end}}{{end}}
+{{end}}{{end}}{{end}}
 
-{{if .Prior.InvestigateResult}}## Prior investigation (loop retry)
+{{if .Prior.Investigate}}## Prior investigation (loop retry)
 
-Previous investigation converged at **{{.Prior.InvestigateResult.ConvergenceScore}}** with defect type `{{.Prior.InvestigateResult.DefectType}}`:
+Previous investigation converged at **{{.Prior.Investigate.convergence_score}}** with defect type `{{.Prior.Investigate.defect_type}}`:
 
-> {{.Prior.InvestigateResult.RCAMessage}}
+> {{.Prior.Investigate.rca_message}}
 
 The convergence was too low. Select a different repo or broader scope for the retry.
 {{end}}{{end}}

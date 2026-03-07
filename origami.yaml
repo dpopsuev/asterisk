@@ -1,44 +1,13 @@
 # Asterisk Application Manifest
 #
-# This is the entry point for `origami fold`, which reads this file,
-# generates main.go, and compiles the Asterisk binary.
-#
-# Sections:
-#   imports   — which Origami schematics to include (RCA circuit engine)
-#   bindings  — wires connectors to schematic sockets (see Sockets & Plugs)
-#   embed     — files baked into the binary via //go:embed
+# `origami fold` reads this file and generates the domain-serve binary
+# (bin/asterisk-domain-serve), which embeds internal/ and serves
+# domain data over MCP via domainserve.New().
 
 name: asterisk
 description: Evidence-based RCA for ReportPortal test failures
 version: "1.0"
 
-# Schematics provide the circuit logic. "rca" brings in the full
-# F0-F6 pipeline (Recall → Triage → Resolve → Investigate →
-# Correlate → Review → Report).
-imports:
-  - origami.schematics.rca
-  # TODO: add origami.schematics.knowledge when fold supports multi-schematic imports (P6.13)
-
-# Source packs define which repositories and docs are available for
-# code access during RCA investigation. Use --sources=ptp to select.
-sources:
-  ptp: internal/sources/ptp.yaml
-  ocp-platform: internal/sources/ocp-platform.yaml
-
-# Circuit definitions, keyed by logical name.
-circuits:
-  rca: internal/circuits/rca.yaml
-  calibration: internal/circuits/calibration.yaml
-  ingest: internal/circuits/ingest.yaml
-
-# Bindings connect schematic sockets to concrete connector implementations.
-# Keys are namespaced: <schematic-namespace>.<socket-name>.
-bindings:
-  rca.source: origami.connectors.rp
-  rca.writer: origami.connectors.rp
-  rca.discoverer: origami.connectors.rp
-  # rca.knowledge: origami.schematics.knowledge  # blocked on fold multi-schematic (P6.13)
-  rca.store.schema: internal/schema.yaml
-
-embed:
-  - internal/prompts/
+domain_serve:
+  port: 9300
+  embed: internal/
