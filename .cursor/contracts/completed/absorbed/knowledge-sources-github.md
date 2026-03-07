@@ -1,8 +1,9 @@
 # Contract — knowledge-sources-github
 
-**Status:** draft  
+**Status:** absorbed  
 **Goal:** Composable source packs + GitHub code access give the RCA circuit real evidence for investigation, replacing prompt-only repo metadata and hardcoded fallbacks.  
-**Serves:** CursorAdapter M19 improvement (baseline: 0.58, target: >= 0.70)
+**Serves:** CursorAdapter M19 improvement (baseline: 0.58, target: >= 0.70)  
+**Absorbed by:** Prior Origami contracts (`domain-separation-container`, `decoupled-schematics`, `knowledge-source-evolution`) implemented 95% of this scope. Remaining workspace→sources rename + synthesis layer merged into Origami `knowledge-layer` contract.
 
 ## Contract rules
 

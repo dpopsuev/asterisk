@@ -40,7 +40,7 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 | 4 | `store-staleness-cleanup` | draft/ | quick-win | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, `origami kami reset`. |
 | 5 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
 | 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
-| 7 | `knowledge-sources-github` | draft/ | gate | Composable source packs + GitHub code access for real evidence in RCA investigation. M12/M13 at 0.00 — #1 blocker for wet accuracy. |
+| 7 | `dsl-lexicon` | draft/ | gate | Standardized DSL lexicon: `kind:`/`version:` envelope on all YAML, `references:` FK, artifact schema dedup, vocabulary enums. Complements yaml-cohesion + circuit-dsl-shorthand. |
 
 ### Execution order
 
@@ -50,9 +50,10 @@ origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
         ├─► design-principle-deterministic  ✓ COMPLETE (moved to Origami)
         ├─► origami-autodoc                 ✓ COMPLETE (moved to Origami, all 7 phases)
         └─► housekeeping                    ✓ COMPLETE
-              └─► yaml-cohesion             ← GATE (clean root, entrypoint, 18 gaps)
-                    └─► yaml-playbook-docs        ← NEXT (extends autodoc skeleton)
-                    └─► circuit-dsl-shorthand    ← NEXT (cohesive edges, topology inference)
+              └─► dsl-lexicon                ← GATE (envelope, FK syntax, vocabulary, dedup)
+                    └─► yaml-cohesion           ← GATE (clean root, entrypoint, 18 gaps)
+                    └─► circuit-dsl-shorthand   ← NEXT (cohesive edges, topology inference)
+                    └─► yaml-playbook-docs      ← NEXT (extends autodoc skeleton)
                           └─► kabuki-demo-revamp  ← NEXT-MILESTONE
               └─► prompt-first-class-consumer  ✓ COMPLETE (prompts/ at root, manifest.yaml, embed)
 ```
