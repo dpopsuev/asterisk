@@ -47,6 +47,7 @@ nodes:
     description: "Pattern-match against known failures database; shortcut to review on high-confidence hit"
     handler: recall
     prompt: prompts/recall/judge-similarity.md
+    output_schema: schemas/rca/F0_RECALL.yaml
     after: [store.recall]
     edges:
       - name: recall-hit
@@ -65,6 +66,7 @@ nodes:
     description: "Classify failure symptom (infra, flake, product bug) and select candidate repos"
     handler: triage
     prompt: prompts/triage/classify-symptoms.md
+    output_schema: schemas/rca/F1_TRIAGE.yaml
     after: [store.triage]
     edges:
       - name: triage-skip-infra
@@ -96,6 +98,7 @@ nodes:
     description: "Select the next repo to investigate from the candidate set"
     handler: resolve
     prompt: prompts/resolve/select-repo.md
+    output_schema: schemas/rca/F2_RESOLVE.yaml
     before: [inject.code.tree]
     edges:
       - name: resolve-multi
@@ -107,6 +110,7 @@ nodes:
     description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
     handler: investigate
     prompt: prompts/investigate/deep-rca.md
+    output_schema: schemas/rca/F3_INVESTIGATE.yaml
     before: [inject.code.search, inject.code.read]
     after: [store.investigate]
     edges:
@@ -130,6 +134,7 @@ nodes:
     description: "Cross-reference findings across repos; detect duplicates against prior RCAs"
     handler: correlate
     prompt: prompts/correlate/match-cases.md
+    output_schema: schemas/rca/F4_CORRELATE.yaml
     after: [store.correlate]
     edges:
       - name: correlate-dup
@@ -144,6 +149,7 @@ nodes:
     description: "Adversarial quality gate: approve, reassess, or overturn the draft RCA"
     handler: review
     prompt: prompts/review/present-findings.md
+    output_schema: schemas/rca/F5_REVIEW.yaml
     after: [store.review]
     edges:
       - name: review-approve
@@ -162,6 +168,7 @@ nodes:
     description: "Produce the final structured RCA with defect type, confidence, and evidence links"
     handler: report
     prompt: prompts/report/regression-table.md
+    output_schema: schemas/rca/F6_REPORT.yaml
     edges:
       - name: report-done
         to: DONE
