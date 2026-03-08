@@ -30,7 +30,7 @@ build:
 
 # Lint pipeline YAMLs
 lint:
-    origami lint --profile strict internal/circuits/*.yaml
+    origami lint --profile strict circuits/*.yaml
 
 # ─── Calibration ─────────────────────────────────────────
 # Calibration and analysis now run as go test wrappers in Origami.

@@ -1,7 +1,7 @@
 # Asterisk Application Manifest
 #
 # `origami fold` reads this file and generates the domain-serve binary
-# (bin/asterisk-domain-serve), which embeds internal/ and serves
+# (bin/asterisk-domain-serve), which embeds declared assets and serves
 # domain data over MCP via domainserve.New().
 
 name: asterisk
@@ -10,4 +10,49 @@ version: "1.0"
 
 domain_serve:
   port: 9300
-  embed: internal/
+  assets:
+    circuits:
+      rca: circuits/rca.yaml
+      calibration: circuits/calibration.yaml
+
+    prompts:
+      recall:      prompts/recall/judge-similarity.md
+      triage:      prompts/triage/classify-symptoms.md
+      resolve:     prompts/resolve/select-repo.md
+      investigate: prompts/investigate/deep-rca.md
+      correlate:   prompts/correlate/match-cases.md
+      review:      prompts/review/present-findings.md
+      review-gap:  prompts/review/gap-analysis.md
+      report:      prompts/report/regression-table.md
+
+    schemas:
+      recall:      schemas/rca/F0_RECALL.yaml
+      triage:      schemas/rca/F1_TRIAGE.yaml
+      resolve:     schemas/rca/F2_RESOLVE.yaml
+      investigate: schemas/rca/F3_INVESTIGATE.yaml
+      correlate:   schemas/rca/F4_CORRELATE.yaml
+      review:      schemas/rca/F5_REVIEW.yaml
+      report:      schemas/rca/F6_REPORT.yaml
+
+    scenarios:
+      ptp-mock:         scenarios/ptp-mock.yaml
+      ptp-real:         scenarios/ptp-real.yaml
+      ptp-real-ingest:  scenarios/ptp-real-ingest.yaml
+      daemon-mock:      scenarios/daemon-mock.yaml
+
+    scorecards:
+      rca: scorecards/rca.yaml
+
+    reports:
+      rca:         reports/rca-report.yaml
+      calibration: reports/calibration-report.yaml
+      transcript:  reports/transcript-report.yaml
+
+    sources:
+      ptp: sources/ptp.yaml
+      ocp: sources/ocp-platform.yaml
+
+    files:
+      vocabulary: vocabulary.yaml
+      heuristics: heuristics.yaml
+      schema:     schema.yaml

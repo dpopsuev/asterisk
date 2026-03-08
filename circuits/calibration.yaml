@@ -15,7 +15,7 @@
 
 circuit: calibration
 description: "Calibration circuit — setup cases, run RCA, score, aggregate metrics, report"
-scorecard: internal/scorecards/rca.yaml
+scorecard: scorecards/rca.yaml
 
 # Calibration tuning:
 #   parallel   — concurrent case walkers (1 = serial, safe default)

@@ -2263,4 +2263,4 @@ source_pack:
           uri: ""
           purpose: 'PTP architecture disambiguation: linuxptp-daemon (pod) vs linuxptp-daemon (repo), component relationships, event flow'
           read_policy: always
-          local_path: internal/datasets/docs/ptp/architecture.md
+          local_path: datasets/docs/ptp/architecture.md
