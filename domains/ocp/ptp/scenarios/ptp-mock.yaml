@@ -4,8 +4,13 @@ metadata:
   name: ptp-mock
   description: "Synthetic ground truth with 12 cases, 4 symptoms, 3 RCAs"
 
-name: ptp-mock
 description: 'PTP Calibration World: synthetic ground truth with 12 cases, 4 symptoms, 3 RCAs across 3 versions'
+defaults:
+  expected_path: [F0, F1, F2, F3, F4, F5, F6]
+  expect_recall_hit: false
+  expect_skip: false
+  expect_cascade: false
+  expected_loops: 0
 rcas:
     - id: R1
       title: Holdover timeout reduced from 300s to 60s in operator 4.21.0-202602070620
@@ -98,14 +103,6 @@ cases:
         FAIL: Expected clock state to be LOCKED within 300s timeout
       symptom_id: S1
       rca_id: R1
-      expected_path:
-        - F0
-        - F1
-        - F2
-        - F3
-        - F4
-        - F5
-        - F6
       expected_recall:
         match: false
         confidence: 0
@@ -135,10 +132,6 @@ cases:
         cross_version_match: false
       expected_review:
         decision: approve
-      expect_recall_hit: false
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C2
       version: "4.20"
       job: '[T-BC]'
@@ -159,9 +152,6 @@ cases:
       expected_review:
         decision: approve
       expect_recall_hit: true
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C3
       version: "4.21"
       job: '[T-TSC]'
@@ -182,9 +172,6 @@ cases:
       expected_review:
         decision: approve
       expect_recall_hit: true
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C4
       version: "4.21"
       job: '[T-TSC]'
@@ -231,10 +218,6 @@ cases:
         cross_version_match: false
       expected_review:
         decision: approve
-      expect_recall_hit: false
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C5
       version: "4.21"
       job: '[T-TSC]'
@@ -255,9 +238,6 @@ cases:
       expected_review:
         decision: approve
       expect_recall_hit: true
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C6
       version: "4.21"
       job: '[T-BC]'
@@ -278,9 +258,6 @@ cases:
       expected_review:
         decision: approve
       expect_recall_hit: true
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C7
       version: "4.21"
       job: '[T-BC]'
@@ -301,9 +278,6 @@ cases:
       expected_review:
         decision: approve
       expect_recall_hit: true
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C8
       version: "4.21"
       job: '[BC-OC]'
@@ -332,10 +306,7 @@ cases:
         cascade_suspected: false
       expected_review:
         decision: approve
-      expect_recall_hit: false
       expect_skip: true
-      expect_cascade: false
-      expected_loops: 0
     - id: C9
       version: "4.22"
       job: '[T-TSC]'
@@ -356,9 +327,6 @@ cases:
       expected_review:
         decision: approve
       expect_recall_hit: true
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C10
       version: "4.22"
       job: '[T-TSC]'
@@ -403,10 +371,6 @@ cases:
         cross_version_match: true
       expected_review:
         decision: approve
-      expect_recall_hit: false
-      expect_skip: false
-      expect_cascade: false
-      expected_loops: 0
     - id: C11
       version: "4.21"
       job: '[T-TSC]'
@@ -435,10 +399,7 @@ cases:
         cascade_suspected: false
       expected_review:
         decision: approve
-      expect_recall_hit: false
       expect_skip: true
-      expect_cascade: false
-      expected_loops: 0
     - id: C12
       version: "4.21"
       job: '[T-TSC]'
@@ -483,10 +444,7 @@ cases:
         cross_version_match: false
       expected_review:
         decision: approve
-      expect_recall_hit: false
-      expect_skip: false
       expect_cascade: true
-      expected_loops: 0
 source_pack:
     repos:
         - name: linuxptp-daemon-operator

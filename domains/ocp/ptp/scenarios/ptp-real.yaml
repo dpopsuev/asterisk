@@ -4,7 +4,6 @@ metadata:
   name: ptp-real
   description: "Real PTP production data scenario"
 
-name: ptp-real
 description: 'Real PTP Recovery: OCPBUGS-74895 (broken pipe) + OCPBUGS-74904 (config hang), 8 failures, 3 symptoms, 2 RCAs'
 rcas:
     - id: R1

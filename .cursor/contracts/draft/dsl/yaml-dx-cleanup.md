@@ -14,15 +14,44 @@
 
 Audit of 24 YAML files (5,076 lines) in Asterisk revealed:
 
-- **Domain sprawl:** Asterisk is a generic RCA tool, not a PTP tool. But PTP-specific data (heuristics, scenarios, sources, tuning, datasets, docs) is scattered across the repo root alongside generic RCA config. A new developer adding SRIOV or RAN support would have to interleave their domain data with PTP's. Domain data should live under `domains/<name>/` and be loaded on demand.
+- **Domain sprawl:** Asterisk is a generic RCA tool, not a PTP tool. But PTP-specific data (heuristics, scenarios, sources, tuning, datasets) is scattered across the repo root alongside generic RCA config. A new developer adding SRIOV or RAN support would have to interleave their domain data with PTP's. Domain data should live under `domains/<name>/` and be loaded on demand.
 - **Naming collisions:** `schema.yaml` (SQLite DDL) vs `schemas/rca/` (LLM output validation). `vocabulary.yaml` has a `heuristics:` section AND `heuristics.yaml` is a separate file.
 - **Identity stutter:** 19/24 files say their identity 3x — `kind:` envelope, `metadata.name:`, and a bare `name:` field. The envelope was added by dsl-lexicon but the legacy bare fields were left behind.
 - **Vocabulary ceremony:** `M1: {short: M1, long: Defect Type Accuracy}` — the key IS the short code. Triple redundancy. Stage aliases (`F0` AND `F0_RECALL`) are duplicates.
 - **Artifact schema sprawl:** 7 files (120 LOC, 42 LOC ceremony) for what could be 1 file with sections.
 - **Scenario verbosity:** Each case repeats ~40 lines of ground-truth structure with no defaults or inheritance. Recall-hit cases are trivial but spelled out in full.
 - **Inline payloads:** `ptp-real-ingest.yaml` is 2,272 lines — 45% of all YAML — because it inlines full RP JSON responses.
-- **`files:` junk drawer:** The manifest's `files:` section is a typeless catch-all. `vocabulary`, `heuristics`, and `schema` are dumped together with no semantic distinction. A reader can't tell that `schema` is a SQLite DDL without opening the file.
-- **Invisible infrastructure:** The RP connector (source of all test data) is hardcoded in Go, not declared in the manifest. The Knowledge circuit is absent. The persistence layer (SQLite) is mentioned nowhere. The manifest should be the single "what does this tool do?" document.
+- ~~**`files:` junk drawer**~~ Partially resolved — connectors are now declared. `files:` still holds vocabulary, heuristics, and schema. Kill it.
+- ~~**Invisible infrastructure**~~ **Resolved.** Declarative binding (schematics + connectors) landed. The manifest now declares ReportPortal, Knowledge, GitHub, and Docs connectors. `origami fold` generates a unified wired binary (`bin/asterisk`) with all connector wiring from YAML — zero Go in Asterisk.
+
+### What the binding work changed
+
+The declarative binding resolution (schematics/connectors + resolver + codegen) was implemented as a precursor. This obsoletes some Phase 6 tasks and creates new cohesion opportunities:
+
+| Contract task | Status | Notes |
+|--------------|--------|-------|
+| P6.3 (connectors in manifest) | **done** | `connectors:` with `path:` + component.yaml resolution |
+| P6.6 (codegen wires connectors) | **done** | `GenerateWiredBinary` → `bin/asterisk` with all imports + factory calls |
+| P6.1 (vocabulary field) | pending | Still in `files:` |
+| P6.2 (store section) | pending | Still in `files:` |
+| P6.4 (kill files:) | pending | Three entries remain |
+| P6.5 (rewrite manifest) | partially done | Schematics + connectors added; `files:` still exists |
+
+**New state of `origami.yaml`:** 83 lines — identity (3), schematics (10), connectors (7), domain_serve assets (63). The asset section is now the dominant cost. P1 (domains) will shrink it by ~20 lines; P6 remainder (kill files:) removes 4 more.
+
+### Cohesion audit
+
+With declarative binding in place, five cohesion improvements emerge:
+
+1. **Unified binary output.** `origami fold` now produces `bin/asterisk` (unified server: domain data + circuit MCP + connectors) instead of `bin/asterisk-domain-serve` (static files only). The justfile still references the old `domain_serve` variable and build comments. The Dockerfile's `container-run` recipe references `asterisk serve` which doesn't exist on the unified binary yet — the binary just calls `http.ListenAndServe` in `main()`. These need alignment.
+
+2. **Manifest sections map to architecture.** The manifest now has clean layers: identity → architecture (schematics/connectors) → data (assets). But `files:` breaks this by mixing infrastructure config (vocabulary, db-schema) with data assets. Killing `files:` completes the layering.
+
+3. **Asset section shrinks after domains.** With P1 (domain directories), `scenarios:`, `sources:`, and `files.heuristics` move to convention-based discovery. The `domain_serve.assets` section drops from 63 lines to ~40 — only generic RCA config remains (circuits, prompts, schemas, scorecards, reports).
+
+4. **Binding validates what fold embeds.** The resolver already loads component.yaml and checks socket satisfaction. Extending fold to validate asset paths (P5.1) now has a stronger foundation — the resolver provides the full dependency graph.
+
+5. **Justfile + container recipes are stale.** The `domain_serve` variable, build comment ("Build domain-serve binary"), and container `serve` command no longer match the unified binary. A quick housekeeping pass aligns them.
 
 Related conversations: [YAML audit](6a3c6eaa-c863-42d3-8b75-2fb408a60299).
 
@@ -72,7 +101,13 @@ Related conversations: [YAML audit](6a3c6eaa-c863-42d3-8b75-2fb408a60299).
 
 ```mermaid
 flowchart TD
-  subgraph root ["Repo root (flat, everything mixed)"]
+  subgraph root ["Repo root"]
+    subgraph manifest ["origami.yaml (83 lines)"]
+      m_schematics["schematics: rca, knowledge"]
+      m_connectors["connectors: rp, github, docs"]
+      m_assets["domain_serve.assets: 63 lines"]
+      m_files["files: vocabulary, heuristics, schema"]
+    end
     schema["schema.yaml (210L)"]
     schemas["schemas/rca/ (7 files, 120L)"]
     vocab["vocabulary.yaml (87L)"]
@@ -82,10 +117,12 @@ flowchart TD
     rest["circuits/, prompts/, reports/, scorecards/"]
   end
 
+  m_schematics -->|"resolved by fold"| rest
+  m_files -.->|"junk drawer"| vocab
+  m_files -.->|"junk drawer"| heur
+  m_files -.->|"junk drawer"| schema
   schema -.->|"name collision"| schemas
-  vocab -.->|"heuristics: section"| heur
   heur -.->|"PTP-specific at root"| scen
-  scen -.->|"PTP-specific at root"| sources
 ```
 
 ### Desired architecture
@@ -93,12 +130,14 @@ flowchart TD
 ```mermaid
 flowchart TD
   subgraph root ["Repo root (generic RCA only)"]
-    subgraph manifest ["origami.yaml"]
-      m_circuits["circuits:"]
+    subgraph manifest ["origami.yaml (~40 lines)"]
+      m_identity["name: asterisk, version: 1.0"]
+      m_schematics["schematics: rca, knowledge"]
+      m_connectors["connectors: rp, github, docs"]
       m_store["store: { engine: sqlite, schema: db-schema.yaml }"]
-      m_connectors["connectors: { reportportal: ... }"]
       m_vocab["vocabulary: vocabulary.yaml"]
       m_domains["domains: [ocp/ptp]"]
+      m_assets["domain_serve.assets: circuits, prompts,\nllm-output-schemas, scorecards, reports"]
     end
     generic["circuits/ prompts/ llm-output-schemas/\nscorecards/ reports/"]
     dbschema["db-schema.yaml"]
@@ -126,6 +165,7 @@ flowchart TD
   end
 
   manifest -->|"domains: [ocp/ptp]"| ptp
+  manifest -->|"schematics: resolved by fold"| generic
   scen2 -->|"local_path:"| ds2
   manifest -.->|"validated by"| enforcement
 ```
@@ -136,7 +176,10 @@ Code only — no FSC artifacts. The changes are syntactic cleanup.
 
 ## Execution strategy
 
-Eight fixes + enforcement + manifest clarity in six phases, each independently shippable:
+Six phases, each independently shippable. Phase 6 is partially complete (binding resolution landed).
+
+**Phase 0 — Housekeeping (Asterisk)**
+Quick alignment pass. Update justfile to reference unified binary (`bin/asterisk`), fix build comment and stale `domain_serve` variable. Container recipes reference the unified binary. No Origami changes.
 
 **Phase 1 — Domain directories (Origami + Asterisk)**
 The structural move. Origami: fold/manifest accepts `domains:` list, scans each domain directory for scenarios/heuristics/sources/datasets/tuning by convention — no manual path enumeration. Asterisk: move PTP-specific files to `domains/ocp/ptp/`, update `origami.yaml` to declare `domains: [ocp/ptp]`.
@@ -153,8 +196,8 @@ Origami: scenario loader resolves `local_path:` references for inline payloads. 
 **Phase 5 — Enforcement (Origami lint + fold)**
 Lint rules and fold validations that make the domain convention enforceable, not just a suggestion. New domain can't ship with broken structure.
 
-**Phase 6 — Manifest clarity (Origami + Asterisk)**
-The manifest should answer "what are all the moving parts?" at a glance. Kill the `files:` junk drawer — each item gets a typed section. Add `store:` (engine + schema) so the persistence layer is visible. Add `connectors:` so external dependencies (RP) are declared, not hidden in Go code. Vocabulary becomes a first-class manifest field. The manifest becomes the single source of truth for the tool's architecture.
+**Phase 6 — Manifest clarity (Origami + Asterisk)** — partially complete
+Kill the remaining `files:` junk drawer. Vocabulary and store get typed manifest fields. The manifest becomes the single "what does this tool do?" document. Connector binding resolution is already done (schematics/connectors/resolver/codegen).
 
 ## Coverage matrix
 
@@ -169,6 +212,12 @@ The manifest should answer "what are all the moving parts?" at a glance. Kill th
 
 ## Tasks
 
+### Phase 0 — Housekeeping
+
+- [ ] P0.1 — Asterisk justfile: rename `domain_serve` variable to `binary := bin_dir / "asterisk"`. Update build comment to "Build unified binary via origami fold".
+- [ ] P0.2 — Asterisk justfile: container-run recipe uses `bin/asterisk` as entrypoint (the unified binary listens on a single port now — no separate serve subcommand).
+- [ ] P0.3 — Validate: `just build` produces `bin/asterisk`.
+
 ### Phase 1 — Domain directories
 
 - [ ] P1.1 — Origami: fold/manifest accepts `Domains []string` (`yaml:"domains,omitempty"`). For each domain path, fold scans `domains/<path>/` for known subdirs (`scenarios/`, `sources/`, `heuristics.yaml`, `datasets/`, `tuning/`) and auto-merges discovered files into `AssetMap`. No manual path enumeration needed.
@@ -177,15 +226,14 @@ The manifest should answer "what are all the moving parts?" at a glance. Kill th
   - `scenarios/*.yaml` → `domains/ocp/ptp/scenarios/`
   - `sources/*.yaml` → `domains/ocp/ptp/sources/`
   - `tuning/*.yaml` → `domains/ocp/ptp/tuning/`
-  - ~~`docs/ptp/`~~ — nuked (derivative of knowledge circuit, not source data)
-- [ ] P1.3 — Asterisk: update `origami.yaml` — add `domains: [ocp/ptp]`, remove explicit per-file references for moved files. Manifest shrinks from ~60 lines to ~20.
+- [ ] P1.3 — Asterisk: update `origami.yaml` — add `domains: [ocp/ptp]`, remove explicit per-file references for moved files (scenarios, sources, heuristics from assets section).
 - [ ] P1.4 — Validate: `just build`, `origami lint --profile strict`.
 
 ### Phase 2 — Naming + ceremony
 
 - [ ] P2.1 — Rename `schema.yaml` → `db-schema.yaml`. Update `origami.yaml` ref.
 - [ ] P2.2 — Rename `schemas/` → `llm-output-schemas/`. Collapse 7 individual files into `llm-output-schemas/rca.yaml`. Update `origami.yaml` and circuit `output_schema:` paths.
-- [ ] P2.3 — Kill bare `name:` and `description:` from all files that have `metadata:` envelope (~19 files). The envelope is the identity.
+- [ ] P2.3 — Kill bare `name:` and `description:` from all files that have `metadata:` envelope (~19 files). The envelope is the sole identity.
 - [ ] P2.4 — Vocabulary shorthand: `M1: Defect Type Accuracy` instead of `M1: {short: M1, long: ...}`. Verify/add Origami loader support (trivial: `if string → {short: key, long: value}`).
 - [ ] P2.5 — Kill stage aliases (`F0_RECALL` etc.) — derive at load time from `F0` + node name.
 - [ ] P2.6 — Rename vocabulary `heuristics:` section → `decisions:`. Update any Go code that reads this section name.
@@ -214,14 +262,14 @@ The manifest should answer "what are all the moving parts?" at a glance. Kill th
 - [ ] P5.6 — Origami fold: validate manifest `domains:` entries have no duplicate or overlapping paths.
 - [ ] P5.7 — Validate (green): all builds, tests, lints pass.
 
-### Phase 6 — Manifest clarity
+### Phase 6 — Manifest clarity (partially complete)
 
+- [x] P6.3 — ~~Origami: add `Connectors map[string]ConnectorConfig` to manifest.~~ **Done.** Implemented as `Connectors map[string]ConnectorRef` with `path:` pointing to component.yaml. Runtime config (API keys, URLs) stays in connector factories via env vars — cleaner than putting secrets in the manifest.
+- [x] P6.6 — ~~Origami: update codegen template to wire connectors from manifest config.~~ **Done.** `GenerateWiredBinary()` resolves bindings, generates Go import + factory calls, and compiles `bin/asterisk` — a unified server binary with domain data + circuit MCP + all connectors wired from YAML.
 - [ ] P6.1 — Origami: add `Vocabulary string` field to `AssetMap` (`yaml:"vocabulary,omitempty"`). Replaces `files.vocabulary`. Vocabulary is a first-class concept, not a misc file.
 - [ ] P6.2 — Origami: add `Store` section to `DomainServeConfig` (`yaml:"store,omitempty"`) with `Engine string` and `Schema string`. Replaces `files.schema`. Makes the persistence layer visible in the manifest.
-- [ ] P6.3 — Origami: add `Connectors map[string]ConnectorConfig` to manifest (`yaml:"connectors,omitempty"`). Each connector declares `type:`, `api_key_path:` (with env var fallback), and other connection details. Replaces hardcoded Go wiring.
-- [ ] P6.4 — Origami: remove `Files map[string]string` from `AssetMap`. All former `files:` entries now have typed homes. Fail the build if `files:` is present (migration error).
-- [ ] P6.5 — Asterisk: rewrite `origami.yaml` — move `vocabulary` to top-level field, `schema` under `store:`, add `connectors:` section for RP. Remove `files:` block entirely.
-- [ ] P6.6 — Origami: update codegen template to wire connectors from manifest config into the generated domain-serve binary (replaces manual Go injection in `mcpconfig/server.go`).
+- [ ] P6.4 — Origami: remove `Files map[string]string` from `AssetMap`. All former `files:` entries now have typed homes (vocabulary: field, store: section, heuristics: domain convention). Fail the build if `files:` is present (migration error).
+- [ ] P6.5 — Asterisk: rewrite `origami.yaml` — move `vocabulary` to top-level field, `schema` under `store:`, remove `files:` block entirely. The manifest should have: identity → architecture (schematics/connectors) → infrastructure (store, vocabulary) → domains → assets.
 - [ ] P6.7 — Validate (green): `just build`, `origami lint --profile strict`, all tests pass.
 - [ ] P6.8 — Tune (blue): refactor for quality, no behavior changes.
 - [ ] P6.9 — Validate (green): all tests still pass after tuning.
@@ -240,6 +288,12 @@ When I read the domains: list
 Then it contains ["ocp/ptp"]
   And fold auto-discovers scenarios, sources, heuristics from domains/ocp/ptp/ by convention
   And no per-file path enumeration is needed for domain files
+
+Given origami.yaml
+When I read the schematics: and connectors: sections
+Then I see rca + knowledge schematics with explicit bindings
+  And I see reportportal, github, docs connectors with component.yaml paths
+  And origami fold generates a unified binary with all wiring from YAML
 
 Given schema.yaml renamed to db-schema.yaml
 When I read the filename
@@ -290,34 +344,43 @@ Then origami lint emits B14 warning "domain ocp/ptp has scenarios but no source 
 
 Given origami.yaml
 When I read the manifest top to bottom
-Then I see store: with engine and schema path
-  And I see connectors: with reportportal config
+Then I see schematics: with rca and knowledge bindings
+  And I see connectors: with reportportal, github, docs
+  And I see store: with engine and schema path
   And I see vocabulary: pointing to vocabulary.yaml
   And no files: section exists
-  And a new reader knows the tool uses SQLite, talks to RP, and has a vocabulary — without opening any other file
+  And a new reader knows the full architecture without opening any other file
 
 Given origami.yaml with a files: section
 When origami fold runs
-Then the build fails with "files: is deprecated — use vocabulary:, store:, or connectors:"
+Then the build fails with "files: is deprecated — use vocabulary:, store:, or domain convention"
+
+Given just build
+When the build completes
+Then bin/asterisk exists (unified binary, not bin/asterisk-domain-serve)
+  And the binary serves domain data on /domain/ and circuit MCP on /mcp
 ```
 
 ## Security assessment
 
-No trust boundaries affected. All changes are syntactic — no new I/O, credentials, or network calls.
+No trust boundaries affected. All changes are syntactic — no new I/O, credentials, or network calls. Connector runtime config (API keys, URLs) stays in env vars at the factory level, not in the manifest.
 
 ## Relationship to other contracts
 
 | Contract | Relationship |
 |----------|-------------|
 | `dsl-lexicon` (complete) | Lexicon added the envelopes. This contract removes the legacy identity fields that lexicon left behind. |
+| `dsl-wiring` (complete) | Wiring added `handler_type`/`handler` on nodes and `output_schema`. The binding resolution (schematics/connectors/resolver/codegen) was implemented as a precursor to this contract's Phase 6. |
 | `circuit-dsl-shorthand` (draft) | No overlap. Shorthand is circuit syntax; this is data file cleanup. |
 
 ## Notes
+
+2026-03-08 — Binding resolution landed (P6.3 + P6.6 done). Declarative schematics + connectors in origami.yaml → resolver matches sockets to factories via component.yaml → codegen generates unified wired binary. `bin/asterisk` replaces `bin/asterisk-domain-serve`. Added Phase 0 (housekeeping) for justfile/container alignment. Updated context, desired architecture diagram, and acceptance criteria to reflect new state. Cohesion audit identified 5 improvements: unified output, manifest layering, asset shrinkage, validation foundation, stale recipes.
 
 2026-03-08 — Added Phase 6 (manifest clarity). Kill `files:` junk drawer — vocabulary gets its own field, schema goes under `store:` with engine declaration, RP connector declared under `connectors:`. The manifest becomes the single "what are all the moving parts?" document. `docs/ptp/` nuked — derivative of knowledge circuit.
 
 2026-03-08 — Added Phase 5 (enforcement). Fold validates `output_schema:` paths exist at build time. New lint rules: B12 (declared domain missing), B13 (orphan domain files), B14 (incomplete domain structure). B11 updated for `domains/` prefix. Convention without enforcement is just a suggestion.
 
-2026-03-08 — Added domain directories (Phase 1). Asterisk is a generic RCA tool, not PTP-specific. PTP data (heuristics, scenarios, sources, tuning, datasets, docs) belongs under `domains/ocp/ptp/`. New developers extend via `domains/<name>/`. Phases renumbered: domain move → naming → scenario defaults → payload externalization → enforcement.
+2026-03-08 — Added domain directories (Phase 1). Asterisk is a generic RCA tool, not PTP-specific. PTP data (heuristics, scenarios, sources, tuning, datasets) belongs under `domains/ocp/ptp/`. New developers extend via `domains/<name>/`. Phases renumbered: domain move → naming → scenario defaults → payload externalization → enforcement.
 
 2026-03-08 — Contract drafted from full YAML audit. 24 files, 5,076 lines. Key insight: 70% of YAML is scenarios, 45% is one file (`ptp-real-ingest`). The ceremony problem is real but the biggest win is scenario defaults + payload externalization.

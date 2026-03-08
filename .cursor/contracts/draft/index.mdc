@@ -1,7 +1,7 @@
 # Index
 
 ## Directories
-- `dsl/` — DSL & YAML contracts: shared grammar, manifest wiring, circuit syntax, playbook docs (4 contracts).
+- `dsl/` — DSL & YAML contracts: circuit syntax, data file cleanup, playbook docs (3 contracts).
 
 ## Files
 - `kabuki-demo-revamp.md` — Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections.

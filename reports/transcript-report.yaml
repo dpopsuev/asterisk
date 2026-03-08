@@ -4,7 +4,6 @@ metadata:
   name: transcript-report
   description: "Session transcript report template"
 
-name: transcript-report
 format: markdown
 sections:
   - type: text

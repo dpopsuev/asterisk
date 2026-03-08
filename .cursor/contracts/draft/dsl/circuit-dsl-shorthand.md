@@ -94,7 +94,7 @@ Three phases, each independently shippable:
 - [ ] Add `rawCircuitDef` / `rawNodeDef` types with inline `edges:` field
 - [ ] Implement `rawCircuitDef.normalize()` → `CircuitDef` (expand `from:` from parent node, auto-generate `id:`)
 - [ ] Support `edges: [target]` flow-style for unconditional single-target edges
-- [ ] When `name == family`, allow omitting `family:` (implicit from name). **Depends on** `dsl-wiring` W6 (family/transformer unification) -- the field name may change.
+- [ ] When `name == family`, allow omitting `family:` (implicit from name). (`dsl-wiring` W6 complete — no blocker.)
 - [ ] Tests: verbose/compact equivalence, edge cases (no edges, single edge, mixed forms)
 - [ ] Existing circuit YAML tests pass unchanged
 
@@ -109,8 +109,8 @@ Three phases, each independently shippable:
 
 ### Phase 3 — Consumer migration
 
-- [ ] Rewrite `internal/circuits/rca.yaml` in compact form
-- [ ] Rewrite `internal/circuits/calibration.yaml` in compact form
+- [ ] Rewrite `circuits/rca.yaml` in compact form
+- [ ] Rewrite `circuits/calibration.yaml` in compact form
 - [ ] Add onboarding comments to rewritten files
 - [ ] Validate (green) — `calibrate-stub` 21/21, `test-race`, `origami lint --profile strict`
 - [ ] Tune (blue) — refactor for quality. No behavior changes.
@@ -149,11 +149,14 @@ No trust boundaries affected. Parsing changes are input validation only; no new 
 
 | Contract | Relationship |
 |----------|-------------|
-| `dsl-wiring` (Asterisk) | Phase 1 task "implicit family" depends on W6 (family/transformer unification). Execute W6 first. |
-| `manifest-as-map` (Origami) | No direct dependency. Shorthand operates on circuit YAML syntax, not manifest schema. |
-| `dsl-lexicon` (Asterisk) | Complementary. Lexicon owns `kind:` envelope; shorthand owns compact edge syntax. |
+| `dsl-wiring` (complete) | W6 (family/transformer unification) resolved. No blocker for implicit-family logic. |
+| `manifest-as-map` (complete) | `internal/` wrapper eliminated. Circuit files now at `circuits/rca.yaml` and `circuits/calibration.yaml`. |
+| `dsl-lexicon` (complete) | Complementary. Lexicon owns `kind:` envelope; shorthand owns compact edge syntax. |
+| `yaml-dx-cleanup` (draft) | No content overlap. **Sequencing**: dx-cleanup P2.2 renames `schemas/` → `llm-output-schemas/`, changing `output_schema:` paths in circuit YAMLs. Run dx-cleanup P2 before shorthand P3 to rewrite circuit files only once. |
 
 ## Notes
+
+2026-03-08 — Housekeeping: fixed stale paths (`internal/circuits/` → `circuits/` — `manifest-as-map` eliminated wrapper). Resolved dsl-wiring W6 dependency (complete). Added yaml-dx-cleanup sequencing note (P2 renames schemas before P3 rewrites circuits).
 
 2026-03-07 — Added dependency on dsl-wiring W6 for implicit-family logic. Added relationship table.
 

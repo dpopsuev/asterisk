@@ -4,7 +4,7 @@
 set dotenv-load := false
 
 bin_dir          := "bin"
-domain_serve     := bin_dir / "asterisk-domain-serve"
+binary           := bin_dir / "asterisk"
 state_dir    := env("XDG_STATE_HOME", env("HOME", "") / ".local/state") / "asterisk"
 db_path      := state_dir / "asterisk.db"
 calib_dir    := state_dir / "calibrate"
@@ -19,7 +19,7 @@ default:
 
 # ─── Build ────────────────────────────────────────────────
 
-# Build domain-serve binary via origami fold
+# Build unified binary via origami fold
 build:
     origami fold
 
@@ -58,7 +58,7 @@ container-build:
 container-run:
     docker run -d --name asterisk-server \
         -p 9100:9100 -p 3001:3001 \
-        asterisk serve --transport http --kami-port 3001
+        {{ binary }} --transport http --kami-port 3001
 
 # Stop and remove container
 container-stop:

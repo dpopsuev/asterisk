@@ -4,7 +4,6 @@ metadata:
   name: daemon-mock
   description: "Daemon process management: broken pipe and config hang"
 
-name: daemon-mock
 description: 'Daemon Process Management: 2 RCAs (broken pipe + config hang), 3 symptoms, 8 cases'
 rcas:
     - id: R1

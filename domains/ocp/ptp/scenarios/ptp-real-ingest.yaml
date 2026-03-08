@@ -4,7 +4,6 @@ metadata:
   name: ptp-real-ingest
   description: "Real PTP data with inline RP payloads for ingest testing"
 
-name: ptp-real-ingest
 description: 'Real PTP failures: 18 verified + 12 candidate cases from CI data (Jan 2025 - Feb 2026)'
 rcas:
     - id: R1

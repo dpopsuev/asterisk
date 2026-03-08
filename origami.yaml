@@ -1,19 +1,55 @@
 # Asterisk Application Manifest
 #
-# `origami fold` reads this file and generates the domain-serve binary
-# (bin/asterisk-domain-serve), which embeds declared assets and serves
-# domain data over MCP via domainserve.New().
+# `origami fold` reads this file and generates a unified binary (bin/asterisk)
+# that embeds domain assets, wires connectors to schematics via declarative
+# bindings, and serves both domain data and the RCA circuit over MCP.
 
 name: asterisk
 description: Evidence-based RCA for ReportPortal test failures
 version: "1.0"
 
+# --- Declarative binding: schematics + connectors ---
+
+schematics:
+  rca:
+    path: schematics/rca
+    bindings:
+      source:    reportportal
+      knowledge: knowledge
+  knowledge:
+    path: schematics/knowledge
+    bindings:
+      git:  github
+      docs: docs
+
+connectors:
+  reportportal:
+    path: connectors/rp
+  github:
+    path: connectors/github
+  docs:
+    path: connectors/docs
+
+# --- Domains: operator-specific data auto-discovered by fold ---
+
+domains: [ocp/ptp]
+
+# --- Domain data: embedded assets served over MCP ---
+
 domain_serve:
   port: 9300
+
+  store:
+    engine: sqlite
+    schema: db-schema.yaml
+
   assets:
+    vocabulary: vocabulary.yaml
+
     circuits:
       rca: circuits/rca.yaml
       calibration: circuits/calibration.yaml
+      knowledge: circuits/knowledge.yaml
 
     prompts:
       recall:      prompts/recall/judge-similarity.md
@@ -26,19 +62,7 @@ domain_serve:
       report:      prompts/report/regression-table.md
 
     schemas:
-      recall:      schemas/rca/F0_RECALL.yaml
-      triage:      schemas/rca/F1_TRIAGE.yaml
-      resolve:     schemas/rca/F2_RESOLVE.yaml
-      investigate: schemas/rca/F3_INVESTIGATE.yaml
-      correlate:   schemas/rca/F4_CORRELATE.yaml
-      review:      schemas/rca/F5_REVIEW.yaml
-      report:      schemas/rca/F6_REPORT.yaml
-
-    scenarios:
-      ptp-mock:         scenarios/ptp-mock.yaml
-      ptp-real:         scenarios/ptp-real.yaml
-      ptp-real-ingest:  scenarios/ptp-real-ingest.yaml
-      daemon-mock:      scenarios/daemon-mock.yaml
+      rca: llm-output-schemas/rca.yaml
 
     scorecards:
       rca: scorecards/rca.yaml
@@ -47,12 +71,3 @@ domain_serve:
       rca:         reports/rca-report.yaml
       calibration: reports/calibration-report.yaml
       transcript:  reports/transcript-report.yaml
-
-    sources:
-      ptp: sources/ptp.yaml
-      ocp: sources/ocp-platform.yaml
-
-    files:
-      vocabulary:   vocabulary.yaml
-      heuristics:   heuristics.yaml
-      schema:       schema.yaml
