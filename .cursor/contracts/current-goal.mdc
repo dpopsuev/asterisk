@@ -34,12 +34,10 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 | # | Contract | Dir | Tier | Scope |
 |---|----------|-----|------|-------|
-| 1 | `dsl-wiring` | draft/ | gate | Component/binding resolution, prompt-on-node, scorecard-on-circuit, naming conventions (11 open gaps). Cross-repo. Depends on Origami `manifest-as-map`. |
-| 2 | `circuit-dsl-shorthand` | draft/ | quick-win | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. |
-| 3 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami). |
-| 4 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
-| 5 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
-| 6 | `dsl-lexicon` | draft/ | gate | Standardized DSL lexicon: `kind:`/`version:` envelope on all YAML, `references:` FK, artifact schema dedup, vocabulary enums, heuristics naming, dataset externalization. Complements dsl-wiring + circuit-dsl-shorthand. |
+| 1 | `circuit-dsl-shorthand` | draft/ | quick-win | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. Unblocked by dsl-wiring W6. |
+| 2 | `yaml-playbook-docs` | draft/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami). |
+| 3 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
+| 4 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
 
 ### Execution order
 
@@ -49,11 +47,11 @@ origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
         ├─► design-principle-deterministic  ✓ COMPLETE (moved to Origami)
         ├─► origami-autodoc                 ✓ COMPLETE (moved to Origami, all 7 phases)
         └─► housekeeping                    ✓ COMPLETE
-              └─► dsl-lexicon                ← GATE (envelope, FK syntax, vocabulary, dedup, heuristics naming, dataset externalization)
-                    └─► dsl-wiring (+ Origami manifest-as-map)  ← GATE (11 gaps: bindings, prompt-on-node, naming)
-                          └─► circuit-dsl-shorthand   ← NEXT (depends on dsl-wiring W6)
-                    └─► yaml-playbook-docs      ← NEXT (extends autodoc skeleton)
-                          └─► kabuki-demo-revamp  ← NEXT-MILESTONE
+              ├─► dsl-lexicon                ✓ COMPLETE (envelope, FK syntax, vocabulary, dedup, heuristics naming, dataset externalization)
+              ├─► dsl-wiring                 ✓ COMPLETE (handler unification, output_schema, terminal nodes, API key path)
+              │     └─► circuit-dsl-shorthand   ← NEXT (unblocked — W6 done)
+              ├─► yaml-playbook-docs           ← NEXT (extends autodoc skeleton)
+              │     └─► kabuki-demo-revamp       ← NEXT-MILESTONE
               └─► prompt-first-class-consumer  ✓ COMPLETE (prompts/ at root, manifest.yaml, embed)
 ```
 
@@ -110,6 +108,8 @@ flowchart TB
 | `scorer-pattern` | -700 LOC (21 Go scorers → 10 batch patterns in Origami YAML) | dsl-migration |
 | `rca-pure-dsl` | -942 net LOC (5.6K→5.3K); structural transformation to framework primitives | dsl-migration |
 | `origami-fold` | -11,650 LOC (all Go moved to Origami `modules/rca/`; `origami fold` codegen) | dsl-migration |
+| `dsl-lexicon` | Envelope, FK syntax, vocabulary enums, heuristics naming, dataset externalization | dsl-migration |
+| `dsl-wiring` | Handler unification, `output_schema:` on NodeDef, terminal node standardization | dsl-migration |
 | `housekeeping` | Mechanical cleanup: .gitignore, justfile, skills, rules, dev scripts updated for YAML-only era | housekeeping |
 
 All prior goals achieved. Bundles 1-4 (Principled Metrics, Rich Names, Smart Routing, Demo Polish) complete. Full history: `notes/goal-history-poc.md`

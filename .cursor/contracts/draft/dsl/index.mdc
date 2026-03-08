@@ -1,27 +1,20 @@
 # draft/dsl/ Index
 
-DSL & YAML contracts, shared grammar, manifest wiring, circuit syntax, and playbook documentation.
+DSL & YAML contracts: circuit syntax and playbook documentation.
 
 ## Execution order
 
 ```
-manifest-as-map (Origami)     dsl-lexicon (Asterisk)
-        │                           │
-        ▼                           ▼
-   dsl-wiring (Asterisk, depends on manifest-as-map)
-        │
-        ├──▶ circuit-dsl-shorthand (depends on dsl-wiring W6)
-        └──▶ yaml-playbook-docs (parallel, no dependency)
+dsl-lexicon              ✓ COMPLETE (moved to completed/dsl-migration/)
+dsl-wiring               ✓ COMPLETE (moved to completed/dsl-migration/)
+  ├──▶ circuit-dsl-shorthand  ← UNBLOCKED (W6 done)
+  └──▶ yaml-playbook-docs     ← UNBLOCKED (DSL shape stable)
 ```
 
-- **manifest-as-map** (Origami `draft/`) provides the `assets:` manifest schema. Must land before dsl-wiring Phase 1.
-- **dsl-lexicon** and **manifest-as-map** can run in parallel (no mutual dependency). dsl-lexicon P3.1 deferred until manifest-as-map P4 settles directory structure.
-- **dsl-wiring** depends on manifest-as-map for `assets:` schema. Owns component/binding resolution, prompt-on-node, naming conventions.
-- **circuit-dsl-shorthand** depends on dsl-wiring W6 (family/transformer unification) for implicit-family logic.
-- **yaml-playbook-docs** has no code dependency; can run any time after the DSL shape stabilizes.
+- **circuit-dsl-shorthand** — unblocked now that dsl-wiring W6 (handler unification) is complete.
+- **yaml-playbook-docs** — no code dependency; can run any time.
 
 ## Files
-- `dsl-lexicon.md` — Standardized DSL lexicon: `kind:`/`version:` envelope on all YAML files, `references:` FK syntax, artifact schema dedup, vocabulary enums, heuristics naming, dataset externalization. **Gate.**
-- `dsl-wiring.md` — Component/binding resolution, prompt-on-node, scorecard-on-circuit, naming conventions (11 open gaps). Cross-repo (Origami + Asterisk). **Gate.** (Renamed from `yaml-cohesion`.)
+- `dsl-lexicon.md` — Standardized DSL lexicon. **Complete** — kept here as reference; canonical copy in `completed/dsl-migration/`.
 - `circuit-dsl-shorthand.md` — Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. **Quick-win.**
 - `yaml-playbook-docs.md` — Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. **Quick-win.**
