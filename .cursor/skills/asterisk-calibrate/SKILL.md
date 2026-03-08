@@ -12,7 +12,7 @@ description: >
 # Asterisk Calibrate (Papercup v2)
 
 Run wet (LLM-driven) calibration against a ground-truth scenario using the
-Asterisk MCP server running in a container. The parent agent is a
+Origami gateway stack running in containers. The parent agent is a
 **supervisor** — it never calls `get_next_step` or `submit_step`. Workers
 handle that directly.
 
@@ -49,12 +49,12 @@ curl -sf http://localhost:9000/healthz && echo "gateway OK"
 Verify `.cursor/mcp.json` has the gateway URL entry:
 
 ```json
-{ "mcpServers": { "asterisk": { "url": "http://localhost:9000/mcp" } } }
+{ "mcpServers": { "origami-gateway": { "url": "http://localhost:9000/mcp" } } }
 ```
 
 ### 3. Verify MCP tools are available
 
-Call any MCP tool (e.g. `project-0-asterisk-asterisk-get_signals`) to confirm
+Call any MCP tool (e.g. `project-0-asterisk-origami-gateway-get_signals`) to confirm
 connectivity. If the gateway is unreachable, ask the user to run
 `just deploy-restart` or check logs with `just deploy-logs`.
 
@@ -77,7 +77,7 @@ Parse `--parallel=N` if present. Default: `4`.
 Call the MCP tool:
 
 ```
-project-0-asterisk-asterisk-start_circuit(
+project-0-asterisk-origami-gateway-start_circuit(
   parallel: 4,
   force: true,
   extra: {
@@ -117,13 +117,13 @@ You MUST use the following prefixed tool names for ALL MCP calls.
 Do NOT use bare tool names. Do NOT use tools from the
 origami-ouroboros-metacalibration server.
 
-- project-0-asterisk-asterisk-emit_signal
-- project-0-asterisk-asterisk-get_next_step
-- project-0-asterisk-asterisk-submit_step
-- project-0-asterisk-asterisk-get_signals
+- project-0-asterisk-origami-gateway-emit_signal
+- project-0-asterisk-origami-gateway-get_next_step
+- project-0-asterisk-origami-gateway-submit_step
+- project-0-asterisk-origami-gateway-get_signals
 
 Wherever the instructions below say "get_next_step", use
-"project-0-asterisk-asterisk-get_next_step", and so on for all tool names.
+"project-0-asterisk-origami-gateway-get_next_step", and so on for all tool names.
 Do NOT call start_circuit — that is the supervisor's job.
 ```
 
@@ -153,7 +153,7 @@ Workers will:
 While workers are running, periodically poll signals for observability:
 
 ```
-project-0-asterisk-asterisk-get_signals(session_id, since: last_index)
+project-0-asterisk-origami-gateway-get_signals(session_id, since: last_index)
 ```
 
 Look for:
@@ -169,7 +169,7 @@ for more than 30 seconds.
 ### Worker replacement
 
 If a worker Task fails or is aborted:
-1. Log the failure via `project-0-asterisk-asterisk-emit_signal(event="error", agent="main")`
+1. Log the failure via `project-0-asterisk-origami-gateway-emit_signal(event="error", agent="main")`
 2. Launch a replacement Task with the same amended `worker_prompt`
 3. The replacement picks up from wherever the circuit is — no state to recover
 
@@ -183,7 +183,7 @@ Once all workers exit (all `worker_stopped` signals received), or the circuit
 signals `session_done`, call:
 
 ```
-project-0-asterisk-asterisk-get_report(session_id)
+project-0-asterisk-origami-gateway-get_report(session_id)
 ```
 
 This returns:
@@ -244,7 +244,7 @@ For complete field-level schemas, see [artifact-schemas.md](../asterisk-analyze/
 
 If a worker Task fails or is aborted:
 
-1. Emit error signal: `project-0-asterisk-asterisk-emit_signal(session_id, "error", "main", meta={"error": "description"})`
+1. Emit error signal: `project-0-asterisk-origami-gateway-emit_signal(session_id, "error", "main", meta={"error": "description"})`
 2. Launch a replacement worker with the same amended `worker_prompt`
 3. Continue monitoring — the circuit is resilient to individual worker loss
 
@@ -281,7 +281,7 @@ When triggered with no args, "help", or unrecognized input:
 > 2. **`origami` CLI** installed
 > 3. **`just`** task runner installed
 > 4. **Compose stack running** — `just deploy` (builds images + starts stack)
-> 5. **MCP config** — `asterisk` entry in `.cursor/mcp.json` pointing to `http://localhost:9000/mcp`
+> 5. **MCP config** — `origami-gateway` entry in `.cursor/mcp.json` pointing to `http://localhost:9000/mcp`
 >
 > **What it does:**
 >
