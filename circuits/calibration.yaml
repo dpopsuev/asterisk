@@ -1,3 +1,9 @@
+kind: circuit
+version: v1
+metadata:
+  name: calibration
+  description: "RCA quality measurement via ground-truth comparison"
+
 # Calibration Circuit
 #
 # Measures RCA quality by running the analysis pipeline against a

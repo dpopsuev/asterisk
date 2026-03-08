@@ -1,3 +1,9 @@
+kind: circuit
+version: v1
+metadata:
+  name: rca
+  description: "Core RCA investigation pipeline"
+
 # RCA Investigation Circuit
 #
 # The core analysis pipeline. Each test failure (case) walks this graph

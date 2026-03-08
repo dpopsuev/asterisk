@@ -1,3 +1,9 @@
+kind: heuristic-rules
+version: v1
+metadata:
+  name: ptp-heuristics
+  description: "PTP-domain deterministic classification rules"
+
 # PTP-domain heuristic rules for the basic (zero-LLM) analysis mode.
 # Rules are evaluated top-to-bottom; first match wins.
 

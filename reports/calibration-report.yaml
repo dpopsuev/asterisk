@@ -1,3 +1,9 @@
+kind: report-template
+version: v1
+metadata:
+  name: calibration-report
+  description: "Calibration metrics report template"
+
 name: calibration-report
 format: terminal
 sections:

@@ -1,7 +1,7 @@
 # Contract — dsl-lexicon
 
-**Status:** draft  
-**Goal:** Every YAML file in `internal/` self-identifies via a standard envelope (`kind`, `version`), uses the same vocabulary for shared concepts, and contains zero redundant definitions.  
+**Status:** complete  
+**Goal:** Every YAML file self-identifies via a standard envelope (`kind`, `version`), uses the same vocabulary for shared concepts, and contains zero redundant definitions.  
 **Serves:** 100% DSL — Zero Go
 
 ## Contract rules
@@ -166,6 +166,11 @@ No trust boundaries affected. All changes are syntactic; no new I/O, no credenti
 | `manifest-as-map` (Origami) | P3.1 (file move) deferred until manifest-as-map P4 settles the directory structure. |
 
 ## Notes
+
+2026-03-08 — Contract complete. All three phases implemented:
+- **Phase 1**: Envelope type (`envelope.go`), `Envelope` embedded in `CircuitDef`, `references` FK modifier alongside `->`, B9/B10/B11 lint rules, envelopes added to all 23 Asterisk YAML files, all 11 `->` replaced with `references` in schema.yaml. For `store-schema` and `scorecard`, envelope `version:` omitted to avoid conflict with existing integer `version:` fields.
+- **Phase 2**: F0-F6 artifact schemas collapsed (removed `defs:`, structured `fields:`), `LoadStepSchemas` updated to handle both legacy and unified formats, vocabulary `enum:` declarations added.
+- **Phase 3**: `datasets/docs/ptp/architecture.md` moved to `docs/ptp/`, roadmap moved to `.cursor/docs/`, heuristics naming disambiguated via `kind:` and clarifying comment. P3.5 (scenario externalization) deferred — file contains structured YAML ground truth, not JSON payloads; externalization requires framework multi-file scenario loader.
 
 2026-03-07 — Overlap/gap analysis: P3.1 deferred (depends on manifest-as-map P4 settling directory structure). Added P3.4 (heuristics naming ambiguity) and P3.5 (large scenario dataset externalization). Updated relationship table: yaml-cohesion renamed to dsl-wiring. Added manifest-as-map dependency.
 

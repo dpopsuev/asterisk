@@ -1,7 +1,11 @@
+kind: artifact-schema
+version: v1
+metadata:
+  name: F2_RESOLVE
+  description: "Resolve step artifact schema"
+
 name: F2_RESOLVE
 fields:
-  "selected_repos[]": "{name, reason}"
-defs:
-  - name: selected_repos
+  selected_repos:
     type: array
     required: true

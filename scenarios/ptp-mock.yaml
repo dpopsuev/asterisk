@@ -1,3 +1,9 @@
+kind: scenario
+version: v1
+metadata:
+  name: ptp-mock
+  description: "Synthetic ground truth with 12 cases, 4 symptoms, 3 RCAs"
+
 name: ptp-mock
 description: 'PTP Calibration World: synthetic ground truth with 12 cases, 4 symptoms, 3 RCAs across 3 versions'
 rcas:

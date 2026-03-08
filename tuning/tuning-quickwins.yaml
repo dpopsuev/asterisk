@@ -1,3 +1,9 @@
+kind: tuning
+version: v1
+metadata:
+  name: quick-wins
+  description: "Low-effort tuning improvements"
+
 quick_wins:
   - id: QW-1
     name: Surface RP launch attributes in prompts

@@ -1,3 +1,9 @@
+kind: source-pack
+version: v1
+metadata:
+  name: ptp
+  description: "PTP Operator knowledge sources"
+
 name: ptp
 domain: PTP Operator
 description: PTP Operator sources for precision time protocol root-cause analysis

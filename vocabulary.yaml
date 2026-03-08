@@ -1,3 +1,16 @@
+kind: vocabulary
+version: v1
+metadata:
+  name: asterisk-vocabulary
+  description: "Display names and codes for RCA domain"
+
+# Enumerated code lists. Scenario files reference these codes.
+# Runtime validation is deferred; these serve as the authoritative registry.
+enums:
+  defect_types: [pb001, ab001, au001, si001, en001, fw001, nd001, ti001, ib003]
+  stages: [F0, F1, F2, F3, F4, F5, F6]
+  severity: [critical, high, medium, low, info]
+
 defect_types:
   pb001: {short: pb001, long: Product Bug}
   ab001: {short: ab001, long: Automation Bug}
@@ -50,6 +63,8 @@ metrics:
   M19:  {short: M19, long: Overall Accuracy}
   M20:  {short: M20, long: Run Variance}
 
+# Decision point display names (H1-H18). Not to be confused with
+# heuristics.yaml (kind: heuristic-rules), which contains the rule engine.
 heuristics:
   H1:  {short: H1, long: Recall Hit}
   H2:  {short: H2, long: Recall Miss}

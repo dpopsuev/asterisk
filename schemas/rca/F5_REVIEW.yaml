@@ -1,7 +1,11 @@
+kind: artifact-schema
+version: v1
+metadata:
+  name: F5_REVIEW
+  description: "Review step artifact schema"
+
 name: F5_REVIEW
 fields:
-  decision: "approve|reassess|overturn"
-defs:
-  - name: decision
+  decision:
     type: string
     required: true

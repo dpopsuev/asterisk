@@ -53,6 +53,7 @@ domain_serve:
       ocp: sources/ocp-platform.yaml
 
     files:
-      vocabulary: vocabulary.yaml
-      heuristics: heuristics.yaml
-      schema:     schema.yaml
+      vocabulary:   vocabulary.yaml
+      heuristics:   heuristics.yaml
+      schema:       schema.yaml
+      ptp-arch-doc: docs/ptp/architecture.md

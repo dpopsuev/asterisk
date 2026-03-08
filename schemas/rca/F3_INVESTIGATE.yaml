@@ -1,23 +1,23 @@
+kind: artifact-schema
+version: v1
+metadata:
+  name: F3_INVESTIGATE
+  description: "Investigate step artifact schema"
+
 name: F3_INVESTIGATE
 fields:
-  rca_message: "string"
-  defect_type: "string"
-  component: "string"
-  convergence_score: "float"
-  "evidence_refs[]": "string[]"
-defs:
-  - name: rca_message
+  rca_message:
     type: string
     required: true
-  - name: defect_type
+  defect_type:
     type: string
     required: true
-  - name: component
+  component:
     type: string
     required: true
-  - name: convergence_score
+  convergence_score:
     type: float
     required: false
-  - name: evidence_refs
+  evidence_refs:
     type: array
     required: false

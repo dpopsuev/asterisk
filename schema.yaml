@@ -1,3 +1,8 @@
+kind: store-schema
+metadata:
+  name: asterisk
+  description: "SQLite tables for Asterisk RCA store"
+
 # Asterisk Database Schema
 #
 # Defines every SQLite table used by Asterisk's RCA store. Parsed by
@@ -7,8 +12,8 @@
 # Syntax guide (Origami schema DSL):
 #   Shorthand column:  column_name: type [modifiers...]
 #     Modifiers: not_null, unique, pk, auto, default=VALUE
-#     Foreign key:  -> table          (expands to table(id))
-#                   -> table(column)  (explicit column)
+#     Foreign key:  references table          (expands to table(id))
+#                   references table(column)  (explicit column)
 #   Implicit id:  Every table gets an auto-increment integer PK named
 #                 "id" unless one is already defined or auto_id: false.
 #   Table-local indexes:  indexes: [[col1], [col2, col3]]
@@ -54,8 +59,8 @@ tables:
   # A CI pipeline execution within a suite, targeting a specific version.
   - name: circuits
     columns:
-      - suite_id: integer not_null -> investigation_suites
-      - version_id: integer not_null -> versions
+      - suite_id: integer not_null references investigation_suites
+      - version_id: integer not_null references versions
       - name: text not_null
       - source_run_id: text
       - status: text not_null
@@ -68,7 +73,7 @@ tables:
   # envelope_payload stores the raw fetched data for reproducibility.
   - name: launches
     columns:
-      - circuit_id: integer not_null -> circuits
+      - circuit_id: integer not_null references circuits
       - source_run_id: text
       - source_run_uuid: text
       - name: text
@@ -87,7 +92,7 @@ tables:
   # Test jobs (RP "suites") — groups of related test cases within a launch.
   - name: jobs
     columns:
-      - launch_id: integer not_null -> launches
+      - launch_id: integer not_null references launches
       - source_item_id: text
       - name: text not_null
       - clock_type: text
@@ -107,14 +112,14 @@ tables:
   # Each case links to a symptom (pattern match) and an rca (conclusion).
   - name: cases
     columns:
-      - job_id: integer not_null -> jobs
-      - launch_id: integer not_null -> launches
+      - job_id: integer not_null references jobs
+      - launch_id: integer not_null references launches
       - source_item_id: text
       - name: text not_null default=''
       - external_ref: text
       - status: text not_null default='open'
-      - symptom_id: integer -> symptoms
-      - rca_id: integer -> rcas
+      - symptom_id: integer references symptoms
+      - rca_id: integer references rcas
       - error_message: text
       - log_snippet: text
       - log_truncated: integer default=0
@@ -134,7 +139,7 @@ tables:
   # Determines routing: skip investigation, single-repo shortcut, or full analysis.
   - name: triages
     columns:
-      - case_id: integer not_null unique -> cases
+      - case_id: integer not_null unique references cases
       - symptom_category: text not_null
       - severity: text
       - defect_type_hypothesis: text
@@ -193,8 +198,8 @@ tables:
   # multiple candidate RCAs with different confidence scores.
   - name: symptom_rca
     columns:
-      - symptom_id: integer not_null -> symptoms
-      - rca_id: integer not_null -> rcas
+      - symptom_id: integer not_null references symptoms
+      - rca_id: integer not_null references rcas
       - confidence: real
       - notes: text
       - linked_at: text not_null

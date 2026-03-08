@@ -1,11 +1,14 @@
+kind: artifact-schema
+version: v1
+metadata:
+  name: F4_CORRELATE
+  description: "Correlate step artifact schema"
+
 name: F4_CORRELATE
 fields:
-  is_duplicate: "bool"
-  confidence: "float"
-defs:
-  - name: is_duplicate
+  is_duplicate:
     type: bool
     required: true
-  - name: confidence
+  confidence:
     type: float
     required: true

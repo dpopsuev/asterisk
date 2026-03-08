@@ -1,3 +1,9 @@
+kind: source-pack
+version: v1
+metadata:
+  name: ocp-platform
+  description: "Shared OCP platform sources"
+
 name: ocp-platform
 domain: OCP Platform
 description: Shared OpenShift platform sources used across operators

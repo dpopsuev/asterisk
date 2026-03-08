@@ -1,3 +1,9 @@
+kind: report-template
+version: v1
+metadata:
+  name: rca-report
+  description: "RCA findings report template"
+
 name: rca-report
 format: markdown
 sections:

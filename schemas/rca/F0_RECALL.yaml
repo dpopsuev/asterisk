@@ -1,15 +1,17 @@
+kind: artifact-schema
+version: v1
+metadata:
+  name: F0_RECALL
+  description: "Recall step artifact schema"
+
 name: F0_RECALL
 fields:
-  match: "bool"
-  confidence: "float"
-  reasoning: "string"
-defs:
-  - name: match
+  match:
     type: bool
     required: true
-  - name: confidence
+  confidence:
     type: float
     required: true
-  - name: reasoning
+  reasoning:
     type: string
     required: true

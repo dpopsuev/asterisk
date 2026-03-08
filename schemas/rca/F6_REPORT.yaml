@@ -1,15 +1,17 @@
+kind: artifact-schema
+version: v1
+metadata:
+  name: F6_REPORT
+  description: "Report step artifact schema"
+
 name: F6_REPORT
 fields:
-  defect_type: "string"
-  case_id: "string"
-  summary: "string"
-defs:
-  - name: defect_type
+  defect_type:
     type: string
     required: true
-  - name: case_id
+  case_id:
     type: string
     required: true
-  - name: summary
+  summary:
     type: string
     required: true
