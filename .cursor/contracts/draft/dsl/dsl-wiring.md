@@ -1,6 +1,6 @@
 # Contract — dsl-wiring
 
-**Status:** draft  
+**Status:** active  
 **Goal:** Circuit nodes declare their own prompt and schema, bindings are namespace-scoped, fold reads component.yaml, and naming inconsistencies (family/transformer, circuit names, terminal nodes) are resolved.  
 **Serves:** 100% DSL — Zero Go
 
@@ -75,14 +75,14 @@ Update circuit YAMLs with prompt:/output_schema: on nodes, scorecard: on calibra
 
 ### Phase 1: Framework DSL enhancements (Origami)
 
-- [ ] W1 — Fold reads `component.yaml` for socket declarations and factory names; delete `socketOptionMap` and `lookupFactory` (G2)
+- [x] W1 — ~~Fold reads `component.yaml` for socket declarations and factory names; delete `socketOptionMap` and `lookupFactory` (G2)~~ *Done — `socketOptionMap` and `lookupFactory` already removed in manifest-as-map.*
 - [ ] W2 — Namespaced bindings: `rca.source` instead of `source`; fold strips prefix and matches to import namespace (G1)
 - [ ] W3 — `imports:` includes connectors (`origami.connectors.reportportal`, `origami.connectors.sqlite`); bindings use short namespace names (G8)
 - [ ] W4 — Add `prompt:` and `output_schema:` fields to `NodeDef`; fold/DSL loader populates transformer context from them (G5)
-- [ ] W5 — Add `scorecard:` field to circuit YAML; calibration runner reads it from circuit config (G4)
-- [ ] W6 — Resolve `family:` vs `transformer:` — single field; component.yaml maps names to transformers (G10). **Note:** circuit-dsl-shorthand depends on this decision for implicit-family logic.
+- [x] W5 — ~~Add `scorecard:` field to circuit YAML; calibration runner reads it from circuit config (G4)~~ *Done — `scorecard:` already on calibration circuit.*
+- [x] W6 — ~~Resolve `family:` vs `transformer:` — single field~~ (G10). **Implemented as `handler_type:` + `handler:` unification.** See design decision below.
 - [ ] W7 — Remove `imports:` from individual circuit files; entrypoint owns all imports (G12)
-- [ ] W8 — Remove unused `CLI`, `Serve`, `Demo` fields from manifest struct (G15)
+- [x] W8 — ~~Remove unused `CLI`, `Serve`, `Demo` fields from manifest struct (G15)~~ *Done — ghost fields already removed in manifest-as-map.*
 - [ ] W9 — Validate: `go test -race ./...`, `go build ./...`
 
 ### Phase 2: Consumer migration + validation (Asterisk + Achilles)
@@ -120,10 +120,10 @@ When both declare a "source" socket
 Then bindings rca.source and vulnscan.source resolve independently
   And no collision occurs
 
-Given a NodeDef with family: "rca-triage"
+Given a NodeDef with handler: "rca-triage" and handler_type: "transformer"
 When the circuit is parsed
-Then the family (or its resolved name after G10) maps to the correct transformer
-  And there is exactly one field for this concept, not two
+Then the handler resolves to the correct transformer in TransformerRegistry
+  And there is exactly one field (handler) for this concept, not five (family/transformer/extractor/renderer/delegate+generator)
 ```
 
 ## Security assessment
@@ -158,7 +158,28 @@ No trust boundaries affected.
 | `dsl-lexicon` (Asterisk) | Complementary. Lexicon owns file self-identity (`kind:` envelope). Wiring owns how fold resolves components and bindings. |
 | `circuit-dsl-shorthand` (Asterisk) | Downstream. Shorthand depends on W6 (family/transformer resolution) for implicit-family logic. |
 
+## W6 design decision: handler_type + handler
+
+**Problem:** Five legacy fields (`family`, `transformer`, `extractor`, `renderer`, `delegate`+`generator`) with an implicit priority cascade in `resolveNode`. A latent bug existed: Asterisk's production `rca.yaml` used `family: recall` but registered transformers in `TransformerRegistry`, so `resolveNode` would fall through to the empty `NodeRegistry` and fail.
+
+**Solution:** Two new explicit fields replace all five:
+
+- `handler_type:` — which registry to look up in (`transformer`, `extractor`, `renderer`, `node`, `delegate`)
+- `handler:` — the name to look up (always required when handler_type is set)
+- `handler_type:` on `CircuitDef` — circuit-level default inherited by all nodes
+
+**Design principles applied:**
+- Explicit over implicit (no cascade — one field points to one registry)
+- Declarative over imperative (YAML declares intent, Go resolves)
+- DRY (circuit-level default eliminates repetition when all nodes share a type)
+
+**Backward compat:** Old fields remain with deprecation lint (S17/deprecated-handler-fields). `resolveNode` reads `handler:` first; if absent, falls back to the legacy cascade. `EffectiveHandler()` and `EffectiveHandlerType()` helpers provide unified access.
+
+**Test coverage:** `TestResolveNode_LegacyFamily_FailsWithTransformerRegistry` proves the bug. `TestResolveNode_Handler_*` tests verify all five handler types resolve correctly via the new path.
+
 ## Notes
+
+2026-03-08 — **W6 executed.** `handler_type:` + `handler:` unification implemented across Origami framework, lint rules, display code, and all consumer circuits (Asterisk, Achilles, testdata). W1, W5, W8 marked done (already completed by prior contracts). S17 deprecation lint rule added.
 
 2026-03-07 — Refocused from `yaml-cohesion` to `dsl-wiring`. Dropped "one entrypoint" goal (absorbed by Origami `manifest-as-map`). Remaining scope: 13 gaps about DSL wiring (bindings, node fields, naming). Tasks renumbered W1-W17. Phase 1 (root cleanup) removed (complete). Cross-repo nature preserved.
 
