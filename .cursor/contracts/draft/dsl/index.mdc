@@ -1,6 +1,6 @@
 # draft/dsl/ Index
 
-DSL & YAML contracts: circuit syntax and playbook documentation.
+DSL & YAML contracts: circuit syntax, data file cleanup, and playbook documentation.
 
 ## Execution order
 
@@ -8,13 +8,16 @@ DSL & YAML contracts: circuit syntax and playbook documentation.
 dsl-lexicon              ✓ COMPLETE (moved to completed/dsl-migration/)
 dsl-wiring               ✓ COMPLETE (moved to completed/dsl-migration/)
   ├──▶ circuit-dsl-shorthand  ← UNBLOCKED (W6 done)
+  ├──▶ yaml-dx-cleanup        ← UNBLOCKED (no dependency)
   └──▶ yaml-playbook-docs     ← UNBLOCKED (DSL shape stable)
 ```
 
 - **circuit-dsl-shorthand** — unblocked now that dsl-wiring W6 (handler unification) is complete.
-- **yaml-playbook-docs** — no code dependency; can run any time.
+- **yaml-dx-cleanup** — no dependency; naming, ceremony, schema collapse, scenario defaults, payload externalization.
+- **yaml-playbook-docs** — no code dependency; can run any time. Benefits from yaml-dx-cleanup landing first (fewer files to document).
 
 ## Files
 - `dsl-lexicon.md` — Standardized DSL lexicon. **Complete** — kept here as reference; canonical copy in `completed/dsl-migration/`.
 - `circuit-dsl-shorthand.md` — Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. **Quick-win.**
+- `yaml-dx-cleanup.md` — Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. **Quick-win.**
 - `yaml-playbook-docs.md` — Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. **Quick-win.**

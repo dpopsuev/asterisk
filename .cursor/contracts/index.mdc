@@ -12,12 +12,13 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 ## draft/ -- Planned, not yet being executed
 
-### draft/dsl/ — DSL & YAML (3 contracts)
+### draft/dsl/ — DSL & YAML (4 contracts)
 
 | Contract | Goal | Tier |
 |----------|------|------|
 | `dsl-lexicon.md` | Standardized DSL lexicon: `kind:`/`version:` envelope, `references:` FK syntax, artifact schema dedup, vocabulary enums, heuristics naming, dataset externalization. | gate (complete — reference copy) |
 | `circuit-dsl-shorthand.md` | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. | quick-win |
+| `yaml-dx-cleanup.md` | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. -3K lines, -6 files. | quick-win |
 | `yaml-playbook-docs.md` | Extend autodoc skeleton with Asterisk narrative, Ansible analogy, project identity. | quick-win |
 
 ### draft/ — Standalone (2 contracts)
