@@ -5,8 +5,9 @@ set dotenv-load := false
 
 bin_dir          := "bin"
 domain_serve     := bin_dir / "asterisk-domain-serve"
-db_path      := ".asterisk/asterisk.db"
-calib_dir    := ".asterisk/calibrate"
+state_dir    := env("XDG_STATE_HOME", env("HOME", "") / ".local/state") / "asterisk"
+db_path      := state_dir / "asterisk.db"
+calib_dir    := state_dir / "calibrate"
 origami_dir  := "../origami"
 rca_test_pkg := origami_dir / "schematics/rca/mcpconfig"
 
