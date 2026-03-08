@@ -12,15 +12,15 @@ enums:
   severity: [critical, high, medium, low, info]
 
 defect_types:
-  pb001: {short: pb001, long: Product Bug}
-  ab001: {short: ab001, long: Automation Bug}
-  au001: {short: au001, long: Automation Bug}
-  si001: {short: si001, long: System Issue}
-  en001: {short: en001, long: Environment Issue}
-  fw001: {short: fw001, long: Firmware Issue}
-  nd001: {short: nd001, long: No Defect}
-  ti001: {short: ti001, long: To Investigate}
-  ib003: {short: ib003, long: Infrastructure Bug}
+  pb001: {short: pb001, long: Product Bug, description: "defect in the product code (operator, daemon, proxy, etc.)"}
+  ab001: {short: ab001, long: Automation Bug, description: "defect in test code, CI config, or test infrastructure (alias)"}
+  au001: {short: au001, long: Automation Bug, description: "defect in test code, CI config, or test infrastructure"}
+  si001: {short: si001, long: System Issue, description: "systemic issue affecting multiple components or services"}
+  en001: {short: en001, long: Environment Issue, description: "infrastructure/environment issue (node, network, cluster, NTP, etc.)"}
+  fw001: {short: fw001, long: Firmware Issue, description: "defect in firmware or hardware-adjacent code (NIC, FPGA, PHC)"}
+  nd001: {short: nd001, long: No Defect, description: "test is correct, product is correct, flaky/transient/expected behavior"}
+  ti001: {short: ti001, long: To Investigate, description: "insufficient data to classify; needs manual investigation"}
+  ib003: {short: ib003, long: Infrastructure Bug, description: "defect in shared infrastructure (CI, cluster, tooling)"}
 
 stages:
   F0:             {short: F0, long: Recall}

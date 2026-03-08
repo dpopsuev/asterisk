@@ -56,4 +56,3 @@ domain_serve:
       vocabulary:   vocabulary.yaml
       heuristics:   heuristics.yaml
       schema:       schema.yaml
-      ptp-arch-doc: docs/ptp/architecture.md
