@@ -49,30 +49,28 @@ analyze envelope:
 
 # ─── Container ───────────────────────────────────────────
 
-# Build the OCI image (rebuilds binary first)
+# Build domain-serve image via origami fold --container
 container-build:
-    just build
-    docker build -t asterisk .
+    origami fold --container
 
-# Start container (MCP :9100, Kami :3001)
-container-run:
-    docker run -d --name asterisk-server \
-        -p 9100:9100 -p 3001:3001 \
-        {{ binary }} --transport http --kami-port 3001
-
-# Stop and remove container
-container-stop:
-    docker rm -f asterisk-server
-
-# Hot-swap: rebuild binary + image, restart container
-container-restart:
-    -just container-stop
+# Full deploy: build domain image, build Origami images, start compose stack
+deploy:
     just container-build
-    just container-run
+    cd {{ origami_dir }} && just build-images
+    docker compose -f {{ origami_dir }}/deploy/docker-compose.yaml up -d
 
-# Tail container logs
-container-logs:
-    docker logs -f asterisk-server
+# Stop the compose stack
+deploy-stop:
+    docker compose -f {{ origami_dir }}/deploy/docker-compose.yaml down
+
+# Rebuild domain + restart the full stack
+deploy-restart:
+    just deploy-stop
+    just deploy
+
+# Tail all compose service logs
+deploy-logs:
+    docker compose -f {{ origami_dir }}/deploy/docker-compose.yaml logs -f
 
 # ─── Clean ────────────────────────────────────────────────
 

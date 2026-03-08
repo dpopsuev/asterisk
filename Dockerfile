@@ -1,20 +1,17 @@
-# Asterisk OCI image — container-first MCP server.
+# Asterisk Domain Server — serves embedded domain data via MCP.
+# Built by `origami fold` + docker build, or `origami fold --container`.
 #
-# Build & run (hot-swap):
-#   just container-restart
+# This image is ONE piece of the distributed architecture:
+#   Gateway (:9000) → RCA Engine (:9200) + Knowledge (:9100) + Domain (:9300)
 #
-# Manual steps:
-#   just build                    # produces bin/asterisk via origami fold
-#   docker build -t asterisk .
-#   docker run -d --name asterisk-server -p 9100:9100 -p 3001:3001 \
-#     asterisk serve --transport http --kami-port 3001
+# Build:
+#   origami fold --container    (automatic)
+#   OR: origami fold && docker build -t origami-asterisk-domain .
 #
-# Cursor .cursor/mcp.json:
-#   { "mcpServers": { "asterisk": { "url": "http://localhost:9100/mcp" } } }
+# Run (standalone):
+#   docker run -p 9300:9300 origami-asterisk-domain
 
-FROM gcr.io/distroless/base-debian12
-WORKDIR /app
-COPY bin/asterisk /app/asterisk
-COPY internal/ /app/internal/
-ENTRYPOINT ["/app/asterisk"]
-EXPOSE 9100 3001
+FROM gcr.io/distroless/static-debian12
+COPY bin/asterisk-domain-serve /domain-serve
+ENTRYPOINT ["/domain-serve"]
+EXPOSE 9300

@@ -30,32 +30,33 @@ The user types one of:
 
 ## Part 0 — Prerequisites
 
-### 1. Container must be running
+### 1. Compose stack must be running
 
-The skill requires the `asterisk` MCP server running as a Docker container.
-Verify the container is up:
+The skill requires the full Origami compose stack running (gateway, RCA engine,
+knowledge engine, domain server). Verify the stack is up:
 
 ```bash
-docker ps --filter name=asterisk-server --format '{{.Status}}'
+curl -sf http://localhost:9000/healthz && echo "gateway OK"
 ```
 
-- If running: proceed.
-- If not running: run `just container-restart` to build the binary, build the
-  image, and start the container on ports 9100 (MCP) and 3001 (Kami).
+- If healthy: proceed.
+- If not running: run `just deploy` to build all images and start the stack.
+  This builds the domain-serve image via `origami fold --container`, the Origami
+  engine images, and starts `docker compose up`.
 
-### 2. MCP config must point to container
+### 2. MCP config must point to gateway
 
-Verify `.cursor/mcp.json` has the HTTP URL entry:
+Verify `.cursor/mcp.json` has the gateway URL entry:
 
 ```json
-{ "mcpServers": { "asterisk": { "url": "http://localhost:9100/mcp" } } }
+{ "mcpServers": { "asterisk": { "url": "http://localhost:9000/mcp" } } }
 ```
 
 ### 3. Verify MCP tools are available
 
 Call any MCP tool (e.g. `project-0-asterisk-asterisk-get_signals`) to confirm
-connectivity. If the MCP server is unreachable, ask the user to run
-`just container-restart` or check the container logs with `just container-logs`.
+connectivity. If the gateway is unreachable, ask the user to run
+`just deploy-restart` or check logs with `just deploy-logs`.
 
 ---
 
@@ -214,8 +215,8 @@ Display the `report` field verbatim to the user. Then summarize:
 When iterating on circuit code (Origami or Asterisk):
 
 1. Make code changes in the workspace (Origami, Asterisk, circuits, etc.)
-2. Run `just container-restart` — rebuilds binary, rebuilds image, restarts container
-3. Re-run `/asterisk-calibrate <SCENARIO>` — Cursor auto-reconnects to the same `http://localhost:9100/mcp` URL. No IDE restart needed.
+2. Run `just deploy-restart` — rebuilds all images, restarts the compose stack
+3. Re-run `/asterisk-calibrate <SCENARIO>` — Cursor auto-reconnects to the same `http://localhost:9000/mcp` gateway URL. No IDE restart needed.
 
 This enables rapid iteration without touching Cursor settings or restarting the IDE.
 
@@ -256,7 +257,7 @@ alive.
 ### MCP disconnection
 
 If MCP tools become unavailable mid-run, the session state is lost. Ask the
-user to run `just container-restart` and re-run.
+user to run `just deploy-restart` and re-run.
 
 ---
 
@@ -279,8 +280,8 @@ When triggered with no args, "help", or unrecognized input:
 > 1. **Docker** installed and running
 > 2. **`origami` CLI** installed
 > 3. **`just`** task runner installed
-> 4. **Container running** — `just container-restart` (builds + starts)
-> 5. **MCP config** — `asterisk` entry in `.cursor/mcp.json` pointing to `http://localhost:9100/mcp`
+> 4. **Compose stack running** — `just deploy` (builds images + starts stack)
+> 5. **MCP config** — `asterisk` entry in `.cursor/mcp.json` pointing to `http://localhost:9000/mcp`
 >
 > **What it does:**
 >
