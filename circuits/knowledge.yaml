@@ -1,0 +1,63 @@
+kind: circuit
+version: v1
+metadata:
+  name: knowledge
+  description: "Code context gathering — ensure, search, read"
+
+# Knowledge Circuit
+#
+# Gathers code context from configured source repositories.
+# Designed for composition: any circuit can invoke this as a
+# subgraph node via handler_type: circuit.
+#
+# Pipeline:
+#   tree   — ensure repos are available, list file trees
+#   search — search repos for relevant code using context keywords
+#   read   — read matched files (token-budgeted)
+#
+# Input context (inherited from parent):
+#   knowledge.search_keywords — []string of search terms
+#   params.sources            — source catalog (set by inject.sources hook)
+#
+# Output: the "read" node produces a *knowledge.CodeContext artifact
+# containing trees, search results, and file contents.
+
+circuit: knowledge
+description: "Code context gathering from source repositories"
+topology: cascade
+handler_type: transformer
+
+nodes:
+  - name: tree
+    description: "Ensure repos available and list file trees"
+    approach: methodical
+    handler: knowledge.tree
+
+  - name: search
+    description: "Search repos for relevant code"
+    approach: analytical
+    handler: knowledge.search
+
+  - name: read
+    description: "Read matched source files (token-budgeted)"
+    approach: methodical
+    handler: knowledge.read
+
+edges:
+  - id: tree-search
+    name: "Tree to Search"
+    from: tree
+    to: search
+
+  - id: search-read
+    name: "Search to Read"
+    from: search
+    to: read
+
+  - id: read-done
+    name: "Read to Done"
+    from: read
+    to: _done
+
+start: tree
+done: _done

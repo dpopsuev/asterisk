@@ -90,8 +90,21 @@ nodes:
         shortcut: true
         when: "output.skip_investigation != true && len(output.candidate_repos) == 1"
       - name: triage-investigate
-        to: resolve
+        to: gather-code
         when: "output.skip_investigation != true"
+
+  # ── Code Context (Knowledge subgraph) ──
+  - name: gather-code
+    description: "Gather code context from source repositories via Knowledge circuit"
+    handler_type: circuit
+    handler: knowledge
+    approach: methodical
+    before: [inject.code-keywords]
+    after: [bridge.code-context]
+    edges:
+      - name: gather-code-resolve
+        to: resolve
+        when: "true"
 
   # ── F2 Resolve ──
   - name: resolve
@@ -99,7 +112,6 @@ nodes:
     handler: resolve
     prompt: prompts/resolve/select-repo.md
     output_schema: schemas/rca/F2_RESOLVE.yaml
-    before: [inject.code.tree]
     edges:
       - name: resolve-multi
         to: investigate
@@ -111,7 +123,6 @@ nodes:
     handler: investigate
     prompt: prompts/investigate/deep-rca.md
     output_schema: schemas/rca/F3_INVESTIGATE.yaml
-    before: [inject.code.search, inject.code.read]
     after: [store.investigate]
     edges:
       - name: investigate-converged

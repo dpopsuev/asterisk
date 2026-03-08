@@ -34,11 +34,25 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 | # | Contract | Dir | Tier | Scope |
 |---|----------|-----|------|-------|
-| 1 | `yaml-dx-cleanup` | draft/dsl/ | quick-win | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. -3K lines, -6 files. |
+| 1 | `yaml-dx-cleanup` | draft/dsl/ | quick-win | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. Phase 6 partially done (binding resolution). -3K lines, -6 files. |
 | 2 | `circuit-dsl-shorthand` | draft/dsl/ | quick-win | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. Unblocked by dsl-wiring W6. |
 | 3 | `yaml-playbook-docs` | draft/dsl/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. |
-| 4 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
-| 5 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+| 4 | `circuit-subgraph-composition` | draft/dsl/ | quick-win | Composable circuits as subgraph nodes via `handler_type: circuit`. Any circuit invocable as a node in any other. First application: Knowledge as RCA subgraph. |
+| 5 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
+| 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
+
+### Execution order
+
+```
+dsl-lexicon              ✓ COMPLETE
+dsl-wiring               ✓ COMPLETE
+  ├──▶ circuit-dsl-shorthand          ← NEXT (unblocked)
+  ├──▶ yaml-dx-cleanup                ← NEXT (unblocked)
+  ├──▶ yaml-playbook-docs             ← NEXT (unblocked, benefits from dx-cleanup)
+  │     └─► kabuki-demo-revamp          ← NEXT-MILESTONE
+  ├──▶ circuit-subgraph-composition   ← NEXT (unblocked)
+  └──▶ sumi-refining                   ← NEXT (independent)
+```
 
 ### Execution order
 
@@ -48,13 +62,15 @@ origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
         ├─► design-principle-deterministic  ✓ COMPLETE (moved to Origami)
         ├─► origami-autodoc                 ✓ COMPLETE (moved to Origami, all 7 phases)
         └─► housekeeping                    ✓ COMPLETE
-              ├─► dsl-lexicon                ✓ COMPLETE (envelope, FK syntax, vocabulary, dedup, heuristics naming, dataset externalization)
-              ├─► dsl-wiring                 ✓ COMPLETE (handler unification, output_schema, terminal nodes, API key path)
-              │     └─► circuit-dsl-shorthand   ← NEXT (unblocked — W6 done)
+              ├─► dsl-lexicon                ✓ COMPLETE
+              ├─► dsl-wiring                 ✓ COMPLETE
+              │     ├─► circuit-dsl-shorthand           ← NEXT (unblocked)
+              │     └─► circuit-subgraph-composition    ← NEXT (unblocked)
               ├─► yaml-dx-cleanup              ← NEXT (naming, ceremony, schemas, scenarios)
-              ├─► yaml-playbook-docs           ← NEXT (extends autodoc skeleton, benefits from dx-cleanup)
+              ├─► yaml-playbook-docs           ← NEXT (extends autodoc skeleton)
               │     └─► kabuki-demo-revamp       ← NEXT-MILESTONE
-              └─► prompt-first-class-consumer  ✓ COMPLETE (prompts/ at root, manifest.yaml, embed)
+              ├─► sumi-refining                ← NEXT (independent)
+              └─► prompt-first-class-consumer  ✓ COMPLETE
 ```
 
 ## End-State Architecture
@@ -62,29 +78,43 @@ origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
 ```mermaid
 flowchart TB
   subgraph asterisk ["Asterisk (zero Go — YAML only)"]
+    subgraph manifest ["origami.yaml"]
+      m_schematics["schematics: rca, knowledge"]
+      m_connectors["connectors: rp, github, docs"]
+      m_assets["domain_serve: circuits, prompts,\nschemas, scorecards, reports"]
+    end
     circuits["circuits/*.yaml"]
     scenarios["scenarios/*.yaml"]
     scorecards["scorecards/*.yaml"]
     prompts["prompts/*.md"]
-    schema["schema.yaml"]
     vocab["vocabulary.yaml"]
-    manifest["origami.yaml"]
   end
   subgraph origami ["Origami (Go engine + collections)"]
     engine["framework (walk, DSL, vars, templates)"]
-    rpAdapter["adapters/rp/ (RP I/O)"]
-    sqliteAdapter["adapters/sqlite/ (YAML-defined schema/CRUD)"]
-    rcaModules["modules/rca/ (llm-extract, context-builder, persist, score, report)"]
-    fold["origami fold (YAML → binary)"]
+    fold["origami fold (YAML → unified binary)"]
+    resolver["binding resolver (sockets → connectors)"]
+    codegen["codegen (wired binary template)"]
+    subgraph schematics ["schematics/"]
+      rcaSch["rca/ (MCP server, F0-F6 circuit)"]
+      knowSch["knowledge/ (git + docs access)"]
+    end
+    subgraph connectors ["connectors/"]
+      rpConn["rp/ (ReportPortal I/O)"]
+      ghConn["github/ (git driver)"]
+      docsConn["docs/ (docs driver)"]
+    end
     transformers["transformers (http, jq, file, match, dedup)"]
   end
   manifest -->|"origami fold"| fold
-  fold -->|"embeds + links"| binary["bin/asterisk"]
+  fold --> resolver --> codegen
+  codegen -->|"generates"| binary["bin/asterisk\n(unified: domain + MCP + connectors)"]
+  m_schematics --> rcaSch
+  m_schematics --> knowSch
+  m_connectors --> rpConn
+  m_connectors --> ghConn
+  m_connectors --> docsConn
   circuits --> engine
   scenarios --> engine
-  rpAdapter --> engine
-  sqliteAdapter --> engine
-  rcaModules --> engine
   transformers --> engine
 ```
 
@@ -110,6 +140,7 @@ flowchart TB
 | `scorer-pattern` | -700 LOC (21 Go scorers → 10 batch patterns in Origami YAML) | dsl-migration |
 | `rca-pure-dsl` | -942 net LOC (5.6K→5.3K); structural transformation to framework primitives | dsl-migration |
 | `origami-fold` | -11,650 LOC (all Go moved to Origami `modules/rca/`; `origami fold` codegen) | dsl-migration |
+| `dsl-lexicon` | Envelope, FK syntax, vocabulary enums, heuristics naming, dataset externalization | dsl-migration |
 | `dsl-lexicon` | Envelope, FK syntax, vocabulary enums, heuristics naming, dataset externalization | dsl-migration |
 | `dsl-wiring` | Handler unification, `output_schema:` on NodeDef, terminal node standardization | dsl-migration |
 | `housekeeping` | Mechanical cleanup: .gitignore, justfile, skills, rules, dev scripts updated for YAML-only era | housekeeping |

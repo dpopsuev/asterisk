@@ -5,19 +5,21 @@ DSL & YAML contracts: circuit syntax, data file cleanup, and playbook documentat
 ## Execution order
 
 ```
-dsl-lexicon              ✓ COMPLETE (moved to completed/dsl-migration/)
-dsl-wiring               ✓ COMPLETE (moved to completed/dsl-migration/)
-  ├──▶ circuit-dsl-shorthand  ← UNBLOCKED (W6 done)
-  ├──▶ yaml-dx-cleanup        ← UNBLOCKED (no dependency)
-  └──▶ yaml-playbook-docs     ← UNBLOCKED (DSL shape stable)
+dsl-lexicon              ✓ COMPLETE (completed/dsl-migration/)
+dsl-wiring               ✓ COMPLETE (completed/dsl-migration/)
+  ├──▶ circuit-dsl-shorthand          ← UNBLOCKED (W6 done)
+  ├──▶ yaml-dx-cleanup                ← UNBLOCKED (no dependency)
+  ├──▶ yaml-playbook-docs             ← UNBLOCKED (DSL shape stable)
+  └──▶ circuit-subgraph-composition   ← UNBLOCKED (W6 done)
 ```
 
 - **circuit-dsl-shorthand** — unblocked now that dsl-wiring W6 (handler unification) is complete.
-- **yaml-dx-cleanup** — no dependency; naming, ceremony, schema collapse, scenario defaults, payload externalization.
+- **yaml-dx-cleanup** — no dependency; naming, ceremony, schema collapse, scenario defaults, payload externalization. Phase 6 partially complete (P6.3 connectors + P6.6 codegen landed via binding resolution). Phase 0 (housekeeping) added for justfile alignment.
 - **yaml-playbook-docs** — no code dependency; can run any time. Benefits from yaml-dx-cleanup landing first (fewer files to document).
+- **circuit-subgraph-composition** — `handler_type: circuit` for composable subgraph nodes. Any circuit invocable as a node in any other circuit. First application: Knowledge as RCA subgraph.
 
 ## Files
-- `dsl-lexicon.md` — Standardized DSL lexicon. **Complete** — kept here as reference; canonical copy in `completed/dsl-migration/`.
 - `circuit-dsl-shorthand.md` — Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. **Quick-win.**
-- `yaml-dx-cleanup.md` — Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. **Quick-win.**
+- `yaml-dx-cleanup.md` — Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. Phase 6 partially done (binding resolution). **Quick-win.**
 - `yaml-playbook-docs.md` — Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. **Quick-win.**
+- `circuit-subgraph-composition.md` — Composable circuits as subgraph nodes via `handler_type: circuit`. Knowledge/RCA/calibration are all peers. **Quick-win.**

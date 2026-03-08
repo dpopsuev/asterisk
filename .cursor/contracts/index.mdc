@@ -16,10 +16,10 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 | Contract | Goal | Tier |
 |----------|------|------|
-| `dsl-lexicon.md` | Standardized DSL lexicon: `kind:`/`version:` envelope, `references:` FK syntax, artifact schema dedup, vocabulary enums, heuristics naming, dataset externalization. | gate (complete — reference copy) |
 | `circuit-dsl-shorthand.md` | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. | quick-win |
-| `yaml-dx-cleanup.md` | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. -3K lines, -6 files. | quick-win |
+| `yaml-dx-cleanup.md` | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. Phase 6 partially done (binding resolution). -3K lines, -6 files. | quick-win |
 | `yaml-playbook-docs.md` | Extend autodoc skeleton with Asterisk narrative, Ansible analogy, project identity. | quick-win |
+| `circuit-subgraph-composition.md` | Composable circuits as subgraph nodes via `handler_type: circuit`. Any circuit invocable as a node in any other. First application: Knowledge as RCA subgraph. | quick-win |
 
 ### draft/ — Standalone (2 contracts)
 
@@ -159,7 +159,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `evidence-gap-brief.md` | Structured "what's missing" output when circuit confidence is low or inconclusive. Evidence gap types, BasicAdapter gap production, M21/M22 stubs. |
 | `knowledge-source-evolution.md` | Layered composition via `Source.Tags`, artifact dependency graph, token-budget summarization. VersionMatrix, DepGraph, Summarizer in Origami. |
 
-### completed/dsl-migration/ (8)
+### completed/dsl-migration/ (9)
 
 | Contract | Goal |
 |----------|------|
@@ -170,6 +170,7 @@ The following completed contract groups were moved to `github.com/dpopsuev/origa
 | `scorer-pattern.md` | 10 batch scorer patterns in Origami; 21 Asterisk scorers expressed as YAML declarations. Split from rca-pure-dsl G5. |
 | `rca-pure-dsl.md` | Module decomposition of adapters/rca/ (5.6K→5.3K LOC). 8 phases: ModelAdapter→transformers, heuristic rules engine, per-node decomposition, BatchWalk. Residual tracked in origami-fold. |
 | `origami-fold.md` | `origami fold` compiles YAML project to binary. All Go moved to Origami `modules/rca/`; Asterisk achieves zero Go. |
+| `dsl-lexicon.md` | Standardized DSL lexicon: `kind:`/`version:` envelope, `references:` FK syntax, artifact schema dedup, vocabulary enums, heuristics naming, dataset externalization. |
 | `dsl-wiring.md` | Handler unification (`handler_type:` + `handler:`), `output_schema:` on NodeDef, terminal node standardization, API key path configurability. |
 
 ### completed/housekeeping/ (2)
