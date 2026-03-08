@@ -9,7 +9,7 @@
 - Backward compatibility: existing parsers accept both old and new syntax during migration. Old syntax triggers a deprecation lint warning.
 - Changes span Origami (parsers) and Asterisk (consumer YAML files). Origami lands first.
 - No behavioral changes. All circuits, calibrations, and builds produce identical output before and after.
-- Complements `yaml-cohesion` (file organization, manifest wiring) and `circuit-dsl-shorthand` (circuit syntax). No overlap — this contract owns the **shared grammar** across all file kinds.
+- Complements `dsl-wiring` (component/binding resolution, manifest wiring) and `circuit-dsl-shorthand` (circuit syntax). No overlap — this contract owns the **shared grammar** across all file kinds.
 
 ## Context
 
@@ -115,14 +115,16 @@ Move `datasets/docs/` to `internal/knowledge/`. Delete or relocate `roadmap.md`.
 - [ ] P2.4 — Asterisk: Scenario YAML references vocabulary enums (document convention; runtime validation deferred).
 - [ ] P2.5 — Validate: `just build`, `just calibrate-stub`.
 
-### Phase 3 — Misplaced content + lint enforcement
+### Phase 3 — Misplaced content + lint enforcement + naming
 
-- [ ] P3.1 — Asterisk: Move `datasets/docs/ptp/architecture.md` → `internal/knowledge/ptp/architecture.md`.
+- [ ] P3.1 — **Deferred** until Origami `manifest-as-map` P4 lands (may flatten `internal/` entirely). Once the directory structure is settled, move `datasets/docs/ptp/architecture.md` to the correct knowledge location.
 - [ ] P3.2 — Asterisk: Delete or move `internal/roadmap.md` to `.cursor/docs/` (project planning, not domain data).
 - [ ] P3.3 — Origami: `origami lint` rule — warn when YAML file under known domain paths lacks `kind:`.
-- [ ] P3.4 — Validate (green) — all builds, tests, and lints pass.
-- [ ] P3.5 — Tune (blue) — refactor for quality. No behavior changes.
-- [ ] P3.6 — Validate (green) — all tests still pass after tuning.
+- [ ] P3.4 — Asterisk: Resolve `heuristics` naming ambiguity — `vocabulary.yaml` has a `heuristics:` section AND `heuristics.yaml` is a separate file. Either merge into one or rename to disambiguate (e.g. `vocabulary.heuristics` vs `heuristic-rules`).
+- [ ] P3.5 — Asterisk: Externalize large inline datasets in scenario YAML. `ptp-real-ingest.yaml` (~2300 lines) inlines full RP JSON payloads. Extract payloads to `datasets/` files and use `local_path:` references. Apply to any scenario file > 500 lines.
+- [ ] P3.6 — Validate (green) — all builds, tests, and lints pass.
+- [ ] P3.7 — Tune (blue) — refactor for quality. No behavior changes.
+- [ ] P3.8 — Validate (green) — all tests still pass after tuning.
 
 ## Acceptance criteria
 
@@ -159,9 +161,12 @@ No trust boundaries affected. All changes are syntactic; no new I/O, no credenti
 
 | Contract | Relationship |
 |----------|-------------|
-| `yaml-cohesion` | Complementary. Cohesion owns file organization (root cleanup, manifest wiring, 18 gaps). Lexicon owns shared grammar (envelope, FK syntax, vocabulary). |
-| `circuit-dsl-shorthand` | Complementary. Shorthand owns circuit-specific syntax (compact edges, topology inference). Lexicon owns the envelope that wraps circuit files. |
+| `dsl-wiring` (Asterisk) | Complementary. Wiring owns component/binding resolution and manifest gaps. Lexicon owns shared grammar (envelope, FK syntax, vocabulary). |
+| `circuit-dsl-shorthand` (Asterisk) | Complementary. Shorthand owns circuit-specific syntax (compact edges, topology inference). Lexicon owns the envelope that wraps circuit files. |
+| `manifest-as-map` (Origami) | P3.1 (file move) deferred until manifest-as-map P4 settles the directory structure. |
 
 ## Notes
+
+2026-03-07 — Overlap/gap analysis: P3.1 deferred (depends on manifest-as-map P4 settling directory structure). Added P3.4 (heuristics naming ambiguity) and P3.5 (large scenario dataset externalization). Updated relationship table: yaml-cohesion renamed to dsl-wiring. Added manifest-as-map dependency.
 
 2026-03-05 — Contract drafted from DSL lexicon audit. 10 dialects with zero shared grammar identified. 7 sins cataloged. Three-phase approach: envelope + FK syntax → redundancy + vocabulary → misplaced content + lint. Origami changes are backward-compatible (old syntax accepted with deprecation warning).

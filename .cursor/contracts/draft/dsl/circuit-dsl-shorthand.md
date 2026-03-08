@@ -74,7 +74,7 @@ Three phases, each independently shippable:
 
 **Phase 2 — Topology inference (Origami).** Compute `IsShortcut()` / `IsLoop()` from graph topology using topological sort from `start` node. Add lint rules: warn on unacknowledged inference, error on contradicting flags. LSP inlay hints for inferred edge types.
 
-**Phase 3 — Consumer migration (Asterisk).** Rewrite all three circuit YAMLs in compact form. No behavioral change — just shorter, more cohesive files.
+**Phase 3 — Consumer migration (Asterisk).** Rewrite both circuit YAMLs (`rca.yaml`, `calibration.yaml`) in compact form. No behavioral change — just shorter, more cohesive files. (The ingest circuit was deleted per `data-ingestion-circuit` — ingest is now a framework-level ETL harness, not a DSL circuit.)
 
 ## Coverage matrix
 
@@ -94,7 +94,7 @@ Three phases, each independently shippable:
 - [ ] Add `rawCircuitDef` / `rawNodeDef` types with inline `edges:` field
 - [ ] Implement `rawCircuitDef.normalize()` → `CircuitDef` (expand `from:` from parent node, auto-generate `id:`)
 - [ ] Support `edges: [target]` flow-style for unconditional single-target edges
-- [ ] When `name == family`, allow omitting `family:` (implicit from name)
+- [ ] When `name == family`, allow omitting `family:` (implicit from name). **Depends on** `dsl-wiring` W6 (family/transformer unification) -- the field name may change.
 - [ ] Tests: verbose/compact equivalence, edge cases (no edges, single edge, mixed forms)
 - [ ] Existing circuit YAML tests pass unchanged
 
@@ -109,9 +109,8 @@ Three phases, each independently shippable:
 
 ### Phase 3 — Consumer migration
 
-- [ ] Rewrite `asterisk-rca.yaml` in compact form
-- [ ] Rewrite `asterisk-calibration.yaml` in compact form
-- [ ] Rewrite `asterisk-ingest.yaml` in compact form
+- [ ] Rewrite `internal/circuits/rca.yaml` in compact form
+- [ ] Rewrite `internal/circuits/calibration.yaml` in compact form
 - [ ] Add onboarding comments to rewritten files
 - [ ] Validate (green) — `calibrate-stub` 21/21, `test-race`, `origami lint --profile strict`
 - [ ] Tune (blue) — refactor for quality. No behavior changes.
@@ -137,15 +136,27 @@ Then the framework infers IsShortcut() == true
 And lint warns if `shortcut: true` is absent
 And lint errors if `shortcut: false` is declared
 
-Given the three Asterisk circuits rewritten in compact form
+Given the two Asterisk circuits rewritten in compact form
 When calibrate-stub runs
-Then all 21/21 metrics pass with identical values
+Then all metrics pass with identical values
 ```
 
 ## Security assessment
 
 No trust boundaries affected. Parsing changes are input validation only; no new I/O, no credentials, no network calls.
 
+## Relationship to other contracts
+
+| Contract | Relationship |
+|----------|-------------|
+| `dsl-wiring` (Asterisk) | Phase 1 task "implicit family" depends on W6 (family/transformer unification). Execute W6 first. |
+| `manifest-as-map` (Origami) | No direct dependency. Shorthand operates on circuit YAML syntax, not manifest schema. |
+| `dsl-lexicon` (Asterisk) | Complementary. Lexicon owns `kind:` envelope; shorthand owns compact edge syntax. |
+
 ## Notes
+
+2026-03-07 — Added dependency on dsl-wiring W6 for implicit-family logic. Added relationship table.
+
+2026-03-07 — Housekeeping: fixed stale filenames (`asterisk-rca.yaml` → `internal/circuits/rca.yaml`, `asterisk-calibration.yaml` → `internal/circuits/calibration.yaml`). Dropped `asterisk-ingest.yaml` reference — ingest circuit was deleted (now a framework ETL harness). Phase 3 reduced from 3 circuits to 2.
 
 2026-03-04 19:45 — Contract created from iterative design session. Key decisions: cohesive node-scoped edges, `name:` explicit on both nodes and edges, topology flags as acknowledgments not declarations, backward-compatible parsing via rawCircuitDef normalization.

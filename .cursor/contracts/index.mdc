@@ -12,15 +12,21 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 ## draft/ -- Planned, not yet being executed
 
+### draft/dsl/ — DSL & YAML (4 contracts)
+
 | Contract | Goal | Tier |
 |----------|------|------|
-| `circuit-dsl-shorthand.md` | Cohesive node-scoped edges, auto-inferred topology flags, and implicit defaults for circuit YAMLs. | quick-win |
-| `yaml-playbook-docs.md` | Extend autodoc-generated skeleton with Asterisk-specific narrative, Ansible analogy, project identity. Depends on origami-autodoc (complete in Origami) + housekeeping. | quick-win |
-| `yaml-cohesion.md` | One entrypoint YAML, clean root dir, namespaced bindings, prompt-on-node, component.yaml-driven codegen. 18 gaps. | gate |
-| `store-staleness-cleanup.md` | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, and standalone command. | quick-win |
+| `dsl-lexicon.md` | Standardized DSL lexicon: `kind:`/`version:` envelope, `references:` FK syntax, artifact schema dedup, vocabulary enums, heuristics naming, dataset externalization. | gate |
+| `dsl-wiring.md` | Component/binding resolution, prompt-on-node, scorecard-on-circuit, naming conventions (11 open gaps). Cross-repo. Depends on Origami `manifest-as-map`. | gate |
+| `circuit-dsl-shorthand.md` | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. | quick-win |
+| `yaml-playbook-docs.md` | Extend autodoc skeleton with Asterisk narrative, Ansible analogy, project identity. | quick-win |
+
+### draft/ — Standalone (2 contracts)
+
+| Contract | Goal | Tier |
+|----------|------|------|
 | `sumi-refining.md` | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. | quick-win |
 | `kabuki-demo-revamp.md` | Full demo rethink for post-zero-Go era: new narrative arc, canonical wet recording, updated sections. | next-milestone |
-| `dsl-lexicon.md` | Standardized DSL lexicon: `kind:`/`version:` envelope, `references:` FK syntax, artifact schema dedup, vocabulary enums. | gate |
 
 ## completed/ -- Historical record (Asterisk domain contracts; framework contracts moved to Origami)
 
@@ -72,13 +78,14 @@ Grouped by original development phase. All contracts below are **complete** (or 
 | `data-swipe.md` | Scrub internal infrastructure hostnames from git history. |
 | `improve-human-operator-output.md` | Human narration during calibration: vocabulary, templates, ETA, position tags. |
 
-### completed/circuit/ (3)
+### completed/pipeline/ (4)
 
 | Contract | Goal |
 |----------|------|
 | `rp-adapter-v2.md` | Unified `internal/rp` package; scope-based client, APIError, context. |
 | `cursor-skill.md` | `asterisk-investigate` Cursor skill; signal-based F0-F6 artifact production. |
 | `wet-calibration.md` | Dry/wet calibration taxonomy, 28 Test Cards, victory loop. **Closed.** |
+| `store-staleness-cleanup.md` | Clean Kami store on session teardown; manual reset via MCP tool, CLI flag, `origami kami reset`. **Complete.** |
 
 ### completed/calibration/ (15)
 
