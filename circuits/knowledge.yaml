@@ -23,7 +23,6 @@ metadata:
 # containing trees, search results, and file contents.
 
 circuit: knowledge
-description: "Code context gathering from source repositories"
 topology: cascade
 handler_type: transformer
 

@@ -24,9 +24,13 @@ metadata:
 # to Review; infra/flake triages bypass investigation entirely.
 
 circuit: rca
-description: "Root-cause analysis circuit (F0 Recall through F6 Report)"
 topology: cascade
 handler_type: transformer
+
+zones:
+  intake: [recall, triage]
+  analysis: [gather-code, resolve, investigate]
+  synthesis: [correlate, review, report]
 
 # Tuning knobs — adjust these to control routing sensitivity.
 #   recall_hit:             confidence above which recall skips to review
@@ -45,6 +49,7 @@ nodes:
   # ── F0 Recall ──
   - name: recall
     description: "Pattern-match against known failures database; shortcut to review on high-confidence hit"
+    approach: analytical
     handler: recall
     prompt: prompts/recall/judge-similarity.md
     output_schema: schemas/rca/F0_RECALL.yaml
@@ -64,6 +69,7 @@ nodes:
   # ── F1 Triage ──
   - name: triage
     description: "Classify failure symptom (infra, flake, product bug) and select candidate repos"
+    approach: analytical
     handler: triage
     prompt: prompts/triage/classify-symptoms.md
     output_schema: schemas/rca/F1_TRIAGE.yaml
@@ -109,6 +115,7 @@ nodes:
   # ── F2 Resolve ──
   - name: resolve
     description: "Select the next repo to investigate from the candidate set"
+    approach: analytical
     handler: resolve
     prompt: prompts/resolve/select-repo.md
     output_schema: schemas/rca/F2_RESOLVE.yaml
@@ -120,6 +127,7 @@ nodes:
   # ── F3 Investigate ──
   - name: investigate
     description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
+    approach: exploratory
     handler: investigate
     prompt: prompts/investigate/deep-rca.md
     output_schema: schemas/rca/F3_INVESTIGATE.yaml
@@ -143,6 +151,7 @@ nodes:
   # ── F4 Correlate ──
   - name: correlate
     description: "Cross-reference findings across repos; detect duplicates against prior RCAs"
+    approach: analytical
     handler: correlate
     prompt: prompts/correlate/match-cases.md
     output_schema: schemas/rca/F4_CORRELATE.yaml
@@ -158,6 +167,7 @@ nodes:
   # ── F5 Review ──
   - name: review
     description: "Adversarial quality gate: approve, reassess, or overturn the draft RCA"
+    approach: adversarial
     handler: review
     prompt: prompts/review/present-findings.md
     output_schema: schemas/rca/F5_REVIEW.yaml
@@ -177,6 +187,7 @@ nodes:
   # ── F6 Report ──
   - name: report
     description: "Produce the final structured RCA with defect type, confidence, and evidence links"
+    approach: methodical
     handler: report
     prompt: prompts/report/regression-table.md
     output_schema: schemas/rca/F6_REPORT.yaml

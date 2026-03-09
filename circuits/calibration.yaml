@@ -20,7 +20,6 @@ metadata:
 #   just calibrate-wet           # slow, only when dry passes consistently
 
 circuit: calibration
-description: "Calibration circuit — setup cases, run RCA, score, aggregate metrics, report"
 handler_type: node
 scorecard: scorecards/rca.yaml
 
@@ -37,6 +36,7 @@ vars:
 
 nodes:
   - name: setup
+    approach: methodical
     handler: calibration-setup
     description: "Create store scaffolding: suite, versions, circuits, launches, jobs, cases"
     edges:
@@ -44,6 +44,7 @@ nodes:
         to: run-cases
 
   - name: run-cases
+    approach: methodical
     handler: calibration-run-cases
     description: "Execute the RCA circuit for each case (serial or parallel via WalkTeam)"
     edges:
@@ -51,6 +52,7 @@ nodes:
         to: score
 
   - name: score
+    approach: methodical
     handler: calibration-score
     description: "Score each case result against ground truth expectations"
     edges:
@@ -58,6 +60,7 @@ nodes:
         to: aggregate
 
   - name: aggregate
+    approach: methodical
     handler: calibration-aggregate
     description: "Compute M1-M20 metrics from scored case results"
     edges:
@@ -65,6 +68,7 @@ nodes:
         to: report
 
   - name: report
+    approach: methodical
     handler: calibration-report
     description: "Generate the final CalibrationReport with metrics, case details, and dataset health"
     edges:
