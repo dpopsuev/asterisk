@@ -32,41 +32,26 @@ $1 per 20 cases saves 10 people an accumulated 10 days of work.
 
 ## Draft Contracts
 
-| # | Contract | Dir | Tier | Scope |
-|---|----------|-----|------|-------|
-| 1 | `yaml-dx-cleanup` | draft/dsl/ | quick-win | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. Phase 6 partially done (binding resolution). -3K lines, -6 files. |
-| 2 | `circuit-dsl-shorthand` | draft/dsl/ | quick-win | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. Unblocked by dsl-wiring W6. |
-| 3 | `yaml-playbook-docs` | draft/dsl/ | quick-win | Extend autodoc-generated skeleton with Asterisk narrative, Ansible analogy, project identity. |
-| 4 | `circuit-subgraph-composition` | draft/dsl/ | quick-win | Composable circuits as subgraph nodes via `handler_type: circuit`. Any circuit invocable as a node in any other. First application: Knowledge as RCA subgraph. |
-| 5 | `sumi-refining` | draft/ | quick-win | Sumi TUI visual fixes: ANSI-safe panel composition, newest-first events, case lifecycle panel, graph centering. |
-| 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Full demo rethink for post-zero-Go era: new narrative, canonical wet recording, updated sections. |
-
-### Execution order
-
-```
-dsl-lexicon              ✓ COMPLETE
-dsl-wiring               ✓ COMPLETE
-  ├──▶ circuit-dsl-shorthand          ← NEXT (unblocked)
-  ├──▶ yaml-dx-cleanup                ← NEXT (unblocked)
-  ├──▶ yaml-playbook-docs             ← NEXT (unblocked, benefits from dx-cleanup)
-  │     └─► kabuki-demo-revamp          ← NEXT-MILESTONE
-  ├──▶ circuit-subgraph-composition   ← NEXT (unblocked)
-  └──▶ sumi-refining                   ← NEXT (independent)
-```
+| # | Contract | Dir | Tier | Progress |
+|---|----------|-----|------|----------|
+| 1 | `yaml-dx-cleanup` | draft/dsl/ | quick-win | P0,P1,P6 done. P2 partial. P3-P5 remain. |
+| 2 | `circuit-dsl-shorthand` | draft/dsl/ | quick-win | Not started. |
+| 3 | `yaml-playbook-docs` | draft/dsl/ | quick-win | Not started. |
+| 4 | `circuit-subgraph-composition` | draft/dsl/ | quick-win | P1-P3 core done. Tail: fold validation, lint rule, hook deprecation, autodoc. |
+| 5 | `sumi-refining` | draft/ | quick-win | Not started. |
+| 6 | `kabuki-demo-revamp` | draft/ | next-milestone | Not started. |
 
 ### Execution order
 
 ```
 origami-fold               ✓ COMPLETE (zero Go achieved, 11,650 LOC moved)
-  └─► naming-taxonomy      ✓ COMPLETE (modules/ rename, D/S markers, B7 lint)
-        ├─► design-principle-deterministic  ✓ COMPLETE (moved to Origami)
-        ├─► origami-autodoc                 ✓ COMPLETE (moved to Origami, all 7 phases)
-        └─► housekeeping                    ✓ COMPLETE
+  └─► naming-taxonomy      ✓ COMPLETE
+        └─► housekeeping    ✓ COMPLETE
               ├─► dsl-lexicon                ✓ COMPLETE
               ├─► dsl-wiring                 ✓ COMPLETE
               │     ├─► circuit-dsl-shorthand           ← NEXT (unblocked)
-              │     └─► circuit-subgraph-composition    ← NEXT (unblocked)
-              ├─► yaml-dx-cleanup              ← NEXT (naming, ceremony, schemas, scenarios)
+              │     └─► circuit-subgraph-composition    ◐ IN PROGRESS (tail items)
+              ├─► yaml-dx-cleanup              ◐ IN PROGRESS (P0,P1,P6 done)
               ├─► yaml-playbook-docs           ← NEXT (extends autodoc skeleton)
               │     └─► kabuki-demo-revamp       ← NEXT-MILESTONE
               ├─► sumi-refining                ← NEXT (independent)

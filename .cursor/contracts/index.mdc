@@ -14,12 +14,12 @@ Work contracts -- session-independent execution plans with state, tasks, and com
 
 ### draft/dsl/ — DSL & YAML (4 contracts)
 
-| Contract | Goal | Tier |
-|----------|------|------|
-| `circuit-dsl-shorthand.md` | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. | quick-win |
-| `yaml-dx-cleanup.md` | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. Phase 6 partially done (binding resolution). -3K lines, -6 files. | quick-win |
-| `yaml-playbook-docs.md` | Extend autodoc skeleton with Asterisk narrative, Ansible analogy, project identity. | quick-win |
-| `circuit-subgraph-composition.md` | Composable circuits as subgraph nodes via `handler_type: circuit`. Any circuit invocable as a node in any other. First application: Knowledge as RCA subgraph. | quick-win |
+| Contract | Goal | Tier | Progress |
+|----------|------|------|----------|
+| `circuit-dsl-shorthand.md` | Cohesive node-scoped edges, auto-inferred topology flags, implicit defaults for circuit YAMLs. | quick-win | Not started |
+| `yaml-dx-cleanup.md` | Self-documenting names, zero redundant identity, vocabulary shorthand, schema collapse, scenario defaults, payload externalization. | quick-win | P0,P1,P6 done; P2 partial; P3-P5 remain |
+| `yaml-playbook-docs.md` | Extend autodoc skeleton with Asterisk narrative, Ansible analogy, project identity. | quick-win | Not started |
+| `circuit-subgraph-composition.md` | Composable circuits as subgraph nodes via `handler_type: circuit`. Any circuit invocable as a node in any other. | quick-win | P1-P3 core done; tail items remain |
 
 ### draft/ — Standalone (2 contracts)
 

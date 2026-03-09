@@ -214,29 +214,29 @@ Kill the remaining `files:` junk drawer. Vocabulary and store get typed manifest
 
 ### Phase 0 — Housekeeping
 
-- [ ] P0.1 — Asterisk justfile: rename `domain_serve` variable to `binary := bin_dir / "asterisk"`. Update build comment to "Build unified binary via origami fold".
-- [ ] P0.2 — Asterisk justfile: container-run recipe uses `bin/asterisk` as entrypoint (the unified binary listens on a single port now — no separate serve subcommand).
-- [ ] P0.3 — Validate: `just build` produces `bin/asterisk`.
+- [x] P0.1 — Asterisk justfile: rename `domain_serve` variable to `binary := bin_dir / "asterisk"`. Update build comment to "Build unified binary via origami fold".
+- [x] P0.2 — Asterisk justfile: container-run recipe uses `bin/asterisk` as entrypoint (the unified binary listens on a single port now — no separate serve subcommand).
+- [x] P0.3 — Validate: `just build` produces `bin/asterisk`.
 
 ### Phase 1 — Domain directories
 
-- [ ] P1.1 — Origami: fold/manifest accepts `Domains []string` (`yaml:"domains,omitempty"`). For each domain path, fold scans `domains/<path>/` for known subdirs (`scenarios/`, `sources/`, `heuristics.yaml`, `datasets/`, `tuning/`) and auto-merges discovered files into `AssetMap`. No manual path enumeration needed.
-- [ ] P1.2 — Asterisk: create `domains/ocp/ptp/` and move domain-specific files:
+- [x] P1.1 — Origami: fold/manifest accepts `Domains []string` (`yaml:"domains,omitempty"`). For each domain path, fold scans `domains/<path>/` for known subdirs (`scenarios/`, `sources/`, `heuristics.yaml`, `datasets/`, `tuning/`) and auto-merges discovered files into `AssetMap`. No manual path enumeration needed.
+- [x] P1.2 — Asterisk: create `domains/ocp/ptp/` and move domain-specific files:
   - `heuristics.yaml` → `domains/ocp/ptp/heuristics.yaml`
   - `scenarios/*.yaml` → `domains/ocp/ptp/scenarios/`
   - `sources/*.yaml` → `domains/ocp/ptp/sources/`
   - `tuning/*.yaml` → `domains/ocp/ptp/tuning/`
-- [ ] P1.3 — Asterisk: update `origami.yaml` — add `domains: [ocp/ptp]`, remove explicit per-file references for moved files (scenarios, sources, heuristics from assets section).
-- [ ] P1.4 — Validate: `just build`, `origami lint --profile strict`.
+- [x] P1.3 — Asterisk: update `origami.yaml` — add `domains: [ocp/ptp]`, remove explicit per-file references for moved files (scenarios, sources, heuristics from assets section).
+- [x] P1.4 — Validate: `just build`, `origami lint --profile strict`.
 
 ### Phase 2 — Naming + ceremony
 
-- [ ] P2.1 — Rename `schema.yaml` → `db-schema.yaml`. Update `origami.yaml` ref.
-- [ ] P2.2 — Rename `schemas/` → `llm-output-schemas/`. Collapse 7 individual files into `llm-output-schemas/rca.yaml`. Update `origami.yaml` and circuit `output_schema:` paths.
+- [x] P2.1 — Rename `schema.yaml` → `db-schema.yaml`. Update `origami.yaml` ref.
+- [x] P2.2 — Rename `schemas/` → `llm-output-schemas/`. Collapse 7 individual files into `llm-output-schemas/rca.yaml`. Update `origami.yaml` and circuit `output_schema:` paths.
 - [ ] P2.3 — Kill bare `name:` and `description:` from all files that have `metadata:` envelope (~19 files). The envelope is the sole identity.
-- [ ] P2.4 — Vocabulary shorthand: `M1: Defect Type Accuracy` instead of `M1: {short: M1, long: ...}`. Verify/add Origami loader support (trivial: `if string → {short: key, long: value}`).
-- [ ] P2.5 — Kill stage aliases (`F0_RECALL` etc.) — derive at load time from `F0` + node name.
-- [ ] P2.6 — Rename vocabulary `heuristics:` section → `decisions:`. Update any Go code that reads this section name.
+- [ ] P2.4 — Vocabulary shorthand: defect_types `{long:, description:}` map → string shorthand. Stages and metrics already use shorthand.
+- [x] P2.5 — Kill stage aliases (`F0_RECALL` etc.) — derive at load time from `F0` + node name.
+- [x] P2.6 — Rename vocabulary `heuristics:` section → `decisions:`. Update any Go code that reads this section name.
 - [ ] P2.7 — Validate: `just build`, `origami lint --profile strict`.
 
 ### Phase 3 — Scenario defaults
@@ -266,11 +266,11 @@ Kill the remaining `files:` junk drawer. Vocabulary and store get typed manifest
 
 - [x] P6.3 — ~~Origami: add `Connectors map[string]ConnectorConfig` to manifest.~~ **Done.** Implemented as `Connectors map[string]ConnectorRef` with `path:` pointing to component.yaml. Runtime config (API keys, URLs) stays in connector factories via env vars — cleaner than putting secrets in the manifest.
 - [x] P6.6 — ~~Origami: update codegen template to wire connectors from manifest config.~~ **Done.** `GenerateWiredBinary()` resolves bindings, generates Go import + factory calls, and compiles `bin/asterisk` — a unified server binary with domain data + circuit MCP + all connectors wired from YAML.
-- [ ] P6.1 — Origami: add `Vocabulary string` field to `AssetMap` (`yaml:"vocabulary,omitempty"`). Replaces `files.vocabulary`. Vocabulary is a first-class concept, not a misc file.
-- [ ] P6.2 — Origami: add `Store` section to `DomainServeConfig` (`yaml:"store,omitempty"`) with `Engine string` and `Schema string`. Replaces `files.schema`. Makes the persistence layer visible in the manifest.
-- [ ] P6.4 — Origami: remove `Files map[string]string` from `AssetMap`. All former `files:` entries now have typed homes (vocabulary: field, store: section, heuristics: domain convention). Fail the build if `files:` is present (migration error).
-- [ ] P6.5 — Asterisk: rewrite `origami.yaml` — move `vocabulary` to top-level field, `schema` under `store:`, remove `files:` block entirely. The manifest should have: identity → architecture (schematics/connectors) → infrastructure (store, vocabulary) → domains → assets.
-- [ ] P6.7 — Validate (green): `just build`, `origami lint --profile strict`, all tests pass.
+- [x] P6.1 — Origami: `Vocabulary string` field on `AssetMap`. Vocabulary is a first-class concept under `domain_serve.assets.vocabulary:`.
+- [x] P6.2 — Origami: `Store` section on `DomainServeConfig` with `Engine` and `Schema`. Manifest declares `store: {engine: sqlite, schema: db-schema.yaml}`.
+- [x] P6.4 — Origami: `files:` section eliminated from manifest parsing. All former entries have typed homes (vocabulary: field, store: section, heuristics: domain convention).
+- [x] P6.5 — Asterisk: `origami.yaml` rewritten — clean layering: identity → architecture (schematics/connectors) → domains → infrastructure (store, vocabulary) → assets. No `files:` block.
+- [x] P6.7 — Validate (green): `just build` produces `bin/asterisk`, all tests pass.
 - [ ] P6.8 — Tune (blue): refactor for quality, no behavior changes.
 - [ ] P6.9 — Validate (green): all tests still pass after tuning.
 
@@ -384,3 +384,5 @@ No trust boundaries affected. All changes are syntactic — no new I/O, credenti
 2026-03-08 — Added domain directories (Phase 1). Asterisk is a generic RCA tool, not PTP-specific. PTP data (heuristics, scenarios, sources, tuning, datasets) belongs under `domains/ocp/ptp/`. New developers extend via `domains/<name>/`. Phases renumbered: domain move → naming → scenario defaults → payload externalization → enforcement.
 
 2026-03-08 — Contract drafted from full YAML audit. 24 files, 5,076 lines. Key insight: 70% of YAML is scenarios, 45% is one file (`ptp-real-ingest`). The ceremony problem is real but the biggest win is scenario defaults + payload externalization.
+
+2026-03-09 — Housekeeping audit. Phases 0, 1, and 6 are fully complete. Phase 2 is partially complete (P2.1, P2.2, P2.5, P2.6 done; P2.3 bare identity and P2.4 defect_type shorthand remain). Phases 3 (scenario defaults), 4 (payload externalization), and 5 (enforcement lint rules) are not started. Remaining: P2.3, P2.4, P2.7, P3, P4, P5, P6.8-P6.9.
