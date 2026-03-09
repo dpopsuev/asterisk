@@ -266,7 +266,7 @@ Three phases, each independently shippable. Origami first, then Asterisk.
 - [x] P1.3: Implement `circuitRefNode` in `delegate.go` — wraps a `*CircuitDef`, implements `DelegateNode` (`GenerateCircuit` returns stored def)
 - [x] P1.4: Add `case HandlerTypeCircuit` to `resolveHandler` in `dsl.go` — look up `handler` in `reg.Circuits`, return `circuitRefNode`
 - [x] P1.5: Tests — 7 tests: interface, GenerateCircuit, BuildGraph, sub-walk, context inheritance, missing circuit, nil registry
-- [ ] P1.6: Fold validation — if `handler_type: circuit` references a circuit not in `assets.circuits`, fail at build time
+- [x] P1.6: Fold validation — if `handler_type: circuit` references a circuit not in `assets.circuits`, fail at build time. Also detects circular dependencies.
 - [ ] P1.7: Lint rule — circuit-ref to unknown circuit name (warning)
 
 ### P2 — Knowledge Circuit (Origami + Asterisk)
@@ -281,7 +281,7 @@ Three phases, each independently shippable. Origami first, then Asterisk.
 - [x] P3.1: Add `gather-code` node to `circuits/rca.yaml` with `handler_type: circuit, handler: knowledge` (triage → gather-code → resolve)
 - [x] P3.2: Bridge hook `bridge.code-context` converts Knowledge `*CodeContext` → `*CodeParams` in walker context
 - [x] P3.3: Remove `inject.code.tree` from resolve's `before:`, remove `inject.code.search, inject.code.read` from investigate's `before:`
-- [ ] P3.4: Deprecate/remove `inject.code.*` hooks from `hooks_inject.go` (kept for now — still registered for backward compat with triage→investigate shortcut)
+- [x] P3.4: Remove `inject.code.*` hooks from `hooks_inject.go` — dead code after Knowledge subgraph replaced them.
 - [ ] P3.5: Update autodoc/mermaid rendering to show `handler_type: circuit` nodes distinctly (subgraph box)
 - [x] P3.6: Added `inject.code-keywords` before-hook on gather-code that extracts search keywords from walker context
 
@@ -318,3 +318,5 @@ No trust boundaries affected. Circuit composition is internal framework plumbing
 2026-03-08 — Contract drafted. Key principle: all circuits are composable subgraph nodes — no circuit is privileged. K, R, Sa, Sb are all peers. First application: Knowledge as RCA subgraph, replacing opaque inject.code.* hooks.
 
 2026-03-08 — P1-P3 core implementation complete. Framework: `handler_type: circuit` const, `GraphRegistries.Circuits`, `circuitRefNode`, resolver case, context inheritance in `walkDelegate`. Knowledge: 3 transformers (tree/search/read), `TransformerComponent`, circuit YAML, integration tests. RCA: `gather-code` delegate node, `bridge.code-context` after-hook, `inject.code-keywords` before-hook. Remaining: P1.6 fold validation, P1.7 lint rule, P3.4 hook deprecation, P3.5 autodoc rendering.
+
+2026-03-09 — Quick-win pass: P1.6 fold validation (cross-circuit ref check + cycle detection) and P3.4 (inject.code.* hook removal) complete. Remaining: P1.7 lint rule, P3.5 autodoc rendering, Tune, final Validate.
