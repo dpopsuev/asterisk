@@ -3,22 +3,8 @@
 Purpose: quick map for agentic AI to locate guidance without re-scanning repos.
 
 ## Directories
-- `rules/` — always-on AI behavior and development style constraints.
-- `guide/` — software development process and workflow guidance.
-- `docs/` — deep library (long-form references).
-- `notes/` — short summaries and quick references.
-- `contracts/` — work contracts by lifecycle status; urgency via goal manifest:
-  - `draft/` — planned contracts not yet being executed.
-  - `active/` — contracts currently being executed.
-  - `completed/` — finished contracts grouped by original development phase.
-  - `current-goal.mdc` — goal manifest: declares active goal and urgency map.
-- `security-cases/` — security bug post-mortems (RCA, severity, mitigation).
-- `strategy/` — long-term objectives and invariants.
-- `tactics/` — situational playbooks ("if X, do Y").
-- `taxonomy/` — naming and classification rules.
-- `glossary/` — domain terms and definitions.
-- `goals/` — goal checklist + per-goal details.
-- `skills/` — project-specific skill definitions.
+- `personal/` — per-developer preferences, private notes (gitignored).
+- `sensitive/` — internal hostnames, infrastructure details, credentials (gitignored).
 
 ## Files
 - `meta.mdc` — portable meta-engineering rules for .cursor structure.
