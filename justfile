@@ -49,9 +49,9 @@ analyze envelope:
 
 # ─── Container ───────────────────────────────────────────
 
-# Build domain-serve image via origami fold --container
+# Build domain-serve image via origami fold --domain-only --container
 container-build:
-    origami fold --container
+    origami fold --domain-only --container
 
 # Full deploy: build domain image, build Origami images, start compose stack
 deploy:
