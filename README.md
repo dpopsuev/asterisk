@@ -169,7 +169,7 @@ Asterisk ships with a 20-metric calibration framework validated against producti
 Run calibration against real RP data:
 
 ```bash
-bin/asterisk calibrate --scenario=ptp-real-ingest
+bin/asterisk calibrate --scenario=ptp --mode=offline
 ```
 
 ---

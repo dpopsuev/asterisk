@@ -32,10 +32,31 @@ The framework playground is in the Origami repo: `go run ./examples/playground/`
 
 ## Calibration
 
-Stub calibration runs entirely offline (no RP, no AI):
+Offline calibration uses pre-captured RP + harvester bundles (defaults to stub backend):
 
 ```bash
-bin/asterisk calibrate --scenario=ptp-mock --adapter=stub
+just calibrate-offline scenario=ptp              # stub backend (deterministic)
+just calibrate-offline scenario=ptp backend=llm   # LLM backend (wet run)
+```
+
+Online calibration fetches live RP data and harvester sources:
+
+```bash
+just calibrate-online scenario=ptp backend=llm
+```
+
+## Harvester Bundles
+
+Capture an offline harvester bundle for a domain:
+
+```bash
+just capture-harvester scenario=ptp
+```
+
+Validate a captured bundle:
+
+```bash
+just validate-bundle domain=ocp/ptp
 ```
 
 ## Commit Conventions

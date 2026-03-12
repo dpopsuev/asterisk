@@ -1,0 +1,13 @@
+{
+  "run_id": "31278",
+  "name": "ptp-operator-launch-31278",
+  "failure_list": [
+    {
+      "id": "59858",
+      "name": "test_id:59858",
+      "status": "FAILED",
+      "description": "/var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_recovery.go:773",
+      "log_snippet": ""
+    }
+  ]
+}

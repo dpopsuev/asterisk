@@ -1,0 +1,20 @@
+{
+  "run_id": "32292",
+  "name": "ptp-operator-launch-32292",
+  "failure_list": [
+    {
+      "id": "70111",
+      "name": "test_id:70111",
+      "status": "FAILED",
+      "description": "OCPBUGS-74342 - GNSS Sync State Not Correctly Mapped to Cloud Event and Metrics OCPBUGS-59269 Role metrics are missing after restarting sidecar container in linuxptp-daemon needs to reopen for versions under 4.18",
+      "log_snippet": ""
+    },
+    {
+      "id": "84297",
+      "name": "test_id:84297",
+      "status": "FAILED",
+      "description": "PTP Recovery [AfterEach] sidecar container recovery should verify events are logged during sidecar recovery",
+      "log_snippet": ""
+    }
+  ]
+}

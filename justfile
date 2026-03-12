@@ -37,15 +37,36 @@ lint:
 # Calibration and analysis now run as go test wrappers in Origami.
 # Wet calibration uses the MCP server via Papercup skill.
 
-# Run stub calibration (deterministic, no AI)
-calibrate-stub scenario="ptp-mock":
-    CALIBRATE_SCENARIO={{ scenario }} CALIBRATE_BACKEND=stub \
-        go test -run TestCalibrate_PTPMock -v ./{{ rca_test_pkg }}/ -timeout 2m
+# Run offline calibration (pre-captured RP + knowledge bundles)
+calibrate-offline scenario="ptp" backend="stub":
+    cd {{ origami_dir }} && \
+    CALIBRATE_SCENARIO={{ scenario }} CALIBRATE_BACKEND={{ backend }} CALIBRATE_MODE=offline \
+        go test -run TestCalibrate -v ./schematics/rca/mcpconfig/ -timeout 5m
+
+# Run online calibration (live RP + knowledge fetch)
+calibrate-online scenario="ptp" backend="stub":
+    cd {{ origami_dir }} && \
+    CALIBRATE_SCENARIO={{ scenario }} CALIBRATE_BACKEND={{ backend }} CALIBRATE_MODE=online \
+        go test -run TestCalibrate -v ./schematics/rca/mcpconfig/ -timeout 10m
 
 # Run analysis on a local envelope file (heuristic backend)
 analyze envelope:
+    cd {{ origami_dir }} && \
     ANALYZE_ENVELOPE={{ envelope }} \
-        go test -run TestAnalyze_Heuristic -v ./{{ rca_test_pkg }}/ -timeout 2m
+        go test -run TestAnalyze_Heuristic -v ./schematics/rca/mcpconfig/ -timeout 2m
+
+# ─── Harvester Bundles ────────────────────────────────────
+
+# Capture a harvester bundle for a domain scenario
+capture-harvester scenario="ptp" domain="ocp/ptp":
+    origami capture --schematic=harvester \
+        --source-pack=domains/{{ domain }}/sources/{{ scenario }}.yaml \
+        --output=domains/{{ domain }}/offline/harvester/ \
+        --overwrite -v
+
+# Validate an offline bundle (RP + harvester)
+validate-bundle domain="ocp/ptp":
+    origami validate-bundle --path=domains/{{ domain }}/offline/harvester/
 
 # ─── Container ───────────────────────────────────────────
 

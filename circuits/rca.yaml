@@ -4,109 +4,22 @@ metadata:
   name: rca
   description: "Core RCA investigation pipeline"
 
-# RCA Investigation Circuit
-#
-# The core analysis pipeline. Each test failure (case) walks this graph
-# from Recall to Report. Edges encode routing logic — confidence
-# thresholds, shortcut conditions, and loop limits — so the circuit
-# adapts its depth to each failure's complexity.
-#
-# Pipeline overview:
-#   F0 Recall     → pattern-match against known failures database
-#   F1 Triage     → classify symptom category, pick candidate repos
-#   F2 Resolve    → select next repo to investigate
-#   F3 Investigate → deep-dive: log analysis, commit correlation, evidence
-#   F4 Correlate  → cross-reference findings, detect serial killers
-#   F5 Review     → adversarial quality gate (approve / reassess / overturn)
-#   F6 Report     → produce final structured RCA
-#
-# Shortcuts allow fast paths: high-confidence recall hits skip straight
-# to Review; infra/flake triages bypass investigation entirely.
+# Consumer overlay: imports RCA base from origami/schematics/rca/circuit.yaml,
+# extends analysis zone with gather-code (Harvester subgraph), and routes
+# triage-investigate through gather-code instead of directly to resolve.
 
+import: rca
 circuit: rca
-topology: cascade
-handler_type: transformer
 
 zones:
-  intake:
-    nodes: [recall, triage]
   analysis:
     nodes: [gather-code, resolve, investigate]
-  synthesis:
-    nodes: [correlate, review, report]
-
-# Tuning knobs — adjust these to control routing sensitivity.
-#   recall_hit:             confidence above which recall skips to review
-#   recall_uncertain:       confidence band where recall still routes to triage
-#   convergence_sufficient: investigation convergence score to proceed to correlate
-#   max_investigate_loops:  how many resolve→investigate iterations before giving up
-#   correlate_dup:          confidence above which a duplicate match terminates early
-vars:
-  recall_hit: 0.80
-  recall_uncertain: 0.40
-  convergence_sufficient: 0.50
-  max_investigate_loops: 1
-  correlate_dup: 0.80
 
 nodes:
-  # ── F0 Recall ──
-  - name: recall
-    description: "Pattern-match against known failures database; shortcut to review on high-confidence hit"
-    approach: analytical
-    handler: recall
-    prompt: prompts/recall/judge-similarity.md
-    output_schema: schemas/rca/F0_RECALL.yaml
-    after: [store.recall]
-    edges:
-      - name: recall-hit
-        to: review
-        shortcut: true
-        when: "output.match == true && output.confidence >= config.recall_hit"
-      - name: recall-uncertain
-        to: triage
-        when: "output.match == true && output.confidence >= config.recall_uncertain && output.confidence < config.recall_hit"
-      - name: recall-miss
-        to: triage
-        when: "output.match != true"
-
-  # ── F1 Triage ──
-  - name: triage
-    description: "Classify failure symptom (infra, flake, product bug) and select candidate repos"
-    approach: analytical
-    handler: triage
-    prompt: prompts/triage/classify-symptoms.md
-    output_schema: schemas/rca/F1_TRIAGE.yaml
-    after: [store.triage]
-    edges:
-      - name: triage-skip-infra
-        to: review
-        shortcut: true
-        when: 'output.symptom_category == "infra"'
-      - name: triage-skip-flake
-        to: review
-        shortcut: true
-        when: 'output.symptom_category == "flake"'
-      - name: triage-skip-investigation
-        to: review
-        shortcut: true
-        when: "output.skip_investigation == true"
-      # Only one candidate repo → skip resolve, go straight to investigate
-      # H7b "triage-hypothesis-repo" is a runner-level interception
-      # (calibrate/parallel.go) that deterministically resolves repos from
-      # workspace Purpose metadata when the triage hypothesis matches.
-      - name: triage-single-repo
-        to: investigate
-        shortcut: true
-        when: "output.skip_investigation != true && len(output.candidate_repos) == 1"
-      - name: triage-investigate
-        to: gather-code
-        when: "output.skip_investigation != true"
-
-  # ── Code Context (Knowledge subgraph) ──
   - name: gather-code
-    description: "Gather code context from source repositories via Knowledge circuit"
+    description: "Gather code context from source repositories via Harvester circuit"
     handler_type: circuit
-    handler: knowledge
+    handler: harvester
     approach: methodical
     before: [inject.code-keywords]
     after: [bridge.code-context]
@@ -115,89 +28,47 @@ nodes:
         to: resolve
         when: "true"
 
-  # ── F2 Resolve ──
-  - name: resolve
-    description: "Select the next repo to investigate from the candidate set"
-    approach: analytical
-    handler: resolve
-    prompt: prompts/resolve/select-repo.md
-    output_schema: schemas/rca/F2_RESOLVE.yaml
-    edges:
-      - name: resolve-multi
-        to: investigate
-        when: "true"
+edges:
+  - id: triage-investigate
+    name: triage-investigate
+    from: triage
+    to: gather-code
+    when: "output.skip_investigation != true"
 
-  # ── F3 Investigate ──
-  - name: investigate
-    description: "Deep-dive into a single repo: log analysis, commit correlation, evidence gathering"
-    approach: holistic
-    handler: investigate
-    prompt: prompts/investigate/deep-rca.md
-    output_schema: schemas/rca/F3_INVESTIGATE.yaml
-    after: [store.investigate]
-    edges:
-      - name: investigate-converged
-        to: correlate
-        when: "output.convergence_score >= config.convergence_sufficient"
-      - name: investigate-no-evidence-skip
-        to: correlate
-        when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) == 0"
-      - name: investigate-low
-        to: resolve
-        loop: true
-        when: "output.convergence_score < config.convergence_sufficient && len(output.evidence_refs) > 0 && state.loops.investigate < config.max_investigate_loops"
-      - name: investigate-exhausted
-        to: review
-        shortcut: true
-        when: "output.convergence_score < config.convergence_sufficient && state.loops.investigate >= config.max_investigate_loops"
+# Port declarations for cross-circuit composition and calibration
+ports:
+  - name: post-triage
+    direction: out
+    type: rca.TriageResult
+    description: "Triage output forwarded to Harvester for code context"
+  - name: code-context
+    direction: in
+    type: harvester.CodeContext
+    description: "Code context returned from Harvester"
 
-  # ── F4 Correlate ──
-  - name: correlate
-    description: "Cross-reference findings across repos; detect duplicates against prior RCAs"
-    approach: analytical
-    handler: correlate
-    prompt: prompts/correlate/match-cases.md
-    output_schema: schemas/rca/F4_CORRELATE.yaml
-    after: [store.correlate]
-    edges:
-      - name: correlate-dup
-        to: DONE
-        when: "output.is_duplicate == true && output.confidence >= config.correlate_dup"
-      - name: correlate-proceed
-        to: review
-        when: "true"
+# Wiring: connect RCA ports to Harvester
+wiring:
+  - from: rca.out:post-triage
+    to: harvester.in:keywords
 
-  # ── F5 Review ──
-  - name: review
-    description: "Adversarial quality gate: approve, reassess, or overturn the draft RCA"
-    approach: rigorous
-    handler: review
-    prompt: prompts/review/present-findings.md
-    output_schema: schemas/rca/F5_REVIEW.yaml
-    after: [store.review]
-    edges:
-      - name: review-approve
-        to: report
-        when: 'output.decision == "approve"'
-      - name: review-reassess
-        to: resolve
-        loop: true
-        when: 'output.decision == "reassess"'
-      - name: review-overturn
-        to: report
-        when: 'output.decision == "overturn"'
-
-  # ── F6 Report ──
-  - name: report
-    description: "Produce the final structured RCA with defect type, confidence, and evidence links"
-    approach: methodical
-    handler: report
-    prompt: prompts/report/regression-table.md
-    output_schema: schemas/rca/F6_REPORT.yaml
-    edges:
-      - name: report-done
-        to: DONE
-        when: "true"
-
-start: recall
-done: DONE
+# Calibration contract: maps circuit outputs to scorer-addressable fields
+calibration:
+  outputs:
+    - field: output.defect_type
+      scorer_name: rca_defect_type
+      type: string
+    - field: output.symptom_category
+      scorer_name: actual_category
+      type: string
+    - field: output.convergence_score
+      scorer_name: actual_convergence
+      type: float
+    - field: output.component
+      scorer_name: actual_component
+      type: string
+    - field: output.evidence_refs
+      scorer_name: actual_evidence_refs
+      type: array
+    - field: output.rca_message
+      scorer_name: actual_rca_message
+      type: string

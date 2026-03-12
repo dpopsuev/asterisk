@@ -1,0 +1,13 @@
+{
+  "run_id": "32295",
+  "name": "ptp-operator-launch-32295",
+  "failure_list": [
+    {
+      "id": "49734",
+      "name": "test_id:49734",
+      "status": "FAILED",
+      "description": "PTP Events and Metrics - interface down",
+      "log_snippet": ""
+    }
+  ]
+}

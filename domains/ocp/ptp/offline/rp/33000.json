@@ -1,0 +1,20 @@
+{
+  "run_id": "33000",
+  "name": "ptp-operator-launch-33000",
+  "failure_list": [
+    {
+      "id": "49742",
+      "name": "test_id:49742",
+      "status": "FAILED",
+      "description": "PTP Events and Metrics - interface down /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_interfaces.go:753 Ran 19 of 39 Specs in 5903.299 seconds",
+      "log_snippet": ""
+    },
+    {
+      "id": "85904",
+      "name": "test_id:85904",
+      "status": "FAILED",
+      "description": "Tracking issue for failures: All the ntpfailover-specific tests never got to run since the clocks weren\u2019t locked Automation issue, should be fixed now",
+      "log_snippet": ""
+    }
+  ]
+}

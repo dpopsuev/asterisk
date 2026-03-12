@@ -1,10 +1,10 @@
 kind: scenario
 version: v1
 metadata:
-  name: ptp-real-ingest
-  description: "Real PTP data with inline RP payloads for ingest testing"
+  name: ptp
+  description: "Real PTP production failures — unified ground truth"
 
-description: 'Real PTP failures: 18 verified + 12 candidate cases from CI data (Jan 2025 - Feb 2026)'
+description: 'Real PTP failures: 18 verified + 12 candidate cases from CI data (Jan 2025 - Feb 2026). Supports offline (pre-loaded data) and online (live RP fetch) calibration modes.'
 rcas:
     - id: R1
       title: should have the 'phc2sys' and 'ptp4l' processes in 'UP' state in PTP metrics
@@ -2239,27 +2239,49 @@ source_pack:
     repos:
         - name: cnf-gotests
           path: /home/dpopsuev/Workspace/cnf-gotests
-          purpose: 'PTP test cases (Ginkgo): test code, assertions, test helpers'
+          purpose: 'PTP test cases (Ginkgo): test code, assertions, test helpers. Error stacks point here for cascade failures at ptp_interfaces.go:498.'
           branch: master
+          relevant_to_rcas:
+            - R9
+            - R27
         - name: ptp-operator
           path: /home/dpopsuev/Workspace/ptp-operator
-          purpose: 'SUT: PTP operator lifecycle, manages linuxptp-daemon DaemonSet'
+          purpose: 'SUT: PTP operator lifecycle, manages linuxptp-daemon DaemonSet, PtpConfig CRD, PTP profiles'
           branch: release-4.18
         - name: linuxptp-daemon
           path: /home/dpopsuev/Workspace/linuxptp-daemon
-          purpose: 'SUT: PTP daemon — ptp4l, phc2sys, ts2phc; event socket; config change handling'
+          purpose: 'SUT: PTP daemon running on nodes — ptp4l, phc2sys, ts2phc processes; event socket communication with cloud-event-proxy; config change handling'
           branch: release-4.18
+          relevant_to_rcas:
+            - R10
+            - R14
+            - R15
+            - R24
         - name: cloud-event-proxy
           path: /home/dpopsuev/Workspace/cloud-event-proxy
-          purpose: 'Cloud Event Proxy: receives PTP events via Unix socket; publishes cloud events'
+          purpose: 'Cloud Event Proxy: receives PTP events from daemon via Unix socket (/cloud-native/events.sock); publishes cloud events'
           branch: release-4.18
+          relevant_to_rcas:
+            - R4
+            - R5
+            - R6
+            - R8
+            - R13
+            - R17
+            - R22
+            - R23
+            - R26
+            - R28
         - name: cnf-features-deploy
           path: ""
           purpose: 'ZTP config: phc2sys options, deployment configs'
           branch: release-4.17
+          relevant_to_rcas:
+            - R21
+            - R29
         - name: eco-gotests
           path: /home/dpopsuev/Workspace/eco-gotests
-          purpose: Ecosystem QE test framework; shared helpers (NOT PTP-specific)
+          purpose: Ecosystem QE test framework; shared helpers used by cnf-gotests (NOT PTP-specific)
           branch: master
           is_red_herring: true
     sources:

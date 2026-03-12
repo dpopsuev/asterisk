@@ -4,6 +4,8 @@ metadata:
   name: rca-report
   description: "RCA findings report template"
 
+import: rca
+
 format: markdown
 sections:
   - type: header

@@ -1,0 +1,34 @@
+captured_at: null
+repos:
+  - name: linuxptp-daemon
+    branch: release-4.18
+    sha: null
+    files:
+      - pkg/daemon/daemon.go
+      - pkg/daemon/process.go
+      - pkg/event/socket.go
+    relevant_rcas: [R10, R14, R15, R24]
+  - name: cloud-event-proxy
+    branch: release-4.18
+    sha: null
+    files:
+      - pkg/receiver/handler.go
+    relevant_rcas: [R4, R5, R6, R8, R13, R17, R22, R23, R26, R28]
+  - name: cnf-gotests
+    branch: master
+    sha: null
+    files:
+      - test/ran/ptp/tests/ptp_interfaces.go
+      - test/ran/ptp/tests/ptp_events_and_metrics.go
+      - test/ran/ptp/tests/ptp_recovery.go
+    relevant_rcas: [R9, R27]
+  - name: cnf-features-deploy
+    branch: release-4.17
+    sha: null
+    files:
+      - ztp/source-crs/extra-manifest/phc2sys/phc2sys.yaml
+    relevant_rcas: [R21, R29]
+docs:
+  - name: ptp-operator-architecture
+    local_path: docs/ptp/architecture.md
+    sha: null

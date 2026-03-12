@@ -3,6 +3,9 @@ metadata:
   name: asterisk
   description: "SQLite tables for Asterisk RCA store"
 
+import: rca
+extend: true
+
 # Asterisk Database Schema
 #
 # Defines every SQLite table used by Asterisk's RCA store. Parsed by

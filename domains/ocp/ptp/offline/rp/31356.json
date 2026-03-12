@@ -1,0 +1,34 @@
+{
+  "run_id": "31356",
+  "name": "ptp-operator-launch-31356",
+  "failure_list": [
+    {
+      "id": "73094",
+      "name": "test_id:73094",
+      "status": "FAILED",
+      "description": "PTP Events and Metrics - interface down slave interface ens2fx was down but no metrics didn\u2019t update to FREERUN",
+      "log_snippet": ""
+    },
+    {
+      "id": "66848",
+      "name": "test_id:66848 should have the 'phc2sys' and 'ptp4l' processes in 'UP' state in PTP metrics",
+      "status": "FAILED",
+      "description": "/var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_events_and_metrics.go:92",
+      "log_snippet": ""
+    },
+    {
+      "id": "82302",
+      "name": "test_id:82302",
+      "status": "FAILED",
+      "description": "change PTP offset thresholds /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_events_and_metrics.go:159 Dev Bug - Stale metrics reported [ASSIGNED]",
+      "log_snippet": ""
+    },
+    {
+      "id": "59862",
+      "name": "test_id:59862",
+      "status": "FAILED",
+      "description": "PTP Recovery [AfterEach] should recover the phc2sys process after killing it",
+      "log_snippet": ""
+    }
+  ]
+}

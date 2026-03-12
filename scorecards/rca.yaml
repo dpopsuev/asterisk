@@ -3,6 +3,8 @@ metadata:
   name: rca
   description: "RCA calibration metrics and thresholds"
 
+import: rca
+
 # RCA Calibration Scorecard
 #
 # Defines every metric used to evaluate Asterisk's RCA quality.

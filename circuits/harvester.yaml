@@ -1,0 +1,22 @@
+kind: circuit
+version: v1
+metadata:
+  name: harvester
+  description: "Code context gathering — ensure, search, read"
+
+# Consumer overlay: imports Harvester base from origami/schematics/harvester/circuit.yaml.
+# Asterisk uses the canonical tree → search → read pipeline as-is.
+# Port declarations enable cross-circuit composition with the RCA circuit.
+
+import: harvester
+circuit: harvester
+
+ports:
+  - name: keywords
+    direction: in
+    type: "[]string"
+    description: "Search keywords from parent circuit triage output"
+  - name: code-context
+    direction: out
+    type: harvester.CodeContext
+    description: "Gathered code context returned to parent circuit"

@@ -1,0 +1,13 @@
+{
+  "run_id": "32799",
+  "name": "ptp-operator-launch-32799",
+  "failure_list": [
+    {
+      "id": "78465",
+      "name": "test_id:78465 PTP Process Restart should recover the phc2sys process after killing it",
+      "status": "FAILED",
+      "description": "OCPBUGS-74929 large amount of clock-class events flip-flop between 6 and 248 https://issues.redhat.com/browse/OCPBUGS-74939 Both need further investigation, they should work with ntpfailover",
+      "log_snippet": ""
+    }
+  ]
+}

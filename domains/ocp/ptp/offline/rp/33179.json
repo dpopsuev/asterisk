@@ -1,0 +1,20 @@
+{
+  "run_id": "33179",
+  "name": "ptp-operator-launch-33179",
+  "failure_list": [
+    {
+      "id": "57197",
+      "name": "test_id:57197",
+      "status": "FAILED",
+      "description": "",
+      "log_snippet": ""
+    },
+    {
+      "id": "49737",
+      "name": "test_id:49737",
+      "status": "FAILED",
+      "description": "OCPBUGS-49372: [4.17] remove phc2sys `-w` option PHC2SYSY process not found From linuxptp daemon log:",
+      "log_snippet": ""
+    }
+  ]
+}

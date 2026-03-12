@@ -15,9 +15,9 @@ schematics:
     path: schematics/rca
     bindings:
       source:    reportportal
-      knowledge: knowledge
-  knowledge:
-    path: schematics/knowledge
+      harvester: harvester
+  harvester:
+    path: schematics/harvester
     bindings:
       git:  github
       docs: docs
@@ -43,13 +43,23 @@ domain_serve:
     engine: sqlite
     schema: db-schema.yaml
 
-  assets:
-    vocabulary: vocabulary.yaml
+  # Multi-adapter store wiring: RCA uses persistent SQLite,
+  # Harvester uses ephemeral in-memory store for code context.
+  store_wiring:
+    default: sqlite
+    stores:
+      rca:
+        engine: sqlite
+        config:
+          path: "asterisk.db"
+      harvester:
+        engine: memory
 
+  assets:
     circuits:
       rca: circuits/rca.yaml
       calibration: circuits/calibration.yaml
-      knowledge: circuits/knowledge.yaml
+      harvester: circuits/harvester.yaml
 
     prompts:
       recall:      prompts/recall/judge-similarity.md
@@ -61,13 +71,8 @@ domain_serve:
       review-gap:  prompts/review/gap-analysis.md
       report:      prompts/report/regression-table.md
 
-    schemas:
-      rca: llm-output-schemas/rca.yaml
-
     scorecards:
       rca: scorecards/rca.yaml
 
     reports:
-      rca:         reports/rca-report.yaml
-      calibration: reports/calibration-report.yaml
-      transcript:  reports/transcript-report.yaml
+      rca: reports/rca-report.yaml

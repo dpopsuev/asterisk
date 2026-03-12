@@ -1,0 +1,20 @@
+{
+  "run_id": "32538",
+  "name": "ptp-operator-launch-32538",
+  "failure_list": [
+    {
+      "id": "75325",
+      "name": "test_id:75325",
+      "status": "FAILED",
+      "description": "The configmap didn\u2019t update",
+      "log_snippet": ""
+    },
+    {
+      "id": "49741",
+      "name": "test_id:49741",
+      "status": "FAILED",
+      "description": "change PTP offset thresholds /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_events_and_metrics.go:221",
+      "log_snippet": ""
+    }
+  ]
+}

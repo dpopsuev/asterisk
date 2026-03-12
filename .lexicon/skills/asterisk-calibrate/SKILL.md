@@ -20,8 +20,9 @@ handle that directly.
 
 The user types one of:
 
-- `/asterisk-calibrate ptp-mock` — calibrate against ptp-mock (12 cases)
-- `/asterisk-calibrate ptp-mock --parallel=4` — parallel with 4 workers
+- `/asterisk-calibrate ptp` — calibrate against ptp scenario (18 cases, online mode)
+- `/asterisk-calibrate ptp --mode=offline` — offline mode (pre-loaded data, deterministic)
+- `/asterisk-calibrate ptp --parallel=4` — parallel with 4 workers
 - `/asterisk-calibrate help` — show usage guide
 - `/asterisk-calibrate` — (no arg) show usage guide
 - "run wet calibration", "cursor calibration", "calibrate with LLM"
@@ -33,7 +34,7 @@ The user types one of:
 ### 1. Compose stack must be running
 
 The skill requires the full Origami compose stack running (gateway, RCA engine,
-knowledge engine, domain server). Verify the stack is up:
+harvester engine, domain server). Verify the stack is up:
 
 ```bash
 curl -sf http://localhost:9000/healthz && echo "gateway OK"
@@ -64,9 +65,11 @@ connectivity. If the gateway is unreachable, ask the user to run
 
 ### 1. Parse input
 
-Extract `SCENARIO` from the user's input. Defaults: `ptp-mock`.
+Extract `SCENARIO` from the user's input. Defaults: `ptp`.
 
-Available scenarios: `ptp-mock` (12 cases), `daemon-mock`, `ptp-real`, `ptp-real-ingest`.
+Available scenarios: `ptp` (18 verified cases).
+
+Extract `--mode=offline|online` if present. Default: `online`.
 
 Parse `--parallel=N` if present. Default: `4`.
 
@@ -81,7 +84,8 @@ project-0-asterisk-origami-gateway-start_circuit(
   parallel: 4,
   force: true,
   extra: {
-    "scenario": "ptp-mock",
+    "scenario": "ptp",
+    "mode": "online",
     "adapter": "llm"
   }
 )
@@ -271,9 +275,9 @@ When triggered with no args, "help", or unrecognized input:
 >
 > **Examples:**
 >
-> - `/asterisk-calibrate ptp-mock` — 12 cases, 4 workers (default)
-> - `/asterisk-calibrate ptp-mock --parallel=2` — 12 cases, 2 workers
-> - `/asterisk-calibrate daemon-mock` — daemon scenario
+> - `/asterisk-calibrate ptp` — 18 cases, 4 workers (default, online)
+> - `/asterisk-calibrate ptp --mode=offline` — offline (pre-loaded data)
+> - `/asterisk-calibrate ptp --parallel=2` — 18 cases, 2 workers
 >
 > **Prerequisites:**
 >
@@ -291,7 +295,7 @@ When triggered with no args, "help", or unrecognized input:
 > directly (Papercup v2 choreography). Produces an M1-M21 metrics
 > scorecard measuring circuit accuracy.
 >
-> **Available scenarios:** `ptp-mock`, `daemon-mock`, `ptp-real`, `ptp-real-ingest`
+> **Available scenarios:** `ptp` (18 verified cases, supports `--mode=offline|online`)
 
 ## Security guardrails
 

@@ -1,0 +1,13 @@
+{
+  "run_id": "33166",
+  "name": "ptp-operator-launch-33166",
+  "failure_list": [
+    {
+      "id": "77705",
+      "name": "test_id:77705",
+      "status": "FAILED",
+      "description": "SNO management workload partitioning /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/workloadpartitioning/ranwphelper/ranwphelper.go:134",
+      "log_snippet": ""
+    }
+  ]
+}

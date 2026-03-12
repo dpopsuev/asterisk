@@ -1,0 +1,34 @@
+{
+  "run_id": "31362",
+  "name": "ptp-operator-launch-31362",
+  "failure_list": [
+    {
+      "id": "83297",
+      "name": "test_id:83297",
+      "status": "FAILED",
+      "description": "t-bc/t-tsc upstream clock loss & unassisted holdover /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_recovery.go:2062",
+      "log_snippet": ""
+    },
+    {
+      "id": "83298",
+      "name": "test_id:83298",
+      "status": "FAILED",
+      "description": "t-bc/t-tsc upstream clock loss & unassisted holdover /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_recovery.go:2062",
+      "log_snippet": ""
+    },
+    {
+      "id": "83299",
+      "name": "test_id:83299",
+      "status": "FAILED",
+      "description": "t-bc/t-tsc upstream clock loss & unassisted holdover /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_recovery.go:2062",
+      "log_snippet": ""
+    },
+    {
+      "id": "83300",
+      "name": "test_id:83300",
+      "status": "FAILED",
+      "description": "t-bc/t-tsc upstream clock loss & unassisted holdover /var/lib/jenkins/workspace/ocp-far-edge-vran-tests/cnf-gotests/test/ran/ptp/tests/ptp_recovery.go:1865",
+      "log_snippet": ""
+    }
+  ]
+}
